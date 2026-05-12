@@ -1,0 +1,145 @@
+import type { CheckIn } from "@/types";
+
+export interface AchievementDef {
+  type: string;
+  label: string;
+  icon: string;
+  tier: number;
+  description: string;
+}
+
+export const ACHIEVEMENTS_BY_TYPE: Record<string, Omit<AchievementDef, "tier"> & { tiers: number[] }> = {
+  first_checkin: {
+    type: "first_checkin",
+    label: "Primeiro passo",
+    icon: "🌱",
+    tiers: [1],
+    description: "Fez seu primeiro check-in",
+  },
+  streak: {
+    type: "streak",
+    label: "Sequencia",
+    icon: "🔥",
+    tiers: [3, 7, 14, 30, 60, 90],
+    description: "{N} dias consecutivos de check-in",
+  },
+  all_habits: {
+    type: "all_habits",
+    label: "Dia perfeito",
+    icon: "⭐",
+    tiers: [1],
+    description: "Marcou todos os habitos positivos em um dia",
+  },
+  week_complete: {
+    type: "week_complete",
+    label: "Semana cheia",
+    icon: "📅",
+    tiers: [1],
+    description: "Check-in todos os dias por uma semana",
+  },
+  total_checkins: {
+    type: "total_checkins",
+    label: "Marco",
+    icon: "🏆",
+    tiers: [10, 50, 100],
+    description: "{N} check-ins registrados",
+  },
+};
+
+function calculateStreak(checkIns: CheckIn[]): number {
+  if (checkIns.length === 0) return 0;
+  const sorted = [...checkIns].sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+  );
+  const today = new Date().toISOString().split("T")[0];
+  const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
+
+  const latest = sorted[0]?.date;
+  if (latest !== today && latest !== yesterday) return 0;
+
+  let streak = 0;
+  let checkDate = new Date(today);
+  for (const ci of sorted) {
+    const ciDate = new Date(ci.date).toISOString().split("T")[0];
+    const expected = checkDate.toISOString().split("T")[0];
+    if (ciDate === expected) {
+      streak++;
+      checkDate = new Date(checkDate.getTime() - 86400000);
+    } else if (streak > 0) {
+      break;
+    }
+  }
+  return streak;
+}
+
+function hasWeekComplete(checkIns: CheckIn[]): boolean {
+  const today = new Date();
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(today.getTime() - i * 86400000);
+    const dateStr = d.toISOString().split("T")[0];
+    if (!checkIns.some((ci) => ci.date === dateStr)) return false;
+  }
+  return true;
+}
+
+export function detectNewAchievements(
+  checkIns: CheckIn[],
+  enabledKeys: string[],
+  existingAchievements: { achievement_type: string; tier: number }[]
+): AchievementDef[] {
+  const unlocked: AchievementDef[] = [];
+
+  const add = (def: Omit<AchievementDef, "tier">, tier: number) => {
+    const key = `${def.type}:${tier}`;
+    if (
+      !existingAchievements.some(
+        (a) => a.achievement_type === def.type && a.tier === tier
+      )
+    ) {
+      unlocked.push({
+        ...def,
+        tier,
+        description: def.description.replace("{N}", String(tier)),
+      });
+    }
+  };
+
+  // first check-in
+  if (checkIns.length >= 1) {
+    add(ACHIEVEMENTS_BY_TYPE.first_checkin, 1);
+  }
+
+  // streak tiers
+  const streak = calculateStreak(checkIns);
+  for (const tier of ACHIEVEMENTS_BY_TYPE.streak.tiers) {
+    if (streak >= tier) {
+      add(ACHIEVEMENTS_BY_TYPE.streak, tier);
+    }
+  }
+
+  // total check-ins tiers
+  for (const tier of ACHIEVEMENTS_BY_TYPE.total_checkins.tiers) {
+    if (checkIns.length >= tier) {
+      add(ACHIEVEMENTS_BY_TYPE.total_checkins, tier);
+    }
+  }
+
+  // all habits day
+  const nonSuicidal = enabledKeys.filter((k) => k !== "suicidal_thoughts");
+  if (
+    checkIns.some((ci) =>
+      nonSuicidal.every(
+        (k) => (ci as Record<string, unknown>)[k] === true
+      )
+    )
+  ) {
+    add(ACHIEVEMENTS_BY_TYPE.all_habits, 1);
+  }
+
+  // week complete
+  if (hasWeekComplete(checkIns)) {
+    add(ACHIEVEMENTS_BY_TYPE.week_complete, 1);
+  }
+
+  return unlocked;
+}

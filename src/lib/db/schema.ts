@@ -3,6 +3,7 @@ import {
   uuid,
   date,
   boolean,
+  integer,
   text,
   timestamp,
   uniqueIndex,
@@ -76,3 +77,24 @@ export const userPreferences = pgTable("user_preferences", {
     .notNull()
     .defaultNow(),
 });
+
+export const userAchievements = pgTable(
+  "user_achievements",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull(),
+    achievementType: text("achievement_type").notNull(),
+    tier: integer("tier").notNull().default(1),
+    unlockedAt: timestamp("unlocked_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    metadata: jsonb("metadata").notNull().default({}),
+  },
+  (table) => ({
+    userAchievementUnique: uniqueIndex("user_achievement_unique").on(
+      table.userId,
+      table.achievementType,
+      table.tier
+    ),
+  })
+);

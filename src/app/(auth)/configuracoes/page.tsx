@@ -136,7 +136,7 @@ export default function ConfiguracoesPage() {
                 onClick={() => toggle(q.id)}
                 className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors ${
                   !answers[q.id]
-                    ? "bg-primary text-primary-foreground"
+                    ? "bg-destructive text-destructive-foreground"
                     : "bg-muted text-muted-foreground hover:bg-muted/80"
                 }`}
               >

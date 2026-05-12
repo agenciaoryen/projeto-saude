@@ -7,7 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { StreakBadge } from "@/components/StreakBadge";
 import { MoodChart } from "@/components/MoodChart";
-import type { CheckIn } from "@/types";
+import { GardenView } from "@/components/GardenView";
+import type { CheckIn, UserAchievement } from "@/types";
 
 function calculateStreak(checkIns: CheckIn[]): number {
   if (checkIns.length === 0) return 0;
@@ -57,13 +58,15 @@ export default function DashboardPage() {
   const [checkIns, setCheckIns] = useState<CheckIn[]>([]);
   const [todayCheckIn, setTodayCheckIn] = useState<CheckIn | null>(null);
   const [enabledKeys, setEnabledKeys] = useState<string[]>([]);
+  const [achievements, setAchievements] = useState<UserAchievement[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.all([
       fetch("/api/check-ins").then((r) => r.json()),
       fetch("/api/preferences").then((r) => r.json()),
-    ]).then(([checkInsData, prefsData]) => {
+      fetch("/api/achievements").then((r) => r.json()),
+    ]).then(([checkInsData, prefsData, achievementsData]) => {
       if (!prefsData.onboarding_completed) {
         router.push("/onboarding");
         return;
@@ -73,6 +76,9 @@ export default function DashboardPage() {
         setCheckIns(checkInsData);
         const today = new Date().toISOString().split("T")[0];
         setTodayCheckIn(checkInsData.find((c: CheckIn) => c.date === today) || null);
+      }
+      if (Array.isArray(achievementsData)) {
+        setAchievements(achievementsData);
       }
       setLoading(false);
     }).catch(() => setLoading(false));
@@ -171,6 +177,12 @@ export default function DashboardPage() {
       )}
 
       <StreakBadge streak={streak} />
+
+      <GardenView
+        streak={streak}
+        achievements={achievements}
+        totalCheckIns={checkIns.length}
+      />
 
       {checkIns.length > 1 && (
         <Card className="rounded-2xl">

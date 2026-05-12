@@ -140,8 +140,22 @@ export function CheckInForm({ existingCheckIn }: CheckInFormProps) {
     toast.success(
       existingCheckIn
         ? "Check-in atualizado com sucesso! 🌱"
-        : `Check-in registrado! Você marcou ${score} de ${total} hábitos positivos. 🌱`
+        : `Check-in registrado! Voce marcou ${score} de ${total} habitos positivos. 🌱`
     );
+
+    // Check for new achievements
+    fetch("/api/achievements", { method: "POST" })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.new_achievements?.length > 0) {
+          data.new_achievements.forEach((a: { icon: string; label: string }) => {
+            toast.success(`${a.icon} ${a.label} desbloqueado!`, {
+              duration: 4000,
+            });
+          });
+        }
+      })
+      .catch(() => {});
 
     setLoading(false);
     router.push("/dashboard");
@@ -207,7 +221,7 @@ export function CheckInForm({ existingCheckIn }: CheckInFormProps) {
                       onClick={() => handleCheck(q.key as keyof FormData, false)}
                       className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors ${
                         value === false
-                          ? "bg-primary text-primary-foreground"
+                          ? "bg-destructive text-destructive-foreground"
                           : "bg-muted text-muted-foreground hover:bg-muted/80"
                       }`}
                     >

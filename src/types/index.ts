@@ -30,3 +30,12 @@ export interface CheckInStats {
   completion_rate_7d: number;
   completion_rate_30d: number;
 }
+
+export interface UserAchievement {
+  id: string;
+  user_id: string;
+  achievement_type: string;
+  tier: number;
+  unlocked_at: string;
+  metadata: Record<string, unknown>;
+}
