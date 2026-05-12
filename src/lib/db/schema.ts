@@ -6,6 +6,7 @@ import {
   text,
   timestamp,
   uniqueIndex,
+  jsonb,
 } from "drizzle-orm/pg-core";
 
 const ALL_QUESTION_KEYS = [
@@ -66,6 +67,7 @@ export const checkIns = pgTable(
 export const userPreferences = pgTable("user_preferences", {
   userId: uuid("user_id").primaryKey(),
   enabledQuestions: text("enabled_questions").array().notNull().default([]),
+  context: jsonb("context").notNull().default({}),
   onboardingCompleted: boolean("onboarding_completed").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()

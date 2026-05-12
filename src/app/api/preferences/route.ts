@@ -22,12 +22,14 @@ export async function GET() {
     if (!prefs) {
       return NextResponse.json({
         enabled_questions: [...ALL_QUESTION_KEYS],
+        context: {},
         onboarding_completed: false,
       });
     }
 
     return NextResponse.json({
       enabled_questions: prefs.enabledQuestions,
+      context: prefs.context || {},
       onboarding_completed: prefs.onboardingCompleted,
     });
   } catch (error) {
@@ -48,7 +50,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { enabled_questions, onboarding_completed } = body;
+    const { enabled_questions, context, onboarding_completed } = body;
 
     const [existing] = await db
       .select()
@@ -61,6 +63,7 @@ export async function POST(req: NextRequest) {
         .update(userPreferences)
         .set({
           enabledQuestions: enabled_questions || existing.enabledQuestions,
+          context: context || existing.context || {},
           onboardingCompleted:
             onboarding_completed ?? existing.onboardingCompleted,
           updatedAt: new Date(),
@@ -70,6 +73,7 @@ export async function POST(req: NextRequest) {
 
       return NextResponse.json({
         enabled_questions: updated.enabledQuestions,
+        context: updated.context || {},
         onboarding_completed: updated.onboardingCompleted,
       });
     }
@@ -79,6 +83,7 @@ export async function POST(req: NextRequest) {
       .values({
         userId: user.id,
         enabledQuestions: enabled_questions || [...ALL_QUESTION_KEYS],
+        context: context || {},
         onboardingCompleted: onboarding_completed ?? false,
       })
       .returning();
@@ -86,6 +91,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       {
         enabled_questions: created.enabledQuestions,
+        context: created.context || {},
         onboarding_completed: created.onboardingCompleted,
       },
       { status: 201 }

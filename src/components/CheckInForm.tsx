@@ -11,32 +11,44 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import type { CheckIn } from "@/types";
 
-const YES_NO_QUESTIONS = [
-  { key: "feltJudged", label: "Se sentiu julgada(o) hoje" },
-  { key: "tookMedication", label: "Tomou remédios certinho" },
-  { key: "talkedToSomeone", label: "Conversou com alguém presencialmente" },
-  { key: "meditationPrayerBreathing", label: "Fez meditação | oração | respiração" },
-  { key: "creativeActivity", label: "Cantou | pintou | desenhou | assistiu TV" },
-  { key: "ateWell", label: "Comeu bem hoje" },
-  { key: "bowelMovement", label: "Fez cocô" },
-  { key: "exerciseWalk", label: "Saiu a caminhar | exercício físico" },
-  { key: "drankWater", label: "Tomou 1L água (mínimo)" },
-  { key: "sleptWell", label: "Dormiu bem | descansou" },
-  { key: "suicidalThoughts", label: "Pensamento suicida" },
-  { key: "didSomethingEnjoyable", label: "Fez algo que gostou hoje" },
-  { key: "workedOnGoals", label: "Trabalhou pelas suas metas hoje" },
-];
-
 type FormData = Omit<CheckIn, "id" | "user_id" | "created_at" | "updated_at">;
 
 interface CheckInFormProps {
   existingCheckIn?: CheckIn | null;
 }
 
+function getQuestionLabel(key: string, ctx: Record<string, boolean>): string {
+  if (key === "meditationPrayerBreathing") {
+    return ctx.has_faith
+      ? "Fez meditação | oração | respiração"
+      : "Fez meditação | respiração";
+  }
+  if (key === "creativeActivity") {
+    return ctx.has_creative_hobby
+      ? "Cantou | pintou | desenhou | assistiu TV"
+      : "Assistiu TV | fez algo criativo";
+  }
+  const labels: Record<string, string> = {
+    feltJudged: "Se sentiu julgada(o) hoje",
+    tookMedication: "Tomou remédios certinho",
+    talkedToSomeone: "Conversou com alguém presencialmente",
+    ateWell: "Comeu bem hoje",
+    bowelMovement: "Fez cocô",
+    exerciseWalk: "Saiu a caminhar | exercício físico",
+    drankWater: "Tomou 1L água (mínimo)",
+    sleptWell: "Dormiu bem | descansou",
+    suicidalThoughts: "Pensamento suicida",
+    didSomethingEnjoyable: "Fez algo que gostou hoje",
+    workedOnGoals: "Trabalhou pelas suas metas hoje",
+  };
+  return labels[key] || key;
+}
+
 export function CheckInForm({ existingCheckIn }: CheckInFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [enabledKeys, setEnabledKeys] = useState<string[]>([]);
+  const [context, setContext] = useState<Record<string, boolean>>({});
   const [form, setForm] = useState<FormData>({
     date: new Date().toISOString().split("T")[0],
     feltJudged: false,
@@ -61,6 +73,7 @@ export function CheckInForm({ existingCheckIn }: CheckInFormProps) {
       .then((res) => res.json())
       .then((data) => {
         setEnabledKeys(data.enabled_questions || []);
+        setContext(data.context || {});
       })
       .catch(() => {});
   }, []);
@@ -92,9 +105,10 @@ export function CheckInForm({ existingCheckIn }: CheckInFormProps) {
     setForm((prev) => ({ ...prev, [key]: checked }));
   };
 
-  const activeQuestions = YES_NO_QUESTIONS.filter((q) =>
-    enabledKeys.includes(q.key)
-  );
+  const activeQuestions = enabledKeys.map((key) => ({
+    key,
+    label: getQuestionLabel(key, context),
+  }));
 
   const score = activeQuestions.filter(
     (q) => q.key !== "suicidalThoughts" && form[q.key as keyof FormData] === true
