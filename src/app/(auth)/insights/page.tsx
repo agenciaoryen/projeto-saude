@@ -12,6 +12,28 @@ interface Message {
 
 const CHAT_CACHE_KEY = "maya_chat";
 
+function splitIntoParts(text: string): string[] {
+  // Split by double newline (paragraph breaks)
+  const parts = text
+    .split(/\n\n+/)
+    .map((p) => p.trim())
+    .filter((p) => p.length > 0);
+
+  if (parts.length > 1) return parts;
+
+  // If single paragraph, split long ones by sentence groups
+  const sentences = text.split(/(?<=[.!?])\s+/);
+  if (sentences.length <= 2) return [text];
+
+  // Group sentences into pairs for natural delivery
+  const groups: string[] = [];
+  for (let i = 0; i < sentences.length; i += 2) {
+    const group = sentences.slice(i, i + 2).join(" ").trim();
+    if (group) groups.push(group);
+  }
+  return groups.length > 0 ? groups : [text];
+}
+
 function loadProfileCache() {
   try {
     const raw = localStorage.getItem("user_profile");
@@ -94,7 +116,6 @@ export default function MayaChatPage() {
     setLoading(true);
 
     try {
-      // Send only last 20 messages for context
       const contextMsgs = updated.slice(-20);
       const res = await fetch("/api/maya", {
         method: "POST",
@@ -103,11 +124,31 @@ export default function MayaChatPage() {
       });
       if (!res.ok) throw new Error();
       const data = await res.json();
-      setMessages([...updated, { role: "assistant", content: data.reply }]);
+      const parts = splitIntoParts(data.reply);
+
+      // Add first part immediately
+      setMessages([...updated, { role: "assistant", content: parts[0] }]);
+      setLoading(false);
+
+      // Stagger remaining parts with delay
+      if (parts.length > 1) {
+        const remaining = parts.slice(1);
+        const base = [...updated, { role: "assistant", content: parts[0] }];
+        remaining.forEach((part, i) => {
+          setTimeout(() => {
+            setMessages((prev) => {
+              // Avoid race: only append if not already added
+              const last = prev[prev.length - 1];
+              if (last?.role === "assistant" && last.content === part) return prev;
+              return [...prev, { role: "assistant", content: part }];
+            });
+          }, (i + 1) * 1000 + Math.random() * 400);
+        });
+      }
     } catch {
       setMessages([...updated, { role: "assistant", content: t("maya_error") }]);
+      setLoading(false);
     }
-    setLoading(false);
   }, [input, loading, messages, t]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
