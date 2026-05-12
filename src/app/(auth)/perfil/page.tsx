@@ -71,6 +71,10 @@ export default function PerfilPage() {
         if (res.ok) {
           setSaved(true);
           setLang(language as "pt" | "es" | "en");
+          try {
+            const prev = JSON.parse(localStorage.getItem("user_profile") || "{}");
+            localStorage.setItem("user_profile", JSON.stringify({ ...prev, name }));
+          } catch { /* noop */ }
         }
       } catch {
         // silent
@@ -99,7 +103,12 @@ export default function PerfilPage() {
       });
       if (!res.ok) throw new Error();
       const data = await res.json();
-      setAvatarUrl(data.avatar_url + "?t=" + Date.now());
+      const finalUrl = data.avatar_url + "?t=" + Date.now();
+      setAvatarUrl(finalUrl);
+      try {
+        const prev = JSON.parse(localStorage.getItem("user_profile") || "{}");
+        localStorage.setItem("user_profile", JSON.stringify({ ...prev, avatar_url: finalUrl }));
+      } catch { /* noop */ }
       toast.success("Foto atualizada!");
     } catch {
       toast.error("Erro ao enviar foto");
