@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -169,35 +168,55 @@ export function CheckInForm({ existingCheckIn }: CheckInFormProps) {
               </a>
             </p>
           ) : (
-            activeQuestions.map((q) => (
-              <div
-                key={q.key}
-                className={`flex items-start gap-3 p-2 -mx-2 rounded-lg hover:bg-secondary/50 transition-colors ${
-                  q.key === "suicidal_thoughts"
-                    ? "border border-red-200 dark:border-red-900 rounded-lg p-3"
-                    : ""
-                }`}
-              >
-                <Checkbox
-                  id={q.key}
-                  checked={!!form[q.key as keyof FormData]}
-                  onCheckedChange={(checked) =>
-                    handleCheck(q.key as keyof FormData, checked === true)
-                  }
-                  className="mt-1"
-                />
-                <Label
-                  htmlFor={q.key}
-                  className={`text-sm leading-relaxed cursor-pointer ${
-                    q.key === "suicidal_thoughts"
-                      ? "text-red-600 dark:text-red-400 font-medium"
+            activeQuestions.map((q) => {
+              const value = form[q.key as keyof FormData];
+              const isSuicidal = q.key === "suicidal_thoughts";
+
+              return (
+                <div
+                  key={q.key}
+                  className={`p-3 rounded-xl space-y-2 ${
+                    isSuicidal
+                      ? "border border-red-200 dark:border-red-900"
                       : ""
                   }`}
                 >
-                  {q.label}
-                </Label>
-              </div>
-            ))
+                  <p
+                    className={`text-sm leading-relaxed ${
+                      isSuicidal
+                        ? "text-red-600 dark:text-red-400 font-medium"
+                        : ""
+                    }`}
+                  >
+                    {q.label}
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleCheck(q.key as keyof FormData, true)}
+                      className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors ${
+                        value === true
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted text-muted-foreground hover:bg-muted/80"
+                      }`}
+                    >
+                      Sim
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleCheck(q.key as keyof FormData, false)}
+                      className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors ${
+                        value === false
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted text-muted-foreground hover:bg-muted/80"
+                      }`}
+                    >
+                      Não
+                    </button>
+                  </div>
+                </div>
+              );
+            })
           )}
         </CardContent>
       </Card>
