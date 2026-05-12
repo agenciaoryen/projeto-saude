@@ -33,8 +33,9 @@ export async function GET() {
       onboarding_completed: prefs.onboardingCompleted,
     });
   } catch (error) {
+    console.error("GET /api/preferences error:", error);
     return NextResponse.json(
-      { error: "Erro ao buscar preferências" },
+      { error: "Erro ao buscar preferências", detail: String(error) },
       { status: 500 }
     );
   }
@@ -97,9 +98,9 @@ export async function POST(req: NextRequest) {
       { status: 201 }
     );
   } catch (error) {
-    console.error(error);
+    console.error("POST /api/preferences error:", error);
     return NextResponse.json(
-      { error: "Erro ao salvar preferências" },
+      { error: "Erro ao salvar preferências", detail: String(error) },
       { status: 500 }
     );
   }

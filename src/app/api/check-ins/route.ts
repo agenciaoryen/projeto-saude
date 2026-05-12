@@ -36,8 +36,9 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(result);
   } catch (error) {
+    console.error("GET /api/check-ins error:", error);
     return NextResponse.json(
-      { error: "Erro ao buscar check-ins" },
+      { error: "Erro ao buscar check-ins", detail: String(error) },
       { status: 500 }
     );
   }
@@ -101,9 +102,9 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(created, { status: 201 });
   } catch (error) {
-    console.error(error);
+    console.error("POST /api/check-ins error:", error);
     return NextResponse.json(
-      { error: "Erro ao salvar check-in" },
+      { error: "Erro ao salvar check-in", detail: String(error) },
       { status: 500 }
     );
   }
