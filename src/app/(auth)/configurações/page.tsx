@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
+import { useTranslation } from "@/lib/useTranslation";
+import { LANG_OPTIONS } from "@/lib/i18n";
 
 const GENDER_OPTIONS = [
   { id: "masculino", label: "Masculino", emoji: "⚡" },
@@ -14,29 +16,31 @@ const GENDER_OPTIONS = [
 const CONTEXT_QUESTIONS = [
   {
     id: "has_medication",
-    question: "Você toma medicamentos prescritos regularmente?",
-    description: "Mostra a pergunta 'Tomou remédios certinho' no check-in.",
+    qKey: "q_medicacao",
+    dKey: "q_medicacao_desc",
   },
   {
     id: "has_faith",
-    question: "Você tem prática de fé, espiritualidade ou religião?",
-    description: 'Adiciona "oração" à pergunta de meditação/respiração.',
+    qKey: "q_fe",
+    dKey: "q_fe_desc",
   },
   {
     id: "has_creative_hobby",
-    question: "Você costuma cantar, pintar ou desenhar?",
-    description: 'Adiciona "cantou/pintou/desenhou" à pergunta criativa.',
+    qKey: "q_criatividade",
+    dKey: "q_criatividade_desc",
   },
   {
     id: "track_suicidal_thoughts",
-    question: "Incluir pergunta sobre pensamento suicida?",
-    description: "Recomendamos manter para acompanhar sua segurança.",
+    qKey: "q_suicida",
+    dKey: "q_suicida_desc",
   },
 ];
 
 export default function ConfiguracoesPage() {
+  const { t } = useTranslation();
   const [answers, setAnswers] = useState<Record<string, boolean>>({});
   const [gender, setGender] = useState<string>("nao_dizer");
+  const [language, setLanguage] = useState<string>("pt");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -53,6 +57,7 @@ export default function ConfiguracoesPage() {
           }
         );
         if (data.context?.gender) setGender(data.context.gender);
+        if (data.context?.language) setLanguage(data.context.language);
         setLoading(false);
       })
       .catch(() => setLoading(false));
@@ -87,24 +92,24 @@ export default function ConfiguracoesPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         enabled_questions: enabled,
-        context: { ...answers, gender },
+        context: { ...answers, gender, language },
       }),
     });
 
     if (!res.ok) {
-      toast.error("Erro ao salvar.");
+      toast.error(t("erro_salvar"));
       setSaving(false);
       return;
     }
 
-    toast.success("Preferências atualizadas! 🌱");
+    toast.success(t("preferencias_atualizadas"));
     setSaving(false);
   };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <p className="text-muted-foreground">Carregando...</p>
+        <p className="text-muted-foreground">{t("carregando")}</p>
       </div>
     );
   }
@@ -112,19 +117,43 @@ export default function ConfiguracoesPage() {
   return (
     <div className="max-w-lg mx-auto space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Configurações</h1>
-        <p className="text-muted-foreground text-sm">
-          Suas respostas ajudam a personalizar as perguntas do check-in.
-        </p>
+        <h1 className="text-2xl font-bold">{t("config_title")}</h1>
+        <p className="text-muted-foreground text-sm">{t("config_subtitle")}</p>
       </div>
 
+      {/* Language selector */}
       <Card className="rounded-2xl">
         <CardHeader className="pb-2">
-          <CardTitle className="text-base">Qual seu gênero?</CardTitle>
+          <CardTitle className="text-base">Idioma / Language</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex gap-2">
+            {LANG_OPTIONS.map((opt) => (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => setLanguage(opt.id)}
+                className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors ${
+                  language === opt.id
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground hover:bg-muted/80"
+                }`}
+              >
+                {opt.flag} {opt.label}
+              </button>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Gender */}
+      <Card className="rounded-2xl">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">{t("pergunta_genero")}</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground mb-3">
-            Personaliza o estilo visual do seu dashboard.
+            {t("genero_subtitle_config")}
           </p>
           <div className="flex gap-2">
             {GENDER_OPTIONS.map((opt) => (
@@ -145,15 +174,14 @@ export default function ConfiguracoesPage() {
         </CardContent>
       </Card>
 
+      {/* Context questions */}
       {CONTEXT_QUESTIONS.map((q) => (
         <Card key={q.id} className="rounded-2xl">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">{q.question}</CardTitle>
+            <CardTitle className="text-base">{t(q.qKey)}</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground mb-3">
-              {q.description}
-            </p>
+            <p className="text-sm text-muted-foreground mb-3">{t(q.dKey)}</p>
             <div className="flex gap-2">
               <button
                 type="button"
@@ -164,7 +192,7 @@ export default function ConfiguracoesPage() {
                     : "bg-muted text-muted-foreground hover:bg-muted/80"
                 }`}
               >
-                Sim
+                {t("sim")}
               </button>
               <button
                 type="button"
@@ -175,7 +203,7 @@ export default function ConfiguracoesPage() {
                     : "bg-muted text-muted-foreground hover:bg-muted/80"
                 }`}
               >
-                Não
+                {t("nao")}
               </button>
             </div>
           </CardContent>
@@ -188,7 +216,7 @@ export default function ConfiguracoesPage() {
         onClick={handleSave}
         disabled={saving}
       >
-        {saving ? "Salvando..." : "Salvar preferências"}
+        {saving ? t("salvando") : t("salvar_entrada")}
       </Button>
     </div>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useTranslation } from "@/lib/useTranslation";
 import type { UserAchievement } from "@/types";
 
 const GARDEN_PLANTS = ["🌱", "🌿", "🪴", "🌷", "🌸", "🌻", "🌺", "🌳", "🍀", "💐"];
@@ -12,6 +13,7 @@ interface GardenViewProps {
 }
 
 export function GardenView({ streak, achievements, totalCheckIns }: GardenViewProps) {
+  const { t } = useTranslation();
   const plantIndex = Math.min(Math.floor(streak / 3), GARDEN_PLANTS.length - 1);
   const plant = GARDEN_PLANTS[plantIndex];
 
@@ -22,31 +24,29 @@ export function GardenView({ streak, achievements, totalCheckIns }: GardenViewPr
   return (
     <Card className="rounded-2xl">
       <CardHeader>
-        <CardTitle className="text-lg">Seu jardim</CardTitle>
-        <p className="text-sm text-muted-foreground">
-          Cada dia de check-in cultiva seu jardim
-        </p>
+        <CardTitle className="text-lg">{t("seu_jardim")}</CardTitle>
+        <p className="text-sm text-muted-foreground">{t("cultiva_jardim")}</p>
       </CardHeader>
       <CardContent>
         <div className="text-center mb-4">
           <span className="text-6xl block mb-2">{plant}</span>
           <p className="text-sm text-muted-foreground">
             {streak === 0
-              ? "Plante sua primeira semente hoje"
+              ? t("plante_semente")
               : streak < 3
-              ? "Sua semente está brotando..."
+              ? t("semente_brotando")
               : streak < 7
-              ? "Sua planta está crescendo!"
+              ? t("planta_crescendo")
               : streak < 14
-              ? "Flores aparecendo!"
+              ? t("flores_aparecendo")
               : streak < 30
-              ? "Jardim florido!"
-              : "Jardim lendario!"}
+              ? t("jardim_florido")
+              : t("jardim_lendario")}
           </p>
           {streak > 0 && (
             <p className="text-xs text-muted-foreground mt-1">
-              {streak} dia{streak !== 1 ? "s" : ""} consecutivo{streak !== 1 ? "s" : ""}
-              {totalCheckIns > 0 && ` · ${totalCheckIns} check-in${totalCheckIns !== 1 ? "s" : ""} total`}
+              {streak} {streak !== 1 ? t("dias_consecutivos_garden") : t("dia_consecutivo")}
+              {totalCheckIns > 0 && ` · ${totalCheckIns} ${totalCheckIns !== 1 ? t("checkins_total") : t("checkin_total")}`}
             </p>
           )}
         </div>
@@ -62,9 +62,7 @@ export function GardenView({ streak, achievements, totalCheckIns }: GardenViewPr
             </span>
           ))}
           {achievementIcons.length === 0 && (
-            <p className="text-xs text-muted-foreground">
-              Complete check-ins para desbloquear conquistas
-            </p>
+            <p className="text-xs text-muted-foreground">{t("desbloquear_conquistas")}</p>
           )}
         </div>
       </CardContent>

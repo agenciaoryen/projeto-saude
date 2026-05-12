@@ -98,3 +98,24 @@ export const userAchievements = pgTable(
     ),
   })
 );
+
+export const diaryEntries = pgTable(
+  "diary_entries",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull(),
+    date: date("date").notNull().defaultNow(),
+    title: text("title").notNull().default(""),
+    content: text("content").notNull().default(""),
+    mood: integer("mood"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    userDateDiaryIdx: uniqueIndex("user_date_diary_idx").on(table.userId, table.date),
+  })
+);

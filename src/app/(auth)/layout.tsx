@@ -36,10 +36,10 @@ export default function AuthLayout({
               <DropdownMenuItem
                 render={
                   <Link
-                    href="/configuracoes"
+                    href="/configurações"
                     className="w-full text-left px-2 py-1.5 text-sm block"
                   >
-                    Configuracoes
+                    Configurações
                   </Link>
                 }
               />

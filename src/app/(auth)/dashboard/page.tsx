@@ -9,6 +9,7 @@ import { StreakBadge } from "@/components/StreakBadge";
 import { MoodChart } from "@/components/MoodChart";
 import { GardenView } from "@/components/GardenView";
 import { StatsView } from "@/components/StatsView";
+import { useTranslation } from "@/lib/useTranslation";
 import type { CheckIn, UserAchievement } from "@/types";
 
 function calculateStreak(checkIns: CheckIn[]): number {
@@ -56,6 +57,7 @@ const HABIT_DISPLAY: Record<string, [string, string]> = {
 
 export default function DashboardPage() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [checkIns, setCheckIns] = useState<CheckIn[]>([]);
   const [todayCheckIn, setTodayCheckIn] = useState<CheckIn | null>(null);
   const [enabledKeys, setEnabledKeys] = useState<string[]>([]);
@@ -90,7 +92,7 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <p className="text-muted-foreground">Carregando...</p>
+        <p className="text-muted-foreground">{t("carregando")}</p>
       </div>
     );
   }
@@ -109,7 +111,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Olá! 🌱</h1>
+        <h1 className="text-2xl font-bold">{t("ola")}</h1>
         <p className="text-muted-foreground text-sm">
           {new Date().toLocaleDateString("pt-BR", {
             weekday: "long",
@@ -124,20 +126,20 @@ export default function DashboardPage() {
           <CardContent className="py-8 text-center space-y-4">
             <div className="text-4xl">📝</div>
             <div>
-              <p className="font-medium">Você ainda não fez o check-in de hoje</p>
-              <p className="text-sm text-muted-foreground">Leva menos de 3 minutos</p>
+              <p className="font-medium">{t("sem_checkin")}</p>
+              <p className="text-sm text-muted-foreground">{t("leva_menos_3min")}</p>
             </div>
             <Button size="lg" className="rounded-xl" onClick={() => router.push("/check-in")}>
-              Fazer check-in
+              {t("fazer_checkin")}
             </Button>
           </CardContent>
         </Card>
       ) : (
         <Card className="rounded-2xl">
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-lg">Check-in de hoje ✅</CardTitle>
+            <CardTitle className="text-lg">{t("checkin_hoje_feito")}</CardTitle>
             <Badge variant="secondary">
-              {positiveCount}/{totalHabits} hábitos
+              {positiveCount}/{totalHabits} {t("habitos")}
             </Badge>
           </CardHeader>
           <CardContent>
@@ -161,19 +163,19 @@ export default function DashboardPage() {
             {todayCheckIn.feeling && (
               <div className="mt-4 p-3 bg-secondary/30 rounded-xl">
                 <p className="text-xs text-muted-foreground mb-1">
-                  Como se sente:
+                  {t("como_se_sente")}
                 </p>
                 <p className="text-sm">{todayCheckIn.feeling}</p>
               </div>
             )}
             {todayCheckIn.gratitude && (
               <div className="mt-2 p-3 bg-accent/20 rounded-xl">
-                <p className="text-xs text-muted-foreground mb-1">Gratidão:</p>
+                <p className="text-xs text-muted-foreground mb-1">{t("gratidao")}</p>
                 <p className="text-sm italic">{todayCheckIn.gratitude}</p>
               </div>
             )}
             <Button variant="outline" size="sm" className="mt-4 rounded-xl" onClick={() => router.push("/check-in")}>
-              Editar check-in de hoje
+              {t("editar_checkin")}
             </Button>
           </CardContent>
         </Card>
@@ -198,7 +200,7 @@ export default function DashboardPage() {
       {checkIns.length > 1 && (
         <Card className="rounded-2xl">
           <CardHeader>
-            <CardTitle className="text-lg">Evolução</CardTitle>
+            <CardTitle className="text-lg">{t("evolucao")}</CardTitle>
           </CardHeader>
           <CardContent>
             <MoodChart checkIns={checkIns} enabledKeys={enabledKeys} />
@@ -208,7 +210,7 @@ export default function DashboardPage() {
 
       <Card className="rounded-2xl">
         <CardHeader>
-          <CardTitle className="text-lg">Últimos check-ins</CardTitle>
+          <CardTitle className="text-lg">{t("ultimos_checkins")}</CardTitle>
         </CardHeader>
         <CardContent>
           {checkIns.slice(0, 7).map((ci) => (
@@ -232,7 +234,7 @@ export default function DashboardPage() {
           ))}
           {checkIns.length === 0 && (
             <p className="text-sm text-muted-foreground text-center py-4">
-              Nenhum check-in ainda. Comece hoje!
+              {t("nenhum_checkin")}
             </p>
           )}
         </CardContent>

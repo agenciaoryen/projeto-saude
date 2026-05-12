@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
+import { useTranslation } from "@/lib/useTranslation";
+import { LANG_OPTIONS } from "@/lib/i18n";
 
 const GENDER_OPTIONS = [
   { id: "masculino", label: "Masculino", emoji: "⚡" },
@@ -13,35 +15,15 @@ const GENDER_OPTIONS = [
 ] as const;
 
 const CONTEXT_QUESTIONS = [
-  {
-    id: "has_medication",
-    question: "Você toma medicamentos prescritos regularmente?",
-    description:
-      "Se sim, vamos te lembrar de registrar se tomou os remédios certinho.",
-  },
-  {
-    id: "has_faith",
-    question: "Você tem alguma prática de fé, espiritualidade ou religião?",
-    description:
-      "Se sim, a pergunta de meditação incluirá 'oração'. Se não, será apenas meditação e respiração.",
-  },
-  {
-    id: "has_creative_hobby",
-    question: "Você costuma cantar, pintar ou desenhar?",
-    description:
-      "Se sim, incluiremos essas opções. Se não, a pergunta será mais geral sobre criatividade e lazer.",
-  },
-  {
-    id: "track_suicidal_thoughts",
-    question: "Quer incluir a pergunta sobre pensamento suicida?",
-    description:
-      "É uma pergunta importante para acompanhar sua segurança. Recomendamos incluir.",
-    defaultValue: true,
-  },
+  { id: "has_medication", qKey: "q_medicacao", dKey: "q_medicacao_desc" },
+  { id: "has_faith", qKey: "q_fe", dKey: "q_fe_desc" },
+  { id: "has_creative_hobby", qKey: "q_criatividade", dKey: "q_criatividade_desc" },
+  { id: "track_suicidal_thoughts", qKey: "q_suicida", dKey: "q_suicida_desc", defaultVal: true },
 ];
 
 export default function OnboardingPage() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [answers, setAnswers] = useState<Record<string, boolean>>({
     has_medication: false,
     has_faith: false,
@@ -49,6 +31,7 @@ export default function OnboardingPage() {
     track_suicidal_thoughts: true,
   });
   const [gender, setGender] = useState<string>("nao_dizer");
+  const [language, setLanguage] = useState<string>("pt");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -91,18 +74,18 @@ export default function OnboardingPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         enabled_questions: enabled,
-        context: { ...answers, gender },
+        context: { ...answers, gender, language },
         onboarding_completed: true,
       }),
     });
 
     if (!res.ok) {
-      toast.error("Erro ao salvar. Tente novamente.");
+      toast.error(t("erro_salvar"));
       setLoading(false);
       return;
     }
 
-    toast.success("Diário personalizado! 🌱");
+    toast.success(t("diario_personalizado"));
     router.push("/dashboard");
     router.refresh();
   };
@@ -112,21 +95,43 @@ export default function OnboardingPage() {
       <div className="max-w-lg w-full space-y-6">
         <div className="text-center space-y-2">
           <div className="text-5xl">🌱</div>
-          <h1 className="text-2xl font-bold">Vamos nos conhecer</h1>
-          <p className="text-muted-foreground text-sm">
-            Algumas perguntas para personalizar seu diário. Suas respostas
-            ajudam a mostrar só o que faz sentido pra você.
-          </p>
+          <h1 className="text-2xl font-bold">{t("vamos_conhecer")}</h1>
+          <p className="text-muted-foreground text-sm">{t("onboarding_subtitle")}</p>
         </div>
+
+        {/* Language selector */}
+        <Card className="rounded-2xl">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Idioma / Language</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex gap-2">
+              {LANG_OPTIONS.map((opt) => (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => setLanguage(opt.id)}
+                  className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                    language === opt.id
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground hover:bg-muted/80"
+                  }`}
+                >
+                  {opt.flag} {opt.label}
+                </button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Gender question */}
         <Card className="rounded-2xl">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">Qual seu gênero?</CardTitle>
+            <CardTitle className="text-base">{t("pergunta_genero")}</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground mb-3">
-              Vamos personalizar sua experiência. Depois você pode mudar nas configurações.
+              {t("genero_subtitle_onboarding")}
             </p>
             <div className="flex gap-2">
               {GENDER_OPTIONS.map((opt) => (
@@ -150,12 +155,10 @@ export default function OnboardingPage() {
         {CONTEXT_QUESTIONS.map((q) => (
           <Card key={q.id} className="rounded-2xl">
             <CardHeader className="pb-2">
-              <CardTitle className="text-base">{q.question}</CardTitle>
+              <CardTitle className="text-base">{t(q.qKey)}</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground mb-3">
-                {q.description}
-              </p>
+              <p className="text-sm text-muted-foreground mb-3">{t(q.dKey)}</p>
               <div className="flex gap-2">
                 <button
                   type="button"
@@ -166,7 +169,7 @@ export default function OnboardingPage() {
                       : "bg-muted text-muted-foreground hover:bg-muted/80"
                   }`}
                 >
-                  Sim
+                  {t("sim")}
                 </button>
                 <button
                   type="button"
@@ -177,7 +180,7 @@ export default function OnboardingPage() {
                       : "bg-muted text-muted-foreground hover:bg-muted/80"
                   }`}
                 >
-                  Não
+                  {t("nao")}
                 </button>
               </div>
             </CardContent>
@@ -190,7 +193,7 @@ export default function OnboardingPage() {
           onClick={handleSave}
           disabled={loading}
         >
-          {loading ? "Salvando..." : "Começar"}
+          {loading ? t("salvando") : t("comecar")}
         </Button>
       </div>
     </main>

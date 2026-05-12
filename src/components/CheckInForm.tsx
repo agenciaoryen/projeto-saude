@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
+import { useTranslation } from "@/lib/useTranslation";
 import type { CheckIn } from "@/types";
 
 type FormData = Omit<CheckIn, "id" | "user_id" | "created_at" | "updated_at">;
@@ -16,35 +17,33 @@ interface CheckInFormProps {
   existingCheckIn?: CheckIn | null;
 }
 
-function getQuestionLabel(key: string, ctx: Record<string, boolean>): string {
+function getQuestionLabel(key: string, ctx: Record<string, boolean>, t: (k: string) => string): string {
   if (key === "meditation_prayer_breathing") {
-    return ctx.has_faith
-      ? "Fez meditação | oração | respiração"
-      : "Fez meditação | respiração";
+    return ctx.has_faith ? t("q_meditacao_fe") : t("q_meditacao");
   }
   if (key === "creative_activity") {
-    return ctx.has_creative_hobby
-      ? "Cantou | pintou | desenhou | assistiu TV"
-      : "Assistiu TV | fez algo criativo";
+    return ctx.has_creative_hobby ? t("q_criatividade_hobby") : t("q_criatividade_geral");
   }
-  const labels: Record<string, string> = {
-    felt_judged: "Se sentiu julgada(o) hoje",
-    took_medication: "Tomou remédios certinho",
-    talked_to_someone: "Conversou com alguém presencialmente",
-    ate_well: "Comeu bem hoje",
-    bowel_movement: "Fez cocô",
-    exercise_walk: "Saiu a caminhar | exercício físico",
-    drank_water: "Tomou 1L água (mínimo)",
-    slept_well: "Dormiu bem | descansou",
-    suicidal_thoughts: "Pensamento suicida",
-    did_something_enjoyable: "Fez algo que gostou hoje",
-    worked_on_goals: "Trabalhou pelas suas metas hoje",
+  const labelMap: Record<string, string> = {
+    felt_judged: "q_julgada",
+    took_medication: "q_remedios",
+    talked_to_someone: "q_conversou",
+    ate_well: "q_comeu_bem",
+    bowel_movement: "q_coco",
+    exercise_walk: "q_exercicio",
+    drank_water: "q_agua",
+    slept_well: "q_dormiu",
+    suicidal_thoughts: "q_suicida_label",
+    did_something_enjoyable: "q_gostou",
+    worked_on_goals: "q_metas",
   };
-  return labels[key] || key;
+  const k = labelMap[key];
+  return k ? t(k) : key;
 }
 
 export function CheckInForm({ existingCheckIn }: CheckInFormProps) {
   const router = useRouter();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [enabledKeys, setEnabledKeys] = useState<string[]>([]);
   const [context, setContext] = useState<Record<string, boolean>>({});
@@ -106,7 +105,7 @@ export function CheckInForm({ existingCheckIn }: CheckInFormProps) {
 
   const activeQuestions = enabledKeys.map((key) => ({
     key,
-    label: getQuestionLabel(key, context),
+    label: getQuestionLabel(key, context, t),
   }));
 
   const score = activeQuestions.filter(
@@ -118,9 +117,7 @@ export function CheckInForm({ existingCheckIn }: CheckInFormProps) {
     e.preventDefault();
 
     if (form.suicidal_thoughts) {
-      toast.warning(
-        "Se você está tendo pensamentos suicidas, por favor ligue para o CVV: 188. Você não está sozinho(a). 💚"
-      );
+      toast.warning(t("cvv_warning"));
     }
 
     setLoading(true);
@@ -132,24 +129,23 @@ export function CheckInForm({ existingCheckIn }: CheckInFormProps) {
     });
 
     if (!res.ok) {
-      toast.error("Erro ao salvar. Tente novamente.");
+      toast.error(t("erro_salvar"));
       setLoading(false);
       return;
     }
 
     toast.success(
       existingCheckIn
-        ? "Check-in atualizado com sucesso! 🌱"
-        : `Check-in registrado! Voce marcou ${score} de ${total} habitos positivos. 🌱`
+        ? t("checkin_atualizado")
+        : `${t("checkin_registrado")} Você marcou ${score} de ${total} hábitos positivos. 🌱`
     );
 
-    // Check for new achievements
     fetch("/api/achievements", { method: "POST" })
       .then((r) => r.json())
       .then((data) => {
         if (data.new_achievements?.length > 0) {
           data.new_achievements.forEach((a: { icon: string; label: string }) => {
-            toast.success(`${a.icon} ${a.label} desbloqueado!`, {
+            toast.success(`${a.icon} ${a.label} ${t("desbloqueado")}`, {
               duration: 4000,
             });
           });
@@ -166,19 +162,17 @@ export function CheckInForm({ existingCheckIn }: CheckInFormProps) {
     <form onSubmit={handleSubmit} className="space-y-6">
       <Card className="rounded-2xl">
         <CardHeader>
-          <CardTitle className="text-lg">Check-in diário</CardTitle>
+          <CardTitle className="text-lg">{t("checkin_diario")}</CardTitle>
           <p className="text-sm text-muted-foreground">
-            {existingCheckIn
-              ? "Editando check-in"
-              : "Responda com sinceridade — sem julgamentos"}
+            {existingCheckIn ? t("editando_checkin") : t("responda_sinceridade")}
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
           {activeQuestions.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-4">
-              Nenhuma pergunta selecionada.{" "}
-              <a href="/configuracoes" className="text-primary underline">
-                Configure seu diário
+              {t("nenhuma_pergunta")}{" "}
+              <a href="/configurações" className="text-primary underline">
+                {t("configure_diario")}
               </a>
             </p>
           ) : (
@@ -214,7 +208,7 @@ export function CheckInForm({ existingCheckIn }: CheckInFormProps) {
                           : "bg-muted text-muted-foreground hover:bg-muted/80"
                       }`}
                     >
-                      Sim
+                      {t("sim")}
                     </button>
                     <button
                       type="button"
@@ -225,7 +219,7 @@ export function CheckInForm({ existingCheckIn }: CheckInFormProps) {
                           : "bg-muted text-muted-foreground hover:bg-muted/80"
                       }`}
                     >
-                      Não
+                      {t("nao")}
                     </button>
                   </div>
                 </div>
@@ -237,11 +231,11 @@ export function CheckInForm({ existingCheckIn }: CheckInFormProps) {
 
       <Card className="rounded-2xl">
         <CardHeader>
-          <CardTitle className="text-lg">Respostas abertas</CardTitle>
+          <CardTitle className="text-lg">{t("respostas_abertas")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="feeling">Como se sente:</Label>
+            <Label htmlFor="feeling">{t("sentimento_label")}</Label>
             <Textarea
               id="feeling"
               placeholder="Descreva como você está se sentindo hoje..."
@@ -255,7 +249,7 @@ export function CheckInForm({ existingCheckIn }: CheckInFormProps) {
           </div>
           <Separator />
           <div className="space-y-2">
-            <Label htmlFor="gratitude">Algo pelo qual está agradecida(o):</Label>
+            <Label htmlFor="gratitude">{t("gratidao_label")}</Label>
             <Textarea
               id="gratitude"
               placeholder="Pelo que você é grato(a) hoje?"
@@ -277,10 +271,10 @@ export function CheckInForm({ existingCheckIn }: CheckInFormProps) {
         disabled={loading}
       >
         {loading
-          ? "Salvando..."
+          ? t("salvando")
           : existingCheckIn
-          ? "Atualizar check-in"
-          : "Salvar check-in"}
+          ? t("atualizar_checkin")
+          : t("salvar_checkin")}
       </Button>
     </form>
   );

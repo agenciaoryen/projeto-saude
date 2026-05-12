@@ -1,18 +1,21 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { Home, PenLine, CalendarDays, Settings } from "lucide-react";
-
-const TABS = [
-  { icon: Home, label: "Inicio", href: "/dashboard" },
-  { icon: PenLine, label: "Check-in", href: "/check-in" },
-  { icon: CalendarDays, label: "Historico", href: "/historico" },
-  { icon: Settings, label: "Ajustes", href: "/configuracoes" },
-];
+import { Home, PenLine, CalendarDays, BookOpen, Settings } from "lucide-react";
+import { useTranslation } from "@/lib/useTranslation";
 
 export function BottomNav() {
+  const { t } = useTranslation();
   const pathname = usePathname();
   const router = useRouter();
+
+  const TABS = [
+    { icon: Home, label: t("inicio"), href: "/dashboard" },
+    { icon: PenLine, label: t("checkin"), href: "/check-in" },
+    { icon: BookOpen, label: t("diario"), href: "/diario" },
+    { icon: CalendarDays, label: t("historico"), href: "/historico" },
+    { icon: Settings, label: t("ajustes"), href: "/configurações" },
+  ];
 
   const isActive = (href: string) => {
     if (href === "/dashboard") return pathname === "/dashboard";

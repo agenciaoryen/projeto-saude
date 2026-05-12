@@ -39,3 +39,14 @@ export interface UserAchievement {
   unlocked_at: string;
   metadata: Record<string, unknown>;
 }
+
+export interface DiaryEntry {
+  id: string;
+  user_id: string;
+  date: string;
+  title: string;
+  content: string;
+  mood: number | null;
+  created_at: string;
+  updated_at: string;
+}
