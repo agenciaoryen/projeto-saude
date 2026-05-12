@@ -1,115 +1,191 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { useTranslation } from "@/lib/useTranslation";
+import { Send, Sparkles } from "lucide-react";
 
-export default function InsightsPage() {
-  const { t } = useTranslation();
-  const [analysis, setAnalysis] = useState<string | null>(null);
+interface Message {
+  role: "user" | "assistant";
+  content: string;
+}
+
+const CHAT_CACHE_KEY = "maya_chat";
+
+export default function MayaChatPage() {
+  const { t, lang } = useTranslation();
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [lastGenerated, setLastGenerated] = useState<string | null>(null);
+  const [hydrated, setHydrated] = useState(false);
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  // Load cached messages on mount
   useEffect(() => {
-    const cached = localStorage.getItem("insight_cache");
-    if (cached) {
-      try {
+    try {
+      const cached = localStorage.getItem(CHAT_CACHE_KEY);
+      if (cached) {
         const parsed = JSON.parse(cached);
-        setAnalysis(parsed.text);
-        setLastGenerated(parsed.date);
-      } catch { /* noop */ }
-    }
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setMessages(parsed);
+        }
+      }
+    } catch { /* noop */ }
+    setHydrated(true);
   }, []);
 
-  const generateAnalysis = async () => {
+  // Persist messages to localStorage
+  useEffect(() => {
+    if (hydrated && messages.length > 0) {
+      // Keep only last 50 messages to avoid localStorage bloat
+      const toCache = messages.slice(-50);
+      localStorage.setItem(CHAT_CACHE_KEY, JSON.stringify(toCache));
+    }
+  }, [messages, hydrated]);
+
+  // Auto-scroll
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  // Auto-resize textarea
+  useEffect(() => {
+    const ta = textareaRef.current;
+    if (ta) {
+      ta.style.height = "auto";
+      ta.style.height = Math.min(ta.scrollHeight, 120) + "px";
+    }
+  }, [input]);
+
+  const sendMessage = useCallback(async () => {
+    const trimmed = input.trim();
+    if (!trimmed || loading) return;
+
+    const userMsg: Message = { role: "user", content: trimmed };
+    const updated = [...messages, userMsg];
+    setMessages(updated);
+    setInput("");
     setLoading(true);
+
     try {
-      const res = await fetch("/api/analyze", { method: "POST" });
+      // Send only last 20 messages for context
+      const contextMsgs = updated.slice(-20);
+      const res = await fetch("/api/maya", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: contextMsgs }),
+      });
       if (!res.ok) throw new Error();
       const data = await res.json();
-      const text = data.analysis;
-      setAnalysis(text);
-      const now = new Date().toLocaleString("pt-BR");
-      setLastGenerated(now);
-      localStorage.setItem("insight_cache", JSON.stringify({ text, date: now }));
+      setMessages([...updated, { role: "assistant", content: data.reply }]);
     } catch {
-      setAnalysis("Tive dificuldade de me conectar agora. Tente novamente em alguns instantes. 💛");
+      setMessages([...updated, { role: "assistant", content: t("maya_error") }]);
     }
     setLoading(false);
+  }, [input, loading, messages, t]);
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
   };
 
+  const welcomeMessage = t("maya_welcome");
+
   return (
-    <div className="max-w-lg mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Insights</h1>
-        <p className="text-muted-foreground text-sm">
-          Uma análise gentil do seu momento, feita pela Maya
-        </p>
+    <div className="max-w-lg mx-auto flex flex-col h-[calc(100vh-7rem)]">
+      {/* Header */}
+      <div className="text-center py-3 shrink-0">
+        <h1 className="text-xl font-bold flex items-center justify-center gap-2">
+          <Sparkles className="size-4 text-primary" />
+          Maya
+        </h1>
+        <p className="text-xs text-muted-foreground">{t("maya_subtitle")}</p>
       </div>
 
-      {!analysis && !loading ? (
-        <Card className="rounded-2xl border-dashed border-primary/50 bg-primary/5">
-          <CardContent className="py-12 text-center space-y-4">
-            <div className="text-5xl">🔮</div>
-            <div>
-              <p className="font-medium">Quer um olhar sobre seu momento?</p>
-              <p className="text-sm text-muted-foreground max-w-xs mx-auto">
-                A Maya analisa seus check-ins e diário para te dar um insight gentil e pessoal.
-              </p>
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto space-y-4 px-1 py-2">
+        {hydrated && messages.length === 0 && (
+          <div className="flex items-start gap-3">
+            <div className="size-8 rounded-full bg-primary/10 flex items-center justify-center text-lg shrink-0 mt-0.5">
+              🌸
             </div>
-            <Button size="lg" className="rounded-xl" onClick={generateAnalysis}>
-              Gerar insight
-            </Button>
-          </CardContent>
-        </Card>
-      ) : loading ? (
-        <Card className="rounded-2xl">
-          <CardContent className="py-12 text-center space-y-5">
-            <div className="flex items-center justify-center gap-1.5">
-              <span className="size-2 rounded-full bg-primary/60 animate-bounce [animation-delay:0ms]" />
-              <span className="size-2 rounded-full bg-primary/60 animate-bounce [animation-delay:150ms]" />
-              <span className="size-2 rounded-full bg-primary/60 animate-bounce [animation-delay:300ms]" />
+            <div className="bg-muted rounded-2xl rounded-tl-md px-4 py-3 text-sm leading-relaxed max-w-[85%]">
+              {welcomeMessage}
             </div>
-            <p className="text-sm text-muted-foreground">
-              A Maya está observando seus últimos dias com carinho...
-            </p>
-          </CardContent>
-        </Card>
-      ) : (
-        <>
-          <Card className="rounded-2xl bg-gradient-to-br from-amber-50/30 via-background to-primary/5 dark:from-amber-950/10 dark:via-background dark:to-primary/5">
-            <CardContent className="p-6 space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="size-10 rounded-full bg-primary/10 flex items-center justify-center text-xl">
-                  🌸
-                </div>
-                <div>
-                  <p className="font-medium text-sm">Maya</p>
-                  {lastGenerated && (
-                    <p className="text-[10px] text-muted-foreground">
-                      {lastGenerated}
-                    </p>
-                  )}
-                </div>
-              </div>
-              <div className="text-sm leading-relaxed text-foreground/85 whitespace-pre-line">
-                {analysis}
-              </div>
-            </CardContent>
-          </Card>
+          </div>
+        )}
 
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full rounded-xl"
-            onClick={generateAnalysis}
-            disabled={loading}
+        {messages.map((msg, i) => (
+          <div
+            key={i}
+            className={`flex items-start gap-3 ${msg.role === "user" ? "justify-end" : ""}`}
           >
-            Gerar novo insight
+            {msg.role === "assistant" && (
+              <div className="size-8 rounded-full bg-primary/10 flex items-center justify-center text-lg shrink-0 mt-0.5">
+                🌸
+              </div>
+            )}
+            <div
+              className={`rounded-2xl px-4 py-3 text-sm leading-relaxed max-w-[85%] ${
+                msg.role === "user"
+                  ? "bg-primary text-primary-foreground rounded-tr-md"
+                  : "bg-muted rounded-tl-md"
+              }`}
+            >
+              <div className="whitespace-pre-line">{msg.content}</div>
+            </div>
+            {msg.role === "user" && (
+              <div className="size-8 rounded-full bg-primary/20 flex items-center justify-center text-sm font-medium shrink-0 mt-0.5">
+                V
+              </div>
+            )}
+          </div>
+        ))}
+
+        {loading && (
+          <div className="flex items-start gap-3">
+            <div className="size-8 rounded-full bg-primary/10 flex items-center justify-center text-lg shrink-0 mt-0.5">
+              🌸
+            </div>
+            <div className="bg-muted rounded-2xl rounded-tl-md px-4 py-3 text-sm">
+              <div className="flex items-center gap-1.5">
+                <span className="size-1.5 rounded-full bg-primary/50 animate-bounce [animation-delay:0ms]" />
+                <span className="size-1.5 rounded-full bg-primary/50 animate-bounce [animation-delay:150ms]" />
+                <span className="size-1.5 rounded-full bg-primary/50 animate-bounce [animation-delay:300ms]" />
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div ref={bottomRef} />
+      </div>
+
+      {/* Input */}
+      <div className="shrink-0 py-3 sticky bottom-16 bg-background">
+        <div className="flex items-end gap-2">
+          <textarea
+            ref={textareaRef}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={t("maya_placeholder")}
+            disabled={loading}
+            rows={1}
+            className="flex-1 resize-none rounded-xl border border-border bg-muted/50 px-4 py-2.5 text-sm placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-50"
+          />
+          <Button
+            size="icon"
+            className="rounded-xl size-10 shrink-0"
+            onClick={sendMessage}
+            disabled={!input.trim() || loading}
+          >
+            <Send className="size-4" />
           </Button>
-        </>
-      )}
+        </div>
+      </div>
     </div>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { Home, PenLine, Sparkles, BookOpen, Settings } from "lucide-react";
+import { Home, PenLine, MessageCircle, BookOpen, Settings } from "lucide-react";
 import { useTranslation } from "@/lib/useTranslation";
 
 export function BottomNav() {
@@ -13,7 +13,7 @@ export function BottomNav() {
     { icon: Home, label: t("inicio"), href: "/dashboard" },
     { icon: PenLine, label: t("checkin"), href: "/check-in" },
     { icon: BookOpen, label: t("diario"), href: "/diario" },
-    { icon: Sparkles, label: "Insights", href: "/insights" },
+    { icon: MessageCircle, label: "Maya", href: "/insights" },
     { icon: Settings, label: t("ajustes"), href: "/perfil" },
   ];
 

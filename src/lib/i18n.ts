@@ -182,6 +182,15 @@ const translations: Record<Lang, Record<string, string>> = {
     sim: "Sim",
     nao: "Não",
 
+    // Maya
+    maya_subtitle: "Uma companheira para conversar e refletir",
+    maya_placeholder: "Escreva sua mensagem...",
+    maya_welcome:
+      "Oi! Eu sou a Maya, sua companheira virtual 🌸\n\nEstou aqui para te ouvir, conversar e oferecer um olhar acolhedor sobre seu momento. Não sou terapeuta nem médica — sou como uma amiga que te ajuda a refletir.\n\nComo você está hoje?",
+    maya_typing: "Maya está escrevendo...",
+    maya_error:
+      "Tive dificuldade de me conectar agora. Tente novamente em alguns instantes. 💛",
+
     // CVV
     cvv_warning:
       "Se você está tendo pensamentos suicidas, por favor ligue para o CVV: 188. Você não está sozinho(a). 💚",
@@ -352,6 +361,16 @@ const translations: Record<Lang, Record<string, string>> = {
     sim: "Sí",
     nao: "No",
 
+    // Maya
+    maya_subtitle: "Una compañera para conversar y reflexionar",
+    maya_placeholder: "Escribe tu mensaje...",
+    maya_welcome:
+      "¡Hola! Soy Maya, tu compañera virtual 🌸\n\nEstoy aquí para escucharte, conversar y ofrecerte una mirada acogedora sobre tu momento. No soy terapeuta ni médica — soy como una amiga que te ayuda a reflexionar.\n\n¿Cómo estás hoy?",
+    maya_typing: "Maya está escribiendo...",
+    maya_error:
+      "Tuve dificultad para conectarme ahora. Intenta de nuevo en unos instantes. 💛",
+
+    // CVV
     cvv_warning:
       "Si estás teniendo pensamientos suicidas, por favor llama a la línea de prevención: 188. No estás solo(a). 💚",
   },
@@ -521,6 +540,16 @@ const translations: Record<Lang, Record<string, string>> = {
     sim: "Yes",
     nao: "No",
 
+    // Maya
+    maya_subtitle: "A companion to talk and reflect",
+    maya_placeholder: "Write your message...",
+    maya_welcome:
+      "Hi! I'm Maya, your virtual companion 🌸\n\nI'm here to listen, chat, and offer a warm perspective on your moment. I'm not a therapist or doctor — I'm like a friend who helps you reflect.\n\nHow are you today?",
+    maya_typing: "Maya is typing...",
+    maya_error:
+      "I had trouble connecting right now. Please try again in a moment. 💛",
+
+    // CVV
     cvv_warning:
       "If you're having suicidal thoughts, please call the suicide prevention hotline. You're not alone. 💚",
   },
