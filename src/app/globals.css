@@ -23,6 +23,7 @@
   --color-chart-3: var(--chart-3);
   --color-chart-2: var(--chart-2);
   --color-chart-1: var(--chart-1);
+  --color-chat: var(--chat);
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -73,6 +74,7 @@
   --chart-3: oklch(0.6 0.12 140);
   --chart-4: oklch(0.45 0.1 170);
   --chart-5: oklch(0.4 0.08 160);
+  --chat: oklch(0.94 0.012 80);
   --radius: 0.75rem;
   --sidebar: oklch(0.96 0.005 160);
   --sidebar-foreground: oklch(0.25 0.02 160);
@@ -85,6 +87,7 @@
 }
 
 .dark {
+  --chat: oklch(0.15 0.005 90);
   --background: oklch(0.18 0.01 160);
   --foreground: oklch(0.92 0.01 160);
   --card: oklch(0.22 0.02 160);
