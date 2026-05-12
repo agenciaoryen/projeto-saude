@@ -23,7 +23,6 @@ function splitIntoParts(text: string): string[] {
     .split(/\n\n+/)
     .map((p) => p.trim())
     .filter((p) => p.length > 0);
-
   if (parts.length > 1) return parts;
 
   const sentences = text.split(/(?<=[.!?])\s+/);
@@ -38,8 +37,16 @@ function splitIntoParts(text: string): string[] {
 }
 
 function typingDelayFor(text: string): number {
-  const ms = Math.round(text.length * 30);
-  return Math.max(600, Math.min(2200, ms));
+  const ms = Math.round(text.length * 55);
+  return Math.max(1200, Math.min(4500, ms));
+}
+
+function loadProfileCache() {
+  try {
+    const raw = localStorage.getItem("user_profile");
+    if (raw) return JSON.parse(raw);
+  } catch { /* noop */ }
+  return null;
 }
 
 export default function MayaChatPage() {
@@ -50,11 +57,15 @@ export default function MayaChatPage() {
   const [sending, setSending] = useState(false);
   const [typing, setTyping] = useState(false);
   const [hydrated, setHydrated] = useState(false);
+  const [userName, setUserName] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const sendingRef = useRef(false);
 
   useEffect(() => {
+    const cache = loadProfileCache();
+    if (cache?.name) setUserName(cache.name);
+
     try {
       const cached = localStorage.getItem(CHAT_CACHE_KEY);
       if (cached) {
@@ -65,6 +76,15 @@ export default function MayaChatPage() {
       }
     } catch { /* noop */ }
     setHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/profile")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.name) setUserName(data.name);
+      })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -96,7 +116,7 @@ export default function MayaChatPage() {
       current = [...current, { role: "assistant", content: parts[i], time: formatTime() }];
       setMessages(current);
       if (i < parts.length - 1) {
-        await new Promise((r) => setTimeout(r, 300));
+        await new Promise((r) => setTimeout(r, 400));
       }
     }
     sendingRef.current = false;
@@ -142,13 +162,13 @@ export default function MayaChatPage() {
   const busy = sending || typing;
 
   return (
-    <div className="max-w-lg mx-auto flex flex-col h-[100dvh] bg-background">
-      {/* Header — WhatsApp contact bar style */}
-      <div className="shrink-0 flex items-center gap-3 px-3 py-2.5 bg-muted/80 border-b border-border safe-top">
+    <div className="flex flex-col h-[100dvh] bg-chat">
+      {/* Header — WhatsApp style: full width */}
+      <div className="shrink-0 flex items-center gap-3 px-4 py-2.5 bg-background border-b border-border safe-top">
         <button
           type="button"
           onClick={() => router.push("/dashboard")}
-          className="size-9 flex items-center justify-center rounded-full hover:bg-muted-foreground/10 transition-colors -ml-1"
+          className="size-9 flex items-center justify-center rounded-full hover:bg-muted transition-colors -ml-1"
           aria-label="Voltar"
         >
           <ArrowLeft className="size-5" />
@@ -166,35 +186,29 @@ export default function MayaChatPage() {
         </div>
       </div>
 
-      {/* Messages area */}
-      <div className="flex-1 overflow-y-auto px-3 py-3 space-y-1.5 bg-chat">
-        {hydrated && messages.length === 0 && (
-          <div className="flex justify-center py-12">
-            <div className="bg-muted/70 rounded-lg px-4 py-3 text-sm text-center max-w-[85%] text-muted-foreground shadow-sm">
-              {welcomeMessage}
+      {/* Messages — full width, no avatars */}
+      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-1">
+        {hydrated && messages.length === 0 && welcomeMessage && (
+          <div className="flex justify-center pt-12">
+            <div className="bg-background/80 rounded-lg px-4 py-3 text-sm text-center max-w-sm text-muted-foreground shadow-sm">
+              <div className="whitespace-pre-line">{welcomeMessage}</div>
             </div>
           </div>
         )}
 
         {messages.map((msg, i) => {
           const prev = i > 0 ? messages[i - 1] : null;
-          const showAvatar = msg.role === "assistant" && prev?.role !== "assistant";
+          const next = i < messages.length - 1 ? messages[i + 1] : null;
+          const isLastInGroup = next?.role !== msg.role;
 
           if (msg.role === "assistant") {
             return (
-              <div key={i} className="flex items-end gap-1.5">
-                {/* Avatar spacer — shows Maya photo on first in group */}
-                <div className="size-7 shrink-0">
-                  {showAvatar && (
-                    <div className="size-7 rounded-full overflow-hidden">
-                      <img src="/Maya.png" alt="Maya" className="size-full object-cover" />
-                    </div>
-                  )}
-                </div>
-                {/* Bubble */}
-                <div className="max-w-[75%] px-3 py-2 rounded-lg bg-muted text-sm leading-relaxed">
+              <div key={i} className="flex justify-start">
+                <div className={`max-w-[85%] px-3 py-2 bg-muted text-sm leading-relaxed ${
+                  isLastInGroup ? "rounded-xl rounded-bl-sm mb-1.5" : "rounded-xl rounded-bl-sm"
+                }`}>
                   <div className="whitespace-pre-line">{msg.content}</div>
-                  <span className="text-[10px] text-muted-foreground/60 float-right ml-3 translate-y-0.5">
+                  <span className="text-[10px] text-muted-foreground/55 float-right ml-3 translate-y-0.5">
                     {msg.time}
                   </span>
                 </div>
@@ -202,12 +216,11 @@ export default function MayaChatPage() {
             );
           }
 
-          // User message — right aligned
           return (
-            <div key={i} className="flex justify-end">
-              <div className="max-w-[75%] px-3 py-2 rounded-lg bg-primary text-primary-foreground text-sm leading-relaxed">
+            <div key={i} className={`flex justify-end ${isLastInGroup ? "mb-1.5" : ""}`}>
+              <div className="max-w-[85%] px-3 py-2 bg-primary text-primary-foreground text-sm leading-relaxed rounded-xl rounded-br-sm">
                 <div className="whitespace-pre-line">{msg.content}</div>
-                <span className="text-[10px] text-primary-foreground/50 float-right ml-3 translate-y-0.5">
+                <span className="text-[10px] text-primary-foreground/45 float-right ml-3 translate-y-0.5">
                   {msg.time}
                 </span>
               </div>
@@ -215,19 +228,14 @@ export default function MayaChatPage() {
           );
         })}
 
-        {/* Typing indicator */}
+        {/* Typing indicator — no avatar */}
         {typing && (
-          <div className="flex items-end gap-1.5">
-            <div className="size-7 shrink-0">
-              <div className="size-7 rounded-full overflow-hidden">
-                <img src="/Maya.png" alt="Maya" className="size-full object-cover" />
-              </div>
-            </div>
-            <div className="bg-muted rounded-lg px-3 py-3">
+          <div className="flex justify-start">
+            <div className="bg-muted rounded-xl rounded-bl-sm px-3 py-3">
               <div className="flex items-center gap-1">
-                <span className="size-2 rounded-full bg-foreground/30 animate-bounce [animation-delay:0ms]" />
-                <span className="size-2 rounded-full bg-foreground/30 animate-bounce [animation-delay:150ms]" />
-                <span className="size-2 rounded-full bg-foreground/30 animate-bounce [animation-delay:300ms]" />
+                <span className="size-2 rounded-full bg-foreground/25 animate-bounce [animation-delay:0ms]" />
+                <span className="size-2 rounded-full bg-foreground/25 animate-bounce [animation-delay:150ms]" />
+                <span className="size-2 rounded-full bg-foreground/25 animate-bounce [animation-delay:300ms]" />
               </div>
             </div>
           </div>
@@ -237,7 +245,7 @@ export default function MayaChatPage() {
       </div>
 
       {/* Input bar */}
-      <div className="shrink-0 px-3 py-2.5 border-t border-border bg-background safe-bottom">
+      <div className="shrink-0 px-4 py-2.5 bg-background border-t border-border safe-bottom">
         <div className="flex items-end gap-2">
           <textarea
             ref={textareaRef}
