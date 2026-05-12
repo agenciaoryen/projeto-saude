@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { StreakBadge } from "@/components/StreakBadge";
 import { MoodChart } from "@/components/MoodChart";
 import { GardenView } from "@/components/GardenView";
+import { StatsView } from "@/components/StatsView";
 import type { CheckIn, UserAchievement } from "@/types";
 
 function calculateStreak(checkIns: CheckIn[]): number {
@@ -59,6 +60,7 @@ export default function DashboardPage() {
   const [todayCheckIn, setTodayCheckIn] = useState<CheckIn | null>(null);
   const [enabledKeys, setEnabledKeys] = useState<string[]>([]);
   const [achievements, setAchievements] = useState<UserAchievement[]>([]);
+  const [gender, setGender] = useState<string>("nao_dizer");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -72,6 +74,7 @@ export default function DashboardPage() {
         return;
       }
       setEnabledKeys(prefsData.enabled_questions || []);
+      setGender(prefsData.context?.gender || "nao_dizer");
       if (Array.isArray(checkInsData)) {
         setCheckIns(checkInsData);
         const today = new Date().toISOString().split("T")[0];
@@ -178,11 +181,19 @@ export default function DashboardPage() {
 
       <StreakBadge streak={streak} />
 
-      <GardenView
-        streak={streak}
-        achievements={achievements}
-        totalCheckIns={checkIns.length}
-      />
+      {gender === "masculino" ? (
+        <StatsView
+          streak={streak}
+          achievements={achievements}
+          totalCheckIns={checkIns.length}
+        />
+      ) : (
+        <GardenView
+          streak={streak}
+          achievements={achievements}
+          totalCheckIns={checkIns.length}
+        />
+      )}
 
       {checkIns.length > 1 && (
         <Card className="rounded-2xl">

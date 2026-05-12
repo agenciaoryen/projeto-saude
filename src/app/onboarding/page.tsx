@@ -6,6 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 
+const GENDER_OPTIONS = [
+  { id: "masculino", label: "Masculino", emoji: "⚡" },
+  { id: "feminino", label: "Feminino", emoji: "🌸" },
+  { id: "nao_dizer", label: "Prefiro não dizer", emoji: "🌱" },
+] as const;
+
 const CONTEXT_QUESTIONS = [
   {
     id: "has_medication",
@@ -42,6 +48,7 @@ export default function OnboardingPage() {
     has_creative_hobby: false,
     track_suicidal_thoughts: true,
   });
+  const [gender, setGender] = useState<string>("nao_dizer");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -84,7 +91,7 @@ export default function OnboardingPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         enabled_questions: enabled,
-        context: answers,
+        context: { ...answers, gender },
         onboarding_completed: true,
       }),
     });
@@ -111,6 +118,34 @@ export default function OnboardingPage() {
             ajudam a mostrar só o que faz sentido pra você.
           </p>
         </div>
+
+        {/* Gender question */}
+        <Card className="rounded-2xl">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Qual seu gênero?</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-3">
+              Vamos personalizar sua experiência. Depois você pode mudar nas configurações.
+            </p>
+            <div className="flex gap-2">
+              {GENDER_OPTIONS.map((opt) => (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => setGender(opt.id)}
+                  className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                    gender === opt.id
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground hover:bg-muted/80"
+                  }`}
+                >
+                  {opt.emoji} {opt.label}
+                </button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
 
         {CONTEXT_QUESTIONS.map((q) => (
           <Card key={q.id} className="rounded-2xl">
