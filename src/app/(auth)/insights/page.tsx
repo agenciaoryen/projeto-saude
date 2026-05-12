@@ -12,17 +12,31 @@ interface Message {
 
 const CHAT_CACHE_KEY = "maya_chat";
 
+function loadProfileCache() {
+  try {
+    const raw = localStorage.getItem("user_profile");
+    if (raw) return JSON.parse(raw);
+  } catch { /* noop */ }
+  return null;
+}
+
 export default function MayaChatPage() {
   const { t, lang } = useTranslation();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [hydrated, setHydrated] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [userName, setUserName] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Load cached messages on mount
+  // Load cached messages + profile on mount
   useEffect(() => {
+    const cache = loadProfileCache();
+    if (cache?.avatar_url) setAvatarUrl(cache.avatar_url);
+    if (cache?.name) setUserName(cache.name);
+
     try {
       const cached = localStorage.getItem(CHAT_CACHE_KEY);
       if (cached) {
@@ -33,6 +47,17 @@ export default function MayaChatPage() {
       }
     } catch { /* noop */ }
     setHydrated(true);
+  }, []);
+
+  // Sync profile from API
+  useEffect(() => {
+    fetch("/api/profile")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.avatar_url) setAvatarUrl(data.avatar_url);
+        if (data.name) setUserName(data.name);
+      })
+      .catch(() => {});
   }, []);
 
   // Persist messages to localStorage
@@ -109,8 +134,8 @@ export default function MayaChatPage() {
       <div className="flex-1 overflow-y-auto space-y-4 px-1 py-2">
         {hydrated && messages.length === 0 && (
           <div className="flex items-start gap-3">
-            <div className="size-8 rounded-full bg-primary/10 flex items-center justify-center text-lg shrink-0 mt-0.5">
-              🌸
+            <div className="size-8 rounded-full bg-primary/10 flex items-center justify-center text-lg shrink-0 mt-0.5 overflow-hidden">
+              <img src="/Maya.png" alt="Maya" className="size-full object-cover" />
             </div>
             <div className="bg-muted rounded-2xl rounded-tl-md px-4 py-3 text-sm leading-relaxed max-w-[85%]">
               {welcomeMessage}
@@ -124,8 +149,8 @@ export default function MayaChatPage() {
             className={`flex items-start gap-3 ${msg.role === "user" ? "justify-end" : ""}`}
           >
             {msg.role === "assistant" && (
-              <div className="size-8 rounded-full bg-primary/10 flex items-center justify-center text-lg shrink-0 mt-0.5">
-                🌸
+              <div className="size-8 rounded-full bg-primary/10 flex items-center justify-center text-lg shrink-0 mt-0.5 overflow-hidden">
+                <img src="/Maya.png" alt="Maya" className="size-full object-cover" />
               </div>
             )}
             <div
@@ -138,8 +163,12 @@ export default function MayaChatPage() {
               <div className="whitespace-pre-line">{msg.content}</div>
             </div>
             {msg.role === "user" && (
-              <div className="size-8 rounded-full bg-primary/20 flex items-center justify-center text-sm font-medium shrink-0 mt-0.5">
-                V
+              <div className="size-8 rounded-full bg-primary/20 flex items-center justify-center text-sm font-medium shrink-0 mt-0.5 overflow-hidden">
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt="" className="size-full object-cover" />
+                ) : (
+                  userName ? userName.charAt(0).toUpperCase() : "V"
+                )}
               </div>
             )}
           </div>
@@ -147,8 +176,8 @@ export default function MayaChatPage() {
 
         {loading && (
           <div className="flex items-start gap-3">
-            <div className="size-8 rounded-full bg-primary/10 flex items-center justify-center text-lg shrink-0 mt-0.5">
-              🌸
+            <div className="size-8 rounded-full bg-primary/10 flex items-center justify-center text-lg shrink-0 mt-0.5 overflow-hidden">
+              <img src="/Maya.png" alt="Maya" className="size-full object-cover" />
             </div>
             <div className="bg-muted rounded-2xl rounded-tl-md px-4 py-3 text-sm">
               <div className="flex items-center gap-1.5">
