@@ -12,13 +12,14 @@ interface AnalysisInput {
   profile: UserContext;
   checkIns: CheckIn[];
   diaryEntries: DiaryEntry[];
+  memories: string[];
   streak: number;
   totalCheckIns: number;
   positiveRate: number;
 }
 
 export function buildAnalysisPrompt(input: AnalysisInput): string {
-  const { profile, checkIns, diaryEntries, streak, totalCheckIns, positiveRate } = input;
+  const { profile, checkIns, diaryEntries, memories, streak, totalCheckIns, positiveRate } = input;
 
   const last7CheckIns = checkIns.slice(0, 7);
   const lastDiary = diaryEntries.slice(0, 5);
@@ -28,6 +29,10 @@ export function buildAnalysisPrompt(input: AnalysisInput): string {
     profile.gender === "feminino" ? "feminino" : "não informado";
 
   const nameLine = profile.name ? `Nome: ${profile.name}` : "";
+
+  const memoriesBlock = memories.length > 0
+    ? `## O QUE EU SEI SOBRE VOCÊ (memórias de conversas anteriores)\n${memories.map((m) => `- ${m}`).join("\n")}\n**Use essas memórias naturalmente se forem relevantes. Não as liste — apenas as mencione se fizer sentido.**`
+    : "";
 
   // Summarize check-ins compactly
   const checkInSummary = last7CheckIns.map((c) => {
@@ -81,6 +86,8 @@ ${profile.has_medication ? "Toma medicamentos prescritos regularmente." : ""}
 ${profile.has_faith ? "Tem prática de fé/espiritualidade." : ""}
 ${profile.has_creative_hobby ? "Tem hobby criativo (canto, pintura, desenho)." : ""}
 
+${memoriesBlock}
+
 ## MOMENTO ATUAL
 - Streak: ${streak} dias consecutivos
 - Total de check-ins: ${totalCheckIns}
@@ -95,6 +102,31 @@ ${diarySummary}
 Analise com carinho esses dados e responda para a pessoa diretamente (use "você"). Lembre-se: ela pode estar frágil. Seja como uma amiga que ilumina, não como um relatório médico.`;
 }
 
-export function getAnalysisPrompt(input: AnalysisInput): string {
-  return buildAnalysisPrompt(input);
+export function buildFactExtractionPrompt(analysisText: string, profile: { name: string }): string {
+  return `Você é um assistente que extrai FATOS PESSOAIS sobre o usuário a partir de uma análise de bem-estar.
+
+Texto da análise de Maya:
+"""
+${analysisText}
+"""
+
+## INSTRUÇÕES
+1. Extraia apenas fatos NOVOS e RELEVANTES sobre a vida pessoal do usuário que Maya mencionou ou descobriu.
+2. NÃO extraia dados óbvios de check-in (ex: "fez exercício 3x essa semana").
+3. Extraia preferências, contexto de vida, rotinas específicas, relações, gostos pessoais.
+4. Exemplos do que extrair:
+   - "gosta de caminhar à noite"
+   - "tem uma filha chamada Sofia"
+   - "trabalha como designer"
+   - "está estudando para concurso"
+   - "adora cozinhar aos domingos"
+   - "mora sozinho(a)"
+   - "tem um cachorro"
+5. Exemplos do que NÃO extrair:
+   - "teve 3 dias bons essa semana"
+   - "marcou exercício 5 vezes"
+6. Retorne APENAS um array JSON com os fatos como strings. Se não houver fatos novos, retorne array vazio.
+7. Máximo 3 fatos.
+
+Formato: ["fato 1", "fato 2"]`;
 }

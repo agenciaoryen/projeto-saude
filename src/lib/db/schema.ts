@@ -119,3 +119,10 @@ export const diaryEntries = pgTable(
     userDateDiaryIdx: uniqueIndex("user_date_diary_idx").on(table.userId, table.date),
   })
 );
+
+export const userMemories = pgTable("user_memories", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull(),
+  fact: text("fact").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
