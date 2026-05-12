@@ -162,9 +162,9 @@ export default function MayaChatPage() {
   const busy = sending || typing;
 
   return (
-    <div className="flex flex-col h-[100dvh] bg-chat">
-      {/* Header — WhatsApp style: full width */}
-      <div className="shrink-0 flex items-center gap-3 px-4 py-2.5 bg-background border-b border-border safe-top">
+    <div className="flex flex-col h-full bg-chat">
+      {/* Header — sticky, WhatsApp style */}
+      <div className="sticky top-0 z-10 shrink-0 flex items-center gap-3 px-4 py-2.5 bg-background border-b border-border safe-top">
         <button
           type="button"
           onClick={() => router.push("/dashboard")}
@@ -186,8 +186,8 @@ export default function MayaChatPage() {
         </div>
       </div>
 
-      {/* Messages — full width, no avatars */}
-      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-1">
+      {/* Messages — edge to edge */}
+      <div className="flex-1 overflow-y-auto px-2 py-3 space-y-1">
         {hydrated && messages.length === 0 && welcomeMessage && (
           <div className="flex justify-center pt-12">
             <div className="bg-background/80 rounded-lg px-4 py-3 text-sm text-center max-w-sm text-muted-foreground shadow-sm">
@@ -245,7 +245,7 @@ export default function MayaChatPage() {
       </div>
 
       {/* Input bar */}
-      <div className="shrink-0 px-4 py-2.5 bg-background border-t border-border safe-bottom">
+      <div className="shrink-0 px-2 py-2 bg-background border-t border-border safe-bottom">
         <div className="flex items-end gap-2">
           <textarea
             ref={textareaRef}
