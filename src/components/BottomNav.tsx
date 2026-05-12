@@ -14,7 +14,7 @@ export function BottomNav() {
     { icon: PenLine, label: t("checkin"), href: "/check-in" },
     { icon: BookOpen, label: t("diario"), href: "/diario" },
     { icon: CalendarDays, label: t("historico"), href: "/historico" },
-    { icon: Settings, label: t("ajustes"), href: "/configurações" },
+    { icon: Settings, label: t("ajustes"), href: "/perfil" },
   ];
 
   const isActive = (href: string) => {

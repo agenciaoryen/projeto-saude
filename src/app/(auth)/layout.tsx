@@ -36,6 +36,16 @@ export default function AuthLayout({
               <DropdownMenuItem
                 render={
                   <Link
+                    href="/perfil"
+                    className="w-full text-left px-2 py-1.5 text-sm block"
+                  >
+                    Meu Perfil
+                  </Link>
+                }
+              />
+              <DropdownMenuItem
+                render={
+                  <Link
                     href="/configurações"
                     className="w-full text-left px-2 py-1.5 text-sm block"
                   >

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -45,6 +45,7 @@ export function CheckInForm({ existingCheckIn }: CheckInFormProps) {
   const router = useRouter();
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
+  const [saved, setSaved] = useState(false);
   const [enabledKeys, setEnabledKeys] = useState<string[]>([]);
   const [context, setContext] = useState<Record<string, boolean>>({});
   const [form, setForm] = useState<FormData>({
@@ -98,6 +99,33 @@ export function CheckInForm({ existingCheckIn }: CheckInFormProps) {
       });
     }
   }, [existingCheckIn]);
+
+  const isFirstRender = useRef(true);
+  const autoSaveRef = useRef<ReturnType<typeof setTimeout>>();
+
+  const autoSave = useCallback(async (data: FormData) => {
+    try {
+      const res = await fetch("/api/check-ins", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (res.ok) setSaved(true);
+    } catch {
+      // silent fail on auto-save
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    setSaved(false);
+    clearTimeout(autoSaveRef.current);
+    autoSaveRef.current = setTimeout(() => autoSave(form), 1500);
+    return () => clearTimeout(autoSaveRef.current);
+  }, [form, autoSave]);
 
   const handleCheck = (key: keyof FormData, checked: boolean) => {
     setForm((prev) => ({ ...prev, [key]: checked }));
@@ -264,18 +292,25 @@ export function CheckInForm({ existingCheckIn }: CheckInFormProps) {
         </CardContent>
       </Card>
 
-      <Button
-        type="submit"
-        size="lg"
-        className="w-full rounded-xl"
-        disabled={loading}
-      >
-        {loading
-          ? t("salvando")
-          : existingCheckIn
-          ? t("atualizar_checkin")
-          : t("salvar_checkin")}
-      </Button>
+      <div className="flex items-center gap-2">
+        {saved && (
+          <span className="text-xs text-muted-foreground animate-in fade-in">
+            Salvo automaticamente
+          </span>
+        )}
+        <Button
+          type="submit"
+          size="lg"
+          className="flex-1 rounded-xl"
+          disabled={loading}
+        >
+          {loading
+            ? t("salvando")
+            : existingCheckIn
+            ? t("atualizar_checkin")
+            : t("salvar_checkin")}
+        </Button>
+      </div>
     </form>
   );
 }
