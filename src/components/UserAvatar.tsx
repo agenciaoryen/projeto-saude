@@ -18,31 +18,45 @@ function saveCache(data: { name?: string; avatar_url?: string }) {
 }
 
 export function UserAvatar() {
+  const cache = loadCache();
   const [profile, setProfile] = useState<{ name: string; avatar_url: string }>(
-    () => loadCache() || { name: "", avatar_url: "" }
+    cache || { name: "", avatar_url: "" }
   );
+  const [ready, setReady] = useState(!!cache);
 
   useEffect(() => {
+    let cancelled = false;
     fetch("/api/profile")
       .then((r) => r.json())
       .then((data) => {
-        const next = {
-          name: data.name || "",
-          avatar_url: data.avatar_url || "",
-        };
+        if (cancelled) return;
+        const next = { name: data.name || "", avatar_url: data.avatar_url || "" };
         setProfile(next);
         saveCache(next);
+        setReady(true);
       })
-      .catch(() => {});
+      .catch(() => {
+        if (!cancelled) setReady(true);
+      });
+    return () => { cancelled = true; };
   }, []);
 
-  const initial = profile.name ? profile.name.charAt(0).toUpperCase() : "EU";
+  const fallbackContent = ready
+    ? profile.name
+      ? profile.name.charAt(0).toUpperCase()
+      : "EU"
+    : null;
 
   return (
     <Avatar className="h-8 w-8 cursor-pointer">
-      <AvatarImage src={profile.avatar_url} alt="Foto de perfil" />
-      <AvatarFallback className="bg-primary text-primary-foreground text-xs">
-        {initial}
+      {profile.avatar_url && <AvatarImage src={profile.avatar_url} alt="Foto" />}
+      <AvatarFallback
+        className="bg-primary text-primary-foreground text-xs"
+        {...(ready ? {} : { "data-loading": true })}
+      >
+        {fallbackContent ?? (
+          <span className="inline-block size-2.5 rounded-full border-2 border-primary-foreground/40 border-t-primary-foreground animate-spin" />
+        )}
       </AvatarFallback>
     </Avatar>
   );
