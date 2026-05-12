@@ -23,10 +23,9 @@ const HISTORICO_DISPLAY: Record<string, string> = {
 };
 
 function getScoreForCheckIn(ci: CheckIn, enabledKeys: string[]) {
-  const scoreKeys = enabledKeys.filter((k) => k !== "suicidalThoughts");
+  const scoreKeys = enabledKeys.filter((k) => k !== "suicidal_thoughts");
   return scoreKeys.filter((k) => {
-    const camelKey = k.replace(/_([a-z])/g, (_, l) => l.toUpperCase());
-    return (ci as Record<string, unknown>)[camelKey] === true;
+    return (ci as Record<string, unknown>)[k] === true;
   }).length;
 }
 
@@ -53,7 +52,7 @@ export default function HistoricoPage() {
     }).catch(() => setLoading(false));
   }, []);
 
-  const totalHabits = enabledKeys.filter((k) => k !== "suicidalThoughts").length;
+  const totalHabits = enabledKeys.filter((k) => k !== "suicidal_thoughts").length;
 
   if (loading) {
     return (
@@ -111,10 +110,9 @@ export default function HistoricoPage() {
                 <CardContent>
                   <div className="grid grid-cols-3 gap-1 text-xs text-muted-foreground">
                     {enabledKeys
-                      .filter((k) => k !== "suicidalThoughts")
+                      .filter((k) => k !== "suicidal_thoughts")
                       .map((key) => {
-                        const camelKey = key.replace(/_([a-z])/g, (_, l) => l.toUpperCase());
-                        const val = (ci as Record<string, unknown>)[camelKey] === true;
+                        const val = (ci as Record<string, unknown>)[key] === true;
                         const emoji = HISTORICO_DISPLAY[key] || "•";
                         return (
                           <span key={key} className={val ? "" : "opacity-30"}>

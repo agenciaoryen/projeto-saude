@@ -88,13 +88,12 @@ export default function DashboardPage() {
 
   const streak = calculateStreak(checkIns);
 
-  const enabledNonSuicidal = enabledKeys.filter((k) => k !== "suicidalThoughts");
+  const enabledNonSuicidal = enabledKeys.filter((k) => k !== "suicidal_thoughts");
   const totalHabits = enabledNonSuicidal.length;
 
   const positiveCount = todayCheckIn
     ? enabledNonSuicidal.filter((k) => {
-        const camelKey = k.replace(/_([a-z])/g, (_, l) => l.toUpperCase());
-        return (todayCheckIn as Record<string, unknown>)[camelKey] === true;
+        return (todayCheckIn as Record<string, unknown>)[k] === true;
       }).length
     : 0;
 
@@ -135,9 +134,8 @@ export default function DashboardPage() {
           <CardContent>
             <div className="grid grid-cols-2 gap-2 text-sm">
               {enabledNonSuicidal.map((key) => {
-                const camelKey = key.replace(/_([a-z])/g, (_, l) => l.toUpperCase());
-                const value = (todayCheckIn as Record<string, unknown>)[camelKey] === true;
-                const [emoji, label] = HABIT_DISPLAY[key] || ["•", camelKey];
+                const value = (todayCheckIn as Record<string, unknown>)[key] === true;
+                const [emoji, label] = HABIT_DISPLAY[key] || ["•", key];
                 return (
                   <div
                     key={key}

@@ -63,21 +63,21 @@ export default function OnboardingPage() {
     setLoading(true);
 
     const enabled = [
-      "feltJudged",
-      "talkedToSomeone",
-      "meditationPrayerBreathing",
-      "creativeActivity",
-      "ateWell",
-      "bowelMovement",
-      "exerciseWalk",
-      "drankWater",
-      "sleptWell",
-      "didSomethingEnjoyable",
-      "workedOnGoals",
+      "felt_judged",
+      "talked_to_someone",
+      "meditation_prayer_breathing",
+      "creative_activity",
+      "ate_well",
+      "bowel_movement",
+      "exercise_walk",
+      "drank_water",
+      "slept_well",
+      "did_something_enjoyable",
+      "worked_on_goals",
     ];
 
-    if (answers.has_medication) enabled.push("tookMedication");
-    if (answers.track_suicidal_thoughts) enabled.push("suicidalThoughts");
+    if (answers.has_medication) enabled.push("took_medication");
+    if (answers.track_suicidal_thoughts) enabled.push("suicidal_thoughts");
 
     const res = await fetch("/api/preferences", {
       method: "POST",

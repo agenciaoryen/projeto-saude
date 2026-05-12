@@ -1,7 +1,5 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { db } from "@/lib/db";
-import { checkIns } from "@/lib/db/schema";
-import { eq, and } from "drizzle-orm";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest) {
@@ -16,25 +14,31 @@ export async function GET(req: NextRequest) {
   const date = searchParams.get("date");
 
   try {
-    if (date) {
-      const result = await db
-        .select()
-        .from(checkIns)
-        .where(
-          and(eq(checkIns.userId, user.id), eq(checkIns.date, date))
-        )
-        .limit(1);
+    const admin = getSupabaseAdmin();
 
-      return NextResponse.json(result[0] || null);
+    if (date) {
+      const { data, error } = await admin
+        .from("check_ins")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("date", date)
+        .limit(1)
+        .single();
+
+      if (error && error.code !== "PGRST116") throw error;
+
+      return NextResponse.json(data || null);
     }
 
-    const result = await db
-      .select()
-      .from(checkIns)
-      .where(eq(checkIns.userId, user.id))
-      .orderBy(checkIns.date);
+    const { data, error } = await admin
+      .from("check_ins")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("date", { ascending: false });
 
-    return NextResponse.json(result);
+    if (error) throw error;
+
+    return NextResponse.json(data || []);
   } catch (error) {
     console.error("GET /api/check-ins error:", error);
     return NextResponse.json(
@@ -55,50 +59,56 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const today = new Date().toISOString().split("T")[0];
+    const row = {
+      user_id: user.id,
+      date: body.date || today,
+      felt_judged: body.felt_judged ?? false,
+      took_medication: body.took_medication ?? false,
+      talked_to_someone: body.talked_to_someone ?? false,
+      meditation_prayer_breathing: body.meditation_prayer_breathing ?? false,
+      creative_activity: body.creative_activity ?? false,
+      ate_well: body.ate_well ?? false,
+      bowel_movement: body.bowel_movement ?? false,
+      exercise_walk: body.exercise_walk ?? false,
+      drank_water: body.drank_water ?? false,
+      slept_well: body.slept_well ?? false,
+      suicidal_thoughts: body.suicidal_thoughts ?? false,
+      did_something_enjoyable: body.did_something_enjoyable ?? false,
+      worked_on_goals: body.worked_on_goals ?? false,
+      feeling: body.feeling ?? "",
+      gratitude: body.gratitude ?? "",
+    };
 
-    const [existing] = await db
-      .select()
-      .from(checkIns)
-      .where(
-        and(eq(checkIns.userId, user.id), eq(checkIns.date, body.date || today))
-      )
-      .limit(1);
+    const admin = getSupabaseAdmin();
+
+    const { data: existing } = await admin
+      .from("check_ins")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("date", row.date)
+      .limit(1)
+      .single();
 
     if (existing) {
-      const [updated] = await db
-        .update(checkIns)
-        .set({
-          ...body,
-          updatedAt: new Date(),
-        })
-        .where(eq(checkIns.id, existing.id))
-        .returning();
+      const { data: updated, error } = await admin
+        .from("check_ins")
+        .update({ ...row, updated_at: new Date().toISOString() })
+        .eq("id", existing.id)
+        .select()
+        .single();
+
+      if (error) throw error;
 
       return NextResponse.json(updated);
     }
 
-    const [created] = await db
-      .insert(checkIns)
-      .values({
-        userId: user.id,
-        date: body.date || today,
-        feltJudged: body.feltJudged ?? false,
-        tookMedication: body.tookMedication ?? false,
-        talkedToSomeone: body.talkedToSomeone ?? false,
-        meditationPrayerBreathing: body.meditationPrayerBreathing ?? false,
-        creativeActivity: body.creativeActivity ?? false,
-        ateWell: body.ateWell ?? false,
-        bowelMovement: body.bowelMovement ?? false,
-        exerciseWalk: body.exerciseWalk ?? false,
-        drankWater: body.drankWater ?? false,
-        sleptWell: body.sleptWell ?? false,
-        suicidalThoughts: body.suicidalThoughts ?? false,
-        didSomethingEnjoyable: body.didSomethingEnjoyable ?? false,
-        workedOnGoals: body.workedOnGoals ?? false,
-        feeling: body.feeling ?? "",
-        gratitude: body.gratitude ?? "",
-      })
-      .returning();
+    const { data: created, error } = await admin
+      .from("check_ins")
+      .insert(row)
+      .select()
+      .single();
+
+    if (error) throw error;
 
     return NextResponse.json(created, { status: 201 });
   } catch (error) {

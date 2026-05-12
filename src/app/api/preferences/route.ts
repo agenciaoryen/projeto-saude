@@ -1,7 +1,6 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { db } from "@/lib/db";
-import { userPreferences, ALL_QUESTION_KEYS } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { ALL_QUESTION_KEYS } from "@/lib/db/schema";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET() {
@@ -13,11 +12,14 @@ export async function GET() {
   }
 
   try {
-    const [prefs] = await db
-      .select()
-      .from(userPreferences)
-      .where(eq(userPreferences.userId, user.id))
-      .limit(1);
+    const admin = getSupabaseAdmin();
+    const { data: prefs, error } = await admin
+      .from("user_preferences")
+      .select("*")
+      .eq("user_id", user.id)
+      .single();
+
+    if (error && error.code !== "PGRST116") throw error;
 
     if (!prefs) {
       return NextResponse.json({
@@ -28,9 +30,9 @@ export async function GET() {
     }
 
     return NextResponse.json({
-      enabled_questions: prefs.enabledQuestions,
+      enabled_questions: prefs.enabled_questions,
       context: prefs.context || {},
-      onboarding_completed: prefs.onboardingCompleted,
+      onboarding_completed: prefs.onboarding_completed,
     });
   } catch (error) {
     console.error("GET /api/preferences error:", error);
@@ -53,47 +55,54 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { enabled_questions, context, onboarding_completed } = body;
 
-    const [existing] = await db
-      .select()
-      .from(userPreferences)
-      .where(eq(userPreferences.userId, user.id))
-      .limit(1);
+    const admin = getSupabaseAdmin();
+
+    const { data: existing } = await admin
+      .from("user_preferences")
+      .select("user_id")
+      .eq("user_id", user.id)
+      .single();
 
     if (existing) {
-      const [updated] = await db
-        .update(userPreferences)
-        .set({
-          enabledQuestions: enabled_questions || existing.enabledQuestions,
-          context: context || existing.context || {},
-          onboardingCompleted:
-            onboarding_completed ?? existing.onboardingCompleted,
-          updatedAt: new Date(),
+      const { data: updated, error } = await admin
+        .from("user_preferences")
+        .update({
+          enabled_questions: enabled_questions ?? undefined,
+          context: context ?? undefined,
+          onboarding_completed: onboarding_completed ?? undefined,
+          updated_at: new Date().toISOString(),
         })
-        .where(eq(userPreferences.userId, user.id))
-        .returning();
+        .eq("user_id", user.id)
+        .select()
+        .single();
+
+      if (error) throw error;
 
       return NextResponse.json({
-        enabled_questions: updated.enabledQuestions,
+        enabled_questions: updated.enabled_questions,
         context: updated.context || {},
-        onboarding_completed: updated.onboardingCompleted,
+        onboarding_completed: updated.onboarding_completed,
       });
     }
 
-    const [created] = await db
-      .insert(userPreferences)
-      .values({
-        userId: user.id,
-        enabledQuestions: enabled_questions || [...ALL_QUESTION_KEYS],
-        context: context || {},
-        onboardingCompleted: onboarding_completed ?? false,
+    const { data: created, error } = await admin
+      .from("user_preferences")
+      .insert({
+        user_id: user.id,
+        enabled_questions: enabled_questions ?? [...ALL_QUESTION_KEYS],
+        context: context ?? {},
+        onboarding_completed: onboarding_completed ?? false,
       })
-      .returning();
+      .select()
+      .single();
+
+    if (error) throw error;
 
     return NextResponse.json(
       {
-        enabled_questions: created.enabledQuestions,
+        enabled_questions: created.enabled_questions,
         context: created.context || {},
-        onboarding_completed: created.onboardingCompleted,
+        onboarding_completed: created.onboarding_completed,
       },
       { status: 201 }
     );

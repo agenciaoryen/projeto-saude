@@ -18,28 +18,28 @@ interface CheckInFormProps {
 }
 
 function getQuestionLabel(key: string, ctx: Record<string, boolean>): string {
-  if (key === "meditationPrayerBreathing") {
+  if (key === "meditation_prayer_breathing") {
     return ctx.has_faith
       ? "Fez meditação | oração | respiração"
       : "Fez meditação | respiração";
   }
-  if (key === "creativeActivity") {
+  if (key === "creative_activity") {
     return ctx.has_creative_hobby
       ? "Cantou | pintou | desenhou | assistiu TV"
       : "Assistiu TV | fez algo criativo";
   }
   const labels: Record<string, string> = {
-    feltJudged: "Se sentiu julgada(o) hoje",
-    tookMedication: "Tomou remédios certinho",
-    talkedToSomeone: "Conversou com alguém presencialmente",
-    ateWell: "Comeu bem hoje",
-    bowelMovement: "Fez cocô",
-    exerciseWalk: "Saiu a caminhar | exercício físico",
-    drankWater: "Tomou 1L água (mínimo)",
-    sleptWell: "Dormiu bem | descansou",
-    suicidalThoughts: "Pensamento suicida",
-    didSomethingEnjoyable: "Fez algo que gostou hoje",
-    workedOnGoals: "Trabalhou pelas suas metas hoje",
+    felt_judged: "Se sentiu julgada(o) hoje",
+    took_medication: "Tomou remédios certinho",
+    talked_to_someone: "Conversou com alguém presencialmente",
+    ate_well: "Comeu bem hoje",
+    bowel_movement: "Fez cocô",
+    exercise_walk: "Saiu a caminhar | exercício físico",
+    drank_water: "Tomou 1L água (mínimo)",
+    slept_well: "Dormiu bem | descansou",
+    suicidal_thoughts: "Pensamento suicida",
+    did_something_enjoyable: "Fez algo que gostou hoje",
+    worked_on_goals: "Trabalhou pelas suas metas hoje",
   };
   return labels[key] || key;
 }
@@ -51,19 +51,19 @@ export function CheckInForm({ existingCheckIn }: CheckInFormProps) {
   const [context, setContext] = useState<Record<string, boolean>>({});
   const [form, setForm] = useState<FormData>({
     date: new Date().toISOString().split("T")[0],
-    feltJudged: false,
-    tookMedication: false,
-    talkedToSomeone: false,
-    meditationPrayerBreathing: false,
-    creativeActivity: false,
-    ateWell: false,
-    bowelMovement: false,
-    exerciseWalk: false,
-    drankWater: false,
-    sleptWell: false,
-    suicidalThoughts: false,
-    didSomethingEnjoyable: false,
-    workedOnGoals: false,
+    felt_judged: false,
+    took_medication: false,
+    talked_to_someone: false,
+    meditation_prayer_breathing: false,
+    creative_activity: false,
+    ate_well: false,
+    bowel_movement: false,
+    exercise_walk: false,
+    drank_water: false,
+    slept_well: false,
+    suicidal_thoughts: false,
+    did_something_enjoyable: false,
+    worked_on_goals: false,
     feeling: "",
     gratitude: "",
   });
@@ -82,19 +82,19 @@ export function CheckInForm({ existingCheckIn }: CheckInFormProps) {
     if (existingCheckIn) {
       setForm({
         date: existingCheckIn.date,
-        feltJudged: existingCheckIn.felt_judged,
-        tookMedication: existingCheckIn.took_medication,
-        talkedToSomeone: existingCheckIn.talked_to_someone,
-        meditationPrayerBreathing: existingCheckIn.meditation_prayer_breathing,
-        creativeActivity: existingCheckIn.creative_activity,
-        ateWell: existingCheckIn.ate_well,
-        bowelMovement: existingCheckIn.bowel_movement,
-        exerciseWalk: existingCheckIn.exercise_walk,
-        drankWater: existingCheckIn.drank_water,
-        sleptWell: existingCheckIn.slept_well,
-        suicidalThoughts: existingCheckIn.suicidal_thoughts,
-        didSomethingEnjoyable: existingCheckIn.did_something_enjoyable,
-        workedOnGoals: existingCheckIn.worked_on_goals,
+        felt_judged: existingCheckIn.felt_judged,
+        took_medication: existingCheckIn.took_medication,
+        talked_to_someone: existingCheckIn.talked_to_someone,
+        meditation_prayer_breathing: existingCheckIn.meditation_prayer_breathing,
+        creative_activity: existingCheckIn.creative_activity,
+        ate_well: existingCheckIn.ate_well,
+        bowel_movement: existingCheckIn.bowel_movement,
+        exercise_walk: existingCheckIn.exercise_walk,
+        drank_water: existingCheckIn.drank_water,
+        slept_well: existingCheckIn.slept_well,
+        suicidal_thoughts: existingCheckIn.suicidal_thoughts,
+        did_something_enjoyable: existingCheckIn.did_something_enjoyable,
+        worked_on_goals: existingCheckIn.worked_on_goals,
         feeling: existingCheckIn.feeling,
         gratitude: existingCheckIn.gratitude,
       });
@@ -111,14 +111,14 @@ export function CheckInForm({ existingCheckIn }: CheckInFormProps) {
   }));
 
   const score = activeQuestions.filter(
-    (q) => q.key !== "suicidalThoughts" && form[q.key as keyof FormData] === true
+    (q) => q.key !== "suicidal_thoughts" && form[q.key as keyof FormData] === true
   ).length;
-  const total = activeQuestions.filter((q) => q.key !== "suicidalThoughts").length;
+  const total = activeQuestions.filter((q) => q.key !== "suicidal_thoughts").length;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (form.suicidalThoughts) {
+    if (form.suicidal_thoughts) {
       toast.warning(
         "Se você está tendo pensamentos suicidas, por favor ligue para o CVV: 188. Você não está sozinho(a). 💚"
       );
@@ -173,7 +173,7 @@ export function CheckInForm({ existingCheckIn }: CheckInFormProps) {
               <div
                 key={q.key}
                 className={`flex items-start gap-3 p-2 -mx-2 rounded-lg hover:bg-secondary/50 transition-colors ${
-                  q.key === "suicidalThoughts"
+                  q.key === "suicidal_thoughts"
                     ? "border border-red-200 dark:border-red-900 rounded-lg p-3"
                     : ""
                 }`}
@@ -189,7 +189,7 @@ export function CheckInForm({ existingCheckIn }: CheckInFormProps) {
                 <Label
                   htmlFor={q.key}
                   className={`text-sm leading-relaxed cursor-pointer ${
-                    q.key === "suicidalThoughts"
+                    q.key === "suicidal_thoughts"
                       ? "text-red-600 dark:text-red-400 font-medium"
                       : ""
                   }`}

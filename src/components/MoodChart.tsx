@@ -14,13 +14,12 @@ export function MoodChart({ checkIns, enabledKeys }: MoodChartProps) {
 
   if (sorted.length < 2) return null;
 
-  const scoreKeys = enabledKeys.filter((k) => k !== "suicidalThoughts");
+  const scoreKeys = enabledKeys.filter((k) => k !== "suicidal_thoughts");
   const maxScore = scoreKeys.length || 1;
 
   const getScore = (ci: CheckIn) =>
     scoreKeys.filter((k) => {
-      const camelKey = k.replace(/_([a-z])/g, (_, l) => l.toUpperCase());
-      return (ci as Record<string, unknown>)[camelKey] === true;
+      return (ci as Record<string, unknown>)[k] === true;
     }).length;
 
   return (

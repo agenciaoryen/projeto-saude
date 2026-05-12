@@ -10,19 +10,19 @@ import {
 } from "drizzle-orm/pg-core";
 
 const ALL_QUESTION_KEYS = [
-  "feltJudged",
-  "tookMedication",
-  "talkedToSomeone",
-  "meditationPrayerBreathing",
-  "creativeActivity",
-  "ateWell",
-  "bowelMovement",
-  "exerciseWalk",
-  "drankWater",
-  "sleptWell",
-  "suicidalThoughts",
-  "didSomethingEnjoyable",
-  "workedOnGoals",
+  "felt_judged",
+  "took_medication",
+  "talked_to_someone",
+  "meditation_prayer_breathing",
+  "creative_activity",
+  "ate_well",
+  "bowel_movement",
+  "exercise_walk",
+  "drank_water",
+  "slept_well",
+  "suicidal_thoughts",
+  "did_something_enjoyable",
+  "worked_on_goals",
 ] as const;
 
 export { ALL_QUESTION_KEYS };
