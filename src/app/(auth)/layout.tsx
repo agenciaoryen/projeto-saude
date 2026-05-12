@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -8,6 +7,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { LogoutButton } from "@/components/LogoutButton";
 import { BottomNav } from "@/components/BottomNav";
+import { UserAvatar } from "@/components/UserAvatar";
 
 export default function AuthLayout({
   children,
@@ -24,13 +24,7 @@ export default function AuthLayout({
 
           <DropdownMenu>
             <DropdownMenuTrigger
-              render={
-                <Avatar className="h-8 w-8 cursor-pointer">
-                  <AvatarFallback className="bg-primary text-primary-foreground text-xs">
-                    EU
-                  </AvatarFallback>
-                </Avatar>
-              }
+              render={<UserAvatar />}
             />
             <DropdownMenuContent align="end">
               <DropdownMenuItem
