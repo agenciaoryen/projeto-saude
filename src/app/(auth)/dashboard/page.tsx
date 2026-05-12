@@ -37,25 +37,46 @@ function calculateStreak(checkIns: CheckIn[]): number {
   return streak;
 }
 
+const HABIT_DISPLAY: Record<string, [string, string]> = {
+  took_medication: ["💊", "Remédios"],
+  talked_to_someone: ["🗣️", "Conversou"],
+  meditation_prayer_breathing: ["🧘", "Meditou/Orou"],
+  creative_activity: ["🎨", "Criatividade"],
+  ate_well: ["🍽️", "Comeu bem"],
+  bowel_movement: ["🚽", "Fez cocô"],
+  exercise_walk: ["🏃", "Exercício"],
+  drank_water: ["💧", "Água 1L"],
+  slept_well: ["😴", "Dormiu bem"],
+  felt_judged: ["⚖️", "Julgada(o)"],
+  did_something_enjoyable: ["😊", "Algo que gostou"],
+  worked_on_goals: ["🎯", "Metas"],
+};
+
 export default function DashboardPage() {
   const router = useRouter();
   const [checkIns, setCheckIns] = useState<CheckIn[]>([]);
   const [todayCheckIn, setTodayCheckIn] = useState<CheckIn | null>(null);
+  const [enabledKeys, setEnabledKeys] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/check-ins")
-      .then((res) => res.json())
-      .then((data: CheckIn[]) => {
-        if (Array.isArray(data)) {
-          setCheckIns(data);
-          const today = new Date().toISOString().split("T")[0];
-          setTodayCheckIn(data.find((c) => c.date === today) || null);
-        }
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  }, []);
+    Promise.all([
+      fetch("/api/check-ins").then((r) => r.json()),
+      fetch("/api/preferences").then((r) => r.json()),
+    ]).then(([checkInsData, prefsData]) => {
+      if (!prefsData.onboarding_completed) {
+        router.push("/onboarding");
+        return;
+      }
+      setEnabledKeys(prefsData.enabled_questions || []);
+      if (Array.isArray(checkInsData)) {
+        setCheckIns(checkInsData);
+        const today = new Date().toISOString().split("T")[0];
+        setTodayCheckIn(checkInsData.find((c: CheckIn) => c.date === today) || null);
+      }
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, [router]);
 
   if (loading) {
     return (
@@ -67,14 +88,14 @@ export default function DashboardPage() {
 
   const streak = calculateStreak(checkIns);
 
+  const enabledNonSuicidal = enabledKeys.filter((k) => k !== "suicidalThoughts");
+  const totalHabits = enabledNonSuicidal.length;
+
   const positiveCount = todayCheckIn
-    ? Object.entries(todayCheckIn).filter(
-        ([k, v]) =>
-          typeof v === "boolean" &&
-          k !== "suicidal_thoughts" &&
-          k !== "id" &&
-          v === true
-      ).length
+    ? enabledNonSuicidal.filter((k) => {
+        const camelKey = k.replace(/_([a-z])/g, (_, l) => l.toUpperCase());
+        return (todayCheckIn as Record<string, unknown>)[camelKey] === true;
+      }).length
     : 0;
 
   return (
@@ -108,31 +129,27 @@ export default function DashboardPage() {
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-lg">Check-in de hoje ✅</CardTitle>
             <Badge variant="secondary">
-              {positiveCount}/12 hábitos
+              {positiveCount}/{totalHabits} hábitos
             </Badge>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-2 text-sm">
-              {[
-                ["💊", "Remédios", todayCheckIn.took_medication],
-                ["🗣️", "Conversou", todayCheckIn.talked_to_someone],
-                ["🧘", "Meditou/Orou", todayCheckIn.meditation_prayer_breathing],
-                ["🍽️", "Comeu bem", todayCheckIn.ate_well],
-                ["🏃", "Exercício", todayCheckIn.exercise_walk],
-                ["💧", "Água 1L", todayCheckIn.drank_water],
-                ["😴", "Dormiu bem", todayCheckIn.slept_well],
-                ["🎯", "Metas", todayCheckIn.worked_on_goals],
-              ].map(([emoji, label, value]) => (
-                <div
-                  key={label}
-                  className={`flex items-center gap-2 p-2 rounded-lg ${
-                    value ? "bg-primary/10" : "bg-muted/50 opacity-50"
-                  }`}
-                >
-                  <span>{emoji}</span>
-                  <span className={value ? "font-medium" : ""}>{label}</span>
-                </div>
-              ))}
+              {enabledNonSuicidal.map((key) => {
+                const camelKey = key.replace(/_([a-z])/g, (_, l) => l.toUpperCase());
+                const value = (todayCheckIn as Record<string, unknown>)[camelKey] === true;
+                const [emoji, label] = HABIT_DISPLAY[key] || ["•", camelKey];
+                return (
+                  <div
+                    key={key}
+                    className={`flex items-center gap-2 p-2 rounded-lg ${
+                      value ? "bg-primary/10" : "bg-muted/50 opacity-50"
+                    }`}
+                  >
+                    <span>{emoji}</span>
+                    <span className={value ? "font-medium" : ""}>{label}</span>
+                  </div>
+                );
+              })}
             </div>
             {todayCheckIn.feeling && (
               <div className="mt-4 p-3 bg-secondary/30 rounded-xl">
@@ -163,7 +180,7 @@ export default function DashboardPage() {
             <CardTitle className="text-lg">Evolução</CardTitle>
           </CardHeader>
           <CardContent>
-            <MoodChart checkIns={checkIns} />
+            <MoodChart checkIns={checkIns} enabledKeys={enabledKeys} />
           </CardContent>
         </Card>
       )}

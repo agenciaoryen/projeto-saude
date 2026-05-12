@@ -8,6 +8,24 @@ import {
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 
+const ALL_QUESTION_KEYS = [
+  "feltJudged",
+  "tookMedication",
+  "talkedToSomeone",
+  "meditationPrayerBreathing",
+  "creativeActivity",
+  "ateWell",
+  "bowelMovement",
+  "exerciseWalk",
+  "drankWater",
+  "sleptWell",
+  "suicidalThoughts",
+  "didSomethingEnjoyable",
+  "workedOnGoals",
+] as const;
+
+export { ALL_QUESTION_KEYS };
+
 export const checkIns = pgTable(
   "check_ins",
   {
@@ -44,3 +62,15 @@ export const checkIns = pgTable(
     userDateIdx: uniqueIndex("user_date_idx").on(table.userId, table.date),
   })
 );
+
+export const userPreferences = pgTable("user_preferences", {
+  userId: uuid("user_id").primaryKey(),
+  enabledQuestions: text("enabled_questions").array().notNull().default([]),
+  onboardingCompleted: boolean("onboarding_completed").notNull().default(false),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});

@@ -36,6 +36,7 @@ interface CheckInFormProps {
 export function CheckInForm({ existingCheckIn }: CheckInFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [enabledKeys, setEnabledKeys] = useState<string[]>([]);
   const [form, setForm] = useState<FormData>({
     date: new Date().toISOString().split("T")[0],
     feltJudged: false,
@@ -54,6 +55,15 @@ export function CheckInForm({ existingCheckIn }: CheckInFormProps) {
     feeling: "",
     gratitude: "",
   });
+
+  useEffect(() => {
+    fetch("/api/preferences")
+      .then((res) => res.json())
+      .then((data) => {
+        setEnabledKeys(data.enabled_questions || []);
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (existingCheckIn) {
@@ -82,13 +92,14 @@ export function CheckInForm({ existingCheckIn }: CheckInFormProps) {
     setForm((prev) => ({ ...prev, [key]: checked }));
   };
 
-  const score =
-    Object.entries(form).filter(
-      ([k, v]) =>
-        typeof v === "boolean" &&
-        k !== "suicidalThoughts" &&
-        v === true
-    ).length;
+  const activeQuestions = YES_NO_QUESTIONS.filter((q) =>
+    enabledKeys.includes(q.key)
+  );
+
+  const score = activeQuestions.filter(
+    (q) => q.key !== "suicidalThoughts" && form[q.key as keyof FormData] === true
+  ).length;
+  const total = activeQuestions.filter((q) => q.key !== "suicidalThoughts").length;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -116,7 +127,7 @@ export function CheckInForm({ existingCheckIn }: CheckInFormProps) {
     toast.success(
       existingCheckIn
         ? "Check-in atualizado com sucesso! 🌱"
-        : `Check-in registrado! Você marcou ${score} de 12 hábitos positivos. 🌱`
+        : `Check-in registrado! Você marcou ${score} de ${total} hábitos positivos. 🌱`
     );
 
     setLoading(false);
@@ -136,35 +147,44 @@ export function CheckInForm({ existingCheckIn }: CheckInFormProps) {
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
-          {YES_NO_QUESTIONS.map((q) => (
-            <div
-              key={q.key}
-              className={`flex items-start gap-3 p-2 -mx-2 rounded-lg hover:bg-secondary/50 transition-colors ${
-                q.key === "suicidalThoughts"
-                  ? "border border-red-200 dark:border-red-900 rounded-lg p-3"
-                  : ""
-              }`}
-            >
-              <Checkbox
-                id={q.key}
-                checked={!!form[q.key as keyof FormData]}
-                onCheckedChange={(checked) =>
-                  handleCheck(q.key as keyof FormData, checked === true)
-                }
-                className="mt-1"
-              />
-              <Label
-                htmlFor={q.key}
-                className={`text-sm leading-relaxed cursor-pointer ${
+          {activeQuestions.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">
+              Nenhuma pergunta selecionada.{" "}
+              <a href="/configuracoes" className="text-primary underline">
+                Configure seu diário
+              </a>
+            </p>
+          ) : (
+            activeQuestions.map((q) => (
+              <div
+                key={q.key}
+                className={`flex items-start gap-3 p-2 -mx-2 rounded-lg hover:bg-secondary/50 transition-colors ${
                   q.key === "suicidalThoughts"
-                    ? "text-red-600 dark:text-red-400 font-medium"
+                    ? "border border-red-200 dark:border-red-900 rounded-lg p-3"
                     : ""
                 }`}
               >
-                {q.label}
-              </Label>
-            </div>
-          ))}
+                <Checkbox
+                  id={q.key}
+                  checked={!!form[q.key as keyof FormData]}
+                  onCheckedChange={(checked) =>
+                    handleCheck(q.key as keyof FormData, checked === true)
+                  }
+                  className="mt-1"
+                />
+                <Label
+                  htmlFor={q.key}
+                  className={`text-sm leading-relaxed cursor-pointer ${
+                    q.key === "suicidalThoughts"
+                      ? "text-red-600 dark:text-red-400 font-medium"
+                      : ""
+                  }`}
+                >
+                  {q.label}
+                </Label>
+              </div>
+            ))
+          )}
         </CardContent>
       </Card>
 

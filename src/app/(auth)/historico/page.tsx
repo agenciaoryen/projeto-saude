@@ -7,26 +7,53 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { CheckIn } from "@/types";
 
+const HISTORICO_DISPLAY: Record<string, string> = {
+  took_medication: "💊",
+  talked_to_someone: "🗣️",
+  meditation_prayer_breathing: "🧘",
+  creative_activity: "🎨",
+  ate_well: "🍽️",
+  bowel_movement: "🚽",
+  exercise_walk: "🏃",
+  drank_water: "💧",
+  slept_well: "😴",
+  felt_judged: "⚖️",
+  did_something_enjoyable: "😊",
+  worked_on_goals: "🎯",
+};
+
+function getScoreForCheckIn(ci: CheckIn, enabledKeys: string[]) {
+  const scoreKeys = enabledKeys.filter((k) => k !== "suicidalThoughts");
+  return scoreKeys.filter((k) => {
+    const camelKey = k.replace(/_([a-z])/g, (_, l) => l.toUpperCase());
+    return (ci as Record<string, unknown>)[camelKey] === true;
+  }).length;
+}
+
 export default function HistoricoPage() {
   const router = useRouter();
   const [checkIns, setCheckIns] = useState<CheckIn[]>([]);
+  const [enabledKeys, setEnabledKeys] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/check-ins")
-      .then((res) => res.json())
-      .then((data: CheckIn[]) => {
-        if (Array.isArray(data)) {
-          setCheckIns(
-            data.sort(
-              (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-            )
-          );
-        }
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
+    Promise.all([
+      fetch("/api/check-ins").then((r) => r.json()),
+      fetch("/api/preferences").then((r) => r.json()),
+    ]).then(([checkInsData, prefsData]) => {
+      setEnabledKeys(prefsData.enabled_questions || []);
+      if (Array.isArray(checkInsData)) {
+        setCheckIns(
+          checkInsData.sort(
+            (a: CheckIn, b: CheckIn) => new Date(b.date).getTime() - new Date(a.date).getTime()
+          )
+        );
+      }
+      setLoading(false);
+    }).catch(() => setLoading(false));
   }, []);
+
+  const totalHabits = enabledKeys.filter((k) => k !== "suicidalThoughts").length;
 
   if (loading) {
     return (
@@ -59,12 +86,7 @@ export default function HistoricoPage() {
       ) : (
         <div className="space-y-3">
           {checkIns.map((ci) => {
-            const score = Object.entries(ci).filter(
-              ([k, v]) =>
-                typeof v === "boolean" &&
-                k !== "suicidal_thoughts" &&
-                v === true
-            ).length;
+            const score = getScoreForCheckIn(ci, enabledKeys);
 
             return (
               <Card key={ci.id} className="rounded-2xl hover:bg-secondary/20 transition-colors">
@@ -82,30 +104,24 @@ export default function HistoricoPage() {
                       )}
                     </CardTitle>
                     <Badge variant="secondary" className="text-xs">
-                      {score}/12
+                      {score}/{totalHabits}
                     </Badge>
                   </div>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-3 gap-1 text-xs text-muted-foreground">
-                    {[
-                      ["💊", ci.took_medication],
-                      ["🗣️", ci.talked_to_someone],
-                      ["🧘", ci.meditation_prayer_breathing],
-                      ["🍽️", ci.ate_well],
-                      ["🏃", ci.exercise_walk],
-                      ["💧", ci.drank_water],
-                      ["😴", ci.slept_well],
-                      ["🎯", ci.worked_on_goals],
-                      ["🎨", ci.did_something_enjoyable],
-                    ].map(([emoji, val]) => (
-                      <span
-                        key={emoji}
-                        className={val ? "" : "opacity-30"}
-                      >
-                        {emoji}
-                      </span>
-                    ))}
+                    {enabledKeys
+                      .filter((k) => k !== "suicidalThoughts")
+                      .map((key) => {
+                        const camelKey = key.replace(/_([a-z])/g, (_, l) => l.toUpperCase());
+                        const val = (ci as Record<string, unknown>)[camelKey] === true;
+                        const emoji = HISTORICO_DISPLAY[key] || "•";
+                        return (
+                          <span key={key} className={val ? "" : "opacity-30"}>
+                            {emoji}
+                          </span>
+                        );
+                      })}
                   </div>
                   {ci.feeling && (
                     <p className="text-sm mt-2 text-muted-foreground line-clamp-1">

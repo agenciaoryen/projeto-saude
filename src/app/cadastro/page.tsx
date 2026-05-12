@@ -34,8 +34,8 @@ export default function CadastroPage() {
       return;
     }
 
-    toast.success("Conta criada com sucesso! Redirecionando...");
-    router.push("/dashboard");
+    toast.success("Conta criada! Vamos personalizar seu diário...");
+    router.push("/onboarding");
     router.refresh();
   };
 

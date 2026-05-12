@@ -4,27 +4,30 @@ import type { CheckIn } from "@/types";
 
 interface MoodChartProps {
   checkIns: CheckIn[];
+  enabledKeys: string[];
 }
 
-export function MoodChart({ checkIns }: MoodChartProps) {
+export function MoodChart({ checkIns, enabledKeys }: MoodChartProps) {
   const sorted = [...checkIns]
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
     .slice(-30);
 
   if (sorted.length < 2) return null;
 
-  const maxScore = 12;
+  const scoreKeys = enabledKeys.filter((k) => k !== "suicidalThoughts");
+  const maxScore = scoreKeys.length || 1;
+
+  const getScore = (ci: CheckIn) =>
+    scoreKeys.filter((k) => {
+      const camelKey = k.replace(/_([a-z])/g, (_, l) => l.toUpperCase());
+      return (ci as Record<string, unknown>)[camelKey] === true;
+    }).length;
 
   return (
     <div className="space-y-2">
       <div className="flex items-end gap-1 h-32">
         {sorted.map((ci) => {
-          const score = Object.entries(ci).filter(
-            ([k, v]) =>
-              typeof v === "boolean" &&
-              k !== "suicidal_thoughts" &&
-              v === true
-          ).length;
+          const score = getScore(ci);
           const height = (score / maxScore) * 100;
 
           return (
@@ -37,16 +40,16 @@ export function MoodChart({ checkIns }: MoodChartProps) {
                 style={{
                   height: `${Math.max(height, 4)}%`,
                   backgroundColor:
-                    score >= 10
+                    score >= maxScore * 0.8
                       ? "var(--color-primary)"
-                      : score >= 7
+                      : score >= maxScore * 0.6
                       ? "var(--color-chart-2)"
-                      : score >= 4
+                      : score >= maxScore * 0.3
                       ? "var(--color-chart-3)"
                       : "var(--color-muted-foreground)",
                   opacity: 0.7 + (score / maxScore) * 0.3,
                 }}
-                title={`${score}/12 - ${new Date(ci.date + "T12:00:00").toLocaleDateString("pt-BR")}`}
+                title={`${score}/${maxScore} - ${new Date(ci.date + "T12:00:00").toLocaleDateString("pt-BR")}`}
               />
             </div>
           );
