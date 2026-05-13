@@ -245,7 +245,7 @@ export default function MayaChatPage() {
       </div>
 
       {/* Input bar */}
-      <div className="shrink-0 px-3 pt-3 pb-20 bg-background border-t border-border safe-bottom">
+      <div className="shrink-0 px-3 pt-3 bg-background border-t border-border" style={{ paddingBottom: "calc(80px + env(safe-area-inset-bottom, 0px))" }}>
         <div className="flex items-end gap-2">
           <textarea
             ref={textareaRef}

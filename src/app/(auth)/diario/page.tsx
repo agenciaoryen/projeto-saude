@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useTranslation } from "@/lib/useTranslation";
+import { Plus } from "lucide-react";
 import type { DiaryEntry } from "@/types";
 
 const MOOD_EMOJIS: Record<number, string> = {
@@ -41,14 +41,9 @@ export default function DiarioPage() {
 
   return (
     <div className="max-w-lg mx-auto space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">{t("diario_title")}</h1>
-          <p className="text-muted-foreground text-sm">{t("diario_subtitle")}</p>
-        </div>
-        <Button size="sm" className="rounded-xl" onClick={() => router.push("/diario/novo")}>
-          {t("nova_entrada")}
-        </Button>
+      <div>
+        <h1 className="text-2xl font-bold">{t("diario_title")}</h1>
+        <p className="text-muted-foreground text-sm">{t("diario_subtitle")}</p>
       </div>
 
       {entries.length === 0 ? (
@@ -59,9 +54,7 @@ export default function DiarioPage() {
               <p className="font-medium">{t("nenhuma_entrada")}</p>
               <p className="text-sm text-muted-foreground">{t("comece_diario")}</p>
             </div>
-            <Button className="rounded-xl" onClick={() => router.push("/diario/novo")}>
-              {t("escrever_primeira")}
-            </Button>
+            <p className="text-sm text-muted-foreground">{t("toque_no_mais")}</p>
           </CardContent>
         </Card>
       ) : (
@@ -106,6 +99,13 @@ export default function DiarioPage() {
           ))}
         </div>
       )}
+      <button
+        onClick={() => router.push("/diario/novo")}
+        className="fixed bottom-20 right-5 size-14 rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/25 flex items-center justify-center hover:bg-primary/90 transition-colors z-40"
+        aria-label={t("nova_entrada")}
+      >
+        <Plus className="size-6" />
+      </button>
     </div>
   );
 }

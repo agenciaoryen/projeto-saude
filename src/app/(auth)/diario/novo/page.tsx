@@ -3,12 +3,13 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useTranslation } from "@/lib/useTranslation";
+import { ArrowLeft, Check } from "lucide-react";
 
 const MOODS = [
   { value: 1, emoji: "😔", key: "muito_mal" },
@@ -56,22 +57,43 @@ export default function NovoDiarioPage() {
 
   return (
     <div className="max-w-lg mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">{t("nova_entrada_title")}</h1>
-        <p className="text-muted-foreground text-sm">
-          {new Date().toLocaleDateString("pt-BR", {
-            weekday: "long",
-            day: "numeric",
-            month: "long",
-          })}
-        </p>
+      {/* Top bar: back + date + save */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="size-9 flex items-center justify-center rounded-full hover:bg-muted transition-colors -ml-1"
+            aria-label={t("voltar")}
+          >
+            <ArrowLeft className="size-5" />
+          </button>
+          <div>
+            <h1 className="text-xl font-bold">{t("nova_entrada_title")}</h1>
+            <p className="text-muted-foreground text-sm">
+              {new Date().toLocaleDateString("pt-BR", {
+                weekday: "long",
+                day: "numeric",
+                month: "long",
+              })}
+            </p>
+          </div>
+        </div>
+        <Button
+          size="sm"
+          className="rounded-full size-10"
+          onClick={handleSave}
+          disabled={saving}
+          aria-label={t("salvar_entrada")}
+        >
+          <Check className="size-4" />
+        </Button>
       </div>
 
+      {/* Mood selector */}
       <Card className="rounded-2xl">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base">{t("como_esta_hoje")}</CardTitle>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="p-4">
+          <p className="text-sm font-medium mb-3">{t("como_esta_hoje")}</p>
           <div className="flex justify-between gap-1">
             {MOODS.map((m) => (
               <button
@@ -92,47 +114,39 @@ export default function NovoDiarioPage() {
         </CardContent>
       </Card>
 
-      <div className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="title">{t("titulo_opcional")}</Label>
-          <Input
-            id="title"
-            placeholder={t("titulo_placeholder")}
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="rounded-xl"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="content">{t("o_que_escrever")}</Label>
-          <Textarea
-            id="content"
-            placeholder={t("escrever_placeholder")}
-            rows={10}
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            className="resize-none rounded-xl"
-          />
-        </div>
-      </div>
-
-      <div className="flex gap-3">
-        <Button
-          variant="outline"
+      {/* Title */}
+      <div className="space-y-2">
+        <Label htmlFor="title">{t("titulo")}</Label>
+        <Input
+          id="title"
+          placeholder={t("titulo_placeholder")}
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
           className="rounded-xl"
-          onClick={() => router.back()}
-        >
-          {t("cancelar")}
-        </Button>
-        <Button
-          className="flex-1 rounded-xl"
-          onClick={handleSave}
-          disabled={saving}
-        >
-          {saving ? t("salvando") : t("salvar_entrada")}
-        </Button>
+        />
       </div>
+
+      {/* Content */}
+      <div className="space-y-2">
+        <Label htmlFor="content">{t("o_que_escrever")}</Label>
+        <Textarea
+          id="content"
+          placeholder={t("escrever_placeholder")}
+          rows={14}
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          className="resize-none rounded-xl"
+        />
+      </div>
+
+      {/* Cancel */}
+      <Button
+        variant="outline"
+        className="w-full rounded-xl"
+        onClick={() => router.back()}
+      >
+        {t("cancelar")}
+      </Button>
     </div>
   );
 }

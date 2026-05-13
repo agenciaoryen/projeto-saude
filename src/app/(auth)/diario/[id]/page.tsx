@@ -3,12 +3,13 @@
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useTranslation } from "@/lib/useTranslation";
+import { ArrowLeft, Check } from "lucide-react";
 import type { DiaryEntry } from "@/types";
 
 const MOODS = [
@@ -119,28 +120,42 @@ export default function DiarioEntryPage() {
 
   return (
     <div className="max-w-lg mx-auto space-y-6">
+      {/* Top bar */}
       <div className="flex items-center justify-between">
-        <div>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="rounded-xl -ml-2"
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
             onClick={() => router.push("/diario")}
+            className="size-9 flex items-center justify-center rounded-full hover:bg-muted transition-colors -ml-1"
+            aria-label={t("voltar")}
           >
-            {t("voltar")}
-          </Button>
-          <h1 className="text-2xl font-bold mt-1">
-            {editing ? t("editando") : entry.title || t("diario_title")}
-          </h1>
-          <p className="text-muted-foreground text-sm">
-            {new Date(entry.date + "T12:00:00").toLocaleDateString("pt-BR", {
-              weekday: "long",
-              day: "numeric",
-              month: "long",
-            })}
-          </p>
+            <ArrowLeft className="size-5" />
+          </button>
+          <div>
+            <h1 className="text-xl font-bold">
+              {editing ? t("editando") : entry.title || t("diario_title")}
+            </h1>
+            <p className="text-muted-foreground text-sm">
+              {new Date(entry.date + "T12:00:00").toLocaleDateString("pt-BR", {
+                weekday: "long",
+                day: "numeric",
+                month: "long",
+              })}
+            </p>
+          </div>
         </div>
-        {!editing && (
+
+        {editing ? (
+          <Button
+            size="sm"
+            className="rounded-full size-10"
+            onClick={handleSave}
+            disabled={saving}
+            aria-label={t("salvar")}
+          >
+            <Check className="size-4" />
+          </Button>
+        ) : (
           <div className="flex gap-2">
             <Button
               variant="outline"
@@ -162,93 +177,84 @@ export default function DiarioEntryPage() {
         )}
       </div>
 
-      {entry.mood && !editing && (
-        <Card className="rounded-2xl">
-          <CardContent className="p-4 text-center">
-            <span className="text-4xl">
-              {MOODS.find((m) => m.value === entry.mood)?.emoji}
-            </span>
-            <p className="text-sm text-muted-foreground mt-1">
-              {t(MOODS.find((m) => m.value === entry.mood)?.key || "")}
-            </p>
-          </CardContent>
-        </Card>
-      )}
-
-      {editing && (
-        <Card className="rounded-2xl">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">{t("humor_dia")}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex justify-between gap-1">
-              {MOODS.map((m) => (
-                <button
-                  key={m.value}
-                  type="button"
-                  onClick={() => setMood(m.value)}
-                  className={`flex flex-col items-center gap-1 p-2 rounded-xl text-sm transition-colors flex-1 ${
-                    mood === m.value
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted hover:bg-muted/80"
-                  }`}
-                >
-                  <span className="text-2xl">{m.emoji}</span>
-                  <span className="text-[10px]">{t(m.key)}</span>
-                </button>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       {editing ? (
         <>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="title">{t("titulo")}</Label>
-              <Input
-                id="title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="rounded-xl"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="content">{t("conteudo")}</Label>
-              <Textarea
-                id="content"
-                rows={10}
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                className="resize-none rounded-xl"
-              />
-            </div>
-          </div>
-          <div className="flex gap-3">
-            <Button
-              variant="outline"
+          {/* Mood selector */}
+          <Card className="rounded-2xl">
+            <CardContent className="p-4">
+              <p className="text-sm font-medium mb-3">{t("humor_dia")}</p>
+              <div className="flex justify-between gap-1">
+                {MOODS.map((m) => (
+                  <button
+                    key={m.value}
+                    type="button"
+                    onClick={() => setMood(m.value)}
+                    className={`flex flex-col items-center gap-1 p-2 rounded-xl text-sm transition-colors flex-1 ${
+                      mood === m.value
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted hover:bg-muted/80"
+                    }`}
+                  >
+                    <span className="text-2xl">{m.emoji}</span>
+                    <span className="text-[10px]">{t(m.key)}</span>
+                  </button>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Title */}
+          <div className="space-y-2">
+            <Label htmlFor="title">{t("titulo")}</Label>
+            <Input
+              id="title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
               className="rounded-xl"
-              onClick={() => {
-                setEditing(false);
-                setTitle(entry.title || "");
-                setContent(entry.content || "");
-                setMood(entry.mood ?? null);
-              }}
-            >
-              {t("cancelar")}
-            </Button>
-            <Button
-              className="flex-1 rounded-xl"
-              onClick={handleSave}
-              disabled={saving}
-            >
-              {saving ? t("salvando") : t("salvar")}
-            </Button>
+            />
           </div>
+
+          {/* Content */}
+          <div className="space-y-2">
+            <Label htmlFor="content">{t("conteudo")}</Label>
+            <Textarea
+              id="content"
+              rows={14}
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              className="resize-none rounded-xl"
+            />
+          </div>
+
+          {/* Cancel */}
+          <Button
+            variant="outline"
+            className="w-full rounded-xl"
+            onClick={() => {
+              setEditing(false);
+              setTitle(entry.title || "");
+              setContent(entry.content || "");
+              setMood(entry.mood ?? null);
+            }}
+          >
+            {t("cancelar")}
+          </Button>
         </>
       ) : (
         <>
+          {entry.mood && (
+            <Card className="rounded-2xl">
+              <CardContent className="p-4 text-center">
+                <span className="text-4xl">
+                  {MOODS.find((m) => m.value === entry.mood)?.emoji}
+                </span>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {t(MOODS.find((m) => m.value === entry.mood)?.key || "")}
+                </p>
+              </CardContent>
+            </Card>
+          )}
+
           {entry.title && (
             <h2 className="text-lg font-semibold">{entry.title}</h2>
           )}
