@@ -81,9 +81,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Nao autorizado" }, { status: 401 });
   }
 
+  // Salva mealId antes de consumir o body, para usar no catch
+  let mealId = "";
+
   try {
     const body = await request.json();
-    const { mealId, photoBase64, description } = body;
+    mealId = body.mealId || "";
+    const { photoBase64, description } = body;
 
     if (!mealId || !photoBase64) {
       return NextResponse.json({ error: "mealId e photoBase64 obrigatorios" }, { status: 400 });
@@ -96,6 +100,9 @@ export async function POST(request: Request) {
     try {
       parsed = JSON.parse(jsonStr);
     } catch {
+      // Marca como falha para não travar o cliente
+      const admin = getSupabaseAdmin();
+      await admin.from("meals").update({ status_analise: "falha" }).eq("id", mealId).eq("user_id", user.id);
       return NextResponse.json({
         error: "Falha ao interpretar resposta da IA",
         raw,
@@ -110,7 +117,6 @@ export async function POST(request: Request) {
       status_analise: "analisado" as const,
     };
 
-    // Atualiza o registro da refeição com a análise
     const admin = getSupabaseAdmin();
     const { data: updated, error: updateError } = await admin
       .from("meals")
@@ -132,14 +138,13 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("POST /api/meals/analyze error:", error);
 
-    // Tenta marcar como falha se tiver mealId
-    try {
-      const { mealId } = await request.clone().json();
-      if (mealId) {
+    // Marca como falha para destravar o cliente
+    if (mealId) {
+      try {
         const admin = getSupabaseAdmin();
         await admin.from("meals").update({ status_analise: "falha" }).eq("id", mealId).eq("user_id", user.id);
-      }
-    } catch { /* best-effort */ }
+      } catch { /* best-effort */ }
+    }
 
     return NextResponse.json(
       { error: "Erro ao analisar refeicao", detail: String(error) },

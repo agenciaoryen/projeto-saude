@@ -86,12 +86,16 @@ export default function RegistrarRefeicaoPage() {
       const meal = await res.json();
 
       if (photo && photoKey && meal.id) {
-        // Iniciar análise
         setMealId(meal.id);
         setStage("analyzing");
+        setSaving(false);
         toast.success(t("refeicao_salva"));
 
         try {
+          // Timeout de 45s para a análise (Claude Vision pode demorar com imagens)
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 45000);
+
           const analyzeRes = await fetch("/api/meals/analyze", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -100,7 +104,9 @@ export default function RegistrarRefeicaoPage() {
               photoBase64: photo,
               description: description.trim(),
             }),
+            signal: controller.signal,
           });
+          clearTimeout(timeoutId);
 
           if (analyzeRes.ok) {
             const analyzed = await analyzeRes.json();
@@ -110,7 +116,6 @@ export default function RegistrarRefeicaoPage() {
             setAnalysisObs(analyzed.observacao || "");
             setStage("results");
           } else {
-            // IA falhou — permite registro manual
             setAnalysisItems([]);
             setAnalysisMacros(null);
             setAnalysisClass("nao_identificada");
@@ -124,6 +129,7 @@ export default function RegistrarRefeicaoPage() {
         }
       } else {
         toast.success(t("refeicao_salva"));
+        setSaving(false);
         router.push("/nutricao");
       }
     } catch {

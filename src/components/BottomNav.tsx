@@ -50,7 +50,7 @@ export function BottomNav() {
         {/* Botão central de câmera (Nutrição) */}
         <button
           type="button"
-          onClick={() => router.push("/nutricao/registrar")}
+          onClick={() => router.push("/nutricao")}
           className="flex flex-col items-center justify-center gap-0.5 h-full px-3 min-w-0 flex-1 transition-colors text-muted-foreground hover:text-foreground -mt-5"
         >
           <span className="size-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg shadow-primary/25">
