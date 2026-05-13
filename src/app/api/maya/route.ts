@@ -106,7 +106,7 @@ export async function POST(request: Request) {
       streak,
     });
 
-    const reply = await callAnthropicChat(systemPrompt, messages, 500);
+    const reply = await callAnthropicChat(systemPrompt, messages, 250);
 
     // Extract new facts from the conversation (fire and forget)
     const lastUserMsg = [...messages].reverse().find(m => m.role === "user");
