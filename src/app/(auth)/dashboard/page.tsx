@@ -38,6 +38,15 @@ export default function DashboardPage() {
   const [achievements, setAchievements] = useState<UserAchievement[]>([]);
   const [gender, setGender] = useState<string>("nao_dizer");
   const [loading, setLoading] = useState(true);
+  const [todayDisplay, setTodayDisplay] = useState("");
+
+  useEffect(() => {
+    setTodayDisplay(new Date().toLocaleDateString("pt-BR", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+    }));
+  }, []);
 
   useEffect(() => {
     Promise.all([
@@ -86,13 +95,7 @@ export default function DashboardPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">{t("ola")}</h1>
-        <p className="text-muted-foreground text-sm">
-          {new Date().toLocaleDateString("pt-BR", {
-            weekday: "long",
-            day: "numeric",
-            month: "long",
-          })}
-        </p>
+        <p className="text-muted-foreground text-sm">{todayDisplay}</p>
       </div>
 
       {!todayCheckIn ? (

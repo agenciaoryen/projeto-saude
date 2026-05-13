@@ -18,13 +18,16 @@ function saveCache(data: { name?: string; avatar_url?: string }) {
 }
 
 export function UserAvatar() {
-  const cache = loadCache();
-  const [profile, setProfile] = useState<{ name: string; avatar_url: string }>(
-    cache || { name: "", avatar_url: "" }
-  );
-  const [ready, setReady] = useState(!!cache);
+  const [profile, setProfile] = useState<{ name: string; avatar_url: string }>({ name: "", avatar_url: "" });
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
+    const cache = loadCache();
+    if (cache) {
+      setProfile(cache);
+      setReady(true);
+    }
+
     let cancelled = false;
     fetch("/api/profile")
       .then((r) => r.json())
