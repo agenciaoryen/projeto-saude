@@ -126,7 +126,13 @@ export default function MayaChatPage() {
   }, [messages, hydrated]);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (messagesRef.current) {
+          messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
+        }
+      });
+    });
   }, [messages, typing, viewportH]);
 
   useEffect(() => {
@@ -313,14 +319,7 @@ export default function MayaChatPage() {
               setTimeout(() => {
                 setViewportH(0);
                 setKeyboardOpen(false);
-                requestAnimationFrame(() => {
-                  requestAnimationFrame(() => {
-                    if (messagesRef.current) {
-                      messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
-                    }
-                  });
-                });
-              }, 100);
+              }, 150);
             }}
             placeholder={t("maya_placeholder")}
             disabled={busy}
