@@ -224,7 +224,10 @@ export default function MayaChatPage() {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-2 py-3 space-y-1">
+      <div
+        className="flex-1 overflow-y-auto px-2 py-3 space-y-1"
+        style={{ paddingBottom: keyboardHeight > 0 ? `${keyboardHeight + 8}px` : undefined }}
+      >
         {hydrated && messages.length === 0 && welcomeMessage && (
           <div className="flex justify-center pt-12">
             <div className="bg-background/80 rounded-lg px-4 py-3 text-sm text-center max-w-sm text-muted-foreground shadow-sm">
