@@ -10,6 +10,7 @@ interface Message {
   role: "user" | "assistant";
   content: string;
   time: string;
+  seen?: boolean;
 }
 
 const CHAT_CACHE_KEY = "maya_chat";
@@ -119,6 +120,19 @@ export default function MayaChatPage() {
         await new Promise((r) => setTimeout(r, 400));
       }
     }
+
+    // Mark last user message as seen
+    setMessages(prev => {
+      const updated = [...prev];
+      for (let i = updated.length - 1; i >= 0; i--) {
+        if (updated[i].role === "user") {
+          updated[i] = { ...updated[i], seen: true };
+          break;
+        }
+      }
+      return updated;
+    });
+
     sendingRef.current = false;
   }, []);
 
@@ -127,7 +141,7 @@ export default function MayaChatPage() {
     if (!trimmed || sending || sendingRef.current) return;
 
     const now = formatTime();
-    const userMsg: Message = { role: "user", content: trimmed, time: now };
+    const userMsg: Message = { role: "user", content: trimmed, time: now, seen: false };
     const updated = [...messages, userMsg];
     setMessages(updated);
     setInput("");
@@ -163,8 +177,8 @@ export default function MayaChatPage() {
 
   return (
     <div className="flex flex-col h-full bg-chat">
-      {/* Header — sticky, WhatsApp style */}
-      <div className="sticky top-0 z-10 shrink-0 flex items-center gap-3 px-4 py-2.5 bg-background border-b border-border safe-top">
+      {/* Header */}
+      <div className="shrink-0 flex items-center gap-3 px-4 py-2.5 bg-background border-b border-border safe-top">
         <button
           type="button"
           onClick={() => router.push("/dashboard")}
@@ -186,7 +200,7 @@ export default function MayaChatPage() {
         </div>
       </div>
 
-      {/* Messages — edge to edge */}
+      {/* Messages */}
       <div className="flex-1 overflow-y-auto px-2 py-3 space-y-1">
         {hydrated && messages.length === 0 && welcomeMessage && (
           <div className="flex justify-center pt-12">
@@ -220,15 +234,19 @@ export default function MayaChatPage() {
             <div key={i} className={`flex justify-end ${isLastInGroup ? "mb-1.5" : ""}`}>
               <div className="max-w-[85%] px-3 py-2 bg-primary text-primary-foreground text-sm leading-relaxed rounded-xl rounded-br-sm">
                 <div className="whitespace-pre-line">{msg.content}</div>
-                <span className="text-[10px] text-primary-foreground/45 float-right ml-3 translate-y-0.5">
+                <span className="text-[10px] text-primary-foreground/45 float-right ml-1 translate-y-0.5">
                   {msg.time}
+                  {msg.seen ? (
+                    <span className="ml-0.5 opacity-70">✓✓</span>
+                  ) : (
+                    <span className="ml-0.5 opacity-50">✓</span>
+                  )}
                 </span>
               </div>
             </div>
           );
         })}
 
-        {/* Typing indicator — no avatar */}
         {typing && (
           <div className="flex justify-start">
             <div className="bg-muted rounded-xl rounded-bl-sm px-3 py-3">
@@ -245,7 +263,10 @@ export default function MayaChatPage() {
       </div>
 
       {/* Input bar */}
-      <div className="shrink-0 px-3 pt-3 bg-background border-t border-border" style={{ paddingBottom: "calc(80px + env(safe-area-inset-bottom, 0px))" }}>
+      <div
+        className="shrink-0 px-3 pt-2.5 bg-background border-t border-border"
+        style={{ paddingBottom: "calc(12px + env(safe-area-inset-bottom, 0px))" }}
+      >
         <div className="flex items-end gap-2">
           <textarea
             ref={textareaRef}
