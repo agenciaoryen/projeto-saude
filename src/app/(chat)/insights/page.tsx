@@ -310,15 +310,17 @@ export default function MayaChatPage() {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             onBlur={() => {
-              setViewportH(0);
-              setKeyboardOpen(false);
-              requestAnimationFrame(() => {
+              setTimeout(() => {
+                setViewportH(0);
+                setKeyboardOpen(false);
                 requestAnimationFrame(() => {
-                  if (messagesRef.current) {
-                    messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
-                  }
+                  requestAnimationFrame(() => {
+                    if (messagesRef.current) {
+                      messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
+                    }
+                  });
                 });
-              });
+              }, 100);
             }}
             placeholder={t("maya_placeholder")}
             disabled={busy}
