@@ -1,15 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useTranslation } from "@/lib/useTranslation";
-import { ArrowLeft, Check } from "lucide-react";
+import { getLocalDate } from "@/lib/utils";
+import { ArrowLeft } from "lucide-react";
 
 const MOODS = [
   { value: 1, emoji: "😔", key: "muito_mal" },
@@ -19,13 +19,23 @@ const MOODS = [
   { value: 5, emoji: "😊", key: "muito_bem" },
 ];
 
+function formatDisplayDate(dateStr: string): string {
+  return new Date(dateStr + "T12:00:00").toLocaleDateString("pt-BR", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  });
+}
+
 export default function NovoDiarioPage() {
   const router = useRouter();
   const { t } = useTranslation();
+  const [entryDate, setEntryDate] = useState(() => getLocalDate());
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [mood, setMood] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
+  const dateInputRef = useRef<HTMLInputElement>(null);
 
   const handleSave = async () => {
     if (!content.trim()) {
@@ -38,6 +48,7 @@ export default function NovoDiarioPage() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        date: entryDate,
         title: title.trim(),
         content: content.trim(),
         mood,
@@ -55,6 +66,16 @@ export default function NovoDiarioPage() {
     router.refresh();
   };
 
+  const openDatePicker = () => {
+    const el = dateInputRef.current;
+    if (!el) return;
+    if ("showPicker" in el && typeof el.showPicker === "function") {
+      el.showPicker();
+    } else {
+      el.click();
+    }
+  };
+
   return (
     <div className="max-w-lg mx-auto space-y-6">
       {/* Top bar: back + date + save */}
@@ -68,25 +89,27 @@ export default function NovoDiarioPage() {
           >
             <ArrowLeft className="size-5" />
           </button>
-          <div>
-            <h1 className="text-xl font-bold">{t("nova_entrada_title")}</h1>
-            <p className="text-muted-foreground text-sm">
-              {new Date().toLocaleDateString("pt-BR", {
-                weekday: "long",
-                day: "numeric",
-                month: "long",
-              })}
-            </p>
-          </div>
+          <button
+            type="button"
+            onClick={openDatePicker}
+            className="text-left"
+          >
+            <h1 className="text-xl font-bold">{formatDisplayDate(entryDate)}</h1>
+          </button>
+          <input
+            type="date"
+            ref={dateInputRef}
+            value={entryDate}
+            onChange={(e) => setEntryDate(e.target.value)}
+            className="sr-only"
+          />
         </div>
         <Button
-          size="sm"
-          className="rounded-full size-10"
+          className="rounded-xl"
           onClick={handleSave}
           disabled={saving}
-          aria-label={t("salvar_entrada")}
         >
-          <Check className="size-4" />
+          {saving ? t("salvando") : t("salvar")}
         </Button>
       </div>
 
@@ -114,30 +137,22 @@ export default function NovoDiarioPage() {
         </CardContent>
       </Card>
 
-      {/* Title */}
-      <div className="space-y-2">
-        <Label htmlFor="title">{t("titulo")}</Label>
-        <Input
-          id="title"
-          placeholder={t("titulo_placeholder")}
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          className="rounded-xl"
-        />
-      </div>
+      {/* Title — placeholder as label */}
+      <Input
+        placeholder={t("titulo_placeholder")}
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        className="rounded-xl text-base"
+      />
 
-      {/* Content */}
-      <div className="space-y-2">
-        <Label htmlFor="content">{t("o_que_escrever")}</Label>
-        <Textarea
-          id="content"
-          placeholder={t("escrever_placeholder")}
-          rows={14}
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          className="resize-none rounded-xl"
-        />
-      </div>
+      {/* Content — placeholder as label */}
+      <Textarea
+        placeholder={t("escrever_placeholder")}
+        rows={14}
+        value={content}
+        onChange={(e) => setContent(e.target.value)}
+        className="resize-none rounded-xl"
+      />
 
       {/* Cancel */}
       <Button

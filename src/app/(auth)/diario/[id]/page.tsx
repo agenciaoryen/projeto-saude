@@ -1,15 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useTranslation } from "@/lib/useTranslation";
-import { ArrowLeft, Check } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import type { DiaryEntry } from "@/types";
 
 const MOODS = [
@@ -20,6 +19,14 @@ const MOODS = [
   { value: 5, emoji: "😊", key: "muito_bem" },
 ];
 
+function formatDisplayDate(dateStr: string): string {
+  return new Date(dateStr + "T12:00:00").toLocaleDateString("pt-BR", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  });
+}
+
 export default function DiarioEntryPage() {
   const router = useRouter();
   const params = useParams();
@@ -27,12 +34,14 @@ export default function DiarioEntryPage() {
   const { t } = useTranslation();
 
   const [entry, setEntry] = useState<DiaryEntry | null>(null);
+  const [entryDate, setEntryDate] = useState("");
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [mood, setMood] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState(false);
+  const dateInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetch(`/api/diary?id=${id}`)
@@ -40,6 +49,7 @@ export default function DiarioEntryPage() {
       .then((data) => {
         if (data && data.id) {
           setEntry(data);
+          setEntryDate(data.date || "");
           setTitle(data.title || "");
           setContent(data.content || "");
           setMood(data.mood ?? null);
@@ -61,6 +71,7 @@ export default function DiarioEntryPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         id,
+        date: entryDate,
         title: title.trim(),
         content: content.trim(),
         mood,
@@ -78,7 +89,7 @@ export default function DiarioEntryPage() {
     setSaving(false);
     setEntry((prev) =>
       prev
-        ? { ...prev, title: title.trim(), content: content.trim(), mood }
+        ? { ...prev, date: entryDate, title: title.trim(), content: content.trim(), mood }
         : prev
     );
   };
@@ -96,6 +107,16 @@ export default function DiarioEntryPage() {
     toast.success(t("entrada_deletada"));
     router.push("/diario");
     router.refresh();
+  };
+
+  const openDatePicker = () => {
+    const el = dateInputRef.current;
+    if (!el) return;
+    if ("showPicker" in el && typeof el.showPicker === "function") {
+      el.showPicker();
+    } else {
+      el.click();
+    }
   };
 
   if (loading) {
@@ -131,29 +152,40 @@ export default function DiarioEntryPage() {
           >
             <ArrowLeft className="size-5" />
           </button>
-          <div>
-            <h1 className="text-xl font-bold">
-              {editing ? t("editando") : entry.title || t("diario_title")}
-            </h1>
-            <p className="text-muted-foreground text-sm">
-              {new Date(entry.date + "T12:00:00").toLocaleDateString("pt-BR", {
-                weekday: "long",
-                day: "numeric",
-                month: "long",
-              })}
-            </p>
-          </div>
+          {editing ? (
+            <button
+              type="button"
+              onClick={openDatePicker}
+              className="text-left"
+            >
+              <h1 className="text-xl font-bold">{formatDisplayDate(entryDate)}</h1>
+            </button>
+          ) : (
+            <div>
+              <h1 className="text-xl font-bold">
+                {entry.title || t("diario_title")}
+              </h1>
+              <p className="text-muted-foreground text-sm">
+                {formatDisplayDate(entry.date)}
+              </p>
+            </div>
+          )}
+          <input
+            type="date"
+            ref={dateInputRef}
+            value={entryDate}
+            onChange={(e) => setEntryDate(e.target.value)}
+            className="sr-only"
+          />
         </div>
 
         {editing ? (
           <Button
-            size="sm"
-            className="rounded-full size-10"
+            className="rounded-xl"
             onClick={handleSave}
             disabled={saving}
-            aria-label={t("salvar")}
           >
-            <Check className="size-4" />
+            {saving ? t("salvando") : t("salvar")}
           </Button>
         ) : (
           <div className="flex gap-2">
@@ -203,28 +235,22 @@ export default function DiarioEntryPage() {
             </CardContent>
           </Card>
 
-          {/* Title */}
-          <div className="space-y-2">
-            <Label htmlFor="title">{t("titulo")}</Label>
-            <Input
-              id="title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="rounded-xl"
-            />
-          </div>
+          {/* Title — placeholder as label */}
+          <Input
+            placeholder={t("titulo_placeholder")}
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className="rounded-xl text-base"
+          />
 
-          {/* Content */}
-          <div className="space-y-2">
-            <Label htmlFor="content">{t("conteudo")}</Label>
-            <Textarea
-              id="content"
-              rows={14}
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              className="resize-none rounded-xl"
-            />
-          </div>
+          {/* Content — placeholder as label */}
+          <Textarea
+            placeholder={t("escrever_placeholder")}
+            rows={14}
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            className="resize-none rounded-xl"
+          />
 
           {/* Cancel */}
           <Button
@@ -235,6 +261,7 @@ export default function DiarioEntryPage() {
               setTitle(entry.title || "");
               setContent(entry.content || "");
               setMood(entry.mood ?? null);
+              setEntryDate(entry.date || "");
             }}
           >
             {t("cancelar")}
