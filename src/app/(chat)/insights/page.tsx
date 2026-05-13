@@ -311,6 +311,9 @@ export default function MayaChatPage() {
             onBlur={() => {
               setViewportH(0);
               setKeyboardOpen(false);
+              setTimeout(() => {
+                bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+              }, 200);
             }}
             placeholder={t("maya_placeholder")}
             disabled={busy}
