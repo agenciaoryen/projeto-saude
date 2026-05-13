@@ -59,12 +59,13 @@ export default function MayaChatPage() {
   const [typing, setTyping] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const [userName, setUserName] = useState("");
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [viewportH, setViewportH] = useState(0);
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const sendingRef = useRef(false);
 
-  // Track keyboard via visualViewport, keep header from scrolling away
+  // Shrink container to visual viewport so nothing hides behind keyboard
   useEffect(() => {
     const onViewportChange = () => {
       const vv = window.visualViewport;
@@ -72,20 +73,20 @@ export default function MayaChatPage() {
 
       window.scrollTo(0, 0);
 
-      const kh = Math.max(0, window.innerHeight - vv.height);
-      setKeyboardHeight(kh);
+      const h = vv.height;
+      setViewportH(h);
+      setKeyboardOpen(window.innerHeight - h > 80);
     };
 
     window.visualViewport?.addEventListener("resize", onViewportChange);
     window.visualViewport?.addEventListener("scroll", onViewportChange);
+    onViewportChange();
 
     return () => {
       window.visualViewport?.removeEventListener("resize", onViewportChange);
       window.visualViewport?.removeEventListener("scroll", onViewportChange);
     };
   }, []);
-
-  const keyboardOpen = keyboardHeight > 80;
 
   useEffect(() => {
     const cache = loadProfileCache();
@@ -199,7 +200,10 @@ export default function MayaChatPage() {
   const busy = sending || typing;
 
   return (
-    <div className="flex flex-col h-full bg-chat">
+    <div
+      className="flex flex-col bg-chat"
+      style={{ height: viewportH > 0 ? `${viewportH}px` : "100dvh" }}
+    >
       {/* Header */}
       <div className="shrink-0 flex items-center gap-3 px-4 py-2.5 bg-background border-b border-border safe-top">
         <button
@@ -224,10 +228,7 @@ export default function MayaChatPage() {
       </div>
 
       {/* Messages */}
-      <div
-        className="flex-1 overflow-y-auto px-2 py-3 space-y-1"
-        style={{ paddingBottom: keyboardHeight > 0 ? `${keyboardHeight + 8}px` : undefined }}
-      >
+      <div className="flex-1 overflow-y-auto px-2 py-3 space-y-1">
         {hydrated && messages.length === 0 && welcomeMessage && (
           <div className="flex justify-center pt-12">
             <div className="bg-background/80 rounded-lg px-4 py-3 text-sm text-center max-w-sm text-muted-foreground shadow-sm">
@@ -294,8 +295,6 @@ export default function MayaChatPage() {
           paddingBottom: keyboardOpen
             ? "calc(8px + env(safe-area-inset-bottom, 0px))"
             : "calc(80px + env(safe-area-inset-bottom, 0px))",
-          transform: keyboardOpen ? `translateY(-${keyboardHeight}px)` : undefined,
-          transition: keyboardOpen ? "transform 0.15s ease-out" : undefined,
         }}
       >
         <div className="flex items-end gap-2">
