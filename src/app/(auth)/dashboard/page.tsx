@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getLocalDate, getLocalYesterday, formatLocalDate } from "@/lib/utils";
+import { getLocalDate, calculateStreak } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,29 +13,6 @@ import { StatsView } from "@/components/StatsView";
 import { useTranslation } from "@/lib/useTranslation";
 import type { CheckIn, UserAchievement } from "@/types";
 
-function calculateStreak(checkIns: CheckIn[]): number {
-  if (checkIns.length === 0) return 0;
-  const sorted = [...checkIns].sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-  );
-  const today = getLocalDate();
-  const yesterday = getLocalYesterday();
-
-  const latest = sorted[0]?.date;
-  if (latest !== today && latest !== yesterday) return 0;
-
-  let streak = 0;
-  const checkDate = new Date();
-  for (const ci of sorted) {
-    if (ci.date === formatLocalDate(checkDate)) {
-      streak++;
-      checkDate.setDate(checkDate.getDate() - 1);
-    } else if (streak > 0) {
-      break;
-    }
-  }
-  return streak;
-}
 
 const HABIT_DISPLAY: Record<string, [string, string]> = {
   took_medication: ["💊", "Remédios"],
@@ -94,7 +71,7 @@ export default function DashboardPage() {
     );
   }
 
-  const streak = calculateStreak(checkIns);
+  const streak = calculateStreak(checkIns.map((c: CheckIn) => c.date));
 
   const enabledNonSuicidal = enabledKeys.filter((k) => k !== "suicidal_thoughts");
   const totalHabits = enabledNonSuicidal.length;

@@ -28,3 +28,35 @@ export function getLocalYesterday(): string {
 export function formatLocalDate(d: Date): string {
   return fmtLocal(d);
 }
+
+/**
+ * Counts consecutive days from the most recent check-in.
+ * Timezone-independent: uses date arithmetic, not "today" strings.
+ */
+export function calculateStreak(dates: string[]): number {
+  if (dates.length === 0) return 0;
+
+  // Sort descending
+  const sorted = [...dates].sort(
+    (a, b) => new Date(b + "T12:00:00").getTime() - new Date(a + "T12:00:00").getTime()
+  );
+
+  // Check if latest is within 2.5 days of now (grace period for timezone gaps)
+  const latestMs = new Date(sorted[0] + "T12:00:00").getTime();
+  const graceMs = 2.5 * 86400000;
+  if (Date.now() - latestMs > graceMs) return 0;
+
+  // Count consecutive days
+  let streak = 1;
+  for (let i = 0; i < sorted.length - 1; i++) {
+    const curr = new Date(sorted[i] + "T12:00:00").getTime();
+    const prev = new Date(sorted[i + 1] + "T12:00:00").getTime();
+    const diff = Math.abs((curr - prev) / 86400000);
+    if (diff >= 0.9 && diff <= 1.1) {
+      streak++;
+    } else {
+      break;
+    }
+  }
+  return streak;
+}

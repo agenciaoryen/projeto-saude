@@ -1,5 +1,5 @@
 import type { CheckIn } from "@/types";
-import { getLocalDate, getLocalYesterday, formatLocalDate } from "@/lib/utils";
+import { calculateStreak, formatLocalDate } from "@/lib/utils";
 
 export interface AchievementDef {
   type: string;
@@ -47,29 +47,6 @@ export const ACHIEVEMENTS_BY_TYPE: Record<string, Omit<AchievementDef, "tier"> &
   },
 };
 
-function calculateStreak(checkIns: CheckIn[]): number {
-  if (checkIns.length === 0) return 0;
-  const sorted = [...checkIns].sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-  );
-  const today = getLocalDate();
-  const yesterday = getLocalYesterday();
-
-  const latest = sorted[0]?.date;
-  if (latest !== today && latest !== yesterday) return 0;
-
-  let streak = 0;
-  const checkDate = new Date();
-  for (const ci of sorted) {
-    if (ci.date === formatLocalDate(checkDate)) {
-      streak++;
-      checkDate.setDate(checkDate.getDate() - 1);
-    } else if (streak > 0) {
-      break;
-    }
-  }
-  return streak;
-}
 
 function hasWeekComplete(checkIns: CheckIn[]): boolean {
   const today = new Date();
@@ -109,7 +86,7 @@ export function detectNewAchievements(
   }
 
   // streak tiers
-  const streak = calculateStreak(checkIns);
+  const streak = calculateStreak(checkIns.map((c) => c.date));
   for (const tier of ACHIEVEMENTS_BY_TYPE.streak.tiers) {
     if (streak >= tier) {
       add(ACHIEVEMENTS_BY_TYPE.streak, tier);

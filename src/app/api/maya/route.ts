@@ -1,7 +1,7 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { buildMayaSystemPrompt } from "@/lib/maya";
-import { getLocalDate, getLocalYesterday, formatLocalDate } from "@/lib/utils";
+import { calculateStreak } from "@/lib/utils";
 import { NextResponse } from "next/server";
 
 async function callAnthropicChat(
@@ -64,7 +64,7 @@ export async function POST(request: Request) {
     const diaryEntries = diaryRes.data || [];
     const memories = (memoriesRes.data || []).map((m: { fact: string }) => m.fact);
 
-    const streak = calculateStreak(checkIns);
+    const streak = calculateStreak(checkIns.map((c: Record<string, unknown>) => c.date as string));
 
     const systemPrompt = buildMayaSystemPrompt({
       profile: {
@@ -148,30 +148,6 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
-}
-
-function calculateStreak(checkIns: { date: string }[]): number {
-  if (checkIns.length === 0) return 0;
-  const sorted = [...checkIns].sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-  );
-  const today = getLocalDate();
-  const yesterday = getLocalYesterday();
-
-  const latest = sorted[0]?.date;
-  if (latest !== today && latest !== yesterday) return 0;
-
-  let streak = 0;
-  const checkDate = new Date();
-  for (const ci of sorted) {
-    if (ci.date === formatLocalDate(checkDate)) {
-      streak++;
-      checkDate.setDate(checkDate.getDate() - 1);
-    } else if (streak > 0) {
-      break;
-    }
-  }
-  return streak;
 }
 
 function buildFactExtractionPrompt(mayaReply: string, userMessage: string, profile: { name: string }): string {
