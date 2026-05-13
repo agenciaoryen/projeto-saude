@@ -5,7 +5,8 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function GET() {
   const supabase = await createServerSupabaseClient();
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  const { data: { session }, error: authError } = await supabase.auth.getSession();
+  const user = session?.user ?? null;
 
   if (authError || !user) {
     return NextResponse.json({ error: "Nao autorizado" }, { status: 401 });
@@ -33,7 +34,8 @@ export async function GET() {
 
 export async function POST() {
   const supabase = await createServerSupabaseClient();
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  const { data: { session }, error: authError } = await supabase.auth.getSession();
+  const user = session?.user ?? null;
 
   if (authError || !user) {
     return NextResponse.json({ error: "Nao autorizado" }, { status: 401 });

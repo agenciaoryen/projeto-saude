@@ -32,7 +32,8 @@ async function callAnthropic(prompt: string, system: string, maxTokens = 500): P
 
 export async function POST() {
   const supabase = await createServerSupabaseClient();
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  const { data: { session }, error: authError } = await supabase.auth.getSession();
+  const user = session?.user ?? null;
 
   if (authError || !user) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });

@@ -7,7 +7,8 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const supabase = await createServerSupabaseClient();
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  const { data: { session }, error: authError } = await supabase.auth.getSession();
+  const user = session?.user ?? null;
 
   if (authError || !user) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });

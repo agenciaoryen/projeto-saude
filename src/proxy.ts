@@ -22,8 +22,9 @@ export async function proxy(request: NextRequest) {
   );
 
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
+  const user = session?.user ?? null;
 
   const protectedPaths = ["/dashboard", "/check-in", "/historico", "/configurações", "/onboarding", "/diario", "/perfil", "/insights"];
   const isProtected = protectedPaths.some((p) =>
