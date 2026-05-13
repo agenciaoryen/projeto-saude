@@ -10,7 +10,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { useTranslation } from "@/lib/useTranslation";
-import type { CheckIn } from "@/types";
+import { ateWellFromMeals, sumMacros } from "@/lib/meal-utils";
+import type { CheckIn, Meal } from "@/types";
 
 type FormData = Omit<CheckIn, "id" | "user_id" | "created_at" | "updated_at">;
 
@@ -49,6 +50,8 @@ export function CheckInForm({ existingCheckIn }: CheckInFormProps) {
   const [saved, setSaved] = useState(false);
   const [enabledKeys, setEnabledKeys] = useState<string[]>([]);
   const [context, setContext] = useState<Record<string, boolean>>({});
+  const [todayMeals, setTodayMeals] = useState<Meal[]>([]);
+  const [mealsLoaded, setMealsLoaded] = useState(false);
   const [form, setForm] = useState<FormData>({
     date: getLocalDate(),
     felt_judged: false,
@@ -76,6 +79,16 @@ export function CheckInForm({ existingCheckIn }: CheckInFormProps) {
         setContext(data.context || {});
       })
       .catch(() => {});
+
+    // Busca refeições de hoje para integração com "comeu bem"
+    const today = getLocalDate();
+    fetch(`/api/meals?date=${today}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) setTodayMeals(data);
+        setMealsLoaded(true);
+      })
+      .catch(() => setMealsLoaded(true));
   }, []);
 
   useEffect(() => {
@@ -132,6 +145,15 @@ export function CheckInForm({ existingCheckIn }: CheckInFormProps) {
     setForm((prev) => ({ ...prev, [key]: checked }));
   };
 
+  // Auto-calcula "ate_well" baseado nas refeições do dia
+  useEffect(() => {
+    if (!mealsLoaded || todayMeals.length === 0) return;
+    const calculated = ateWellFromMeals(todayMeals);
+    if (!existingCheckIn || existingCheckIn.ate_well !== calculated) {
+      setForm((prev) => ({ ...prev, ate_well: calculated }));
+    }
+  }, [mealsLoaded, todayMeals, existingCheckIn]);
+
   const activeQuestions = enabledKeys.map((key) => ({
     key,
     label: getQuestionLabel(key, context, t),
@@ -141,6 +163,11 @@ export function CheckInForm({ existingCheckIn }: CheckInFormProps) {
     (q) => q.key !== "suicidal_thoughts" && form[q.key as keyof FormData] === true
   ).length;
   const total = activeQuestions.filter((q) => q.key !== "suicidal_thoughts").length;
+
+  // Dados de refeição para o card integrado
+  const analyzedMeals = todayMeals.filter((m) => m.macros && m.status_analise === "analisado");
+  const mealsTotal = sumMacros(analyzedMeals);
+  const hasMealData = analyzedMeals.length > 0;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -208,6 +235,7 @@ export function CheckInForm({ existingCheckIn }: CheckInFormProps) {
             activeQuestions.map((q) => {
               const value = form[q.key as keyof FormData];
               const isSuicidal = q.key === "suicidal_thoughts";
+              const isAteWell = q.key === "ate_well";
 
               return (
                 <div
@@ -227,30 +255,101 @@ export function CheckInForm({ existingCheckIn }: CheckInFormProps) {
                   >
                     {q.label}
                   </p>
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => handleCheck(q.key as keyof FormData, true)}
-                      className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors ${
-                        value === true
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted text-muted-foreground hover:bg-muted/80"
-                      }`}
-                    >
-                      {t("sim")}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleCheck(q.key as keyof FormData, false)}
-                      className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors ${
-                        value === false
-                          ? "bg-destructive text-destructive-foreground"
-                          : "bg-muted text-muted-foreground hover:bg-muted/80"
-                      }`}
-                    >
-                      {t("nao")}
-                    </button>
-                  </div>
+
+                  {/* Card integrado de refeições para "Comeu bem?" */}
+                  {isAteWell && hasMealData ? (
+                    <div className="space-y-2">
+                      <div className={`p-3 rounded-xl text-sm space-y-2 ${
+                        value ? "bg-green-50 border border-green-200" : "bg-yellow-50 border border-yellow-200"
+                      }`}>
+                        <p className="text-xs text-muted-foreground">
+                          {t("comeu_bem_auto", { n: String(analyzedMeals.length) })}
+                        </p>
+                        <div className="flex items-center gap-4 text-xs">
+                          <span>{mealsTotal.calorias_kcal} kcal</span>
+                          <span>C: {mealsTotal.carboidratos_g}g</span>
+                          <span>P: {mealsTotal.proteinas_g}g</span>
+                          <span>G: {mealsTotal.gorduras_g}g</span>
+                        </div>
+                        <p className={`text-xs font-medium ${value ? "text-green-700" : "text-yellow-700"}`}>
+                          {value ? "✅ " + t("qualidade_bom") : "⚠️ " + t("qualidade_atencao")}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => router.push("/nutricao")}
+                        className="text-xs text-primary underline hover:opacity-80"
+                      >
+                        Ver todas as refeições →
+                      </button>
+                    </div>
+                  ) : isAteWell && todayMeals.length > 0 && !hasMealData ? (
+                    /* Tem refeições mas nenhuma analisada */
+                    <div className="p-3 rounded-xl bg-muted/50 text-sm text-muted-foreground space-y-2">
+                      <p>🍽️ {todayMeals.length} refeição{todayMeals.length > 1 ? "ões" : ""} registrada{todayMeals.length > 1 ? "s" : ""} hoje, mas ainda não analisada{todayMeals.length > 1 ? "s" : ""}.</p>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleCheck(q.key as keyof FormData, true)}
+                          className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors ${
+                            value === true
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-muted text-muted-foreground hover:bg-muted/80"
+                          }`}
+                        >
+                          {t("sim")}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleCheck(q.key as keyof FormData, false)}
+                          className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors ${
+                            value === false
+                              ? "bg-destructive text-destructive-foreground"
+                              : "bg-muted text-muted-foreground hover:bg-muted/80"
+                          }`}
+                        >
+                          {t("nao")}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    /* Sem refeições ou não é ate_well: SIM/NÃO padrão */
+                    <div className="space-y-2">
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleCheck(q.key as keyof FormData, true)}
+                          className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors ${
+                            value === true
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-muted text-muted-foreground hover:bg-muted/80"
+                          }`}
+                        >
+                          {t("sim")}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleCheck(q.key as keyof FormData, false)}
+                          className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors ${
+                            value === false
+                              ? "bg-destructive text-destructive-foreground"
+                              : "bg-muted text-muted-foreground hover:bg-muted/80"
+                          }`}
+                        >
+                          {t("nao")}
+                        </button>
+                      </div>
+                      {isAteWell && (
+                        <button
+                          type="button"
+                          onClick={() => router.push("/nutricao/registrar")}
+                          className="text-xs text-primary underline hover:opacity-80"
+                        >
+                          📸 {t("registrar_agora")}
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             })

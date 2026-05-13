@@ -126,3 +126,18 @@ export const userMemories = pgTable("user_memories", {
   fact: text("fact").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+export const meals = pgTable("meals", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull(),
+  dataHora: timestamp("data_hora", { withTimezone: true }).notNull(),
+  tipoRefeicao: text("tipo_refeicao").notNull().default("almoco"),
+  fotoPath: text("foto_path"),
+  itens: jsonb("itens").notNull().default([]),
+  macros: jsonb("macros"),
+  classificacao: text("classificacao"),
+  observacao: text("observacao").notNull().default(""),
+  textoLivre: text("texto_livre").notNull().default(""),
+  statusAnalise: text("status_analise").notNull().default("pendente"),
+  criadoEm: timestamp("criado_em", { withTimezone: true }).notNull().defaultNow(),
+});

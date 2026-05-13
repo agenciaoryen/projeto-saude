@@ -195,6 +195,85 @@ const translations: Record<Lang, Record<string, string>> = {
     // CVV
     cvv_warning:
       "Se você está tendo pensamentos suicidas, por favor ligue para o CVV: 188. Você não está sozinho(a). 💚",
+
+    // Nutrição — navegação
+    nutricao: "Nutrição",
+    registrar_refeicao: "Registrar refeição",
+
+    // Tipos de refeição
+    cafe_da_manha: "Café da manhã",
+    almoco: "Almoço",
+    lanche: "Lanche",
+    jantar: "Jantar",
+    lanche_noturno: "Lanche noturno",
+
+    // Classificações
+    equilibrada: "Equilibrada",
+    leve_proteina: "Leve em proteína",
+    alta_acucar: "Alta em açúcar",
+    alta_gordura: "Alta em gordura",
+    vegetais_baixo: "Vegetais / Baixa caloria",
+    nao_identificada: "Não identificada",
+
+    // Registro de refeição
+    foto_refeicao: "Foto da refeição",
+    descrever_refeicao: "Quer descrever o que tem aí?",
+    adicionar_sem_foto: "Adicionar refeição sem foto",
+    editar_tipo: "Editar tipo",
+    selecionar_data_hora: "Data e hora",
+    analisando: "Analisando sua refeição...",
+    refeicao_salva: "Refeição salva! 🍽️",
+    refeicao_atualizada: "Refeição atualizada!",
+    refeicao_deletada: "Refeição removida",
+    erro_analisar: "Não consegui analisar a foto. Quer descrever manualmente?",
+    erro_salvar_refeicao: "Erro ao salvar refeição",
+    confirmar_deletar_refeicao: "Remover esta refeição?",
+
+    // Itens
+    itens_identificados: "Itens identificados",
+    adicionar_item: "Adicionar item",
+    remover_item: "Remover",
+
+    // Macros
+    macros_estimados: "Macros estimados",
+    carboidratos: "Carboidratos",
+    proteinas: "Proteínas",
+    gorduras: "Gorduras",
+    calorias: "Calorias",
+
+    // Resumo diário
+    resumo_do_dia: "Resumo do dia",
+    total_calorias: "Total de calorias",
+    qualidade_bom: "Bom 🌱",
+    qualidade_atencao: "Atenção ⚠️",
+    qualidade_sem_dados: "Sem dados",
+    refeicoes_hoje: "Refeições de hoje",
+    nenhuma_refeicao: "Nenhuma refeição registrada hoje",
+    registre_primeira: "Registre sua primeira refeição!",
+
+    // Semanal / Mensal
+    visao_semanal: "Visão semanal",
+    visao_mensal: "Visão mensal",
+    calorias_por_dia: "Calorias por dia",
+    padroes_detectados: "Padrões detectados",
+    dias: "dias",
+    sem_dados_suficientes: "Registre mais refeições para ver padrões.",
+
+    // Estados de análise
+    pendente_analise: "Pendente de análise",
+    analisado: "Analisado",
+    falha_analise: "Falha na análise",
+
+    // Offline / Falha
+    sem_internet: "Sem internet. A foto foi salva e será analisada quando a conexão voltar.",
+    api_falhou: "Não consegui analisar agora. Você pode registrar manualmente.",
+    foto_nao_identificada: "Não consegui identificar bem, quer me contar o que tem aí?",
+    escrever_manual: "Descrever manualmente",
+    salvar_sem_analise: "Salvar sem análise",
+
+    // Integração check-in
+    comeu_bem_auto: "Baseado nas suas {{n}} refeições de hoje",
+    registrar_agora: "Registrar agora",
   },
 
   es: {
@@ -375,6 +454,85 @@ const translations: Record<Lang, Record<string, string>> = {
     // CVV
     cvv_warning:
       "Si estás teniendo pensamientos suicidas, por favor llama a la línea de prevención: 188. No estás solo(a). 💚",
+
+    // Nutrición — navegación
+    nutricao: "Nutrición",
+    registrar_refeicao: "Registrar comida",
+
+    // Tipos de comida
+    cafe_da_manha: "Desayuno",
+    almoco: "Almuerzo",
+    lanche: "Merienda",
+    jantar: "Cena",
+    lanche_noturno: "Snack nocturno",
+
+    // Clasificaciones
+    equilibrada: "Equilibrada",
+    leve_proteina: "Baja en proteína",
+    alta_acucar: "Alta en azúcar",
+    alta_gordura: "Alta en grasa",
+    vegetais_baixo: "Vegetales / Bajas calorías",
+    nao_identificada: "No identificada",
+
+    // Registro de comida
+    foto_refeicao: "Foto de la comida",
+    descrever_refeicao: "¿Quieres describir lo que hay?",
+    adicionar_sem_foto: "Añadir comida sin foto",
+    editar_tipo: "Editar tipo",
+    selecionar_data_hora: "Fecha y hora",
+    analisando: "Analizando tu comida...",
+    refeicao_salva: "¡Comida guardada! 🍽️",
+    refeicao_atualizada: "¡Comida actualizada!",
+    refeicao_deletada: "Comida eliminada",
+    erro_analisar: "No pude analizar la foto. ¿Quieres describirla manualmente?",
+    erro_salvar_refeicao: "Error al guardar la comida",
+    confirmar_deletar_refeicao: "¿Eliminar esta comida?",
+
+    // Items
+    itens_identificados: "Items identificados",
+    adicionar_item: "Añadir item",
+    remover_item: "Eliminar",
+
+    // Macros
+    macros_estimados: "Macros estimados",
+    carboidratos: "Carbohidratos",
+    proteinas: "Proteínas",
+    gorduras: "Grasas",
+    calorias: "Calorías",
+
+    // Resumen diario
+    resumo_do_dia: "Resumen del día",
+    total_calorias: "Total de calorías",
+    qualidade_bom: "Bien 🌱",
+    qualidade_atencao: "Atención ⚠️",
+    qualidade_sem_dados: "Sin datos",
+    refeicoes_hoje: "Comidas de hoy",
+    nenhuma_refeicao: "Ninguna comida registrada hoy",
+    registre_primeira: "¡Registra tu primera comida!",
+
+    // Semanal / Mensual
+    visao_semanal: "Visión semanal",
+    visao_mensal: "Visión mensual",
+    calorias_por_dia: "Calorías por día",
+    padroes_detectados: "Patrones detectados",
+    dias: "días",
+    sem_dados_suficientes: "Registra más comidas para ver patrones.",
+
+    // Estados de análisis
+    pendente_analise: "Pendiente de análisis",
+    analisado: "Analizado",
+    falha_analise: "Fallo en análisis",
+
+    // Sin conexión / Fallo
+    sem_internet: "Sin internet. La foto se guardó y se analizará cuando vuelva la conexión.",
+    api_falhou: "No pude analizar ahora. Puedes registrar manualmente.",
+    foto_nao_identificada: "No pude identificar bien, ¿me cuentas qué hay?",
+    escrever_manual: "Describir manualmente",
+    salvar_sem_analise: "Guardar sin análisis",
+
+    // Integración check-in
+    comeu_bem_auto: "Basado en tus {{n}} comidas de hoy",
+    registrar_agora: "Registrar ahora",
   },
 
   en: {
@@ -555,6 +713,85 @@ const translations: Record<Lang, Record<string, string>> = {
     // CVV
     cvv_warning:
       "If you're having suicidal thoughts, please call the suicide prevention hotline. You're not alone. 💚",
+
+    // Nutrition — navigation
+    nutricao: "Nutrition",
+    registrar_refeicao: "Log a meal",
+
+    // Meal types
+    cafe_da_manha: "Breakfast",
+    almoco: "Lunch",
+    lanche: "Snack",
+    jantar: "Dinner",
+    lanche_noturno: "Late snack",
+
+    // Classifications
+    equilibrada: "Balanced",
+    leve_proteina: "Low protein",
+    alta_acucar: "High sugar",
+    alta_gordura: "High fat",
+    vegetais_baixo: "Veggies / Low cal",
+    nao_identificada: "Unidentified",
+
+    // Meal logging
+    foto_refeicao: "Meal photo",
+    descrever_refeicao: "Want to describe what's in it?",
+    adicionar_sem_foto: "Add meal without photo",
+    editar_tipo: "Edit type",
+    selecionar_data_hora: "Date and time",
+    analisando: "Analyzing your meal...",
+    refeicao_salva: "Meal saved! 🍽️",
+    refeicao_atualizada: "Meal updated!",
+    refeicao_deletada: "Meal removed",
+    erro_analisar: "I couldn't analyze the photo. Want to describe it manually?",
+    erro_salvar_refeicao: "Error saving meal",
+    confirmar_deletar_refeicao: "Remove this meal?",
+
+    // Items
+    itens_identificados: "Identified items",
+    adicionar_item: "Add item",
+    remover_item: "Remove",
+
+    // Macros
+    macros_estimados: "Estimated macros",
+    carboidratos: "Carbs",
+    proteinas: "Protein",
+    gorduras: "Fat",
+    calorias: "Calories",
+
+    // Daily summary
+    resumo_do_dia: "Daily summary",
+    total_calorias: "Total calories",
+    qualidade_bom: "Good 🌱",
+    qualidade_atencao: "Attention ⚠️",
+    qualidade_sem_dados: "No data",
+    refeicoes_hoje: "Today's meals",
+    nenhuma_refeicao: "No meals logged today",
+    registre_primeira: "Log your first meal!",
+
+    // Weekly / Monthly
+    visao_semanal: "Weekly view",
+    visao_mensal: "Monthly view",
+    calorias_por_dia: "Calories per day",
+    padroes_detectados: "Detected patterns",
+    dias: "days",
+    sem_dados_suficientes: "Log more meals to see patterns.",
+
+    // Analysis status
+    pendente_analise: "Pending analysis",
+    analisado: "Analyzed",
+    falha_analise: "Analysis failed",
+
+    // Offline / Failure
+    sem_internet: "No internet. Photo saved and will be analyzed when connection returns.",
+    api_falhou: "Couldn't analyze right now. You can log manually.",
+    foto_nao_identificada: "I couldn't identify it well, can you tell me what's there?",
+    escrever_manual: "Describe manually",
+    salvar_sem_analise: "Save without analysis",
+
+    // Check-in integration
+    comeu_bem_auto: "Based on your {{n}} meals today",
+    registrar_agora: "Log now",
   },
 };
 

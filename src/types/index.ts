@@ -50,3 +50,63 @@ export interface DiaryEntry {
   created_at: string;
   updated_at: string;
 }
+
+export type MealType = "cafe_da_manha" | "almoco" | "lanche" | "jantar" | "lanche_noturno";
+
+export type MealClassification =
+  | "equilibrada"
+  | "leve_proteina"
+  | "alta_acucar"
+  | "alta_gordura"
+  | "vegetais_baixo"
+  | "nao_identificada";
+
+export interface Macros {
+  carboidratos_g: number;
+  proteinas_g: number;
+  gorduras_g: number;
+  calorias_kcal: number;
+}
+
+export interface MealItem {
+  nome: string;
+  quantidade?: string;
+}
+
+export type MealAnalysisStatus = "pendente" | "analisado" | "falha";
+
+export interface Meal {
+  id: string;
+  user_id: string;
+  data_hora: string;
+  tipo_refeicao: MealType;
+  foto_path: string | null;
+  itens: MealItem[];
+  macros: Macros | null;
+  classificacao: MealClassification | null;
+  observacao: string;
+  texto_livre: string;
+  status_analise: MealAnalysisStatus;
+  criado_em: string;
+}
+
+export interface MealFormData {
+  data_hora: string;
+  tipo_refeicao: MealType;
+  foto_path: string | null;
+  itens: MealItem[];
+  macros: Macros | null;
+  classificacao: MealClassification | null;
+  observacao: string;
+  texto_livre: string;
+  status_analise: MealAnalysisStatus;
+}
+
+export interface DailyNutritionSummary {
+  total_calorias: number;
+  total_carboidratos: number;
+  total_proteinas: number;
+  total_gorduras: number;
+  refeicoes: Meal[];
+  qualidade: "bom" | "atencao" | "sem_dados";
+}
