@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Label } from "@/components/ui/label";
+import { getLocalDate } from "@/lib/utils";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -49,7 +50,7 @@ export function CheckInForm({ existingCheckIn }: CheckInFormProps) {
   const [enabledKeys, setEnabledKeys] = useState<string[]>([]);
   const [context, setContext] = useState<Record<string, boolean>>({});
   const [form, setForm] = useState<FormData>({
-    date: new Date().toISOString().split("T")[0],
+    date: getLocalDate(),
     felt_judged: false,
     took_medication: false,
     talked_to_someone: false,

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { getLocalDate, getLocalYesterday, formatLocalDate } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,22 +18,18 @@ function calculateStreak(checkIns: CheckIn[]): number {
   const sorted = [...checkIns].sort(
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
   );
-  const today = new Date().toISOString().split("T")[0];
-  const yesterday = new Date(Date.now() - 86400000)
-    .toISOString()
-    .split("T")[0];
+  const today = getLocalDate();
+  const yesterday = getLocalYesterday();
 
   const latest = sorted[0]?.date;
   if (latest !== today && latest !== yesterday) return 0;
 
   let streak = 0;
-  let checkDate = new Date(today);
+  const checkDate = new Date();
   for (const ci of sorted) {
-    const ciDate = new Date(ci.date).toISOString().split("T")[0];
-    const expected = checkDate.toISOString().split("T")[0];
-    if (ciDate === expected) {
+    if (ci.date === formatLocalDate(checkDate)) {
       streak++;
-      checkDate = new Date(checkDate.getTime() - 86400000);
+      checkDate.setDate(checkDate.getDate() - 1);
     } else if (streak > 0) {
       break;
     }
@@ -79,7 +76,7 @@ export default function DashboardPage() {
       setGender(prefsData.context?.gender || "nao_dizer");
       if (Array.isArray(checkInsData)) {
         setCheckIns(checkInsData);
-        const today = new Date().toISOString().split("T")[0];
+        const today = getLocalDate();
         setTodayCheckIn(checkInsData.find((c: CheckIn) => c.date === today) || null);
       }
       if (Array.isArray(achievementsData)) {

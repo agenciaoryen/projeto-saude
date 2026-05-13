@@ -3,13 +3,14 @@
 import { useEffect, useState } from "react";
 import { CheckInForm } from "@/components/CheckInForm";
 import type { CheckIn } from "@/types";
+import { getLocalDate } from "@/lib/utils";
 
 export default function CheckInPage() {
   const [existing, setExisting] = useState<CheckIn | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const today = new Date().toISOString().split("T")[0];
+    const today = getLocalDate();
     fetch(`/api/check-ins?date=${today}`)
       .then((res) => res.json())
       .then((data) => {

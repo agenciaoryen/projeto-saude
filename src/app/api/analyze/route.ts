@@ -1,6 +1,7 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { buildAnalysisPrompt, buildFactExtractionPrompt } from "@/lib/analyzer";
+import { getLocalDate, getLocalYesterday, formatLocalDate } from "@/lib/utils";
 import { NextResponse } from "next/server";
 
 async function callAnthropic(prompt: string, system: string, maxTokens = 500): Promise<string> {
@@ -131,18 +132,18 @@ function calculateStreakFromCheckIns(checkIns: { date: string }[]): number {
   const sorted = [...checkIns].sort(
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
   );
-  const today = new Date().toISOString().split("T")[0];
-  const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
+  const today = getLocalDate();
+  const yesterday = getLocalYesterday();
 
   const latest = sorted[0]?.date;
   if (latest !== today && latest !== yesterday) return 0;
 
   let streak = 0;
-  let checkDate = new Date(today);
+  const checkDate = new Date();
   for (const ci of sorted) {
-    if (ci.date === checkDate.toISOString().split("T")[0]) {
+    if (ci.date === formatLocalDate(checkDate)) {
       streak++;
-      checkDate = new Date(checkDate.getTime() - 86400000);
+      checkDate.setDate(checkDate.getDate() - 1);
     } else if (streak > 0) {
       break;
     }

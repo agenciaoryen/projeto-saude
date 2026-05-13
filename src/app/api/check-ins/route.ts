@@ -1,5 +1,6 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { getLocalDate } from "@/lib/utils";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest) {
@@ -58,7 +59,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const today = new Date().toISOString().split("T")[0];
+    const today = getLocalDate();
     const row = {
       user_id: user.id,
       date: body.date || today,
