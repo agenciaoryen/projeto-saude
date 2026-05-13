@@ -126,7 +126,7 @@ export default function MayaChatPage() {
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, typing]);
+  }, [messages, typing, viewportH]);
 
   useEffect(() => {
     const ta = textareaRef.current;
