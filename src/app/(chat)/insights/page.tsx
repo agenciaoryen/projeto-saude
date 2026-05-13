@@ -64,9 +64,13 @@ export default function MayaChatPage() {
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const sendingRef = useRef(false);
+  const fullHeightRef = useRef(0);
 
   // Shrink container to visual viewport so nothing hides behind keyboard
   useEffect(() => {
+    // Save initial height before any keyboard activity
+    fullHeightRef.current = window.innerHeight;
+
     const onViewportChange = () => {
       const vv = window.visualViewport;
       if (!vv) return;
@@ -75,7 +79,8 @@ export default function MayaChatPage() {
 
       const h = vv.height;
       setViewportH(h);
-      setKeyboardOpen(window.innerHeight - h > 80);
+      // Compare against the original full height, not current innerHeight
+      setKeyboardOpen(fullHeightRef.current - h > 80);
     };
 
     window.visualViewport?.addEventListener("resize", onViewportChange);
