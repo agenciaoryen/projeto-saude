@@ -62,6 +62,7 @@ export default function MayaChatPage() {
   const [viewportH, setViewportH] = useState(0);
   const [keyboardOpen, setKeyboardOpen] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const messagesRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const sendingRef = useRef(false);
   const fullHeightRef = useRef(0);
@@ -233,7 +234,7 @@ export default function MayaChatPage() {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-2 py-3 space-y-1">
+      <div ref={messagesRef} className="flex-1 overflow-y-auto px-2 py-3 space-y-1">
         {hydrated && messages.length === 0 && welcomeMessage && (
           <div className="flex justify-center pt-12">
             <div className="bg-background/80 rounded-lg px-4 py-3 text-sm text-center max-w-sm text-muted-foreground shadow-sm">
@@ -311,9 +312,13 @@ export default function MayaChatPage() {
             onBlur={() => {
               setViewportH(0);
               setKeyboardOpen(false);
-              setTimeout(() => {
-                bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-              }, 200);
+              requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                  if (messagesRef.current) {
+                    messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
+                  }
+                });
+              });
             }}
             placeholder={t("maya_placeholder")}
             disabled={busy}
