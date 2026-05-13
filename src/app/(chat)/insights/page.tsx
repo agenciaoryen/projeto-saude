@@ -308,6 +308,10 @@ export default function MayaChatPage() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
+            onBlur={() => {
+              setViewportH(0);
+              setKeyboardOpen(false);
+            }}
             placeholder={t("maya_placeholder")}
             disabled={busy}
             rows={1}
