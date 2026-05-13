@@ -59,9 +59,29 @@ export default function MayaChatPage() {
   const [typing, setTyping] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const [userName, setUserName] = useState("");
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const sendingRef = useRef(false);
+  const messagesRef = useRef<HTMLDivElement>(null);
+
+  // Detect keyboard via visualViewport
+  useEffect(() => {
+    const handleViewport = () => {
+      if (!window.visualViewport) return;
+      const keyboardVisible = window.visualViewport.height < window.innerHeight * 0.85;
+      setKeyboardOpen(keyboardVisible);
+    };
+
+    window.visualViewport?.addEventListener("resize", handleViewport);
+    window.visualViewport?.addEventListener("scroll", handleViewport);
+    handleViewport();
+
+    return () => {
+      window.visualViewport?.removeEventListener("resize", handleViewport);
+      window.visualViewport?.removeEventListener("scroll", handleViewport);
+    };
+  }, []);
 
   useEffect(() => {
     const cache = loadProfileCache();
@@ -121,7 +141,6 @@ export default function MayaChatPage() {
       }
     }
 
-    // Mark last user message as seen
     setMessages(prev => {
       const updated = [...prev];
       for (let i = updated.length - 1; i >= 0; i--) {
@@ -176,9 +195,9 @@ export default function MayaChatPage() {
   const busy = sending || typing;
 
   return (
-    <div className="flex flex-col h-full bg-chat">
-      {/* Header */}
-      <div className="shrink-0 flex items-center gap-3 px-4 py-2.5 bg-background border-b border-border safe-top">
+    <div className="h-[100dvh] bg-chat">
+      {/* Fixed header */}
+      <div className="fixed top-0 left-0 right-0 z-20 flex items-center gap-3 px-4 py-2.5 bg-background border-b border-border safe-top">
         <button
           type="button"
           onClick={() => router.push("/dashboard")}
@@ -201,7 +220,14 @@ export default function MayaChatPage() {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-2 py-3 space-y-1">
+      <div
+        ref={messagesRef}
+        className="h-full overflow-y-auto px-2 py-3 space-y-1"
+        style={{
+          paddingTop: "56px",
+          paddingBottom: keyboardOpen ? "68px" : "140px",
+        }}
+      >
         {hydrated && messages.length === 0 && welcomeMessage && (
           <div className="flex justify-center pt-12">
             <div className="bg-background/80 rounded-lg px-4 py-3 text-sm text-center max-w-sm text-muted-foreground shadow-sm">
@@ -211,7 +237,6 @@ export default function MayaChatPage() {
         )}
 
         {messages.map((msg, i) => {
-          const prev = i > 0 ? messages[i - 1] : null;
           const next = i < messages.length - 1 ? messages[i + 1] : null;
           const isLastInGroup = next?.role !== msg.role;
 
@@ -262,10 +287,15 @@ export default function MayaChatPage() {
         <div ref={bottomRef} />
       </div>
 
-      {/* Input bar */}
+      {/* Fixed input */}
       <div
-        className="shrink-0 px-3 pt-2.5 bg-background border-t border-border"
-        style={{ paddingBottom: "calc(12px + env(safe-area-inset-bottom, 0px))" }}
+        className="fixed left-0 right-0 z-20 px-3 pt-2.5 bg-background border-t border-border"
+        style={{
+          bottom: keyboardOpen ? "0px" : "0px",
+          paddingBottom: keyboardOpen
+            ? "calc(8px + env(safe-area-inset-bottom, 0px))"
+            : "calc(80px + env(safe-area-inset-bottom, 0px))",
+        }}
       >
         <div className="flex items-end gap-2">
           <textarea
