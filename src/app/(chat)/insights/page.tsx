@@ -59,25 +59,21 @@ export default function MayaChatPage() {
   const [typing, setTyping] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const [userName, setUserName] = useState("");
-  const [keyboardOpen, setKeyboardOpen] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const sendingRef = useRef(false);
 
-  // Freeze body on keyboard open to prevent header scroll, detect keyboard via visualViewport
+  // Track keyboard via visualViewport, keep header from scrolling away
   useEffect(() => {
     const onViewportChange = () => {
       const vv = window.visualViewport;
       if (!vv) return;
 
-      // Prevent iOS from scrolling the page (keeps header visible)
       window.scrollTo(0, 0);
 
-      // Detect keyboard: viewport significantly smaller = keyboard open
-      const keyboardVisible = vv.height < window.innerHeight - 100;
-      if (keyboardVisible !== keyboardOpen) {
-        setKeyboardOpen(keyboardVisible);
-      }
+      const kh = Math.max(0, window.innerHeight - vv.height);
+      setKeyboardHeight(kh);
     };
 
     window.visualViewport?.addEventListener("resize", onViewportChange);
@@ -87,7 +83,9 @@ export default function MayaChatPage() {
       window.visualViewport?.removeEventListener("resize", onViewportChange);
       window.visualViewport?.removeEventListener("scroll", onViewportChange);
     };
-  }, [keyboardOpen]);
+  }, []);
+
+  const keyboardOpen = keyboardHeight > 80;
 
   useEffect(() => {
     const cache = loadProfileCache();
@@ -293,6 +291,8 @@ export default function MayaChatPage() {
           paddingBottom: keyboardOpen
             ? "calc(8px + env(safe-area-inset-bottom, 0px))"
             : "calc(80px + env(safe-area-inset-bottom, 0px))",
+          transform: keyboardOpen ? `translateY(-${keyboardHeight}px)` : undefined,
+          transition: keyboardOpen ? "transform 0.15s ease-out" : undefined,
         }}
       >
         <div className="flex items-end gap-2">
