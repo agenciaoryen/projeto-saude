@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useTranslation } from "@/lib/useTranslation";
 import { getMealTypeFromHour, mealTypeLabel, mealTypeEmoji, classificationLabel, classificationColor } from "@/lib/meal-utils";
-import { compressImage, savePhoto } from "@/lib/photo-storage";
+import { compressImage, uploadToCloud } from "@/lib/photo-storage";
 import { ArrowLeft, Camera, ImageIcon, X, Plus, Trash2, Loader2 } from "lucide-react";
 import type { MealType, MealItem, Macros, MealClassification } from "@/types";
 import { toast } from "sonner";
@@ -24,7 +24,7 @@ export default function RegistrarRefeicaoPage() {
 
   // --- Capture state ---
   const [photo, setPhoto] = useState<string | null>(null);
-  const [photoKey, setPhotoKey] = useState<string | null>(null);
+  const [photoPath, setPhotoPath] = useState<string | null>(null);
   const [description, setDescription] = useState("");
   const [mealType, setMealType] = useState<MealType>(() => getMealTypeFromHour(new Date().getHours()));
   const [saving, setSaving] = useState(false);
@@ -50,8 +50,8 @@ export default function RegistrarRefeicaoPage() {
     try {
       const compressed = await compressImage(file);
       setPhoto(compressed);
-      const key = await savePhoto(compressed);
-      setPhotoKey(key);
+      const path = await uploadToCloud(compressed, "meals");
+      setPhotoPath(path);
     } catch {
       toast.error("Erro ao processar imagem");
     }
@@ -59,7 +59,7 @@ export default function RegistrarRefeicaoPage() {
 
   const removePhoto = () => {
     setPhoto(null);
-    setPhotoKey(null);
+    setPhotoPath(null);
   };
 
   // Salva refeição e inicia análise se tiver foto
@@ -72,9 +72,9 @@ export default function RegistrarRefeicaoPage() {
         body: JSON.stringify({
           data_hora: new Date(dateTime).toISOString(),
           tipo_refeicao: mealType,
-          foto_path: photoKey,
+          foto_path: photoPath,
           texto_livre: description.trim(),
-          status_analise: photoKey ? "pendente" : "pendente",
+          status_analise: photoPath ? "pendente" : "pendente",
           itens: [],
           macros: null,
           classificacao: null,
@@ -85,7 +85,7 @@ export default function RegistrarRefeicaoPage() {
       if (!res.ok) throw new Error();
       const meal = await res.json();
 
-      if (photo && photoKey && meal.id) {
+      if (photo && photoPath && meal.id) {
         setMealId(meal.id);
         setStage("analyzing");
         setSaving(false);

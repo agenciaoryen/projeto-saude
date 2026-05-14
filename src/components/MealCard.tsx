@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { mealTypeEmoji, mealTypeLabel, classificationLabel, classificationColor } from "@/lib/meal-utils";
-import { getPhoto } from "@/lib/photo-storage";
+import { getPhoto, isCloudPath, photoUrl } from "@/lib/photo-storage";
 import { Clock } from "lucide-react";
 import type { Meal } from "@/types";
 
@@ -13,7 +13,11 @@ export function MealCard({ meal, onClick }: { meal: Meal; onClick?: () => void }
 
   useEffect(() => {
     if (meal.foto_path) {
-      getPhoto(meal.foto_path).then(setPhotoSrc);
+      if (isCloudPath(meal.foto_path)) {
+        setPhotoSrc(photoUrl(meal.foto_path));
+      } else {
+        getPhoto(meal.foto_path).then(setPhotoSrc);
+      }
     }
   }, [meal.foto_path]);
 

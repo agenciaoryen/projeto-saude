@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { useTranslation } from "@/lib/useTranslation";
-import { Plus } from "lucide-react";
+import { Plus, ImageIcon } from "lucide-react";
 import type { DiaryEntry } from "@/types";
 
 const MOOD_EMOJIS: Record<number, string> = {
@@ -78,6 +78,12 @@ export default function DiarioPage() {
                       </span>
                       {entry.mood && (
                         <span className="text-sm">{MOOD_EMOJIS[entry.mood]}</span>
+                      )}
+                      {entry.photos && entry.photos.length > 0 && (
+                        <span className="flex items-center gap-0.5 text-[11px] text-muted-foreground">
+                          <ImageIcon className="size-3" />
+                          {entry.photos.length}
+                        </span>
                       )}
                     </div>
                     {entry.title && (

@@ -8,8 +8,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useTranslation } from "@/lib/useTranslation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ImageIcon } from "lucide-react";
 import type { DiaryEntry } from "@/types";
+import { photoUrl } from "@/lib/photo-storage";
 
 const MOODS = [
   { value: 1, emoji: "😔", key: "muito_mal" },
@@ -38,6 +39,7 @@ export default function DiarioEntryPage() {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [mood, setMood] = useState<number | null>(null);
+  const [photos, setPhotos] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -53,6 +55,7 @@ export default function DiarioEntryPage() {
           setTitle(data.title || "");
           setContent(data.content || "");
           setMood(data.mood ?? null);
+          setPhotos(data.photos || []);
         }
         setLoading(false);
       })
@@ -75,6 +78,7 @@ export default function DiarioEntryPage() {
         title: title.trim(),
         content: content.trim(),
         mood,
+        photos,
       }),
     });
 
@@ -262,6 +266,7 @@ export default function DiarioEntryPage() {
               setContent(entry.content || "");
               setMood(entry.mood ?? null);
               setEntryDate(entry.date || "");
+              setPhotos(entry.photos || []);
             }}
           >
             {t("cancelar")}
@@ -297,6 +302,18 @@ export default function DiarioEntryPage() {
             <p className="text-muted-foreground italic text-center py-8">
               {t("sem_conteudo")}
             </p>
+          )}
+
+          {/* Photos */}
+          {entry.photos && entry.photos.length > 0 && (
+            <div className="grid grid-cols-2 gap-2">
+              {entry.photos.map((p) => {
+                const src = photoUrl(p);
+                return src ? (
+                  <img key={p} src={src} alt="" className="rounded-xl w-full aspect-square object-cover" />
+                ) : null;
+              })}
+            </div>
           )}
         </>
       )}

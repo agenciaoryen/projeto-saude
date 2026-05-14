@@ -108,3 +108,31 @@ export function photoHash(base64: string): string {
   }
   return Math.abs(hash).toString(36);
 }
+
+/** Upload a base64 image to Supabase Storage. Returns the cloud path. */
+export async function uploadToCloud(base64: string, folder: "meals" | "diary"): Promise<string> {
+  const res = await fetch("/api/upload", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ base64, folder }),
+  });
+
+  if (!res.ok) {
+    throw new Error("Falha ao enviar foto");
+  }
+
+  const data = await res.json();
+  return data.path as string;
+}
+
+/** Build the URL to load a photo. Cloud paths (with /) use /api/media, local keys use IndexedDB. */
+export function photoUrl(path: string | null): string | null {
+  if (!path) return null;
+  if (path.includes("/")) return `/api/media?path=${encodeURIComponent(path)}`;
+  return null; // Local IndexedDB key — caller must use getPhoto()
+}
+
+/** True if the path is a cloud storage path (not an IndexedDB key). */
+export function isCloudPath(path: string | null): boolean {
+  return !!path && path.includes("/");
+}

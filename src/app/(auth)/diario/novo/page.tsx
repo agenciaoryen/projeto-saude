@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useTranslation } from "@/lib/useTranslation";
 import { getLocalDate } from "@/lib/utils";
-import { compressImage, savePhoto } from "@/lib/photo-storage";
+import { compressImage, uploadToCloud, photoUrl } from "@/lib/photo-storage";
 import { ArrowLeft, ChevronDown, ImageIcon, X } from "lucide-react";
 
 const MOODS = [
@@ -84,15 +84,15 @@ export default function NovoDiarioPage() {
   const handlePhotoAdd = async (file: File) => {
     try {
       const compressed = await compressImage(file);
-      const key = await savePhoto(compressed);
-      setPhotos((prev) => [...prev, key]);
+      const path = await uploadToCloud(compressed, "diary");
+      setPhotos((prev) => [...prev, path]);
     } catch {
       toast.error("Erro ao processar imagem");
     }
   };
 
-  const removePhoto = (key: string) => {
-    setPhotos((prev) => prev.filter((p) => p !== key));
+  const removePhoto = (path: string) => {
+    setPhotos((prev) => prev.filter((p) => p !== path));
   };
 
   const selectedMoodEmoji = mood ? MOODS.find((m) => m.value === mood)?.emoji : "😶";
@@ -197,12 +197,12 @@ export default function NovoDiarioPage() {
       {/* Photos */}
       {photos.length > 0 && (
         <div className="grid grid-cols-3 gap-2">
-          {photos.map((key) => (
-            <div key={key} className="relative aspect-square rounded-xl overflow-hidden bg-muted">
-              <PhotoThumbnail photoKey={key} />
+          {photos.map((p) => (
+            <div key={p} className="relative aspect-square rounded-xl overflow-hidden bg-muted">
+              <PhotoThumbnail photoPath={p} />
               <button
                 type="button"
-                onClick={() => removePhoto(key)}
+                onClick={() => removePhoto(p)}
                 className="absolute top-1.5 right-1.5 size-6 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors"
               >
                 <X className="size-3.5" />
@@ -244,20 +244,9 @@ export default function NovoDiarioPage() {
   );
 }
 
-/** Small component to load and display a photo from IndexedDB by key */
-function PhotoThumbnail({ photoKey }: { photoKey: string }) {
-  const [src, setSrc] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    import("@/lib/photo-storage").then(({ getPhoto }) => {
-      getPhoto(photoKey).then((b64) => {
-        if (!cancelled && b64) setSrc(b64);
-      });
-    });
-    return () => { cancelled = true; };
-  }, [photoKey]);
-
-  if (!src) return <div className="w-full h-full animate-pulse bg-muted-foreground/20" />;
-  return <img src={src} alt="" className="w-full h-full object-cover" />;
+/** Small component to display a photo from cloud storage. */
+function PhotoThumbnail({ photoPath }: { photoPath: string }) {
+  if (!photoPath) return null;
+  const src = photoUrl(photoPath);
+  return <img src={src!} alt="" className="w-full h-full object-cover" />;
 }
