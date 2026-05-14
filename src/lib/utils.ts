@@ -24,6 +24,11 @@ export function getLocalYesterday(): string {
   return fmtLocal(d);
 }
 
+/** Converts a UTC ISO timestamp string to a local date string (YYYY-MM-DD). */
+export function getLocalDateFromISO(isoStr: string): string {
+  return fmtLocal(new Date(isoStr));
+}
+
 /** Formats a Date as YYYY-MM-DD in LOCAL timezone. */
 export function formatLocalDate(d: Date): string {
   return fmtLocal(d);

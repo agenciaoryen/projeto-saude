@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/lib/useTranslation";
-import { getLocalDate, calculateStreak } from "@/lib/utils";
+import { getLocalDate, getLocalDateFromISO } from "@/lib/utils";
 import { sumMacros, dailyQuality, mealTypeEmoji, mealTypeLabel, classificationLabel, classificationColor } from "@/lib/meal-utils";
 import { MealCard } from "@/components/MealCard";
 import { NutritionSummary } from "@/components/NutritionSummary";
@@ -41,17 +41,17 @@ export default function NutricaoPage() {
       .catch(() => setLoading(false));
   }, []);
 
-  // Filtra refeições de hoje
+  // Filtra refeições de hoje (converte UTC → local)
   const todayMeals = useMemo(() => {
     const today = getLocalDate();
-    return meals.filter((m) => m.data_hora.startsWith(today));
+    return meals.filter((m) => getLocalDateFromISO(m.data_hora) === today);
   }, [meals]);
 
-  // Agrupa refeições por dia
+  // Agrupa refeições por dia local
   const mealsByDay = useMemo(() => {
     const map = new Map<string, Meal[]>();
     for (const m of meals) {
-      const dia = m.data_hora.slice(0, 10);
+      const dia = getLocalDateFromISO(m.data_hora);
       const arr = map.get(dia) || [];
       arr.push(m);
       map.set(dia, arr);
@@ -59,13 +59,13 @@ export default function NutricaoPage() {
     return map;
   }, [meals]);
 
-  // Dados da semana
+  // Dados da semana (datas locais)
   const weekDays = useMemo(() => {
     const days: { date: string; label: string; meals: Meal[]; kcal: number }[] = [];
     for (let i = 6; i >= 0; i--) {
       const d = new Date();
       d.setDate(d.getDate() - i);
-      const dateStr = d.toISOString().slice(0, 10);
+      const dateStr = getLocalDateFromISO(d.toISOString());
       const dayMeals = mealsByDay.get(dateStr) || [];
       const kcal = sumMacros(dayMeals.filter((m) => m.macros)).calorias_kcal;
       days.push({
