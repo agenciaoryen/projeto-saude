@@ -49,7 +49,7 @@ export function MoodChart({ checkIns, enabledKeys }: MoodChartProps) {
           return (
             <div
               key={ci.id}
-              className="flex-1 flex flex-col items-center gap-1 min-w-2"
+              className="flex-1 flex flex-col items-center gap-1 min-w-2 self-stretch"
             >
               <div
                 className="w-full rounded-t-sm transition-all hover:opacity-80"
