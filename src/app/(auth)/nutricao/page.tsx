@@ -203,7 +203,7 @@ export default function NutricaoPage() {
               todayMeals
                 .sort((a, b) => new Date(b.data_hora).getTime() - new Date(a.data_hora).getTime())
                 .map((meal) => (
-                  <MealCard key={meal.id} meal={meal} />
+                  <MealCard key={meal.id} meal={meal} onClick={() => router.push(`/nutricao/${meal.id}`)} />
                 ))
             )}
           </div>
@@ -285,7 +285,7 @@ export default function NutricaoPage() {
                     {day.meals
                       .sort((a, b) => new Date(b.data_hora).getTime() - new Date(a.data_hora).getTime())
                       .map((meal) => (
-                        <MealCard key={meal.id} meal={meal} />
+                        <MealCard key={meal.id} meal={meal} onClick={() => router.push(`/nutricao/${meal.id}`)} />
                       ))}
                   </div>
                 ))

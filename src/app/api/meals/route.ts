@@ -14,8 +14,21 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const date = searchParams.get("date");
+    const id = searchParams.get("id");
 
     const admin = getSupabaseAdmin();
+
+    if (id) {
+      const { data, error } = await admin
+        .from("meals")
+        .select("*")
+        .eq("id", id)
+        .eq("user_id", user.id)
+        .single();
+
+      if (error) throw error;
+      return NextResponse.json(data);
+    }
 
     if (date) {
       // Refições de uma data específica (filtra pelo dia na timestamp)
