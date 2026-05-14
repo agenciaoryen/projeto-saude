@@ -14,7 +14,7 @@ function pad2(n: number): string {
 
 /** Converts UTC milliseconds to a YYYY-MM-DD string in São Paulo timezone. */
 function spDate(ms: number): string {
-  const d = new Date(ms - SP_OFFSET_MS);
+  const d = new Date(ms + SP_OFFSET_MS);
   const y = d.getUTCFullYear();
   const m = pad2(d.getUTCMonth() + 1);
   const day = pad2(d.getUTCDate());
