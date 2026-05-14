@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { LogoutButton } from "@/components/LogoutButton";
 import { BottomNav } from "@/components/BottomNav";
-import { UserAvatar } from "@/components/UserAvatar";
+import { EllipsisVertical } from "lucide-react";
 
 export default function AuthLayout({
   children,
@@ -24,9 +24,33 @@ export default function AuthLayout({
 
           <DropdownMenu>
             <DropdownMenuTrigger
-              render={<UserAvatar />}
+              render={
+                <span className="size-9 flex items-center justify-center rounded-full hover:bg-muted transition-colors cursor-pointer">
+                  <EllipsisVertical className="size-5" />
+                </span>
+              }
             />
             <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                render={
+                  <Link
+                    href="/nutricao"
+                    className="w-full text-left px-2 py-1.5 text-sm block"
+                  >
+                    🍽️ Nutrição
+                  </Link>
+                }
+              />
+              <DropdownMenuItem
+                render={
+                  <Link
+                    href="/check-in"
+                    className="w-full text-left px-2 py-1.5 text-sm block"
+                  >
+                    ✍️ Check-in
+                  </Link>
+                }
+              />
               <DropdownMenuItem
                 render={
                   <Link

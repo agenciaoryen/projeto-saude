@@ -1,21 +1,20 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { Home, PenLine, MessageCircle, BookOpen, Settings, Camera } from "lucide-react";
+import { Home, MessageCircle, BookOpen, Camera } from "lucide-react";
 import { useTranslation } from "@/lib/useTranslation";
+import { UserAvatar } from "@/components/UserAvatar";
 
 export function BottomNav() {
   const { t } = useTranslation();
   const pathname = usePathname();
   const router = useRouter();
 
-  // Abas sem o botão central — 4 itens (2 esquerda, 2 direita)
   const LEFT_TABS = [
     { icon: Home, label: t("inicio"), href: "/dashboard" },
-    { icon: PenLine, label: t("checkin"), href: "/check-in" },
+    { icon: BookOpen, label: t("diario"), href: "/diario" },
   ];
   const RIGHT_TABS = [
-    { icon: BookOpen, label: t("diario"), href: "/diario" },
     { icon: MessageCircle, label: "Maya", href: "/insights" },
   ];
 
@@ -47,10 +46,10 @@ export function BottomNav() {
           );
         })}
 
-        {/* Botão central de câmera (Nutrição) */}
+        {/* Botão central de câmera — abre direto a captura */}
         <button
           type="button"
-          onClick={() => router.push("/nutricao")}
+          onClick={() => router.push("/nutricao/registrar")}
           className="flex flex-col items-center justify-center gap-0.5 h-full px-3 min-w-0 flex-1 transition-colors text-muted-foreground hover:text-foreground -mt-5"
         >
           <span className="size-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg shadow-primary/25">
@@ -78,6 +77,20 @@ export function BottomNav() {
             </button>
           );
         })}
+
+        {/* Perfil */}
+        <button
+          type="button"
+          onClick={() => router.push("/perfil")}
+          className={`flex flex-col items-center justify-center gap-0.5 h-full px-3 min-w-0 flex-1 transition-colors ${
+            pathname.startsWith("/perfil") || pathname.startsWith("/configurações")
+              ? "text-primary"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <UserAvatar />
+          <span className="text-[10px] font-medium leading-none">Perfil</span>
+        </button>
       </div>
     </nav>
   );

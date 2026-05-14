@@ -5,33 +5,40 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-function fmtLocal(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
+// São Paulo timezone offset: UTC-3 (Brazil no longer observes DST since 2019)
+const SP_OFFSET_MS = -3 * 60 * 60 * 1000;
+
+function pad2(n: number): string {
+  return String(n).padStart(2, "0");
+}
+
+/** Converts UTC milliseconds to a YYYY-MM-DD string in São Paulo timezone. */
+function spDate(ms: number): string {
+  const d = new Date(ms - SP_OFFSET_MS);
+  const y = d.getUTCFullYear();
+  const m = pad2(d.getUTCMonth() + 1);
+  const day = pad2(d.getUTCDate());
   return `${y}-${m}-${day}`;
 }
 
-/** Returns today's date in YYYY-MM-DD using LOCAL timezone (not UTC). */
+/** Returns today's date in YYYY-MM-DD in São Paulo timezone (UTC-3). */
 export function getLocalDate(): string {
-  return fmtLocal(new Date());
+  return spDate(Date.now());
 }
 
-/** Returns yesterday's date in YYYY-MM-DD using LOCAL timezone. */
+/** Returns yesterday's date in YYYY-MM-DD in São Paulo timezone (UTC-3). */
 export function getLocalYesterday(): string {
-  const d = new Date();
-  d.setDate(d.getDate() - 1);
-  return fmtLocal(d);
+  return spDate(Date.now() - 24 * 60 * 60 * 1000);
 }
 
-/** Converts a UTC ISO timestamp string to a local date string (YYYY-MM-DD). */
+/** Converts a UTC ISO timestamp string to a São Paulo date string (YYYY-MM-DD). */
 export function getLocalDateFromISO(isoStr: string): string {
-  return fmtLocal(new Date(isoStr));
+  return spDate(new Date(isoStr).getTime());
 }
 
-/** Formats a Date as YYYY-MM-DD in LOCAL timezone. */
+/** Formats a Date as YYYY-MM-DD in São Paulo timezone (UTC-3). */
 export function formatLocalDate(d: Date): string {
-  return fmtLocal(d);
+  return spDate(d.getTime());
 }
 
 /**

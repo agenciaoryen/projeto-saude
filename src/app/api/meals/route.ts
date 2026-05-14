@@ -65,9 +65,10 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const admin = getSupabaseAdmin();
 
-    const row = {
+    const isUpdate = !!body.id;
+
+    const row: Record<string, unknown> = {
       user_id: user.id,
-      data_hora: body.data_hora || new Date().toISOString(),
       tipo_refeicao: body.tipo_refeicao || "almoco",
       foto_path: body.foto_path ?? null,
       itens: body.itens ?? [],
@@ -78,7 +79,12 @@ export async function POST(req: NextRequest) {
       status_analise: body.status_analise ?? "pendente",
     };
 
-    if (body.id) {
+    // Only set data_hora on insert or when explicitly provided (preserve original on update)
+    if (!isUpdate || body.data_hora) {
+      row.data_hora = body.data_hora || new Date().toISOString();
+    }
+
+    if (isUpdate) {
       const { data: updated, error } = await admin
         .from("meals")
         .update(row)

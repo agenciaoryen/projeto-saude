@@ -164,6 +164,7 @@ export default function RegistrarRefeicaoPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           id: mealId,
+          data_hora: new Date(dateTime).toISOString(),
           itens: analysisItems,
           macros: analysisMacros,
           classificacao: analysisClass,
