@@ -19,7 +19,7 @@ export function NutritionSummary({ meals, label }: { meals: Meal[]; label: strin
           <p className="text-sm font-medium">{label}</p>
           {hasData && (
             <span className="text-[11px] text-muted-foreground">
-              {analyzed.length} refeição{analyzed.length > 1 ? "ões" : ""} analisada{analyzed.length > 1 ? "s" : ""}
+              {analyzed.length} refeição{analyzed.length !== 1 ? "ões" : ""} analisada{analyzed.length !== 1 ? "s" : ""}
             </span>
           )}
         </div>

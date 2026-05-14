@@ -313,7 +313,7 @@ export default function NutricaoPage() {
               <div className="grid grid-cols-2 gap-3 text-center">
                 <div className="bg-muted/50 rounded-xl p-3">
                   <p className="text-2xl font-bold">{monthStats.total}</p>
-                  <p className="text-xs text-muted-foreground">Refeições analisadas</p>
+                  <p className="text-xs text-muted-foreground">{monthStats.total === 1 ? "Refeição analisada" : "Refeições analisadas"}</p>
                 </div>
                 <div className="bg-muted/50 rounded-xl p-3">
                   <p className="text-2xl font-bold">{monthStats.avgKcal}</p>
