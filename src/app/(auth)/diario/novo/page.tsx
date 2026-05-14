@@ -110,21 +110,23 @@ export default function NovoDiarioPage() {
           >
             <ArrowLeft className="size-5" />
           </button>
-          <button
-            type="button"
-            onClick={openDatePicker}
-            className="flex items-center gap-1 text-left hover:opacity-80 transition-opacity"
-          >
-            <h1 className="text-xl font-bold">{formatDisplayDate(entryDate)}</h1>
-            <ChevronDown className="size-4 text-muted-foreground" />
-          </button>
-          <input
-            type="date"
-            ref={dateInputRef}
-            value={entryDate}
-            onChange={(e) => setEntryDate(e.target.value)}
-            className="sr-only"
-          />
+          <div className="relative">
+            <button
+              type="button"
+              onClick={openDatePicker}
+              className="flex items-center gap-1 text-left hover:opacity-80 transition-opacity"
+            >
+              <h1 className="text-xl font-bold">{formatDisplayDate(entryDate)}</h1>
+              <ChevronDown className="size-4 text-muted-foreground" />
+            </button>
+            <input
+              type="date"
+              ref={dateInputRef}
+              value={entryDate}
+              onChange={(e) => setEntryDate(e.target.value)}
+              className="absolute inset-0 opacity-0 cursor-pointer"
+            />
+          </div>
         </div>
         <Button
           className="rounded-xl"
@@ -135,47 +137,46 @@ export default function NovoDiarioPage() {
         </Button>
       </div>
 
-      {/* Mood selector — collapsible */}
-      <Card className="rounded-2xl">
-        <CardContent className="p-4">
+      {/* Mood — discreet, right-aligned */}
+      <div className="flex justify-end">
+        <div className="relative">
           <button
             type="button"
             onClick={() => setMoodOpen(!moodOpen)}
-            className="w-full flex items-center justify-between"
+            className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors"
           >
-            <p className="text-sm font-medium">{t("como_esta_hoje")}</p>
-            <span className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors">
-              <span className="text-xl">{selectedMoodEmoji}</span>
-              <ChevronDown
-                className={`size-4 transition-transform ${moodOpen ? "rotate-180" : ""}`}
-              />
-            </span>
+            <span className="text-2xl">{selectedMoodEmoji}</span>
+            <ChevronDown
+              className={`size-4 transition-transform ${moodOpen ? "rotate-180" : ""}`}
+            />
           </button>
 
           {moodOpen && (
-            <div className="flex justify-between gap-1 mt-3">
-              {MOODS.map((m) => (
-                <button
-                  key={m.value}
-                  type="button"
-                  onClick={() => {
-                    setMood(m.value);
-                    setMoodOpen(false);
-                  }}
-                  className={`flex flex-col items-center gap-1 p-2 rounded-xl text-sm transition-colors flex-1 ${
-                    mood === m.value
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted hover:bg-muted/80"
-                  }`}
-                >
-                  <span className="text-2xl">{m.emoji}</span>
-                  <span className="text-[10px]">{t(m.key)}</span>
-                </button>
-              ))}
+            <div className="absolute right-0 top-full mt-2 z-30 bg-popover border border-border rounded-xl p-2 shadow-lg">
+              <div className="flex gap-1">
+                {MOODS.map((m) => (
+                  <button
+                    key={m.value}
+                    type="button"
+                    onClick={() => {
+                      setMood(m.value);
+                      setMoodOpen(false);
+                    }}
+                    className={`flex flex-col items-center gap-1 p-2 rounded-xl text-sm transition-colors ${
+                      mood === m.value
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted hover:bg-muted/80"
+                    }`}
+                  >
+                    <span className="text-2xl">{m.emoji}</span>
+                    <span className="text-[10px]">{t(m.key)}</span>
+                  </button>
+                ))}
+              </div>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Title */}
       <Input
@@ -185,14 +186,34 @@ export default function NovoDiarioPage() {
         className="rounded-xl text-base"
       />
 
-      {/* Content */}
-      <Textarea
-        placeholder={t("escrever_placeholder")}
-        rows={12}
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-        className="resize-none rounded-xl"
-      />
+      {/* Content + photo */}
+      <div className="relative">
+        <Textarea
+          placeholder={t("escrever_placeholder")}
+          rows={12}
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          className="resize-none rounded-xl pr-12 pb-12"
+        />
+        <button
+          type="button"
+          onClick={() => photoInputRef.current?.click()}
+          className="absolute bottom-3 right-3 size-9 rounded-full bg-muted hover:bg-muted/80 flex items-center justify-center transition-colors text-muted-foreground"
+          aria-label="Adicionar foto"
+        >
+          <ImageIcon className="size-4" />
+        </button>
+        <input
+          ref={photoInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => {
+            if (e.target.files?.[0]) handlePhotoAdd(e.target.files[0]);
+            e.target.value = "";
+          }}
+        />
+      </div>
 
       {/* Photos */}
       {photos.length > 0 && (
@@ -211,26 +232,6 @@ export default function NovoDiarioPage() {
           ))}
         </div>
       )}
-
-      {/* Photo button */}
-      <button
-        type="button"
-        onClick={() => photoInputRef.current?.click()}
-        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-border hover:bg-muted/50 transition-colors text-sm text-muted-foreground"
-      >
-        <ImageIcon className="size-4" />
-        Adicionar foto
-      </button>
-      <input
-        ref={photoInputRef}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={(e) => {
-          if (e.target.files?.[0]) handlePhotoAdd(e.target.files[0]);
-          e.target.value = "";
-        }}
-      />
 
       {/* Cancel */}
       <Button
