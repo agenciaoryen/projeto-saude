@@ -174,7 +174,7 @@ export default function DashboardPage() {
         />
       )}
 
-      {checkIns.length > 1 && (
+      {checkIns.length > 0 && (
         <Card className="rounded-2xl">
           <CardHeader>
             <CardTitle className="text-lg">{t("evolucao")}</CardTitle>
