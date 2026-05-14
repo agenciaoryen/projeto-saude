@@ -40,37 +40,63 @@ export function MoodChart({ checkIns, enabledKeys }: MoodChartProps) {
   }
 
   return (
-    <div className="space-y-2">
-      <div className="flex items-end gap-1 h-32">
-        {sorted.map((ci, i) => {
-          const score = allScores[i];
-          const height = (score / maxScore) * 100;
+    <div className="space-y-1">
+      <p className="text-xs text-muted-foreground text-center">
+        Hábitos concluídos por dia
+      </p>
 
-          return (
-            <div
-              key={ci.id}
-              className="flex-1 flex flex-col items-center gap-1 min-w-2 self-stretch"
-            >
+      {/* Grid lines + chart area */}
+      <div className="relative">
+        {/* Horizontal grid lines */}
+        <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
+          <div className="border-t border-border/30" />
+          <div className="border-t border-border/30" />
+          <div className="border-t border-border/30" />
+          <div className="border-t border-border/30" />
+        </div>
+
+        <div className="flex items-end gap-1 h-32">
+          {sorted.map((ci, i) => {
+            const score = allScores[i];
+            const height = Math.max((score / maxScore) * 100, score > 0 ? 8 : 2);
+
+            const barColor =
+              score >= maxScore * 0.8
+                ? "var(--color-primary)"
+                : score >= maxScore * 0.6
+                ? "var(--color-chart-2)"
+                : score >= maxScore * 0.3
+                ? "var(--color-chart-3)"
+                : "var(--color-muted-foreground)";
+
+            return (
               <div
-                className="w-full rounded-t-sm transition-all hover:opacity-80"
-                style={{
-                  height: `${Math.max(height, 6)}%`,
-                  backgroundColor:
-                    score >= maxScore * 0.8
-                      ? "var(--color-primary)"
-                      : score >= maxScore * 0.6
-                      ? "var(--color-chart-2)"
-                      : score >= maxScore * 0.3
-                      ? "var(--color-chart-3)"
-                      : "var(--color-muted-foreground)",
-                  opacity: score > 0 ? 0.7 + (score / maxScore) * 0.3 : 0.35,
-                }}
-                title={`${score}/${maxScore} hábitos - ${new Date(ci.date + "T12:00:00").toLocaleDateString("pt-BR")}`}
-              />
-            </div>
-          );
-        })}
+                key={ci.id}
+                className="flex-1 flex flex-col justify-end items-center min-w-2 self-stretch"
+              >
+                {/* Score count above bar */}
+                <span
+                  className="text-[10px] font-medium mb-1"
+                  style={{ color: barColor }}
+                >
+                  {score > 0 ? score : ""}
+                </span>
+                {/* Bar */}
+                <div
+                  className="w-full max-w-[16px] rounded-t-sm transition-all hover:opacity-80 mx-auto"
+                  style={{
+                    height: `${height}%`,
+                    backgroundColor: barColor,
+                    opacity: score > 0 ? 0.7 + (score / maxScore) * 0.3 : 0.25,
+                  }}
+                  title={`${score}/${maxScore} hábitos - ${new Date(ci.date + "T12:00:00").toLocaleDateString("pt-BR")}`}
+                />
+              </div>
+            );
+          })}
+        </div>
       </div>
+
       <div className="flex justify-between text-xs text-muted-foreground">
         <span>
           {new Date(sorted[0].date + "T12:00:00").toLocaleDateString("pt-BR", {
