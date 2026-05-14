@@ -80,6 +80,7 @@ export async function POST(req: NextRequest) {
       title: body.title ?? "",
       content: body.content ?? "",
       mood: body.mood ?? null,
+      photos: body.photos ?? [],
     };
 
     const admin = getSupabaseAdmin();

@@ -83,7 +83,7 @@ export function MoodChart({ checkIns, enabledKeys }: MoodChartProps) {
                 </span>
                 {/* Bar */}
                 <div
-                  className="w-full max-w-[16px] rounded-t-sm transition-all hover:opacity-80 mx-auto"
+                  className="w-full max-w-[16px] rounded-t-[2px] transition-all hover:opacity-80 mx-auto"
                   style={{
                     height: `${height}%`,
                     backgroundColor: barColor,

@@ -47,6 +47,7 @@ export interface DiaryEntry {
   title: string;
   content: string;
   mood: number | null;
+  photos: string[];
   created_at: string;
   updated_at: string;
 }

@@ -108,6 +108,7 @@ export const diaryEntries = pgTable(
     title: text("title").notNull().default(""),
     content: text("content").notNull().default(""),
     mood: integer("mood"),
+    photos: jsonb("photos").notNull().default([]),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

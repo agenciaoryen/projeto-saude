@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,7 +9,8 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useTranslation } from "@/lib/useTranslation";
 import { getLocalDate } from "@/lib/utils";
-import { ArrowLeft } from "lucide-react";
+import { compressImage, savePhoto } from "@/lib/photo-storage";
+import { ArrowLeft, ChevronDown, ImageIcon, X } from "lucide-react";
 
 const MOODS = [
   { value: 1, emoji: "😔", key: "muito_mal" },
@@ -34,8 +35,11 @@ export default function NovoDiarioPage() {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [mood, setMood] = useState<number | null>(null);
+  const [moodOpen, setMoodOpen] = useState(false);
+  const [photos, setPhotos] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const dateInputRef = useRef<HTMLInputElement>(null);
+  const photoInputRef = useRef<HTMLInputElement>(null);
 
   const handleSave = async () => {
     if (!content.trim()) {
@@ -52,6 +56,7 @@ export default function NovoDiarioPage() {
         title: title.trim(),
         content: content.trim(),
         mood,
+        photos,
       }),
     });
 
@@ -76,6 +81,22 @@ export default function NovoDiarioPage() {
     }
   };
 
+  const handlePhotoAdd = async (file: File) => {
+    try {
+      const compressed = await compressImage(file);
+      const key = await savePhoto(compressed);
+      setPhotos((prev) => [...prev, key]);
+    } catch {
+      toast.error("Erro ao processar imagem");
+    }
+  };
+
+  const removePhoto = (key: string) => {
+    setPhotos((prev) => prev.filter((p) => p !== key));
+  };
+
+  const selectedMoodEmoji = mood ? MOODS.find((m) => m.value === mood)?.emoji : "😶";
+
   return (
     <div className="max-w-lg mx-auto space-y-6">
       {/* Top bar: back + date + save */}
@@ -92,9 +113,10 @@ export default function NovoDiarioPage() {
           <button
             type="button"
             onClick={openDatePicker}
-            className="text-left"
+            className="flex items-center gap-1 text-left hover:opacity-80 transition-opacity"
           >
             <h1 className="text-xl font-bold">{formatDisplayDate(entryDate)}</h1>
+            <ChevronDown className="size-4 text-muted-foreground" />
           </button>
           <input
             type="date"
@@ -113,31 +135,49 @@ export default function NovoDiarioPage() {
         </Button>
       </div>
 
-      {/* Mood selector */}
+      {/* Mood selector — collapsible */}
       <Card className="rounded-2xl">
         <CardContent className="p-4">
-          <p className="text-sm font-medium mb-3">{t("como_esta_hoje")}</p>
-          <div className="flex justify-between gap-1">
-            {MOODS.map((m) => (
-              <button
-                key={m.value}
-                type="button"
-                onClick={() => setMood(m.value)}
-                className={`flex flex-col items-center gap-1 p-2 rounded-xl text-sm transition-colors flex-1 ${
-                  mood === m.value
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted hover:bg-muted/80"
-                }`}
-              >
-                <span className="text-2xl">{m.emoji}</span>
-                <span className="text-[10px]">{t(m.key)}</span>
-              </button>
-            ))}
-          </div>
+          <button
+            type="button"
+            onClick={() => setMoodOpen(!moodOpen)}
+            className="w-full flex items-center justify-between"
+          >
+            <p className="text-sm font-medium">{t("como_esta_hoje")}</p>
+            <span className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors">
+              <span className="text-xl">{selectedMoodEmoji}</span>
+              <ChevronDown
+                className={`size-4 transition-transform ${moodOpen ? "rotate-180" : ""}`}
+              />
+            </span>
+          </button>
+
+          {moodOpen && (
+            <div className="flex justify-between gap-1 mt-3">
+              {MOODS.map((m) => (
+                <button
+                  key={m.value}
+                  type="button"
+                  onClick={() => {
+                    setMood(m.value);
+                    setMoodOpen(false);
+                  }}
+                  className={`flex flex-col items-center gap-1 p-2 rounded-xl text-sm transition-colors flex-1 ${
+                    mood === m.value
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted hover:bg-muted/80"
+                  }`}
+                >
+                  <span className="text-2xl">{m.emoji}</span>
+                  <span className="text-[10px]">{t(m.key)}</span>
+                </button>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      {/* Title — placeholder as label */}
+      {/* Title */}
       <Input
         placeholder={t("titulo_placeholder")}
         value={title}
@@ -145,13 +185,51 @@ export default function NovoDiarioPage() {
         className="rounded-xl text-base"
       />
 
-      {/* Content — placeholder as label */}
+      {/* Content */}
       <Textarea
         placeholder={t("escrever_placeholder")}
-        rows={14}
+        rows={12}
         value={content}
         onChange={(e) => setContent(e.target.value)}
         className="resize-none rounded-xl"
+      />
+
+      {/* Photos */}
+      {photos.length > 0 && (
+        <div className="grid grid-cols-3 gap-2">
+          {photos.map((key) => (
+            <div key={key} className="relative aspect-square rounded-xl overflow-hidden bg-muted">
+              <PhotoThumbnail photoKey={key} />
+              <button
+                type="button"
+                onClick={() => removePhoto(key)}
+                className="absolute top-1.5 right-1.5 size-6 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors"
+              >
+                <X className="size-3.5" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Photo button */}
+      <button
+        type="button"
+        onClick={() => photoInputRef.current?.click()}
+        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-border hover:bg-muted/50 transition-colors text-sm text-muted-foreground"
+      >
+        <ImageIcon className="size-4" />
+        Adicionar foto
+      </button>
+      <input
+        ref={photoInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          if (e.target.files?.[0]) handlePhotoAdd(e.target.files[0]);
+          e.target.value = "";
+        }}
       />
 
       {/* Cancel */}
@@ -164,4 +242,22 @@ export default function NovoDiarioPage() {
       </Button>
     </div>
   );
+}
+
+/** Small component to load and display a photo from IndexedDB by key */
+function PhotoThumbnail({ photoKey }: { photoKey: string }) {
+  const [src, setSrc] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    import("@/lib/photo-storage").then(({ getPhoto }) => {
+      getPhoto(photoKey).then((b64) => {
+        if (!cancelled && b64) setSrc(b64);
+      });
+    });
+    return () => { cancelled = true; };
+  }, [photoKey]);
+
+  if (!src) return <div className="w-full h-full animate-pulse bg-muted-foreground/20" />;
+  return <img src={src} alt="" className="w-full h-full object-cover" />;
 }
