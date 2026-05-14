@@ -10,6 +10,7 @@ import { StreakBadge } from "@/components/StreakBadge";
 import { MoodChart } from "@/components/MoodChart";
 import { GardenView } from "@/components/GardenView";
 import { StatsView } from "@/components/StatsView";
+import { MayaNudge } from "@/components/MayaNudge";
 import { useTranslation } from "@/lib/useTranslation";
 import type { CheckIn, UserAchievement } from "@/types";
 
@@ -97,6 +98,8 @@ export default function DashboardPage() {
         <h1 className="text-2xl font-bold">{t("ola")}</h1>
         <p className="text-muted-foreground text-sm">{todayDisplay}</p>
       </div>
+
+      <MayaNudge />
 
       {!todayCheckIn ? (
         <Card className="rounded-2xl border-dashed border-primary/50 bg-primary/5">
