@@ -83,7 +83,7 @@ export default function DashboardPage() {
 
   const streak = calculateStreak(checkIns.map((c: CheckIn) => c.date));
 
-  const enabledNonSuicidal = enabledKeys.filter((k) => k !== "suicidal_thoughts");
+  const enabledNonSuicidal = enabledKeys.filter((k) => k !== "suicidal_thoughts" && k !== "felt_judged");
   const totalHabits = enabledNonSuicidal.length;
 
   const positiveCount = todayCheckIn

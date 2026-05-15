@@ -11,7 +11,11 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { useTranslation } from "@/lib/useTranslation";
 import { ateWellFromMeals, sumMacros } from "@/lib/meal-utils";
+import { compressImage, uploadToCloud, photoUrl } from "@/lib/photo-storage";
+import { Camera, X } from "lucide-react";
 import type { CheckIn, Meal } from "@/types";
+
+const MAX_GRATITUDE_PHOTOS = 5;
 
 type FormData = Omit<CheckIn, "id" | "user_id" | "created_at" | "updated_at">;
 
@@ -69,6 +73,7 @@ export function CheckInForm({ existingCheckIn }: CheckInFormProps) {
     worked_on_goals: false,
     feeling: "",
     gratitude: "",
+    gratitude_photos: [] as string[],
   });
 
   useEffect(() => {
@@ -110,6 +115,7 @@ export function CheckInForm({ existingCheckIn }: CheckInFormProps) {
         worked_on_goals: existingCheckIn.worked_on_goals,
         feeling: existingCheckIn.feeling,
         gratitude: existingCheckIn.gratitude,
+        gratitude_photos: existingCheckIn.gratitude_photos || [],
       });
     }
   }, [existingCheckIn]);
@@ -141,8 +147,31 @@ export function CheckInForm({ existingCheckIn }: CheckInFormProps) {
     return () => clearTimeout(autoSaveRef.current);
   }, [form, autoSave]);
 
+  const gratitudePhotoRef = useRef<HTMLInputElement>(null);
+
   const handleCheck = (key: keyof FormData, checked: boolean) => {
     setForm((prev) => ({ ...prev, [key]: checked }));
+  };
+
+  const handleGratitudePhotoAdd = async (file: File) => {
+    if (form.gratitude_photos.length >= MAX_GRATITUDE_PHOTOS) {
+      toast.error(`Máximo de ${MAX_GRATITUDE_PHOTOS} fotos`);
+      return;
+    }
+    try {
+      const compressed = await compressImage(file);
+      const path = await uploadToCloud(compressed, "meals");
+      setForm((prev) => ({ ...prev, gratitude_photos: [...prev.gratitude_photos, path] }));
+    } catch {
+      toast.error("Erro ao processar imagem");
+    }
+  };
+
+  const removeGratitudePhoto = (idx: number) => {
+    setForm((prev) => ({
+      ...prev,
+      gratitude_photos: prev.gratitude_photos.filter((_, i) => i !== idx),
+    }));
   };
 
   // Auto-calcula "ate_well" baseado nas refeições do dia
@@ -160,9 +189,9 @@ export function CheckInForm({ existingCheckIn }: CheckInFormProps) {
   }));
 
   const score = activeQuestions.filter(
-    (q) => q.key !== "suicidal_thoughts" && form[q.key as keyof FormData] === true
+    (q) => q.key !== "suicidal_thoughts" && q.key !== "felt_judged" && form[q.key as keyof FormData] === true
   ).length;
-  const total = activeQuestions.filter((q) => q.key !== "suicidal_thoughts").length;
+  const total = activeQuestions.filter((q) => q.key !== "suicidal_thoughts" && q.key !== "felt_judged").length;
 
   // Dados de refeição para o card integrado
   const analyzedMeals = todayMeals.filter((m) => m.macros && m.status_analise === "analisado");
@@ -304,7 +333,7 @@ export function CheckInForm({ existingCheckIn }: CheckInFormProps) {
                           onClick={() => handleCheck(q.key as keyof FormData, false)}
                           className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors ${
                             value === false
-                              ? "bg-destructive text-destructive-foreground"
+                              ? "bg-destructive text-white"
                               : "bg-muted text-muted-foreground hover:bg-muted/80"
                           }`}
                         >
@@ -332,7 +361,7 @@ export function CheckInForm({ existingCheckIn }: CheckInFormProps) {
                           onClick={() => handleCheck(q.key as keyof FormData, false)}
                           className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors ${
                             value === false
-                              ? "bg-destructive text-destructive-foreground"
+                              ? "bg-destructive text-white"
                               : "bg-muted text-muted-foreground hover:bg-muted/80"
                           }`}
                         >
@@ -378,16 +407,65 @@ export function CheckInForm({ existingCheckIn }: CheckInFormProps) {
           <Separator />
           <div className="space-y-2">
             <Label htmlFor="gratitude">{t("gratidao_label")}</Label>
-            <Textarea
-              id="gratitude"
-              placeholder="Pelo que você é grato(a) hoje?"
-              rows={2}
-              value={form.gratitude}
-              onChange={(e) =>
-                setForm((prev) => ({ ...prev, gratitude: e.target.value }))
-              }
-              className="resize-none rounded-xl"
-            />
+            <div className="relative">
+              <Textarea
+                id="gratitude"
+                placeholder="Pelo que você é grato(a) hoje?"
+                rows={2}
+                value={form.gratitude}
+                onChange={(e) =>
+                  setForm((prev) => ({ ...prev, gratitude: e.target.value }))
+                }
+                className="resize-none rounded-xl pr-10"
+              />
+              <button
+                type="button"
+                onClick={() => gratitudePhotoRef.current?.click()}
+                className="absolute bottom-2 right-2 size-8 rounded-full bg-muted hover:bg-muted/80 flex items-center justify-center transition-colors text-muted-foreground"
+                aria-label="Adicionar foto"
+              >
+                <Camera className="size-3.5" />
+              </button>
+              <input
+                ref={gratitudePhotoRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={(e) => {
+                  if (e.target.files?.[0]) handleGratitudePhotoAdd(e.target.files[0]);
+                  e.target.value = "";
+                }}
+              />
+            </div>
+            {form.gratitude_photos.length > 0 && (
+              <div className="grid grid-cols-3 gap-1.5">
+                {form.gratitude_photos.map((path, i) => {
+                  const src = photoUrl(path);
+                  return src ? (
+                    <div key={i} className="relative aspect-square rounded-lg overflow-hidden bg-muted">
+                      <img src={src} alt="" className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => removeGratitudePhoto(i)}
+                        className="absolute top-1 right-1 size-5 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors"
+                      >
+                        <X className="size-3" />
+                      </button>
+                    </div>
+                  ) : null;
+                })}
+                {form.gratitude_photos.length < MAX_GRATITUDE_PHOTOS && (
+                  <button
+                    type="button"
+                    onClick={() => gratitudePhotoRef.current?.click()}
+                    className="aspect-square rounded-lg border border-dashed border-border hover:bg-muted/30 transition-colors flex items-center justify-center text-muted-foreground"
+                  >
+                    <Camera className="size-3.5" />
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

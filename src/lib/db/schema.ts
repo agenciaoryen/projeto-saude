@@ -53,6 +53,7 @@ export const checkIns = pgTable(
     workedOnGoals: boolean("worked_on_goals").notNull().default(false),
     feeling: text("feeling").notNull().default(""),
     gratitude: text("gratitude").notNull().default(""),
+    gratitudePhotos: jsonb("gratitude_photos").notNull().default([]),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
