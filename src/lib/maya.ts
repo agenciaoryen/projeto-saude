@@ -6,16 +6,23 @@ interface UserContext {
   has_creative_hobby: boolean;
 }
 
+interface Porque {
+  id: string;
+  text: string;
+  photoPath: string | null;
+}
+
 interface MayaInput {
   profile: UserContext;
   recentCheckIns: { date: string; positives: string[]; negatives: string[]; feeling: string }[];
   recentDiary: { date: string; content: string; mood: number | null }[];
   memories: string[];
+  porques: Porque[];
   streak: number;
 }
 
 export function buildMayaSystemPrompt(input: MayaInput): string {
-  const { profile, recentCheckIns, recentDiary, memories, streak } = input;
+  const { profile, recentCheckIns, recentDiary, memories, porques, streak } = input;
 
   const nameLine = profile.name ? `\nNome: ${profile.name}` : "";
   const genderLabel =
@@ -32,6 +39,10 @@ export function buildMayaSystemPrompt(input: MayaInput): string {
     ? `## DIÁRIO RECENTE\n${recentDiary.map(d =>
         `${d.date}: ${d.content.slice(0, 100)}${d.mood ? ` [humor: ${d.mood}/5]` : ""}`
       ).join("\n")}`
+    : "";
+
+  const porquesBlock = porques.length > 0
+    ? `## PORQUÊS DO USUÁRIO\nO usuário registrou estes "porquês" no perfil dele. São as razões que o movem:\n${porques.map((p) => `- ${p.text}${p.photoPath ? " [tem foto]" : ""}`).join("\n")}\n\n**Regras sobre os porquês:**\n- Você só sabe disso porque VIU NO PERFIL dele, não porque ele te contou. Se mencionar, diga algo como "Vi no seu perfil..."\n- NUNCA use os porquês como chantagem emocional ("Faz check-in, sua filha merece")\n- Use como RECORDATÓRIO afetivo, com perguntas que despertem reflexão: "O que sua filha te ensinou sobre cuidar de si?"\n- Pergunte, escute, devolva a pergunta — como um coach que sabe que as respostas estão no usuário.`
     : "";
 
   const memoriesBlock = memories.length > 0
@@ -95,5 +106,10 @@ Se a pessoa expressar ideação suicida iminente ou risco grave de automutilaç�
 - NUNCA minimize o sofrimento nem faça drama
 
 ## EXTRAÇÃO DE FATOS
-Durante a conversa, você naturalmente aprende coisas sobre a pessoa. Quando isso acontecer, NÃO as repita como uma lista — apenas use-as naturalmente quando relevante.`;
+Durante a conversa, você naturalmente aprende coisas sobre a pessoa. Quando isso acontecer, NÃO as repita como uma lista — apenas use-as naturalmente quando relevante.
+
+${porquesBlock}
+${memoriesBlock}
+${checkInBlock}
+${diaryBlock}`;
 }

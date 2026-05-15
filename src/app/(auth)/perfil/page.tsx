@@ -10,7 +10,14 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
 import { useTranslation } from "@/lib/useTranslation";
 import { LANG_OPTIONS } from "@/lib/i18n";
-import { Settings } from "lucide-react";
+import { Settings, Plus, X, Camera, Heart } from "lucide-react";
+import { compressImage, uploadToCloud, photoUrl } from "@/lib/photo-storage";
+
+interface Porque {
+  id: string;
+  text: string;
+  photoPath: string | null;
+}
 
 const GENDER_OPTIONS = [
   { id: "masculino", label: "Masculino", emoji: "⚡" },
@@ -28,6 +35,8 @@ export default function PerfilPage() {
   const [gender, setGender] = useState("nao_dizer");
   const [language, setLanguage] = useState("pt");
   const [uploading, setUploading] = useState(false);
+  const [porques, setPorques] = useState<Porque[]>([]);
+  const [savingPorques, setSavingPorques] = useState(false);
 
   // Password
   const [currentPassword, setCurrentPassword] = useState("");
@@ -48,6 +57,7 @@ export default function PerfilPage() {
         setAvatarUrl(data.avatar_url || "");
         setGender(data.gender || "nao_dizer");
         setLanguage(data.language || "pt");
+        setPorques(data.porques || []);
         setLoading(false);
       })
       .catch(() => setLoading(false));
@@ -150,6 +160,42 @@ export default function PerfilPage() {
       toast.error("Erro ao alterar senha");
     }
     setChangingPassword(false);
+  };
+
+  const savePorques = async (updated: Porque[]) => {
+    setPorques(updated);
+    setSavingPorques(true);
+    try {
+      await fetch("/api/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ porques: updated }),
+      });
+    } catch { /* silent */ }
+    setSavingPorques(false);
+  };
+
+  const addPorque = () => {
+    const id = Math.random().toString(36).slice(2);
+    savePorques([...porques, { id, text: "", photoPath: null }]);
+  };
+
+  const updatePorque = (id: string, data: Partial<Omit<Porque, "id">>) => {
+    savePorques(porques.map((p) => (p.id === id ? { ...p, ...data } : p)));
+  };
+
+  const removePorque = (id: string) => {
+    savePorques(porques.filter((p) => p.id !== id));
+  };
+
+  const handlePorquePhoto = async (id: string, file: File) => {
+    try {
+      const compressed = await compressImage(file);
+      const path = await uploadToCloud(compressed, "meals");
+      updatePorque(id, { photoPath: path });
+    } catch {
+      toast.error("Erro ao processar imagem");
+    }
   };
 
   if (loading) {
@@ -280,6 +326,51 @@ export default function PerfilPage() {
         </CardContent>
       </Card>
 
+      {/* Meus Porquês */}
+      <Card className="rounded-2xl">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Heart className="size-4 text-primary" /> Meus Porquês
+            </CardTitle>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              O que te move? Pessoas, valores, crenças...
+            </p>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="rounded-lg gap-1"
+            onClick={addPorque}
+            disabled={porques.length >= 5}
+          >
+            <Plus className="size-3.5" />
+            Novo
+          </Button>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {porques.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">
+              Nenhum porquê cadastrado.<br />
+              <span className="text-xs">Adicione o que te motiva a seguir.</span>
+            </p>
+          ) : (
+            porques.map((pq) => (
+              <PorqueEditor
+                key={pq.id}
+                porque={pq}
+                onUpdate={(data) => updatePorque(pq.id, data)}
+                onRemove={() => removePorque(pq.id)}
+                onPhoto={(file) => handlePorquePhoto(pq.id, file)}
+              />
+            ))
+          )}
+          <p className="text-[10px] text-muted-foreground text-right">
+            {savingPorques ? "Salvando..." : porques.length > 0 ? "Salvo ✓" : ""}
+          </p>
+        </CardContent>
+      </Card>
+
       {/* Change password */}
       <Card className="rounded-2xl">
         <CardHeader>
@@ -334,6 +425,67 @@ export default function PerfilPage() {
         <Settings className="size-4" />
         {t("config_title")}
       </Link>
+    </div>
+  );
+}
+
+/** Inline editor for a single "porquê" — photo thumbnail + text + remove. */
+function PorqueEditor({
+  porque,
+  onUpdate,
+  onRemove,
+  onPhoto,
+}: {
+  porque: Porque;
+  onUpdate: (data: Partial<Omit<Porque, "id">>) => void;
+  onRemove: () => void;
+  onPhoto: (file: File) => void;
+}) {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const photoSrc = porque.photoPath ? photoUrl(porque.photoPath) : null;
+
+  return (
+    <div className="flex gap-3 p-3 rounded-xl bg-muted/50">
+      {/* Photo */}
+      <button
+        type="button"
+        className="size-14 rounded-xl overflow-hidden shrink-0 bg-muted flex items-center justify-center hover:opacity-80 transition-opacity"
+        onClick={() => fileRef.current?.click()}
+      >
+        {photoSrc ? (
+          <img src={photoSrc} alt="" className="size-full object-cover" />
+        ) : (
+          <Camera className="size-4 text-muted-foreground" />
+        )}
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => {
+            if (e.target.files?.[0]) onPhoto(e.target.files[0]);
+            e.target.value = "";
+          }}
+        />
+      </button>
+
+      {/* Text + remove */}
+      <div className="flex-1 min-w-0 space-y-1.5">
+        <textarea
+          value={porque.text}
+          onChange={(e) => onUpdate({ text: e.target.value })}
+          placeholder="Ex: Minha filha, minha fé, quero estar saudável..."
+          rows={2}
+          className="w-full resize-none bg-transparent border-none outline-none text-sm placeholder:text-muted-foreground/50"
+        />
+        <button
+          type="button"
+          onClick={onRemove}
+          className="text-[10px] text-muted-foreground hover:text-destructive transition-colors"
+        >
+          Remover
+        </button>
+      </div>
     </div>
   );
 }

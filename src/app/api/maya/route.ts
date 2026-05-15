@@ -104,6 +104,7 @@ export async function POST(request: Request) {
         mood: d.mood as number | null,
       })),
       memories,
+      porques: (context.porques as Array<{ id: string; text: string; photoPath: string | null }>) || [],
       streak,
     });
 

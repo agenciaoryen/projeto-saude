@@ -11,6 +11,7 @@ import { MoodChart } from "@/components/MoodChart";
 import { GardenView } from "@/components/GardenView";
 import { StatsView } from "@/components/StatsView";
 import { MayaNudge } from "@/components/MayaNudge";
+import { PorqueCard } from "@/components/PorqueCard";
 import { useTranslation } from "@/lib/useTranslation";
 import type { CheckIn, UserAchievement } from "@/types";
 
@@ -100,6 +101,8 @@ export default function DashboardPage() {
       </div>
 
       <MayaNudge />
+
+      <PorqueCard />
 
       {!todayCheckIn ? (
         <Card className="rounded-2xl border-dashed border-primary/50 bg-primary/5">
