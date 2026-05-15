@@ -102,7 +102,7 @@ export default function DashboardPage() {
 
       <MayaNudge />
 
-      <PorqueCard />
+      <PorqueCard gender={gender} />
 
       {!todayCheckIn ? (
         <Card className="rounded-2xl border-dashed border-primary/50 bg-primary/5">
