@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { getLocalDate } from "@/lib/utils";
-import { sumMacros, nutritionScore } from "@/lib/meal-utils";
+import { sumMacros, nutritionScore, getDailyKcalGoal } from "@/lib/meal-utils";
 import { useTranslation } from "@/lib/useTranslation";
 import type { Meal } from "@/types";
 
@@ -75,8 +75,11 @@ export function NutritionMiniCard() {
   const score = nutritionScore(analyzed);
   const scoreColor = score >= 80 ? "text-emerald-500" : score >= 60 ? "text-amber-500" : "text-red-500";
   const scoreBg = score >= 80 ? "stroke-emerald-500" : score >= 60 ? "stroke-amber-500" : "stroke-red-500";
-  const ringLen = 94.2; // 2 * PI * 15 ≈ 94.2
+  const ringLen = 94.2;
   const dashLen = (score / 100) * ringLen;
+
+  const kcalGoal = getDailyKcalGoal();
+  const kcalPct = Math.min(Math.round((total.calorias_kcal / kcalGoal) * 100), 100);
 
   return (
     <Card className="rounded-2xl hover:bg-muted/5 transition-colors cursor-pointer"
@@ -104,14 +107,28 @@ export function NutritionMiniCard() {
             </span>
           </div>
 
-          <div className="flex-1 min-w-0">
-            <p className="text-xl font-bold tracking-tight">
-              {total.calorias_kcal} <span className="text-sm font-normal text-muted-foreground">kcal</span>
-            </p>
-            <div className="flex gap-3 text-xs text-muted-foreground mt-0.5">
-              <span>C: {total.carboidratos_g}g</span>
-              <span>P: {total.proteinas_g}g</span>
-              <span>G: {total.gorduras_g}g</span>
+          <div className="flex-1 min-w-0 space-y-1.5">
+            <div>
+              <p className="text-xl font-bold tracking-tight">
+                {total.calorias_kcal} <span className="text-sm font-normal text-muted-foreground">kcal</span>
+              </p>
+              <div className="flex gap-3 text-xs text-muted-foreground mt-0.5">
+                <span>C: {total.carboidratos_g}g</span>
+                <span>P: {total.proteinas_g}g</span>
+                <span>G: {total.gorduras_g}g</span>
+              </div>
+            </div>
+            {/* Barra de progresso da meta */}
+            <div className="space-y-0.5">
+              <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all duration-700 ${kcalPct >= 100 ? "bg-amber-500" : "bg-emerald-500"}`}
+                  style={{ width: `${Math.min(kcalPct, 100)}%` }}
+                />
+              </div>
+              <p className="text-[10px] text-muted-foreground">
+                {kcalPct}% da meta diária
+              </p>
             </div>
           </div>
         </div>

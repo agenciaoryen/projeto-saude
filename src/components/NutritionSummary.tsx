@@ -1,5 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { sumMacros, nutritionScore } from "@/lib/meal-utils";
+import { sumMacros, nutritionScore, getDailyKcalGoal } from "@/lib/meal-utils";
 import type { Meal } from "@/types";
 
 export function NutritionSummary({ meals, label }: { meals: Meal[]; label: string }) {
@@ -15,6 +15,10 @@ export function NutritionSummary({ meals, label }: { meals: Meal[]; label: strin
   const score = hasData ? nutritionScore(analyzed) : 0;
   const scoreColor = score >= 80 ? "text-emerald-500" : score >= 60 ? "text-amber-500" : "text-red-500";
 
+  const kcalGoal = getDailyKcalGoal();
+  const kcalPct = hasData ? Math.min(Math.round((total.calorias_kcal / kcalGoal) * 100), 100) : 0;
+  const kcalPctColor = kcalPct >= 100 ? "bg-amber-500" : "bg-emerald-500";
+
   // Dados para o anel de macros
   const ringData = [
     { pct: carbPct, color: "stroke-amber-400", label: "Carbs", grams: total.carboidratos_g },
@@ -22,8 +26,7 @@ export function NutritionSummary({ meals, label }: { meals: Meal[]; label: strin
     { pct: gordPct, color: "stroke-orange-400", label: "Gord", grams: total.gorduras_g },
   ].filter((d) => d.pct > 0);
 
-  const ringRadius = 15;
-  const ringCirc = 2 * Math.PI * ringRadius; // ≈ 94.2
+  const ringCirc = 2 * Math.PI * 15; // ≈ 94.2
 
   return (
     <Card className="rounded-2xl bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
@@ -45,9 +48,23 @@ export function NutritionSummary({ meals, label }: { meals: Meal[]; label: strin
           <>
             {/* Kcal + Score lado a lado */}
             <div className="flex items-center gap-5">
-              <div className="flex-1 text-center">
-                <span className="text-3xl font-bold tabular-nums">{total.calorias_kcal}</span>
-                <span className="text-sm text-muted-foreground ml-1">kcal</span>
+              <div className="flex-1 text-center space-y-2">
+                <div>
+                  <span className="text-3xl font-bold tabular-nums">{total.calorias_kcal}</span>
+                  <span className="text-sm text-muted-foreground ml-1">kcal</span>
+                </div>
+                {/* Barra de progresso da meta */}
+                <div className="space-y-0.5">
+                  <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all duration-700 ${kcalPctColor}`}
+                      style={{ width: `${Math.min(kcalPct, 100)}%` }}
+                    />
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">
+                    {kcalPct}% da meta · {kcalGoal} kcal
+                  </p>
+                </div>
               </div>
 
               {/* Anel de macros */}
