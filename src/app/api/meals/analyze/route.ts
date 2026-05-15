@@ -2,7 +2,18 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 
-async function callClaudeVision(base64: string, description: string): Promise<string> {
+async function callClaudeVision(photos: string[], description: string): Promise<string> {
+  const imageBlocks = photos.map((b64) => ({
+    type: "image" as const,
+    source: {
+      type: "base64" as const,
+      media_type: "image/jpeg" as const,
+      data: b64.replace(/^data:image\/\w+;base64,/, ""),
+    },
+  }));
+
+  const hasMultiple = photos.length > 1;
+
   const response = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -12,9 +23,18 @@ async function callClaudeVision(base64: string, description: string): Promise<st
     },
     body: JSON.stringify({
       model: "claude-haiku-4-5-20251001",
-      max_tokens: 300,
+      max_tokens: 400,
       temperature: 0.3,
-      system: `Você é um analisador nutricional. Analise fotos de refeições e retorne APENAS um JSON válido, sem texto adicional.
+      system: `Você é um analisador nutricional. Analise fotos de uma refeição e retorne APENAS um JSON válido, sem texto adicional.
+
+${hasMultiple ? `ATENÇÃO: Você receberá ${photos.length} fotos da MESMA refeição. Elas podem mostrar:
+- Itens diferentes (ex: foto 1 = prato principal, foto 2 = salada, foto 3 = sobremesa)
+- Ou o mesmo item de ângulos diferentes
+
+Seu trabalho:
+- Se as fotos mostram ITENS DIFERENTES, some todos eles na análise
+- Se são o MESMO item de ângulos diferentes, NÃO duplique — conte uma só vez
+- Use o bom senso: se uma foto tem um prato e outra tem uma fruta, são itens diferentes` : ""}
 
 Formato exato:
 {
@@ -36,19 +56,12 @@ Observação em português, 1-2 frases, tom acolhedor.`,
         {
           role: "user",
           content: [
-            {
-              type: "image",
-              source: {
-                type: "base64",
-                media_type: "image/jpeg",
-                data: base64.replace(/^data:image\/\w+;base64,/, ""),
-              },
-            },
+            ...imageBlocks,
             {
               type: "text",
               text: description
-                ? `Analise esta refeição. Descrição do usuário: "${description}". Retorne APENAS o JSON.`
-                : "Analise esta refeição. Retorne APENAS o JSON.",
+                ? `Analise ${hasMultiple ? `estas ${photos.length} fotos da refeição` : "esta refeição"}. Descrição do usuário: "${description}". ${hasMultiple ? "Lembre: fotos de ângulos diferentes do MESMO item = contar uma vez. Fotos de itens DIFERENTES = somar tudo." : ""} Retorne APENAS o JSON.`
+                : `Analise ${hasMultiple ? `estas ${photos.length} fotos da refeição` : "esta refeição"}. ${hasMultiple ? "Lembre: fotos de ângulos diferentes do MESMO item = contar uma vez. Fotos de itens DIFERENTES = somar tudo." : ""} Retorne APENAS o JSON.`,
             },
           ],
         },
@@ -87,13 +100,13 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     mealId = body.mealId || "";
-    const { photoBase64, description } = body;
+    const { photosBase64, description } = body;
 
-    if (!mealId || !photoBase64) {
-      return NextResponse.json({ error: "mealId e photoBase64 obrigatorios" }, { status: 400 });
+    if (!mealId || !photosBase64 || photosBase64.length === 0) {
+      return NextResponse.json({ error: "mealId e photosBase64 (array) obrigatorios" }, { status: 400 });
     }
 
-    const raw = await callClaudeVision(photoBase64, description || "");
+    const raw = await callClaudeVision(photosBase64, description || "");
     const jsonStr = extractJson(raw);
 
     let parsed;

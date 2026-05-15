@@ -107,7 +107,7 @@ export default function RegistrarRefeicaoPage() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               mealId: meal.id,
-              photoBase64: photos[0],
+              photosBase64: photos,
               description: description.trim(),
             }),
             signal: controller.signal,
