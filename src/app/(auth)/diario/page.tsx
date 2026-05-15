@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { useTranslation } from "@/lib/useTranslation";
-import { Plus, ImageIcon } from "lucide-react";
+import { Plus, ImageIcon, BookOpen, Sparkles, X } from "lucide-react";
 import type { DiaryEntry } from "@/types";
 
 const MOOD_EMOJIS: Record<number, string> = {
@@ -20,6 +20,7 @@ export default function DiarioPage() {
   const { t } = useTranslation();
   const [entries, setEntries] = useState<DiaryEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fabOpen, setFabOpen] = useState(false);
 
   useEffect(() => {
     fetch("/api/diary")
@@ -105,13 +106,38 @@ export default function DiarioPage() {
           ))}
         </div>
       )}
-      <button
-        onClick={() => router.push("/diario/novo")}
-        className="fixed bottom-20 right-5 size-14 rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/25 flex items-center justify-center hover:bg-primary/90 transition-colors z-40"
-        aria-label={t("nova_entrada")}
-      >
-        <Plus className="size-6" />
-      </button>
+      {/* FAB menu */}
+      <div className="fixed bottom-20 right-5 z-40 flex flex-col items-end gap-2">
+        {fabOpen && (
+          <>
+            <button
+              onClick={() => { router.push("/diario/evolucao"); setFabOpen(false); }}
+              className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-popover border border-border shadow-lg hover:bg-muted/50 transition-colors"
+            >
+              <span className="text-sm font-medium whitespace-nowrap">Diário de Evolução</span>
+              <span className="size-9 rounded-full bg-primary/10 flex items-center justify-center">
+                <Sparkles className="size-4 text-primary" />
+              </span>
+            </button>
+            <button
+              onClick={() => { router.push("/diario/novo"); setFabOpen(false); }}
+              className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-popover border border-border shadow-lg hover:bg-muted/50 transition-colors"
+            >
+              <span className="text-sm font-medium whitespace-nowrap">Diário Livre</span>
+              <span className="size-9 rounded-full bg-primary/10 flex items-center justify-center">
+                <BookOpen className="size-4 text-primary" />
+              </span>
+            </button>
+          </>
+        )}
+        <button
+          onClick={() => setFabOpen(!fabOpen)}
+          className={`size-14 rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/25 flex items-center justify-center hover:bg-primary/90 transition-all z-40 ${fabOpen ? "rotate-45" : ""}`}
+          aria-label={t("nova_entrada")}
+        >
+          <Plus className="size-6 transition-transform" />
+        </button>
+      </div>
     </div>
   );
 }
