@@ -5,7 +5,6 @@ import { getLocalDate, calculateStreak } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { StreakBadge } from "@/components/StreakBadge";
 import { MoodChart } from "@/components/MoodChart";
 import { GardenView } from "@/components/GardenView";
@@ -118,46 +117,95 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       ) : (
-        <Card className="rounded-2xl">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-lg">{t("checkin_hoje_feito")}</CardTitle>
-            <Badge variant="secondary">
-              {positiveCount}/{totalHabits} {t("habitos")}
-            </Badge>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 gap-2 text-sm">
-              {enabledNonSuicidal.map((key) => {
-                const value = (todayCheckIn as Record<string, unknown>)[key] === true;
-                const [emoji, label] = HABIT_DISPLAY[key] || ["•", key];
-                return (
-                  <div
-                    key={key}
-                    className={`flex items-center gap-2 p-2 rounded-lg ${
-                      value ? "bg-primary/10" : "bg-muted/50 opacity-50"
-                    }`}
-                  >
-                    <span>{emoji}</span>
-                    <span className={value ? "font-medium" : ""}>{label}</span>
-                  </div>
-                );
-              })}
+        <Card className="rounded-2xl overflow-hidden">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg">{t("checkin_hoje_feito")}</CardTitle>
             </div>
-            {todayCheckIn.feeling && (
-              <div className="mt-4 p-3 bg-secondary/30 rounded-xl">
-                <p className="text-xs text-muted-foreground mb-1">
-                  {t("como_se_sente")}
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Barra de progresso */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">
+                  🌱 <span className="font-medium text-foreground">{positiveCount}</span> {t("cuidados_hoje")}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {positiveCount}/{totalHabits}
+                </span>
+              </div>
+              <div className="h-2 bg-muted rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-emerald-400 dark:bg-emerald-500 rounded-full transition-all duration-700"
+                  style={{ width: `${totalHabits > 0 ? (positiveCount / totalHabits) * 100 : 0}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Chips do que foi feito */}
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                ✅ O que você fez hoje
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {enabledNonSuicidal.map((key) => {
+                  const value = (todayCheckIn as Record<string, unknown>)[key] === true;
+                  const [emoji, label] = HABIT_DISPLAY[key] || ["•", key];
+                  if (!value) return null;
+                  return (
+                    <span
+                      key={key}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300"
+                    >
+                      {emoji} {label}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* O que não foi feito — sutil, sem culpa */}
+            {enabledNonSuicidal.filter((k) => (todayCheckIn as Record<string, unknown>)[k] !== true).length > 0 && (
+              <div className="space-y-1.5">
+                <p className="text-xs text-muted-foreground/60">
+                  Amanhã é outro dia...
                 </p>
-                <p className="text-sm">{todayCheckIn.feeling}</p>
+                <div className="flex flex-wrap gap-1">
+                  {enabledNonSuicidal.map((key) => {
+                    const value = (todayCheckIn as Record<string, unknown>)[key] === true;
+                    const [emoji] = HABIT_DISPLAY[key] || ["•"];
+                    if (value) return null;
+                    return (
+                      <span key={key} className="text-sm opacity-40" title={HABIT_DISPLAY[key]?.[1]}>
+                        {emoji}
+                      </span>
+                    );
+                  })}
+                </div>
               </div>
             )}
-            {todayCheckIn.gratitude && (
-              <div className="mt-2 p-3 bg-accent/20 rounded-xl">
-                <p className="text-xs text-muted-foreground mb-1">{t("gratidao")}</p>
-                <p className="text-sm italic">{todayCheckIn.gratitude}</p>
-              </div>
-            )}
-            <Button variant="outline" size="sm" className="mt-4 rounded-xl" onClick={() => router.push("/check-in")}>
+
+            {/* Sentimento + Gratidão lado a lado ou empilhados */}
+            <div className="space-y-2.5">
+              {todayCheckIn.feeling && (
+                <div className="p-3 rounded-xl bg-secondary/40 dark:bg-secondary/20 border border-border/50">
+                  <p className="text-[11px] font-medium text-muted-foreground mb-0.5">
+                    💬 {t("como_se_sente")}
+                  </p>
+                  <p className="text-sm leading-relaxed">{todayCheckIn.feeling}</p>
+                </div>
+              )}
+              {todayCheckIn.gratitude && (
+                <div className="p-3 rounded-xl bg-accent/30 dark:bg-accent/10 border border-border/50">
+                  <p className="text-[11px] font-medium text-muted-foreground mb-0.5">
+                    🙏 {t("gratidao")}
+                  </p>
+                  <p className="text-sm leading-relaxed italic">{todayCheckIn.gratitude}</p>
+                </div>
+              )}
+            </div>
+
+            <Button variant="outline" size="sm" className="w-full rounded-xl" onClick={() => router.push("/check-in")}>
               {t("editar_checkin")}
             </Button>
           </CardContent>

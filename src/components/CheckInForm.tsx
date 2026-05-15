@@ -313,16 +313,20 @@ export function CheckInForm({ existingCheckIn }: CheckInFormProps) {
               const value = form[q.key as keyof FormData];
               const isSuicidal = q.key === "suicidal_thoughts";
 
-              const cardBg =
-                value === true
-                  ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800"
-                  : value === false
-                  ? "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800"
-                  : "bg-muted/30 border-transparent";
+              // Para pensamento suicida, SIM = vermelho (alerta) e NÃO = verde (conquista)
+              const cardBg = isSuicidal
+                ? (value === true
+                    ? "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800"
+                    : value === false
+                    ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800"
+                    : "bg-muted/30 border-transparent")
+                : (value === true
+                    ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800"
+                    : value === false
+                    ? "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800"
+                    : "bg-muted/30 border-transparent");
 
-              const cardBorder = isSuicidal && !value
-                ? "border-red-200 dark:border-red-900 bg-red-50/50 dark:bg-red-950/20"
-                : `${cardBg} border`;
+              const cardBorder = `${cardBg} border`;
 
               return (
                 <div key={q.key} className={`p-3.5 rounded-xl ${cardBorder}`}>
@@ -350,7 +354,9 @@ export function CheckInForm({ existingCheckIn }: CheckInFormProps) {
                       onClick={() => handleCheck(q.key as keyof FormData, true)}
                       className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors ${
                         value === true
-                          ? "bg-emerald-500 text-white"
+                          ? isSuicidal
+                            ? "bg-red-500 text-white"
+                            : "bg-emerald-500 text-white"
                           : "bg-muted text-muted-foreground hover:bg-emerald-100 dark:hover:bg-emerald-950/50"
                       }`}
                     >
@@ -362,7 +368,7 @@ export function CheckInForm({ existingCheckIn }: CheckInFormProps) {
                       className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors ${
                         value === false
                           ? isSuicidal
-                            ? "bg-red-500 text-white"
+                            ? "bg-emerald-500 text-white"
                             : "bg-amber-500 text-white"
                           : "bg-muted text-muted-foreground hover:bg-amber-100 dark:hover:bg-amber-950/50"
                       }`}
