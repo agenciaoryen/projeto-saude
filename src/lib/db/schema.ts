@@ -116,9 +116,7 @@ export const diaryEntries = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (table) => ({
-    userDateDiaryIdx: uniqueIndex("user_date_diary_idx").on(table.userId, table.date),
-  })
+  () => ({})
 );
 
 export const userMemories = pgTable("user_memories", {
