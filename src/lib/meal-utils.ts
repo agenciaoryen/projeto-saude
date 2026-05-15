@@ -111,6 +111,47 @@ export function hashString(str: string): string {
   return Math.abs(hash).toString(36);
 }
 
+// Score de nutrição 0-100: balanço de macros (40pts) + frequência (30pts) + qualidade (30pts)
+export function nutritionScore(meals: { macros: Macros | null; classificacao: MealClassification | null }[]): number {
+  const comMacros = meals.filter((m) => m.macros);
+  if (comMacros.length === 0) return 0;
+
+  const total = sumMacros(comMacros);
+  const totalG = total.carboidratos_g + total.proteinas_g + total.gorduras_g;
+
+  // 1. Balanço de macros (40 pontos)
+  let macroScore = 0;
+  if (totalG > 0) {
+    const carbPct = (total.carboidratos_g / totalG) * 100;
+    const protPct = (total.proteinas_g / totalG) * 100;
+    const gordPct = (total.gorduras_g / totalG) * 100;
+    const carbOk = carbPct >= 45 && carbPct <= 60 ? 15 : carbPct >= 35 && carbPct <= 70 ? 10 : 3;
+    const protOk = protPct >= 15 && protPct <= 25 ? 15 : protPct >= 10 && protPct <= 35 ? 10 : 3;
+    const gordOk = gordPct >= 20 && gordPct <= 30 ? 10 : gordPct >= 10 && gordPct <= 40 ? 6 : 2;
+    macroScore = carbOk + protOk + gordOk;
+  }
+
+  // 2. Frequência de refeições (30 pontos)
+  const freqScore = comMacros.length >= 4 ? 30 : comMacros.length >= 3 ? 25 : comMacros.length >= 2 ? 18 : 8;
+
+  // 3. Qualidade das refeições (30 pontos)
+  const classScores: Record<string, number> = {
+    equilibrada: 10,
+    vegetais_baixo: 8,
+    leve_proteina: 5,
+    nao_identificada: 5,
+    alta_gordura: 2,
+    alta_acucar: 1,
+  };
+  const qualityTotal = meals
+    .filter((m) => m.classificacao)
+    .reduce((acc, m) => acc + (classScores[m.classificacao!] || 5), 0);
+  const maxQuality = Math.max(meals.filter((m) => m.classificacao).length * 10, 10);
+  const qualityScore = Math.min((qualityTotal / maxQuality) * 30, 30);
+
+  return Math.min(Math.round(macroScore + freqScore + qualityScore), 100);
+}
+
 // Determina se "comeu bem" baseado nas refeições do dia
 export function ateWellFromMeals(meals: Meal[]): boolean {
   const comMacros = meals.filter((m) => m.macros && m.status_analise === "analisado");

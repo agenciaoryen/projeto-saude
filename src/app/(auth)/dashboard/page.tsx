@@ -11,6 +11,7 @@ import { GardenView } from "@/components/GardenView";
 import { StatsView } from "@/components/StatsView";
 import { MayaNudge } from "@/components/MayaNudge";
 import { PorqueCard } from "@/components/PorqueCard";
+import { NutritionMiniCard } from "@/components/NutritionMiniCard";
 import { useTranslation } from "@/lib/useTranslation";
 import type { CheckIn, UserAchievement } from "@/types";
 
@@ -102,6 +103,8 @@ export default function DashboardPage() {
       <MayaNudge />
 
       <PorqueCard gender={gender} />
+
+      <NutritionMiniCard />
 
       {!todayCheckIn ? (
         <Card className="rounded-2xl border-dashed border-primary/50 bg-primary/5">
