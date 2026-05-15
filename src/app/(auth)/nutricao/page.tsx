@@ -10,7 +10,8 @@ import { getLocalDate, getLocalDateFromISO } from "@/lib/utils";
 import { sumMacros, dailyQuality, mealTypeEmoji, mealTypeLabel, classificationLabel, classificationColor } from "@/lib/meal-utils";
 import { MealCard } from "@/components/MealCard";
 import { NutritionSummary } from "@/components/NutritionSummary";
-import { Plus, ChevronRight } from "lucide-react";
+import { WeeklyReport } from "@/components/WeeklyReport";
+import { Plus } from "lucide-react";
 import type { Meal } from "@/types";
 
 type TabView = "dia" | "semana" | "mes";
@@ -77,28 +78,6 @@ export default function NutricaoPage() {
     }
     return days;
   }, [mealsByDay]);
-
-  // Padrões detectados na semana
-  const weekPatterns = useMemo(() => {
-    const patterns: string[] = [];
-    const weekMeals = meals.filter((m) => {
-      const d = new Date(m.data_hora);
-      const now = new Date();
-      const diff = (now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24);
-      return diff <= 7;
-    });
-
-    const totalClass = weekMeals.filter((m) => m.classificacao === "alta_acucar").length;
-    if (totalClass >= 4) patterns.push("Açúcar alto em " + totalClass + " dos últimos 7 dias");
-
-    const totalGord = weekMeals.filter((m) => m.classificacao === "alta_gordura").length;
-    if (totalGord >= 4) patterns.push("Gordura alta em " + totalGord + " dos últimos 7 dias");
-
-    const totalEqui = weekMeals.filter((m) => m.classificacao === "equilibrada").length;
-    if (totalEqui >= 5) patterns.push("Maioria das refeições equilibradas — ótimo!");
-
-    return patterns;
-  }, [meals]);
 
   // Dados do mês
   const monthStats = useMemo(() => {
@@ -218,51 +197,8 @@ export default function NutricaoPage() {
             label={t("resumo_do_dia")}
           />
 
-          {/* Gráfico de calorias por dia */}
-          <Card className="rounded-2xl">
-            <CardContent className="p-4">
-              <p className="text-sm font-medium mb-4">{t("calorias_por_dia")}</p>
-              <div className="flex items-end justify-between gap-1 h-32">
-                {weekDays.map((day) => {
-                  const maxKcal = Math.max(...weekDays.map((d) => d.kcal), 1);
-                  const heightPct = Math.max(4, (day.kcal / maxKcal) * 100);
-                  const isToday = day.date === getLocalDate();
-                  return (
-                    <div key={day.date} className="flex-1 flex flex-col items-center gap-1">
-                      <span className="text-[10px] font-medium">{day.kcal}</span>
-                      <div
-                        className={`w-full rounded-t-md transition-all ${
-                          isToday ? "bg-primary" : "bg-primary/30"
-                        }`}
-                        style={{ height: `${heightPct}%` }}
-                      />
-                      <span className={`text-[10px] ${isToday ? "font-semibold" : "text-muted-foreground"}`}>
-                        {day.label}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Padrões detectados */}
-          {weekPatterns.length > 0 && (
-            <Card className="rounded-2xl">
-              <CardContent className="p-4 space-y-2">
-                <p className="text-sm font-medium">{t("padroes_detectados")}</p>
-                {weekPatterns.map((p, i) => (
-                  <p key={i} className="text-sm text-muted-foreground">• {p}</p>
-                ))}
-              </CardContent>
-            </Card>
-          )}
-
-          {weekPatterns.length === 0 && (
-            <p className="text-sm text-muted-foreground text-center py-4">
-              {t("sem_dados_suficientes")}
-            </p>
-          )}
+          {/* Relatório semanal inteligente */}
+          <WeeklyReport meals={meals} weekDays={weekDays} />
 
           {/* Lista de refeições da semana */}
           <div className="space-y-3">
