@@ -7,7 +7,6 @@ import { getLocalDate } from "@/lib/utils";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { useTranslation } from "@/lib/useTranslation";
 import { ateWellFromMeals, sumMacros } from "@/lib/meal-utils";
@@ -22,6 +21,34 @@ type FormData = Omit<CheckIn, "id" | "user_id" | "created_at" | "updated_at">;
 interface CheckInFormProps {
   existingCheckIn?: CheckIn | null;
 }
+
+const QUESTION_EMOJI: Record<string, string> = {
+  exercise_walk: "🏃",
+  drank_water: "💧",
+  slept_well: "😴",
+  took_medication: "💊",
+  meditation_prayer_breathing: "🧘",
+  talked_to_someone: "🗣️",
+  did_something_enjoyable: "😊",
+  worked_on_goals: "🎯",
+  creative_activity: "🎨",
+  bowel_movement: "🚽",
+  felt_judged: "⚖️",
+  suicidal_thoughts: "⚠️",
+};
+
+const QUESTION_HINT_KEY: Record<string, string> = {
+  exercise_walk: "q_exercicio_hint",
+  drank_water: "q_agua_hint",
+  slept_well: "q_dormiu_hint",
+  took_medication: "q_remedios_hint",
+  meditation_prayer_breathing: "q_meditacao_hint",
+  talked_to_someone: "q_conversou_hint",
+  did_something_enjoyable: "q_gostou_hint",
+  worked_on_goals: "q_metas_hint",
+  creative_activity: "q_criatividade_hint",
+  bowel_movement: "q_coco_hint",
+};
 
 function getQuestionLabel(key: string, ctx: Record<string, boolean>, t: (k: string) => string): string {
   if (key === "meditation_prayer_breathing") {
@@ -85,7 +112,6 @@ export function CheckInForm({ existingCheckIn }: CheckInFormProps) {
       })
       .catch(() => {});
 
-    // Busca refeições de hoje para integração com "comeu bem"
     const today = getLocalDate();
     fetch(`/api/meals?date=${today}`)
       .then((res) => res.json())
@@ -174,7 +200,7 @@ export function CheckInForm({ existingCheckIn }: CheckInFormProps) {
     }));
   };
 
-  // Auto-calcula "ate_well" baseado nas refeições do dia
+  // Auto-calcula "ate_well" baseado nas refeições do dia (background, sem UI interativa)
   useEffect(() => {
     if (!mealsLoaded || todayMeals.length === 0) return;
     const calculated = ateWellFromMeals(todayMeals);
@@ -183,17 +209,22 @@ export function CheckInForm({ existingCheckIn }: CheckInFormProps) {
     }
   }, [mealsLoaded, todayMeals, existingCheckIn]);
 
-  const activeQuestions = enabledKeys.map((key) => ({
+  // Filtra ate_well das perguntas visíveis — é auto-calculado, não interativo
+  const visibleKeys = enabledKeys.filter((k) => k !== "ate_well");
+
+  const activeQuestions = visibleKeys.map((key) => ({
     key,
     label: getQuestionLabel(key, context, t),
+    emoji: QUESTION_EMOJI[key] || "•",
+    hintKey: QUESTION_HINT_KEY[key],
   }));
 
-  const score = activeQuestions.filter(
-    (q) => q.key !== "suicidal_thoughts" && q.key !== "felt_judged" && form[q.key as keyof FormData] === true
+  const score = enabledKeys.filter(
+    (q) => q !== "suicidal_thoughts" && q !== "felt_judged" && form[q as keyof FormData] === true
   ).length;
-  const total = activeQuestions.filter((q) => q.key !== "suicidal_thoughts" && q.key !== "felt_judged").length;
+  const total = enabledKeys.filter((q) => q !== "suicidal_thoughts" && q !== "felt_judged").length;
 
-  // Dados de refeição para o card integrado
+  // Dados de refeição para o card informativo (passivo, sem interação)
   const analyzedMeals = todayMeals.filter((m) => m.macros && m.status_analise === "analisado");
   const mealsTotal = sumMacros(analyzedMeals);
   const hasMealData = analyzedMeals.length > 0;
@@ -244,15 +275,32 @@ export function CheckInForm({ existingCheckIn }: CheckInFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-5">
+      {/* 1. Sentimento primeiro */}
       <Card className="rounded-2xl">
-        <CardHeader>
-          <CardTitle className="text-lg">{t("checkin_diario")}</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            {existingCheckIn ? t("editando_checkin") : t("responda_sinceridade")}
-          </p>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg">🌱 {t("sentimento_label")}</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent>
+          <Textarea
+            id="feeling"
+            placeholder={t("sentimento_placeholder")}
+            rows={3}
+            value={form.feeling}
+            onChange={(e) => setForm((prev) => ({ ...prev, feeling: e.target.value }))}
+            className="resize-none rounded-xl"
+          />
+        </CardContent>
+      </Card>
+
+      {/* 2. Hábitos */}
+      <Card className="rounded-2xl">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base font-medium text-muted-foreground">
+            {t("seus_habitos")}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
           {activeQuestions.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-4">
               {t("nenhuma_pergunta")}{" "}
@@ -264,230 +312,176 @@ export function CheckInForm({ existingCheckIn }: CheckInFormProps) {
             activeQuestions.map((q) => {
               const value = form[q.key as keyof FormData];
               const isSuicidal = q.key === "suicidal_thoughts";
-              const isAteWell = q.key === "ate_well";
+
+              const cardBg =
+                value === true
+                  ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800"
+                  : value === false
+                  ? "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800"
+                  : "bg-muted/30 border-transparent";
+
+              const cardBorder = isSuicidal && !value
+                ? "border-red-200 dark:border-red-900 bg-red-50/50 dark:bg-red-950/20"
+                : `${cardBg} border`;
 
               return (
-                <div
-                  key={q.key}
-                  className={`p-3 rounded-xl space-y-2 ${
-                    isSuicidal
-                      ? "border border-red-200 dark:border-red-900"
-                      : ""
-                  }`}
-                >
-                  <p
-                    className={`text-sm leading-relaxed ${
-                      isSuicidal
-                        ? "text-red-600 dark:text-red-400 font-medium"
-                        : ""
-                    }`}
-                  >
-                    {q.label}
-                  </p>
-
-                  {/* Card integrado de refeições para "Comeu bem?" */}
-                  {isAteWell && hasMealData ? (
-                    <div className="space-y-2">
-                      <div className={`p-3 rounded-xl text-sm space-y-2 ${
-                        value ? "bg-green-50 border border-green-200" : "bg-yellow-50 border border-yellow-200"
-                      }`}>
-                        <p className="text-xs text-muted-foreground">
-                          {t("comeu_bem_auto", { n: String(analyzedMeals.length) })}
-                        </p>
-                        <div className="flex items-center gap-4 text-xs">
-                          <span>{mealsTotal.calorias_kcal} kcal</span>
-                          <span>C: {mealsTotal.carboidratos_g}g</span>
-                          <span>P: {mealsTotal.proteinas_g}g</span>
-                          <span>G: {mealsTotal.gorduras_g}g</span>
-                        </div>
-                        <p className={`text-xs font-medium ${value ? "text-green-700" : "text-yellow-700"}`}>
-                          {value ? "✅ " + t("qualidade_bom") : "⚠️ " + t("qualidade_atencao")}
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => router.push("/nutricao")}
-                        className="text-xs text-primary underline hover:opacity-80"
+                <div key={q.key} className={`p-3.5 rounded-xl ${cardBorder}`}>
+                  <div className="flex items-start gap-2.5 mb-2.5">
+                    <span className="text-lg leading-none mt-0.5">{q.emoji}</span>
+                    <div className="flex-1 min-w-0">
+                      <p
+                        className={`text-sm leading-snug ${
+                          isSuicidal
+                            ? "text-red-600 dark:text-red-400 font-medium"
+                            : "font-medium"
+                        }`}
                       >
-                        Ver todas as refeições →
-                      </button>
-                    </div>
-                  ) : isAteWell && todayMeals.length > 0 && !hasMealData ? (
-                    /* Tem refeições mas nenhuma analisada */
-                    <div className="p-3 rounded-xl bg-muted/50 text-sm text-muted-foreground space-y-2">
-                      <p>🍽️ {todayMeals.length} refeição{todayMeals.length > 1 ? "ões" : ""} registrada{todayMeals.length > 1 ? "s" : ""} hoje, mas ainda não analisada{todayMeals.length > 1 ? "s" : ""}.</p>
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          onClick={() => handleCheck(q.key as keyof FormData, true)}
-                          className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors ${
-                            value === true
-                              ? "bg-primary text-primary-foreground"
-                              : "bg-muted text-muted-foreground hover:bg-muted/80"
-                          }`}
-                        >
-                          {t("sim")}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleCheck(q.key as keyof FormData, false)}
-                          className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors ${
-                            value === false
-                              ? "bg-destructive text-white"
-                              : "bg-muted text-muted-foreground hover:bg-muted/80"
-                          }`}
-                        >
-                          {t("nao")}
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    /* Sem refeições ou não é ate_well: SIM/NÃO padrão */
-                    <div className="space-y-2">
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          onClick={() => handleCheck(q.key as keyof FormData, true)}
-                          className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors ${
-                            value === true
-                              ? "bg-primary text-primary-foreground"
-                              : "bg-muted text-muted-foreground hover:bg-muted/80"
-                          }`}
-                        >
-                          {t("sim")}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleCheck(q.key as keyof FormData, false)}
-                          className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors ${
-                            value === false
-                              ? "bg-destructive text-white"
-                              : "bg-muted text-muted-foreground hover:bg-muted/80"
-                          }`}
-                        >
-                          {t("nao")}
-                        </button>
-                      </div>
-                      {isAteWell && (
-                        <button
-                          type="button"
-                          onClick={() => router.push("/nutricao/registrar")}
-                          className="text-xs text-primary underline hover:opacity-80"
-                        >
-                          📸 {t("registrar_agora")}
-                        </button>
+                        {q.label}
+                      </p>
+                      {q.hintKey && (
+                        <p className="text-xs text-muted-foreground mt-0.5">{t(q.hintKey)}</p>
                       )}
                     </div>
-                  )}
+                  </div>
+
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleCheck(q.key as keyof FormData, true)}
+                      className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors ${
+                        value === true
+                          ? "bg-emerald-500 text-white"
+                          : "bg-muted text-muted-foreground hover:bg-emerald-100 dark:hover:bg-emerald-950/50"
+                      }`}
+                    >
+                      ✓ {t("sim")}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleCheck(q.key as keyof FormData, false)}
+                      className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors ${
+                        value === false
+                          ? isSuicidal
+                            ? "bg-red-500 text-white"
+                            : "bg-amber-500 text-white"
+                          : "bg-muted text-muted-foreground hover:bg-amber-100 dark:hover:bg-amber-950/50"
+                      }`}
+                    >
+                      ✗ {t("nao")}
+                    </button>
+                  </div>
                 </div>
               );
             })
           )}
-        </CardContent>
-      </Card>
 
-      <Card className="rounded-2xl">
-        <CardHeader>
-          <CardTitle className="text-lg">{t("respostas_abertas")}</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="feeling">{t("sentimento_label")}</Label>
-            <Textarea
-              id="feeling"
-              placeholder="Descreva como você está se sentindo hoje..."
-              rows={3}
-              value={form.feeling}
-              onChange={(e) =>
-                setForm((prev) => ({ ...prev, feeling: e.target.value }))
-              }
-              className="resize-none rounded-xl"
-            />
-          </div>
-          <Separator />
-          <div className="space-y-2">
-            <Label htmlFor="gratitude">{t("gratidao_label")}</Label>
-            <div className="relative">
-              <Textarea
-                id="gratitude"
-                placeholder="Pelo que você é grato(a) hoje?"
-                rows={2}
-                value={form.gratitude}
-                onChange={(e) =>
-                  setForm((prev) => ({ ...prev, gratitude: e.target.value }))
-                }
-                className="resize-none rounded-xl pr-10"
-              />
+          {/* Card informativo de refeições (passivo, sem interação) */}
+          {hasMealData && (
+            <div className="p-3.5 rounded-xl bg-muted/30 border border-border">
+              <div className="flex items-start gap-2.5 mb-2">
+                <span className="text-lg leading-none">🍽️</span>
+                <div>
+                  <p className="text-sm font-medium">{t("comeu_bem_auto", { n: String(analyzedMeals.length) })}</p>
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
+                    <span>{mealsTotal.calorias_kcal} kcal</span>
+                    <span>C: {mealsTotal.carboidratos_g}g</span>
+                    <span>P: {mealsTotal.proteinas_g}g</span>
+                    <span>G: {mealsTotal.gorduras_g}g</span>
+                  </div>
+                </div>
+              </div>
               <button
                 type="button"
-                onClick={() => gratitudePhotoRef.current?.click()}
-                className="absolute bottom-2 right-2 size-8 rounded-full bg-muted hover:bg-muted/80 flex items-center justify-center transition-colors text-muted-foreground"
-                aria-label="Adicionar foto"
+                onClick={() => router.push("/nutricao")}
+                className="text-xs text-primary underline hover:opacity-80"
               >
-                <Camera className="size-3.5" />
+                {t("ver_refeicoes")}
               </button>
-              <input
-                ref={gratitudePhotoRef}
-                type="file"
-                accept="image/*"
-                capture="environment"
-                className="hidden"
-                onChange={(e) => {
-                  if (e.target.files?.[0]) handleGratitudePhotoAdd(e.target.files[0]);
-                  e.target.value = "";
-                }}
-              />
             </div>
-            {form.gratitude_photos.length > 0 && (
-              <div className="grid grid-cols-3 gap-1.5">
-                {form.gratitude_photos.map((path, i) => {
-                  const src = photoUrl(path);
-                  return src ? (
-                    <div key={i} className="relative aspect-square rounded-lg overflow-hidden bg-muted">
-                      <img src={src} alt="" className="w-full h-full object-cover" />
-                      <button
-                        type="button"
-                        onClick={() => removeGratitudePhoto(i)}
-                        className="absolute top-1 right-1 size-5 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors"
-                      >
-                        <X className="size-3" />
-                      </button>
-                    </div>
-                  ) : null;
-                })}
-                {form.gratitude_photos.length < MAX_GRATITUDE_PHOTOS && (
-                  <button
-                    type="button"
-                    onClick={() => gratitudePhotoRef.current?.click()}
-                    className="aspect-square rounded-lg border border-dashed border-border hover:bg-muted/30 transition-colors flex items-center justify-center text-muted-foreground"
-                  >
-                    <Camera className="size-3.5" />
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
+          )}
         </CardContent>
       </Card>
 
-      <div className="flex items-center gap-2">
-        {saved && (
-          <span className="text-xs text-muted-foreground animate-in fade-in">
-            Salvo automaticamente
-          </span>
-        )}
-        <Button
-          type="submit"
-          size="lg"
-          className="flex-1 rounded-xl"
-          disabled={loading}
-        >
+      {/* 3. Gratidão */}
+      <Card className="rounded-2xl">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg">🙏 {t("gratidao_momento")}</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="relative">
+            <Textarea
+              id="gratitude"
+              placeholder={t("gratidao_placeholder")}
+              rows={2}
+              value={form.gratitude}
+              onChange={(e) => setForm((prev) => ({ ...prev, gratitude: e.target.value }))}
+              className="resize-none rounded-xl pr-10"
+            />
+            <button
+              type="button"
+              onClick={() => gratitudePhotoRef.current?.click()}
+              className="absolute bottom-2 right-2 size-8 rounded-full bg-muted hover:bg-muted/80 flex items-center justify-center transition-colors text-muted-foreground"
+              aria-label={t("adicionar_foto")}
+            >
+              <Camera className="size-3.5" />
+            </button>
+            <input
+              ref={gratitudePhotoRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={(e) => {
+                if (e.target.files?.[0]) handleGratitudePhotoAdd(e.target.files[0]);
+                e.target.value = "";
+              }}
+            />
+          </div>
+          {form.gratitude_photos.length > 0 && (
+            <div className="grid grid-cols-3 gap-1.5">
+              {form.gratitude_photos.map((path, i) => {
+                const src = photoUrl(path);
+                return src ? (
+                  <div key={i} className="relative aspect-square rounded-lg overflow-hidden bg-muted">
+                    <img src={src} alt="" className="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => removeGratitudePhoto(i)}
+                      className="absolute top-1 right-1 size-5 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors"
+                    >
+                      <X className="size-3" />
+                    </button>
+                  </div>
+                ) : null;
+              })}
+              {form.gratitude_photos.length < MAX_GRATITUDE_PHOTOS && (
+                <button
+                  type="button"
+                  onClick={() => gratitudePhotoRef.current?.click()}
+                  className="aspect-square rounded-lg border border-dashed border-border hover:bg-muted/30 transition-colors flex items-center justify-center text-muted-foreground"
+                >
+                  <Camera className="size-3.5" />
+                </button>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* 4. Save */}
+      <div className="flex items-center gap-3">
+        <Button type="submit" size="lg" className="flex-1 rounded-xl" disabled={loading}>
           {loading
             ? t("salvando")
             : existingCheckIn
             ? t("atualizar_checkin")
             : t("salvar_checkin")}
         </Button>
+        {saved && (
+          <span className="text-xs text-muted-foreground whitespace-nowrap">
+            {t("salvo_automaticamente")} ✓
+          </span>
+        )}
       </div>
     </form>
   );
