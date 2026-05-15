@@ -16,7 +16,7 @@ import {
   classificationColor,
 } from "@/lib/meal-utils";
 import { compressImage, uploadToCloud, photoUrl } from "@/lib/photo-storage";
-import { ArrowLeft, Camera, ImageIcon, X, Trash2 } from "lucide-react";
+import { ArrowLeft, Camera, ImageIcon, X, Trash2, Plus } from "lucide-react";
 import type { MealType, MealItem, Macros, MealClassification, Meal } from "@/types";
 
 const MEAL_TYPES: MealType[] = [
@@ -59,14 +59,15 @@ export default function MealDetailPage() {
   const [mealType, setMealType] = useState<MealType>("almoco");
   const [dateTime, setDateTime] = useState("");
   const [description, setDescription] = useState("");
-  const [photoPath, setPhotoPath] = useState<string | null>(null);
-  const [photo, setPhoto] = useState<string | null>(null);
+  const [photos, setPhotos] = useState<string[]>([]);
+  const [photoPaths, setPhotoPaths] = useState<string[]>([]);
   const [items, setItems] = useState<MealItem[]>([]);
   const [macros, setMacros] = useState<Macros | null>(null);
   const [classif, setClassif] = useState<MealClassification | null>(null);
   const [obs, setObs] = useState("");
   const [newItemName, setNewItemName] = useState("");
   const [showTypePicker, setShowTypePicker] = useState(false);
+  const MAX_PHOTOS = 3;
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
@@ -79,7 +80,7 @@ export default function MealDetailPage() {
           setMealType(data.tipo_refeicao);
           setDateTime(toDatetimeLocal(data.data_hora));
           setDescription(data.texto_livre || "");
-          setPhotoPath(data.foto_path);
+          setPhotoPaths(data.fotos || []);
           setItems(data.itens || []);
           setMacros(data.macros);
           setClassif(data.classificacao);
@@ -112,7 +113,8 @@ export default function MealDetailPage() {
           id,
           data_hora: new Date(dateTime).toISOString(),
           tipo_refeicao: mealType,
-          foto_path: photoPath,
+          foto_path: photoPaths.length > 0 ? photoPaths[0] : null,
+          fotos: photoPaths,
           texto_livre: description.trim(),
           itens: items,
           macros,
@@ -132,7 +134,8 @@ export default function MealDetailPage() {
               tipo_refeicao: mealType,
               data_hora: new Date(dateTime).toISOString(),
               texto_livre: description.trim(),
-              foto_path: photoPath,
+              foto_path: photoPaths.length > 0 ? photoPaths[0] : null,
+              fotos: photoPaths,
               itens: items,
               macros,
               classificacao: classif,
@@ -148,19 +151,23 @@ export default function MealDetailPage() {
   };
 
   const handlePhotoAdd = async (file: File) => {
+    if (photos.length + photoPaths.length >= MAX_PHOTOS) {
+      toast.error(`Máximo de ${MAX_PHOTOS} fotos por refeição`);
+      return;
+    }
     try {
       const compressed = await compressImage(file);
-      setPhoto(compressed);
       const path = await uploadToCloud(compressed, "meals");
-      setPhotoPath(path);
+      setPhotos((prev) => [...prev, compressed]);
+      setPhotoPaths((prev) => [...prev, path]);
     } catch {
       toast.error("Erro ao processar imagem");
     }
   };
 
-  const removePhoto = () => {
-    setPhoto(null);
-    setPhotoPath(null);
+  const removePhoto = (idx: number) => {
+    setPhotos((prev) => prev.filter((_, i) => i !== idx));
+    setPhotoPaths((prev) => prev.filter((_, i) => i !== idx));
   };
 
   const addItem = () => {
@@ -198,7 +205,10 @@ export default function MealDetailPage() {
     );
   }
 
-  const displayPhoto = photo || (photoPath ? photoUrl(photoPath) : null);
+  // Display URLs: prefer base64 previews, fallback to cloud URLs
+  const displayPhotos = photos.length > 0
+    ? photos
+    : photoPaths.map((p) => photoUrl(p)).filter(Boolean) as string[];
 
   return (
     <div className="max-w-lg mx-auto space-y-6">
@@ -251,18 +261,47 @@ export default function MealDetailPage() {
 
       {editing ? (
         <>
-          {/* Photo */}
+          {/* Photos (até 3) */}
           <Card className="rounded-2xl overflow-hidden">
-            {displayPhoto ? (
-              <div className="relative">
-                <img src={displayPhoto} alt="Refeição" className="w-full aspect-[4/3] object-cover" />
-                <button
-                  type="button"
-                  onClick={removePhoto}
-                  className="absolute top-3 right-3 size-8 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors"
-                >
-                  <X className="size-4" />
-                </button>
+            {displayPhotos.length > 0 ? (
+              <div className="p-3 space-y-3">
+                <div className="grid grid-cols-2 gap-2">
+                  {displayPhotos.map((p, i) => (
+                    <div key={i} className="relative">
+                      <img src={p} alt={`Refeição ${i + 1}`} className="w-full aspect-[4/3] object-cover rounded-xl" />
+                      <button
+                        type="button"
+                        onClick={() => removePhoto(i)}
+                        className="absolute top-2 right-2 size-6 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors"
+                      >
+                        <X className="size-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                  {displayPhotos.length < MAX_PHOTOS && (
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="aspect-[4/3] rounded-xl border-2 border-dashed border-border hover:bg-muted/30 transition-colors flex flex-col items-center justify-center gap-1 text-muted-foreground"
+                    >
+                      <Plus className="size-5" />
+                      <span className="text-[10px]">Adicionar</span>
+                    </button>
+                  )}
+                </div>
+                {displayPhotos.length < MAX_PHOTOS && (
+                  <div className="flex gap-2 justify-center">
+                    <Button variant="outline" size="sm" className="rounded-lg gap-1.5 text-xs" onClick={() => cameraInputRef.current?.click()}>
+                      <Camera className="size-3.5" /> Câmera
+                    </Button>
+                    <Button variant="outline" size="sm" className="rounded-lg gap-1.5 text-xs" onClick={() => fileInputRef.current?.click()}>
+                      <ImageIcon className="size-3.5" /> Galeria
+                    </Button>
+                  </div>
+                )}
+                <p className="text-[11px] text-center text-muted-foreground">
+                  {displayPhotos.length} de {MAX_PHOTOS} fotos
+                </p>
               </div>
             ) : (
               <CardContent className="py-8 text-center space-y-3">
@@ -387,8 +426,8 @@ export default function MealDetailPage() {
                 setMealType(meal.tipo_refeicao);
                 setDateTime(toDatetimeLocal(meal.data_hora));
                 setDescription(meal.texto_livre || "");
-                setPhotoPath(meal.foto_path);
-                setPhoto(null);
+                setPhotos([]);
+                setPhotoPaths(meal.fotos || []);
                 setItems(meal.itens || []);
                 setMacros(meal.macros);
                 setClassif(meal.classificacao);
@@ -401,9 +440,16 @@ export default function MealDetailPage() {
         </>
       ) : (
         <>
-          {/* Photo */}
-          {displayPhoto && (
-            <img src={displayPhoto} alt="Refeição" className="w-full aspect-[4/3] object-cover rounded-2xl" />
+          {/* Photos */}
+          {meal.fotos && meal.fotos.length > 0 && (
+            <div className={`grid gap-2 ${meal.fotos.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
+              {meal.fotos.map((p, i) => {
+                const src = photoUrl(p);
+                return src ? (
+                  <img key={i} src={src} alt={`Refeição ${i + 1}`} className="w-full aspect-[4/3] object-cover rounded-2xl" />
+                ) : null;
+              })}
+            </div>
           )}
 
           {/* Meal type badge */}

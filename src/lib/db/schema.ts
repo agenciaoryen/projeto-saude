@@ -132,6 +132,7 @@ export const meals = pgTable("meals", {
   dataHora: timestamp("data_hora", { withTimezone: true }).notNull(),
   tipoRefeicao: text("tipo_refeicao").notNull().default("almoco"),
   fotoPath: text("foto_path"),
+  fotos: jsonb("fotos").notNull().default([]),
   itens: jsonb("itens").notNull().default([]),
   macros: jsonb("macros"),
   classificacao: text("classificacao"),

@@ -84,6 +84,7 @@ export async function POST(req: NextRequest) {
       user_id: user.id,
       tipo_refeicao: body.tipo_refeicao || "almoco",
       foto_path: body.foto_path ?? null,
+      fotos: body.fotos ?? [],
       itens: body.itens ?? [],
       macros: body.macros ?? null,
       classificacao: body.classificacao ?? null,

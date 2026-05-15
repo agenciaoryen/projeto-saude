@@ -23,8 +23,9 @@ export default function RegistrarRefeicaoPage() {
   const router = useRouter();
 
   // --- Capture state ---
-  const [photo, setPhoto] = useState<string | null>(null);
-  const [photoPath, setPhotoPath] = useState<string | null>(null);
+  const [photos, setPhotos] = useState<string[]>([]);     // base64 previews
+  const [photoPaths, setPhotoPaths] = useState<string[]>([]); // cloud paths
+  const MAX_PHOTOS = 3;
   const [description, setDescription] = useState("");
   const [mealType, setMealType] = useState<MealType>(() => getMealTypeFromHour(new Date().getHours()));
   const [saving, setSaving] = useState(false);
@@ -47,19 +48,23 @@ export default function RegistrarRefeicaoPage() {
   const [newItemName, setNewItemName] = useState("");
 
   const handleFile = async (file: File) => {
+    if (photos.length >= MAX_PHOTOS) {
+      toast.error(`Máximo de ${MAX_PHOTOS} fotos por refeição`);
+      return;
+    }
     try {
       const compressed = await compressImage(file);
-      setPhoto(compressed);
       const path = await uploadToCloud(compressed, "meals");
-      setPhotoPath(path);
+      setPhotos((prev) => [...prev, compressed]);
+      setPhotoPaths((prev) => [...prev, path]);
     } catch {
       toast.error("Erro ao processar imagem");
     }
   };
 
-  const removePhoto = () => {
-    setPhoto(null);
-    setPhotoPath(null);
+  const removePhoto = (idx: number) => {
+    setPhotos((prev) => prev.filter((_, i) => i !== idx));
+    setPhotoPaths((prev) => prev.filter((_, i) => i !== idx));
   };
 
   // Salva refeição e inicia análise se tiver foto
@@ -72,9 +77,10 @@ export default function RegistrarRefeicaoPage() {
         body: JSON.stringify({
           data_hora: new Date(dateTime).toISOString(),
           tipo_refeicao: mealType,
-          foto_path: photoPath,
+          foto_path: photoPaths.length > 0 ? photoPaths[0] : null,
+          fotos: photoPaths,
           texto_livre: description.trim(),
-          status_analise: photoPath ? "pendente" : "pendente",
+          status_analise: photoPaths.length > 0 ? "pendente" : "pendente",
           itens: [],
           macros: null,
           classificacao: null,
@@ -85,7 +91,7 @@ export default function RegistrarRefeicaoPage() {
       if (!res.ok) throw new Error();
       const meal = await res.json();
 
-      if (photo && photoPath && meal.id) {
+      if (photos.length > 0 && photoPaths.length > 0 && meal.id) {
         setMealId(meal.id);
         setStage("analyzing");
         setSaving(false);
@@ -101,7 +107,7 @@ export default function RegistrarRefeicaoPage() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               mealId: meal.id,
-              photoBase64: photo,
+              photoBase64: photos[0],
               description: description.trim(),
             }),
             signal: controller.signal,
@@ -170,6 +176,7 @@ export default function RegistrarRefeicaoPage() {
           classificacao: analysisClass,
           observacao: analysisObs,
           texto_livre: description.trim(),
+          fotos: photoPaths,
           status_analise: "analisado",
         }),
       });
@@ -195,8 +202,8 @@ export default function RegistrarRefeicaoPage() {
       <div className="max-w-lg mx-auto flex flex-col items-center justify-center py-20 space-y-6">
         <Loader2 className="size-10 animate-spin text-primary" />
         <p className="text-muted-foreground text-sm">{t("analisando")}</p>
-        {photo && (
-          <img src={photo} alt="Refeição" className="w-48 h-36 object-cover rounded-xl opacity-50" />
+        {photos.length > 0 && (
+          <img src={photos[0]} alt="Refeição" className="w-48 h-36 object-cover rounded-xl opacity-50" />
         )}
       </div>
     );
@@ -211,8 +218,12 @@ export default function RegistrarRefeicaoPage() {
           <h1 className="text-xl font-bold">{t("registrar_refeicao")}</h1>
         </div>
 
-        {photo && (
-          <img src={photo} alt="Refeição" className="w-full aspect-[4/3] object-cover rounded-2xl" />
+        {photos.length > 0 && (
+          <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${Math.min(photos.length, 2)}, 1fr)` }}>
+            {photos.map((p, i) => (
+              <img key={i} src={p} alt={`Refeição ${i + 1}`} className="w-full aspect-[4/3] object-cover rounded-2xl" />
+            ))}
+          </div>
         )}
 
         {/* Itens identificados */}
@@ -315,18 +326,48 @@ export default function RegistrarRefeicaoPage() {
         <h1 className="text-xl font-bold">{t("registrar_refeicao")}</h1>
       </div>
 
-      {/* Foto */}
+      {/* Fotos (até 3) */}
       <Card className="rounded-2xl overflow-hidden">
-        {photo ? (
-          <div className="relative">
-            <img src={photo} alt="Refeição" className="w-full aspect-[4/3] object-cover" />
-            <button
-              type="button"
-              onClick={removePhoto}
-              className="absolute top-3 right-3 size-8 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors"
-            >
-              <X className="size-4" />
-            </button>
+        {photos.length > 0 ? (
+          <div className="p-3 space-y-3">
+            <div className="grid grid-cols-2 gap-2">
+              {photos.map((p, i) => (
+                <div key={i} className="relative">
+                  <img src={p} alt={`Refeição ${i + 1}`} className="w-full aspect-[4/3] object-cover rounded-xl" />
+                  <button
+                    type="button"
+                    onClick={() => removePhoto(i)}
+                    className="absolute top-2 right-2 size-6 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors"
+                  >
+                    <X className="size-3.5" />
+                  </button>
+                </div>
+              ))}
+              {/* Slot vazio para adicionar mais */}
+              {photos.length < MAX_PHOTOS && (
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="aspect-[4/3] rounded-xl border-2 border-dashed border-border hover:bg-muted/30 transition-colors flex flex-col items-center justify-center gap-1 text-muted-foreground"
+                >
+                  <Plus className="size-5" />
+                  <span className="text-[10px]">Adicionar</span>
+                </button>
+              )}
+            </div>
+            {photos.length < MAX_PHOTOS && (
+              <div className="flex gap-2 justify-center">
+                <Button variant="outline" size="sm" className="rounded-lg gap-1.5 text-xs" onClick={() => cameraInputRef.current?.click()}>
+                  <Camera className="size-3.5" /> Câmera
+                </Button>
+                <Button variant="outline" size="sm" className="rounded-lg gap-1.5 text-xs" onClick={() => fileInputRef.current?.click()}>
+                  <ImageIcon className="size-3.5" /> Galeria
+                </Button>
+              </div>
+            )}
+            <p className="text-[11px] text-center text-muted-foreground">
+              {photos.length} de {MAX_PHOTOS} fotos
+            </p>
           </div>
         ) : (
           <CardContent className="py-12 text-center space-y-4">
@@ -372,7 +413,7 @@ export default function RegistrarRefeicaoPage() {
 
       <Textarea placeholder={t("descrever_refeicao")} rows={3} value={description} onChange={(e) => setDescription(e.target.value)} className="resize-none rounded-xl" />
 
-      {!photo && (
+      {photos.length === 0 && (
         <Button variant="ghost" className="w-full rounded-xl text-muted-foreground" onClick={handleSave} disabled={saving}>
           {t("adicionar_sem_foto")}
         </Button>

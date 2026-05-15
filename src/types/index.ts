@@ -82,6 +82,7 @@ export interface Meal {
   data_hora: string;
   tipo_refeicao: MealType;
   foto_path: string | null;
+  fotos: string[];
   itens: MealItem[];
   macros: Macros | null;
   classificacao: MealClassification | null;
@@ -95,6 +96,7 @@ export interface MealFormData {
   data_hora: string;
   tipo_refeicao: MealType;
   foto_path: string | null;
+  fotos: string[];
   itens: MealItem[];
   macros: Macros | null;
   classificacao: MealClassification | null;

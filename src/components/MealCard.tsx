@@ -11,15 +11,17 @@ import type { Meal } from "@/types";
 export function MealCard({ meal, onClick }: { meal: Meal; onClick?: () => void }) {
   const [photoSrc, setPhotoSrc] = useState<string | null>(null);
 
+  const primaryPhoto = meal.fotos?.length ? meal.fotos[0] : meal.foto_path;
+
   useEffect(() => {
-    if (meal.foto_path) {
-      if (isCloudPath(meal.foto_path)) {
-        setPhotoSrc(photoUrl(meal.foto_path));
+    if (primaryPhoto) {
+      if (isCloudPath(primaryPhoto)) {
+        setPhotoSrc(photoUrl(primaryPhoto));
       } else {
-        getPhoto(meal.foto_path).then(setPhotoSrc);
+        getPhoto(primaryPhoto).then(setPhotoSrc);
       }
     }
-  }, [meal.foto_path]);
+  }, [primaryPhoto]);
 
   const hora = new Date(meal.data_hora).toLocaleTimeString("pt-BR", {
     hour: "2-digit",
