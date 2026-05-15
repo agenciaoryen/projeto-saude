@@ -1,5 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { sumMacros } from "@/lib/meal-utils";
+import { sumMacros, nutritionScore } from "@/lib/meal-utils";
 import type { Meal } from "@/types";
 
 export function NutritionSummary({ meals, label }: { meals: Meal[]; label: string }) {
@@ -12,6 +12,19 @@ export function NutritionSummary({ meals, label }: { meals: Meal[]; label: strin
   const protPct = totalG > 0 ? Math.round((total.proteinas_g / totalG) * 100) : 0;
   const gordPct = totalG > 0 ? Math.round((total.gorduras_g / totalG) * 100) : 0;
 
+  const score = hasData ? nutritionScore(analyzed) : 0;
+  const scoreColor = score >= 80 ? "text-emerald-500" : score >= 60 ? "text-amber-500" : "text-red-500";
+
+  // Dados para o anel de macros
+  const ringData = [
+    { pct: carbPct, color: "stroke-amber-400", label: "Carbs", grams: total.carboidratos_g },
+    { pct: protPct, color: "stroke-red-400", label: "Prot", grams: total.proteinas_g },
+    { pct: gordPct, color: "stroke-orange-400", label: "Gord", grams: total.gorduras_g },
+  ].filter((d) => d.pct > 0);
+
+  const ringRadius = 15;
+  const ringCirc = 2 * Math.PI * ringRadius; // ≈ 94.2
+
   return (
     <Card className="rounded-2xl bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
       <CardContent className="p-4 space-y-4">
@@ -19,7 +32,7 @@ export function NutritionSummary({ meals, label }: { meals: Meal[]; label: strin
           <p className="text-sm font-medium">{label}</p>
           {hasData && (
             <span className="text-[11px] text-muted-foreground">
-              {analyzed.length} refeição{analyzed.length !== 1 ? "ões" : ""} analisada{analyzed.length !== 1 ? "s" : ""}
+              {analyzed.length} refeição{analyzed.length !== 1 ? "ões" : ""}
             </span>
           )}
         </div>
@@ -30,35 +43,44 @@ export function NutritionSummary({ meals, label }: { meals: Meal[]; label: strin
           </p>
         ) : (
           <>
-            {/* Calorias grandes */}
-            <div className="text-center">
-              <span className="text-3xl font-bold">{total.calorias_kcal}</span>
-              <span className="text-sm text-muted-foreground ml-1">kcal</span>
-            </div>
+            {/* Kcal + Score lado a lado */}
+            <div className="flex items-center gap-5">
+              <div className="flex-1 text-center">
+                <span className="text-3xl font-bold tabular-nums">{total.calorias_kcal}</span>
+                <span className="text-sm text-muted-foreground ml-1">kcal</span>
+              </div>
 
-            {/* Barra de proporção */}
-            <div className="flex h-3 rounded-full overflow-hidden bg-muted">
-              {carbPct > 0 && (
-                <div
-                  className="bg-amber-400 transition-all"
-                  style={{ width: `${carbPct}%` }}
-                  title={`Carboidratos: ${carbPct}%`}
-                />
-              )}
-              {protPct > 0 && (
-                <div
-                  className="bg-red-400 transition-all"
-                  style={{ width: `${protPct}%` }}
-                  title={`Proteínas: ${protPct}%`}
-                />
-              )}
-              {gordPct > 0 && (
-                <div
-                  className="bg-yellow-500 transition-all"
-                  style={{ width: `${gordPct}%` }}
-                  title={`Gorduras: ${gordPct}%`}
-                />
-              )}
+              {/* Anel de macros */}
+              <div className="relative size-16 shrink-0">
+                <svg className="size-full -rotate-90" viewBox="0 0 36 36">
+                  <circle cx="18" cy="18" r="15" fill="none" stroke="currentColor" strokeWidth="3" className="text-muted/20" />
+                  {ringData.reduce(
+                    (els, seg, i) => {
+                      const prevSum = ringData.slice(0, i).reduce((s, d) => s + d.pct, 0);
+                      const dashLen = (seg.pct / 100) * ringCirc;
+                      const offset = ringCirc - (prevSum / 100) * ringCirc;
+                      els.push(
+                        <circle
+                          key={seg.label}
+                          cx="18" cy="18" r="15"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="3"
+                          strokeDasharray={`${dashLen} ${ringCirc}`}
+                          strokeDashoffset={offset}
+                          strokeLinecap="round"
+                          className={seg.color}
+                        />
+                      );
+                      return els;
+                    },
+                    [] as JSX.Element[]
+                  )}
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className={`text-xs font-bold ${scoreColor}`}>{score}</span>
+                </div>
+              </div>
             </div>
 
             {/* Legenda */}
@@ -66,17 +88,17 @@ export function NutritionSummary({ meals, label }: { meals: Meal[]; label: strin
               <div>
                 <span className="inline-block size-2.5 rounded-full bg-amber-400 mr-1 align-middle" />
                 <span className="text-muted-foreground">Carbs</span>
-                <p className="font-medium">{total.carboidratos_g}g</p>
+                <p className="font-medium tabular-nums">{total.carboidratos_g}g</p>
               </div>
               <div>
                 <span className="inline-block size-2.5 rounded-full bg-red-400 mr-1 align-middle" />
                 <span className="text-muted-foreground">Prot</span>
-                <p className="font-medium">{total.proteinas_g}g</p>
+                <p className="font-medium tabular-nums">{total.proteinas_g}g</p>
               </div>
               <div>
-                <span className="inline-block size-2.5 rounded-full bg-yellow-500 mr-1 align-middle" />
+                <span className="inline-block size-2.5 rounded-full bg-orange-400 mr-1 align-middle" />
                 <span className="text-muted-foreground">Gord</span>
-                <p className="font-medium">{total.gorduras_g}g</p>
+                <p className="font-medium tabular-nums">{total.gorduras_g}g</p>
               </div>
             </div>
           </>
