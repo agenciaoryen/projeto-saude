@@ -12,6 +12,7 @@ import { MealCard } from "@/components/MealCard";
 import { NutritionSummary } from "@/components/NutritionSummary";
 import { WeeklyReport } from "@/components/WeeklyReport";
 import { QuickAddMeals } from "@/components/QuickAddMeals";
+import { NutritionTips } from "@/components/NutritionTips";
 import { Plus } from "lucide-react";
 import type { Meal } from "@/types";
 
@@ -164,6 +165,8 @@ export default function NutricaoPage() {
           <NutritionSummary meals={todayMeals} label={t("resumo_do_dia")} />
 
           <QuickAddMeals meals={meals} />
+
+          <NutritionTips />
 
           {/* Lista de refeições */}
           <div className="space-y-3">
