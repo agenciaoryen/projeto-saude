@@ -14,6 +14,9 @@ import { WeeklyReport } from "@/components/WeeklyReport";
 import { QuickAddMeals } from "@/components/QuickAddMeals";
 import { NutritionTips } from "@/components/NutritionTips";
 import { NutritionGoalCard } from "@/components/NutritionGoalCard";
+import { NutritionChat } from "@/components/NutritionChat";
+import { MonthlyReport } from "@/components/MonthlyReport";
+import { FoodMoodCorrelation } from "@/components/FoodMoodCorrelation";
 import { Plus, ChevronDown } from "lucide-react";
 import type { Meal } from "@/types";
 
@@ -298,6 +301,10 @@ export default function NutricaoPage() {
 
           <NutritionTips />
 
+          <FoodMoodCorrelation meals={meals} />
+
+          <NutritionChat />
+
           {/* Lista de refeições */}
           <div className="space-y-3">
             <p className="text-sm font-medium">{t("refeicoes_hoje")}</p>
@@ -380,39 +387,12 @@ export default function NutricaoPage() {
             kcalGoal={kcalGoal}
           />
 
-          {/* Estatísticas do mês */}
-          <Card className="rounded-2xl">
-            <CardContent className="p-4 space-y-4">
-              <p className="text-sm font-medium">{t("visao_mensal")}</p>
-              <div className="grid grid-cols-2 gap-3 text-center">
-                <div className="bg-muted/50 rounded-xl p-3">
-                  <p className="text-2xl font-bold">{monthStats.total}</p>
-                  <p className="text-xs text-muted-foreground">{monthStats.total === 1 ? "Refeição analisada" : "Refeições analisadas"}</p>
-                </div>
-                <div className="bg-muted/50 rounded-xl p-3">
-                  <p className="text-2xl font-bold">{monthStats.avgKcal}</p>
-                  <p className="text-xs text-muted-foreground">Média kcal/refeição</p>
-                </div>
-              </div>
-
-              {monthStats.classCount.size > 0 && (
-                <div className="space-y-2">
-                  <p className="text-xs font-medium">Classificações mais frequentes</p>
-                  {[...monthStats.classCount.entries()]
-                    .sort((a, b) => b[1] - a[1])
-                    .slice(0, 4)
-                    .map(([classif, count]) => (
-                      <div key={classif} className="flex items-center justify-between text-sm">
-                        <Badge className={classificationColor(classif as Meal["classificacao"] & string)}>
-                          {classificationLabel(classif as Meal["classificacao"] & string)}
-                        </Badge>
-                        <span className="text-muted-foreground">{count}x</span>
-                      </div>
-                    ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          {/* Raio-X do mês */}
+          <MonthlyReport meals={meals.filter((m) => {
+            const d = new Date(m.data_hora);
+            const now = new Date();
+            return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+          })} monthStats={monthStats} />
 
           {monthStats.total === 0 && (
             <p className="text-sm text-muted-foreground text-center py-4">
