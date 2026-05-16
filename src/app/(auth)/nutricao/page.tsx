@@ -7,12 +7,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/lib/useTranslation";
 import { getLocalDate, getLocalDateFromISO } from "@/lib/utils";
-import { sumMacros, dailyQuality, mealTypeEmoji, mealTypeLabel, classificationLabel, classificationColor } from "@/lib/meal-utils";
+import { sumMacros, dailyQuality, mealTypeEmoji, mealTypeLabel, classificationLabel, classificationColor, getDailyKcalGoal, DEFAULT_DAILY_KCAL } from "@/lib/meal-utils";
 import { MealCard } from "@/components/MealCard";
 import { NutritionSummary } from "@/components/NutritionSummary";
 import { WeeklyReport } from "@/components/WeeklyReport";
 import { QuickAddMeals } from "@/components/QuickAddMeals";
 import { NutritionTips } from "@/components/NutritionTips";
+import { NutritionGoalCard } from "@/components/NutritionGoalCard";
 import { Plus } from "lucide-react";
 import type { Meal } from "@/types";
 
@@ -25,6 +26,7 @@ export default function NutricaoPage() {
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<TabView>("dia");
   const [todayDisplay, setTodayDisplay] = useState("");
+  const [kcalGoal, setKcalGoal] = useState(DEFAULT_DAILY_KCAL);
 
   useEffect(() => {
     setTodayDisplay(new Date().toLocaleDateString("pt-BR", {
@@ -32,6 +34,16 @@ export default function NutricaoPage() {
       day: "numeric",
       month: "long",
     }));
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/preferences")
+      .then((r) => r.json())
+      .then((data) => {
+        const ctx = (data.context as Record<string, unknown>) || {};
+        setKcalGoal(getDailyKcalGoal(ctx));
+      })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -162,7 +174,8 @@ export default function NutricaoPage() {
             </div>
           )}
 
-          <NutritionSummary meals={todayMeals} label={t("resumo_do_dia")} />
+          <NutritionGoalCard />
+          <NutritionSummary meals={todayMeals} label={t("resumo_do_dia")} kcalGoal={kcalGoal} />
 
           <QuickAddMeals meals={meals} />
 
@@ -201,6 +214,7 @@ export default function NutricaoPage() {
           <NutritionSummary
             meals={weekDays.flatMap((d) => d.meals)}
             label={t("resumo_do_dia")}
+            kcalGoal={kcalGoal}
           />
 
           {/* Relatório semanal inteligente */}
@@ -246,6 +260,7 @@ export default function NutricaoPage() {
               return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
             })}
             label="Resumo do mês"
+            kcalGoal={kcalGoal}
           />
 
           {/* Estatísticas do mês */}

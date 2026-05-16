@@ -3,8 +3,11 @@ import type { MealType, MealClassification, Macros, MealItem } from "@/types";
 // Meta diária padrão de calorias (personalizável via preferences.context.kcal_goal)
 export const DEFAULT_DAILY_KCAL = 2000;
 
-export function getDailyKcalGoal(_context?: Record<string, unknown>): number {
-  // No futuro, lê de context.kcal_goal. Por enquanto, valor padrão.
+export function getDailyKcalGoal(context?: Record<string, unknown>): number {
+  if (context) {
+    const goal = context.nutrition_goal as { objective?: string; kcal?: number } | undefined;
+    if (goal?.kcal && typeof goal.kcal === "number") return goal.kcal;
+  }
   return DEFAULT_DAILY_KCAL;
 }
 

@@ -1,8 +1,8 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { sumMacros, nutritionScore, getDailyKcalGoal } from "@/lib/meal-utils";
+import { sumMacros, nutritionScore, DEFAULT_DAILY_KCAL } from "@/lib/meal-utils";
 import type { Meal } from "@/types";
 
-export function NutritionSummary({ meals, label }: { meals: Meal[]; label: string }) {
+export function NutritionSummary({ meals, label, kcalGoal = DEFAULT_DAILY_KCAL }: { meals: Meal[]; label: string; kcalGoal?: number }) {
   const analyzed = meals.filter((m) => m.macros && m.status_analise === "analisado");
   const total = sumMacros(analyzed);
   const hasData = analyzed.length > 0;
@@ -15,7 +15,6 @@ export function NutritionSummary({ meals, label }: { meals: Meal[]; label: strin
   const score = hasData ? nutritionScore(analyzed) : 0;
   const scoreColor = score >= 80 ? "text-emerald-500" : score >= 60 ? "text-amber-500" : "text-red-500";
 
-  const kcalGoal = getDailyKcalGoal();
   const kcalPct = hasData ? Math.min(Math.round((total.calorias_kcal / kcalGoal) * 100), 100) : 0;
   const kcalPctColor = kcalPct >= 100 ? "bg-amber-500" : "bg-emerald-500";
 

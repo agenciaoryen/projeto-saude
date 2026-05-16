@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { getLocalDate } from "@/lib/utils";
-import { sumMacros, nutritionScore, getDailyKcalGoal } from "@/lib/meal-utils";
+import { sumMacros, nutritionScore, getDailyKcalGoal, DEFAULT_DAILY_KCAL } from "@/lib/meal-utils";
 import { useTranslation } from "@/lib/useTranslation";
 import type { Meal } from "@/types";
 
@@ -12,14 +12,19 @@ export function NutritionMiniCard() {
   const router = useRouter();
   const { t } = useTranslation();
   const [meals, setMeals] = useState<Meal[]>([]);
+  const [kcalGoal, setKcalGoal] = useState(DEFAULT_DAILY_KCAL);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     const today = getLocalDate();
-    fetch(`/api/meals?date=${today}`)
-      .then((r) => r.json())
-      .then((data) => {
-        if (Array.isArray(data)) setMeals(data);
+    Promise.all([
+      fetch(`/api/meals?date=${today}`).then((r) => r.json()),
+      fetch("/api/preferences").then((r) => r.json()),
+    ])
+      .then(([mealsData, prefsData]) => {
+        if (Array.isArray(mealsData)) setMeals(mealsData);
+        const ctx = (prefsData.context || {}) as Record<string, unknown>;
+        setKcalGoal(getDailyKcalGoal(ctx));
         setLoaded(true);
       })
       .catch(() => setLoaded(true));
@@ -78,7 +83,6 @@ export function NutritionMiniCard() {
   const ringLen = 94.2;
   const dashLen = (score / 100) * ringLen;
 
-  const kcalGoal = getDailyKcalGoal();
   const kcalPct = Math.min(Math.round((total.calorias_kcal / kcalGoal) * 100), 100);
 
   return (

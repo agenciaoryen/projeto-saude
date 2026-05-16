@@ -17,16 +17,19 @@ interface Tip {
 export function NutritionTips() {
   const [meals, setMeals] = useState<Meal[]>([]);
   const [checkIns, setCheckIns] = useState<CheckIn[]>([]);
+  const [ctx, setCtx] = useState<Record<string, unknown>>({});
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     Promise.all([
       fetch("/api/meals").then((r) => r.json()),
       fetch("/api/check-ins").then((r) => r.json()),
+      fetch("/api/preferences").then((r) => r.json()),
     ])
-      .then(([mealsData, checkInsData]) => {
+      .then(([mealsData, checkInsData, prefsData]) => {
         if (Array.isArray(mealsData)) setMeals(mealsData);
         if (Array.isArray(checkInsData)) setCheckIns(checkInsData);
+        setCtx((prefsData.context as Record<string, unknown>) || {});
         setLoaded(true);
       })
       .catch(() => setLoaded(true));
@@ -135,7 +138,7 @@ export function NutritionTips() {
 
     // 7. Poucas calorias vs meta
     if (avgKcalPerDay < 1200 && daysWithMeals >= 3) {
-      const goal = getDailyKcalGoal();
+      const goal = getDailyKcalGoal(ctx);
       result.push({
         icon: Zap,
         title: "Tá comendo o suficiente?",
@@ -145,7 +148,7 @@ export function NutritionTips() {
     }
 
     return result.slice(0, 3);
-  }, [meals, checkIns]);
+  }, [meals, checkIns, ctx]);
 
   if (!loaded || tips.length === 0) return null;
 
