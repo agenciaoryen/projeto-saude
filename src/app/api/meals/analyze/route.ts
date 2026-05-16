@@ -26,7 +26,8 @@ Formato exato:
 
 Classificação deve ser uma de: "equilibrada", "leve_proteina", "alta_acucar", "alta_gordura", "vegetais_baixo"
 Se não conseguir identificar, classifique como "nao_identificada".
-Observação em português, 1-2 frases, tom acolhedor.`;
+Observação em português, 1-2 frases, tom acolhedor.
+NUNCA use markdown (**), travessão (—) ou caracteres especiais na observação — apenas texto plano com vírgula e ponto final.`;
 
 async function callClaudeVision(photos: string[], description: string): Promise<string> {
   const imageBlocks = photos.map((b64) => ({
