@@ -16,7 +16,7 @@ import {
   classificationColor,
 } from "@/lib/meal-utils";
 import { compressImage, uploadToCloud, photoUrl } from "@/lib/photo-storage";
-import { ArrowLeft, Camera, ImageIcon, X, Trash2, Plus } from "lucide-react";
+import { ArrowLeft, Camera, ImageIcon, X, Trash2, Plus, Loader2, Sparkles } from "lucide-react";
 import type { MealType, MealItem, Macros, MealClassification, Meal } from "@/types";
 
 const MEAL_TYPES: MealType[] = [
@@ -54,6 +54,7 @@ export default function MealDetailPage() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
 
   // Edit form state
   const [mealType, setMealType] = useState<MealType>("almoco");
@@ -101,6 +102,70 @@ export default function MealDetailPage() {
     toast.success("Refeição deletada");
     router.push("/nutricao");
     router.refresh();
+  };
+
+  const handleAnalyze = async () => {
+    if (!meal) return;
+    setAnalyzing(true);
+    try {
+      const hasPhotos = meal.fotos && meal.fotos.length > 0;
+      // Carregar as fotos como base64 se existirem (do cloud storage)
+      let photosBase64: string[] = [];
+      if (hasPhotos) {
+        const loaded: string[] = [];
+        for (const path of meal.fotos!) {
+          const url = photoUrl(path);
+          if (url) {
+            try {
+              const resp = await fetch(url);
+              const blob = await resp.blob();
+              const b64 = await new Promise<string>((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result as string);
+                reader.readAsDataURL(blob);
+              });
+              loaded.push(b64);
+            } catch { /* skip photo that fails to load */ }
+          }
+        }
+        photosBase64 = loaded;
+      }
+
+      const res = await fetch("/api/meals/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mealId: meal.id,
+          ...(photosBase64.length > 0 ? { photosBase64 } : {}),
+          description: meal.texto_livre || "",
+          items: (meal.itens || []).map((i) => i.nome),
+        }),
+      });
+
+      if (!res.ok) throw new Error();
+      const analyzed = await res.json();
+      setMeal((prev) =>
+        prev
+          ? {
+              ...prev,
+              itens: analyzed.itens || [],
+              macros: analyzed.macros || null,
+              classificacao: analyzed.classificacao || "nao_identificada",
+              observacao: analyzed.observacao || "",
+              status_analise: "analisado",
+            }
+          : prev
+      );
+      setItems(analyzed.itens || []);
+      setMacros(analyzed.macros || null);
+      setClassif(analyzed.classificacao || "nao_identificada");
+      setObs(analyzed.observacao || "");
+      toast.success("Refeição analisada!");
+    } catch {
+      toast.error("Erro ao analisar refeição");
+    } finally {
+      setAnalyzing(false);
+    }
   };
 
   const handleSave = async () => {
@@ -239,6 +304,18 @@ export default function MealDetailPage() {
           </Button>
         ) : (
           <div className="flex gap-2">
+            {meal.status_analise === "pendente" && (
+              <Button
+                variant="default"
+                size="sm"
+                className="rounded-xl gap-1.5"
+                onClick={handleAnalyze}
+                disabled={analyzing}
+              >
+                {analyzing ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5" />}
+                Analisar
+              </Button>
+            )}
             <Button
               variant="outline"
               size="sm"
