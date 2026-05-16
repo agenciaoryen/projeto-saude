@@ -263,6 +263,8 @@ const translations: Record<Lang, Record<string, string>> = {
 
     // Resumo diário
     resumo_do_dia: "Resumo do dia",
+    resumo_da_semana: "Resumo da semana",
+    resumo_do_mes: "Resumo do mês",
     total_calorias: "Total de calorias",
     qualidade_bom: "Bom 🌱",
     qualidade_atencao: "Atenção ⚠️",
@@ -541,6 +543,8 @@ const translations: Record<Lang, Record<string, string>> = {
 
     // Resumen diario
     resumo_do_dia: "Resumen del día",
+    resumo_da_semana: "Resumen de la semana",
+    resumo_do_mes: "Resumen del mes",
     total_calorias: "Total de calorías",
     qualidade_bom: "Bien 🌱",
     qualidade_atencao: "Atención ⚠️",
@@ -819,6 +823,8 @@ const translations: Record<Lang, Record<string, string>> = {
 
     // Daily summary
     resumo_do_dia: "Daily summary",
+    resumo_da_semana: "Week summary",
+    resumo_do_mes: "Month summary",
     total_calorias: "Total calories",
     qualidade_bom: "Good 🌱",
     qualidade_atencao: "Attention ⚠️",

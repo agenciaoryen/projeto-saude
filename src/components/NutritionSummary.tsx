@@ -34,7 +34,7 @@ export function NutritionSummary({ meals, label, kcalGoal = DEFAULT_DAILY_KCAL }
           <p className="text-sm font-medium">{label}</p>
           {hasData && (
             <span className="text-[11px] text-muted-foreground">
-              {analyzed.length} refeição{analyzed.length !== 1 ? "ões" : ""}
+              {analyzed.length} {analyzed.length === 1 ? "refeição" : "refeições"}
             </span>
           )}
         </div>

@@ -7,14 +7,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/lib/useTranslation";
 import { getLocalDate, getLocalDateFromISO } from "@/lib/utils";
-import { sumMacros, dailyQuality, mealTypeEmoji, mealTypeLabel, classificationLabel, classificationColor, getDailyKcalGoal, DEFAULT_DAILY_KCAL } from "@/lib/meal-utils";
+import { sumMacros, dailyQuality, nutritionScore, mealTypeEmoji, mealTypeLabel, classificationLabel, classificationColor, getDailyKcalGoal, DEFAULT_DAILY_KCAL } from "@/lib/meal-utils";
 import { MealCard } from "@/components/MealCard";
 import { NutritionSummary } from "@/components/NutritionSummary";
 import { WeeklyReport } from "@/components/WeeklyReport";
 import { QuickAddMeals } from "@/components/QuickAddMeals";
 import { NutritionTips } from "@/components/NutritionTips";
 import { NutritionGoalCard } from "@/components/NutritionGoalCard";
-import { Plus } from "lucide-react";
+import { Plus, ChevronDown } from "lucide-react";
 import type { Meal } from "@/types";
 
 type TabView = "dia" | "semana" | "mes";
@@ -26,6 +26,7 @@ export default function NutricaoPage() {
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<TabView>("dia");
   const [todayDisplay, setTodayDisplay] = useState("");
+  const [showQualityDetails, setShowQualityDetails] = useState(false);
   const [kcalGoal, setKcalGoal] = useState(DEFAULT_DAILY_KCAL);
 
   useEffect(() => {
@@ -117,6 +118,43 @@ export default function NutricaoPage() {
 
   const todayQuality = dailyQuality(todayMeals);
 
+  // Diagnóstico detalhado para o alerta de qualidade
+  const qualityDiagnostic = useMemo(() => {
+    const analyzed = todayMeals.filter((m) => m.macros && m.status_analise === "analisado");
+    if (analyzed.length === 0) return null;
+
+    const total = sumMacros(analyzed);
+    const totalG = total.carboidratos_g + total.proteinas_g + total.gorduras_g;
+    const carbPct = totalG > 0 ? Math.round((total.carboidratos_g / totalG) * 100) : 0;
+    const protPct = totalG > 0 ? Math.round((total.proteinas_g / totalG) * 100) : 0;
+    const gordPct = totalG > 0 ? Math.round((total.gorduras_g / totalG) * 100) : 0;
+
+    const score = nutritionScore(analyzed);
+    const freq = analyzed.length;
+
+    const carbOk = carbPct >= 40 && carbPct <= 65;
+    const protOk = protPct >= 15 && protPct <= 30;
+    const gordOk = gordPct >= 15 && gordPct <= 35;
+
+    const issues: string[] = [];
+    if (!carbOk) issues.push(carbPct > 65 ? "Carboidratos acima do ideal" : "Carboidratos abaixo do ideal");
+    if (!protOk) issues.push(protPct < 15 ? "Proteína abaixo do ideal" : "Proteína acima do ideal");
+    if (!gordOk) issues.push(gordPct > 35 ? "Gorduras acima do ideal" : "Gorduras abaixo do ideal");
+    if (freq < 3) issues.push("Poucas refeições no dia (ideal: 3-4)");
+
+    const classCount = new Map<string, number>();
+    for (const m of todayMeals) {
+      if (m.classificacao) {
+        classCount.set(m.classificacao, (classCount.get(m.classificacao) || 0) + 1);
+      }
+    }
+
+    const highSugar = classCount.get("alta_acucar") || 0;
+    const highFat = classCount.get("alta_gordura") || 0;
+
+    return { carbPct, protPct, gordPct, score, freq, issues, carbOk, protOk, gordOk, highSugar, highFat, classCount };
+  }, [todayMeals]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -161,17 +199,96 @@ export default function NutricaoPage() {
       {/* ========== VISÃO DIÁRIA ========== */}
       {tab === "dia" && (
         <div className="space-y-6">
-          {/* Indicador de qualidade */}
+          {/* Indicador de qualidade — clicável com diagnóstico */}
           {todayMeals.length > 0 && (
-            <div className={`text-center py-3 rounded-xl text-sm font-medium ${
-              todayQuality === "bom" ? "bg-green-50 text-green-700" :
-              todayQuality === "atencao" ? "bg-yellow-50 text-yellow-700" :
-              "bg-muted text-muted-foreground"
-            }`}>
-              {todayQuality === "bom" ? t("qualidade_bom") :
-               todayQuality === "atencao" ? t("qualidade_atencao") :
-               t("qualidade_sem_dados")}
-            </div>
+            <button
+              type="button"
+              onClick={() => setShowQualityDetails(!showQualityDetails)}
+              className={`w-full text-left rounded-xl transition-all ${
+                todayQuality === "bom" ? "bg-green-50 hover:bg-green-100" :
+                todayQuality === "atencao" ? "bg-yellow-50 hover:bg-yellow-100" :
+                "bg-muted hover:bg-muted/70"
+              }`}
+            >
+              <div className="flex items-center justify-between px-4 py-3">
+                <span className={`text-sm font-medium ${
+                  todayQuality === "bom" ? "text-green-700" :
+                  todayQuality === "atencao" ? "text-yellow-700" :
+                  "text-muted-foreground"
+                }`}>
+                  {todayQuality === "bom" ? t("qualidade_bom") :
+                   todayQuality === "atencao" ? t("qualidade_atencao") :
+                   t("qualidade_sem_dados")}
+                </span>
+                <ChevronDown className={`size-4 text-muted-foreground transition-transform ${showQualityDetails ? "rotate-180" : ""}`} />
+              </div>
+
+              {showQualityDetails && qualityDiagnostic && todayQuality !== "sem_dados" && (
+                <div className="px-4 pb-4 space-y-3 text-sm">
+                  {/* Score */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground">Score:</span>
+                    <span className={`font-bold ${qualityDiagnostic.score >= 80 ? "text-emerald-600" : qualityDiagnostic.score >= 60 ? "text-amber-600" : "text-red-600"}`}>
+                      {qualityDiagnostic.score}/100
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      ({qualityDiagnostic.freq} {qualityDiagnostic.freq === 1 ? "refeição" : "refeições"})
+                    </span>
+                  </div>
+
+                  {/* Balanço de macros */}
+                  <div className="space-y-1.5">
+                    <p className="text-xs font-medium text-muted-foreground">Distribuição de macros</p>
+                    <div className="grid grid-cols-3 gap-1.5 text-center text-xs">
+                      <div className={`rounded-lg py-1.5 ${qualityDiagnostic.carbOk ? "bg-green-100 text-green-700" : "bg-red-50 text-red-600"}`}>
+                        Carbs {qualityDiagnostic.carbPct}%
+                      </div>
+                      <div className={`rounded-lg py-1.5 ${qualityDiagnostic.protOk ? "bg-green-100 text-green-700" : "bg-red-50 text-red-600"}`}>
+                        Prot {qualityDiagnostic.protPct}%
+                      </div>
+                      <div className={`rounded-lg py-1.5 ${qualityDiagnostic.gordOk ? "bg-green-100 text-green-700" : "bg-red-50 text-red-600"}`}>
+                        Gord {qualityDiagnostic.gordPct}%
+                      </div>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">
+                      Ideal: 40-65% carb · 15-30% prot · 15-35% gord
+                    </p>
+                  </div>
+
+                  {/* Alertas específicos */}
+                  {qualityDiagnostic.issues.length > 0 && (
+                    <div className="space-y-1">
+                      <p className="text-xs font-medium text-muted-foreground">O que melhorar</p>
+                      {qualityDiagnostic.issues.map((issue, i) => (
+                        <div key={i} className="flex items-center gap-2 text-xs text-yellow-700 bg-yellow-50 rounded-lg px-3 py-1.5">
+                          <span>⚠️</span> {issue}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Classificações do dia */}
+                  {qualityDiagnostic.classCount.size > 0 && (
+                    <div className="space-y-1">
+                      <p className="text-xs font-medium text-muted-foreground">Classificações do dia</p>
+                      <div className="flex flex-wrap gap-1">
+                        {[...qualityDiagnostic.classCount.entries()].map(([classif, count]) => (
+                          <Badge key={classif} className={`text-[10px] ${classificationColor(classif as Meal["classificacao"] & string)}`}>
+                            {classificationLabel(classif as Meal["classificacao"] & string)} ({count}x)
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {todayQuality === "bom" && qualityDiagnostic.issues.length === 0 && (
+                    <p className="text-xs text-green-700 bg-green-100 rounded-lg px-3 py-2">
+                      Continue assim! Seus macros estão equilibrados e a frequência de refeições está boa.
+                    </p>
+                  )}
+                </div>
+              )}
+            </button>
           )}
 
           <NutritionGoalCard />
@@ -213,7 +330,7 @@ export default function NutricaoPage() {
         <div className="space-y-6">
           <NutritionSummary
             meals={weekDays.flatMap((d) => d.meals)}
-            label={t("resumo_do_dia")}
+            label={t("resumo_da_semana")}
             kcalGoal={kcalGoal}
           />
 
@@ -259,7 +376,7 @@ export default function NutricaoPage() {
               const now = new Date();
               return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
             })}
-            label="Resumo do mês"
+            label={t("resumo_do_mes")}
             kcalGoal={kcalGoal}
           />
 
