@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { getLocalDate } from "@/lib/utils";
+import { cachedFetch } from "@/lib/fetch-cache";
 import { sumMacros, nutritionScore, getDailyKcalGoal, DEFAULT_DAILY_KCAL } from "@/lib/meal-utils";
 import { useTranslation } from "@/lib/useTranslation";
 import type { Meal } from "@/types";
@@ -18,12 +19,12 @@ export function NutritionMiniCard() {
   useEffect(() => {
     const today = getLocalDate();
     Promise.all([
-      fetch(`/api/meals?date=${today}`).then((r) => r.json()),
-      fetch("/api/preferences").then((r) => r.json()),
+      cachedFetch<Meal[]>(`/api/meals?date=${today}`),
+      cachedFetch<{ context?: Record<string, unknown> }>("/api/preferences"),
     ])
       .then(([mealsData, prefsData]) => {
         if (Array.isArray(mealsData)) setMeals(mealsData);
-        const ctx = (prefsData.context || {}) as Record<string, unknown>;
+        const ctx = (prefsData?.context || {}) as Record<string, unknown>;
         setKcalGoal(getDailyKcalGoal(ctx));
         setLoaded(true);
       })

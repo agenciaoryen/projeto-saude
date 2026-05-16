@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
+import { cachedFetch } from "@/lib/fetch-cache";
 import { Target, ChevronDown } from "lucide-react";
 
 type Objective = "perder_peso" | "manter" | "ganhar_massa" | "melhorar_habitos";
@@ -34,12 +35,12 @@ export function NutritionGoalCard() {
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    fetch("/api/preferences")
-      .then((r) => r.json())
+    cachedFetch<{ context?: Record<string, unknown> }>("/api/preferences")
       .then((data) => {
-        setCtx((data.context as Record<string, unknown>) || {});
-        if (data.context?.nutrition_goal) {
-          setGoal(data.context.nutrition_goal as GoalData);
+        const ctxData = (data?.context as Record<string, unknown>) || {};
+        setCtx(ctxData);
+        if (ctxData.nutrition_goal) {
+          setGoal(ctxData.nutrition_goal as GoalData);
         }
         setLoaded(true);
       })

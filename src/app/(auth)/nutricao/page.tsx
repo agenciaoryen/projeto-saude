@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/lib/useTranslation";
 import { getLocalDate, getLocalDateFromISO } from "@/lib/utils";
+import { cachedFetch } from "@/lib/fetch-cache";
 import { sumMacros, dailyQuality, nutritionScore, mealTypeEmoji, mealTypeLabel, classificationLabel, classificationColor, getDailyKcalGoal, DEFAULT_DAILY_KCAL } from "@/lib/meal-utils";
 import { MealCard } from "@/components/MealCard";
 import { NutritionSummary } from "@/components/NutritionSummary";
@@ -41,20 +42,18 @@ export default function NutricaoPage() {
   }, []);
 
   useEffect(() => {
-    fetch("/api/preferences")
-      .then((r) => r.json())
+    cachedFetch<{ context?: Record<string, unknown> }>("/api/preferences")
       .then((data) => {
-        const ctx = (data.context as Record<string, unknown>) || {};
+        const ctx = (data?.context as Record<string, unknown>) || {};
         setKcalGoal(getDailyKcalGoal(ctx));
       })
       .catch(() => {});
   }, []);
 
   useEffect(() => {
-    fetch("/api/meals")
-      .then((r) => r.json())
+    cachedFetch<unknown[]>("/api/meals")
       .then((data) => {
-        if (Array.isArray(data)) setMeals(data);
+        if (Array.isArray(data)) setMeals(data as Meal[]);
         setLoading(false);
       })
       .catch(() => setLoading(false));

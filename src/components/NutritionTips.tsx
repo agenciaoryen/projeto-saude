@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { sumMacros, getDailyKcalGoal } from "@/lib/meal-utils";
 import { getLocalDate, getLocalDateFromISO } from "@/lib/utils";
+import { cachedFetch } from "@/lib/fetch-cache";
 import { Lightbulb, Apple, Coffee, Moon, Zap } from "lucide-react";
 import type { Meal, CheckIn } from "@/types";
 
@@ -22,14 +23,14 @@ export function NutritionTips() {
 
   useEffect(() => {
     Promise.all([
-      fetch("/api/meals").then((r) => r.json()),
-      fetch("/api/check-ins").then((r) => r.json()),
-      fetch("/api/preferences").then((r) => r.json()),
+      cachedFetch<Meal[]>("/api/meals"),
+      cachedFetch<CheckIn[]>("/api/check-ins"),
+      cachedFetch<{ context?: Record<string, unknown> }>("/api/preferences"),
     ])
       .then(([mealsData, checkInsData, prefsData]) => {
         if (Array.isArray(mealsData)) setMeals(mealsData);
         if (Array.isArray(checkInsData)) setCheckIns(checkInsData);
-        setCtx((prefsData.context as Record<string, unknown>) || {});
+        setCtx((prefsData?.context as Record<string, unknown>) || {});
         setLoaded(true);
       })
       .catch(() => setLoaded(true));

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { getLocalDate, calculateStreak } from "@/lib/utils";
 import { useRouter } from "next/navigation";
+import { cachedFetch } from "@/lib/fetch-cache";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StreakBadge } from "@/components/StreakBadge";
@@ -52,9 +53,9 @@ export default function DashboardPage() {
 
   useEffect(() => {
     Promise.all([
-      fetch("/api/check-ins").then((r) => r.json()),
-      fetch("/api/preferences").then((r) => r.json()),
-      fetch("/api/achievements").then((r) => r.json()),
+      cachedFetch("/api/check-ins"),
+      cachedFetch("/api/preferences"),
+      cachedFetch("/api/achievements"),
     ]).then(([checkInsData, prefsData, achievementsData]) => {
       if (!prefsData.onboarding_completed) {
         router.push("/onboarding");
