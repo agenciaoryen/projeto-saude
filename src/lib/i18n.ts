@@ -345,6 +345,11 @@ const translations: Record<Lang, Record<string, string>> = {
     preparando_espelho: "Preparando seu espelho da semana...",
     espelho_disclaimer: "Gerado a partir dos seus dados. Não é um diagnóstico — é um reflexo.",
 
+    // Features — Progresso (tier ladder)
+    progresso_titulo: "Progresso",
+    progresso_subtitle: "{{n}} check-ins · cada dia consecutivo te sobe um degrau",
+    atual: "Atual",
+
     // Features — Madrugada (Maya time awareness — sistema, não precisa de i18n visível)
   },
 
@@ -669,6 +674,11 @@ const translations: Record<Lang, Record<string, string>> = {
     retrato_titulo: "Tu retrato del mes",
     preparando_retrato: "Preparando tu retrato...",
     retrato_disclaimer: "Observaciones a partir de tus últimos 30 días de registro. Con pocos datos, serán observaciones simples. Con más datos, pueden aparecer patrones. No es un diagnóstico.",
+
+    // Features — Progresso (tier ladder)
+    progresso_titulo: "Progreso",
+    progresso_subtitle: "{{n}} check-ins · cada día consecutivo te sube un escalón",
+    atual: "Actual",
 
     // Features — O Espelho (WeeklyMirror)
     espelho_titulo: "Tu espejo de la semana",
@@ -997,6 +1007,11 @@ const translations: Record<Lang, Record<string, string>> = {
     retrato_titulo: "Your portrait this month",
     preparando_retrato: "Preparing your portrait...",
     retrato_disclaimer: "Observations from your last 30 days of logging. With little data, observations will be simple. With more data, patterns may appear. Not a diagnosis.",
+
+    // Features — Progresso (tier ladder)
+    progresso_titulo: "Progress",
+    progresso_subtitle: "{{n}} check-ins · each consecutive day lifts you up one step",
+    atual: "Current",
 
     // Features — O Espelho (WeeklyMirror)
     espelho_titulo: "Your week's mirror",

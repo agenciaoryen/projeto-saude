@@ -8,10 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StreakBadge } from "@/components/StreakBadge";
 import { MoodChart } from "@/components/MoodChart";
-import { GardenView } from "@/components/GardenView";
-import { StatsView } from "@/components/StatsView";
 import { MayaNudge } from "@/components/MayaNudge";
 import { PorqueCard } from "@/components/PorqueCard";
+import { Progresso } from "@/components/Progresso";
 import { NutritionMiniCard } from "@/components/NutritionMiniCard";
 import { GentleDayCard } from "@/components/GentleDayCard";
 import { Testemunha } from "@/components/Testemunha";
@@ -19,7 +18,7 @@ import { DayThread } from "@/components/DayThread";
 import { MonthlyPortrait } from "@/components/MonthlyPortrait";
 import { SystemForces } from "@/components/SystemForces";
 import { useTranslation } from "@/lib/useTranslation";
-import type { CheckIn, UserAchievement } from "@/types";
+import type { CheckIn } from "@/types";
 
 
 const HABIT_DISPLAY: Record<string, [string, string]> = {
@@ -43,7 +42,6 @@ export default function DashboardPage() {
   const [checkIns, setCheckIns] = useState<CheckIn[]>([]);
   const [todayCheckIn, setTodayCheckIn] = useState<CheckIn | null>(null);
   const [enabledKeys, setEnabledKeys] = useState<string[]>([]);
-  const [achievements, setAchievements] = useState<UserAchievement[]>([]);
   const [gender, setGender] = useState<string>("nao_dizer");
   const [loading, setLoading] = useState(true);
   const [todayDisplay, setTodayDisplay] = useState("");
@@ -60,8 +58,7 @@ export default function DashboardPage() {
     Promise.all([
       cachedFetch("/api/check-ins"),
       cachedFetch("/api/preferences"),
-      cachedFetch("/api/achievements"),
-    ]).then(([checkInsData, prefsData, achievementsData]) => {
+    ]).then(([checkInsData, prefsData]) => {
       if (!prefsData.onboarding_completed) {
         router.push("/onboarding");
         return;
@@ -72,9 +69,6 @@ export default function DashboardPage() {
         setCheckIns(checkInsData);
         const today = getLocalDate();
         setTodayCheckIn(checkInsData.find((c: CheckIn) => c.date === today) || null);
-      }
-      if (Array.isArray(achievementsData)) {
-        setAchievements(achievementsData);
       }
       setLoading(false);
     }).catch(() => setLoading(false));
@@ -233,19 +227,7 @@ export default function DashboardPage() {
 
       <StreakBadge streak={streak} />
 
-      {gender === "masculino" ? (
-        <StatsView
-          streak={streak}
-          achievements={achievements}
-          totalCheckIns={checkIns.length}
-        />
-      ) : (
-        <GardenView
-          streak={streak}
-          achievements={achievements}
-          totalCheckIns={checkIns.length}
-        />
-      )}
+      <Progresso streak={streak} totalCheckIns={checkIns.length} />
 
       {checkIns.length > 0 && (
         <Card className="rounded-2xl">

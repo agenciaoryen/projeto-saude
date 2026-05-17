@@ -50,6 +50,23 @@ function loadProfileCache() {
   return null;
 }
 
+// WhatsApp-style SVG ticks
+function Ticks({ status }: { status: "sent" | "delivered" | "read" }) {
+  const color = status === "read" ? "#53bdeb" : "#8696a0";
+  const Tick = (
+    <svg width="14" height="11" viewBox="0 0 18 13" fill="none" stroke="currentColor"
+         strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M1.5 6.6 6 11l11-9.5" />
+    </svg>
+  );
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", color }}>
+      {Tick}
+      {status !== "sent" && <span style={{ marginLeft: -9, display: "inline-flex" }}>{Tick}</span>}
+    </span>
+  );
+}
+
 export default function MayaChatPage() {
   const { t } = useTranslation();
   const router = useRouter();
@@ -67,20 +84,15 @@ export default function MayaChatPage() {
   const sendingRef = useRef(false);
   const fullHeightRef = useRef(0);
 
-  // Shrink container to visual viewport so nothing hides behind keyboard
   useEffect(() => {
-    // Save initial height before any keyboard activity
     fullHeightRef.current = window.innerHeight;
 
     const onViewportChange = () => {
       const vv = window.visualViewport;
       if (!vv) return;
-
       window.scrollTo(0, 0);
-
       const h = vv.height;
       setViewportH(h);
-      // Compare against the original full height, not current innerHeight
       setKeyboardOpen(fullHeightRef.current - h > 80);
     };
 
@@ -213,8 +225,20 @@ export default function MayaChatPage() {
 
   return (
     <div
-      className="flex flex-col bg-chat"
-      style={{ height: viewportH > 0 ? `${viewportH}px` : "100dvh" }}
+      className="flex flex-col"
+      style={{
+        height: viewportH > 0 ? `${viewportH}px` : "100dvh",
+        background: "#efeae2",
+        backgroundImage: `
+          radial-gradient(circle at 12% 18%, #e0d9cd 0 1.5px, transparent 2px),
+          radial-gradient(circle at 32% 62%, #e0d9cd 0 1.2px, transparent 2px),
+          radial-gradient(circle at 58% 26%, #e0d9cd 0 1.6px, transparent 2px),
+          radial-gradient(circle at 78% 78%, #e0d9cd 0 1.4px, transparent 2px),
+          radial-gradient(circle at 88% 12%, #e0d9cd 0 1.2px, transparent 2px),
+          radial-gradient(circle at 20% 88%, #e0d9cd 0 1.4px, transparent 2px)
+        `,
+        backgroundSize: "220px 220px",
+      }}
     >
       {/* Header */}
       <div className="shrink-0 flex items-center gap-3 px-4 py-2.5 bg-background border-b border-border safe-top">
@@ -240,45 +264,47 @@ export default function MayaChatPage() {
       </div>
 
       {/* Messages */}
-      <div ref={messagesRef} className="flex-1 overflow-y-auto px-2 py-3 space-y-1">
+      <div ref={messagesRef} className="flex-1 overflow-y-auto px-3 py-3">
         {hydrated && messages.length === 0 && welcomeMessage && (
           <div className="flex justify-center pt-12">
-            <div className="bg-background/80 rounded-lg px-4 py-3 text-sm text-center max-w-sm text-muted-foreground shadow-sm">
+            <div
+              className="rounded-[8px] px-4 py-3 text-sm text-center max-w-sm text-[#111b21]"
+              style={{ background: "#ffffff", boxShadow: "0 1px 0.5px rgba(11,20,26,.13)" }}
+            >
               <div className="whitespace-pre-line">{welcomeMessage}</div>
             </div>
           </div>
         )}
 
         {messages.map((msg, i) => {
-          const next = i < messages.length - 1 ? messages[i + 1] : null;
-          const isLastInGroup = next?.role !== msg.role;
-
-          if (msg.role === "assistant") {
-            return (
-              <div key={i} className="flex justify-start">
-                <div className={`max-w-[85%] px-3 py-2 bg-muted text-sm leading-relaxed ${
-                  isLastInGroup ? "rounded-xl rounded-bl-sm mb-1.5" : "rounded-xl rounded-bl-sm"
-                }`}>
-                  <div className="whitespace-pre-line">{msg.content}</div>
-                  <span className="text-[10px] text-muted-foreground/55 float-right ml-3 translate-y-0.5">
-                    {msg.time}
-                  </span>
-                </div>
-              </div>
-            );
-          }
+          const isAssistant = msg.role === "assistant";
+          const status: "sent" | "delivered" | "read" = msg.seen ? "read" : "delivered";
 
           return (
-            <div key={i} className={`flex justify-end ${isLastInGroup ? "mb-1.5" : ""}`}>
-              <div className="max-w-[85%] px-3 py-2 bg-primary text-primary-foreground text-sm leading-relaxed rounded-xl rounded-br-sm">
-                <div className="whitespace-pre-line">{msg.content}</div>
-                <span className="text-[10px] text-primary-foreground/45 float-right ml-1 translate-y-0.5">
+            <div
+              key={i}
+              className={`flex ${isAssistant ? "justify-start" : "justify-end"} mb-1.5`}
+            >
+              <div
+                className="max-w-[80%] rounded-[8px] px-3 pt-1.5 pb-2 text-[14px] leading-[1.32] text-[#111b21] whitespace-pre-line"
+                style={{
+                  background: isAssistant ? "#ffffff" : "#d9fdd3",
+                  boxShadow: "0 1px 0.5px rgba(11,20,26,.13)",
+                }}
+              >
+                {msg.content}
+                <span
+                  className="text-[11px] text-[#667781] leading-none whitespace-nowrap"
+                  style={{
+                    float: "right",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 3,
+                    margin: "8px -4px -5px 8px",
+                  }}
+                >
                   {msg.time}
-                  {msg.seen ? (
-                    <span className="ml-0.5 opacity-70">✓✓</span>
-                  ) : (
-                    <span className="ml-0.5 opacity-50">✓</span>
-                  )}
+                  {!isAssistant && <Ticks status={status} />}
                 </span>
               </div>
             </div>
@@ -286,12 +312,15 @@ export default function MayaChatPage() {
         })}
 
         {typing && (
-          <div className="flex justify-start">
-            <div className="bg-muted rounded-xl rounded-bl-sm px-3 py-3">
+          <div className="flex justify-start mb-1.5">
+            <div
+              className="rounded-[8px] bg-white px-3.5 py-2"
+              style={{ boxShadow: "0 1px 0.5px rgba(11,20,26,.13)" }}
+            >
               <div className="flex items-center gap-1">
-                <span className="size-2 rounded-full bg-foreground/25 animate-bounce [animation-delay:0ms]" />
-                <span className="size-2 rounded-full bg-foreground/25 animate-bounce [animation-delay:150ms]" />
-                <span className="size-2 rounded-full bg-foreground/25 animate-bounce [animation-delay:300ms]" />
+                <span className="size-2 rounded-full bg-[#667781]/40 animate-bounce [animation-delay:0ms]" />
+                <span className="size-2 rounded-full bg-[#667781]/40 animate-bounce [animation-delay:150ms]" />
+                <span className="size-2 rounded-full bg-[#667781]/40 animate-bounce [animation-delay:300ms]" />
               </div>
             </div>
           </div>
