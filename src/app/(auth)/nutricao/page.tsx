@@ -18,6 +18,7 @@ import { NutritionGoalCard } from "@/components/NutritionGoalCard";
 import { NutritionChat } from "@/components/NutritionChat";
 import { MonthlyReport } from "@/components/MonthlyReport";
 import { FoodMoodCorrelation } from "@/components/FoodMoodCorrelation";
+import { WeeklyMirror } from "@/components/WeeklyMirror";
 import { Plus, ChevronDown } from "lucide-react";
 import type { Meal } from "@/types";
 
@@ -342,6 +343,8 @@ export default function NutricaoPage() {
 
           {/* Relatório semanal inteligente */}
           <WeeklyReport meals={meals} weekDays={weekDays} />
+
+          <WeeklyMirror />
 
           {/* Lista de refeições da semana */}
           <div className="space-y-3">

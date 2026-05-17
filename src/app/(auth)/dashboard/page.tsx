@@ -13,6 +13,11 @@ import { StatsView } from "@/components/StatsView";
 import { MayaNudge } from "@/components/MayaNudge";
 import { PorqueCard } from "@/components/PorqueCard";
 import { NutritionMiniCard } from "@/components/NutritionMiniCard";
+import { GentleDayCard } from "@/components/GentleDayCard";
+import { Testemunha } from "@/components/Testemunha";
+import { DayThread } from "@/components/DayThread";
+import { MonthlyPortrait } from "@/components/MonthlyPortrait";
+import { SystemForces } from "@/components/SystemForces";
 import { useTranslation } from "@/lib/useTranslation";
 import type { CheckIn, UserAchievement } from "@/types";
 
@@ -102,6 +107,16 @@ export default function DashboardPage() {
       </div>
 
       <MayaNudge />
+
+      <GentleDayCard />
+
+      <Testemunha />
+
+      <DayThread />
+
+      <MonthlyPortrait />
+
+      <SystemForces />
 
       <PorqueCard gender={gender} />
 

@@ -67,7 +67,12 @@ export async function POST(request: Request) {
 
     const streak = calculateStreak(checkIns.map((c: Record<string, unknown>) => c.date as string));
 
+    // Hora atual no fuso brasileiro (America/Sao_Paulo)
+    const brHour = new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo", hour: "numeric", hour12: false });
+    const currentHour = parseInt(brHour, 10);
+
     const systemPrompt = buildMayaSystemPrompt({
+      currentHour,
       profile: {
         name: (user.user_metadata?.name as string) || "",
         gender: (context.gender as string) || "nao_dizer",
