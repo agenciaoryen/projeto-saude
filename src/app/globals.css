@@ -137,3 +137,11 @@
 @utility safe-bottom {
   padding-bottom: env(safe-area-inset-bottom);
 }
+
+/* App mobile — esconder scrollbar nativa mantendo scroll funcional */
+* {
+  scrollbar-width: none;
+}
+*::-webkit-scrollbar {
+  display: none;
+}

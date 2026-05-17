@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/lib/useTranslation";
 import { photoUrl } from "@/lib/photo-storage";
 import { sumMacros, nutritionScore, getDailyKcalGoal, DEFAULT_DAILY_KCAL } from "@/lib/meal-utils";
-import { ArrowRight, ChevronRight, MoreVertical } from "lucide-react";
+import { ArrowRight, ChevronRight, MoreVertical, Pencil } from "lucide-react";
 import Link from "next/link";
 import {
   DropdownMenu,
@@ -301,6 +301,11 @@ export default function DashboardPage() {
   const tierIdx = TIERS.reduce((acc, tier, i) => (streak >= tier.th ? i : acc), 0);
   const curTier = TIERS[tierIdx];
   const nextTier = TIERS[tierIdx + 1];
+
+  // % de progresso dentro do tier atual (0-100)
+  const tierProgress = nextTier
+    ? Math.min(100, Math.round(((streak - curTier.th) / (nextTier.th - curTier.th)) * 100))
+    : 100;
 
   const streakExtra = nextTier
     ? t("dias_ate_tier", { n: String(nextTier.th - streak), tier: t(nextTier.key) })
@@ -669,22 +674,25 @@ export default function DashboardPage() {
 
           <div className="flex gap-1 mt-3.5">
             {TIERS.map((tier, i) => {
-              const reached = i <= tierIdx;
+              const isPast = i < tierIdx;
               const isCurrent = i === tierIdx;
+              const fillPct = isPast ? 100 : isCurrent ? tierProgress : 0;
               return (
-                <div key={tier.rom} className="flex-1 relative">
-                  <div
-                    className="h-2 rounded-full"
-                    style={{
-                      background: reached ? tier.color : "oklch(.88 .01 160)",
-                      border: isCurrent
-                        ? "1.5px solid oklch(.5 .12 160 / .5)"
-                        : "none",
-                    }}
-                  />
+                <div key={tier.rom} className="flex-1 relative h-2">
+                  {/* track vazio */}
+                  <div className="absolute inset-0 rounded-full" style={{ background: "oklch(.88 .01 160)" }} />
+                  {/* preenchimento colorido */}
+                  {fillPct > 0 && (
+                    <div
+                      className="absolute inset-0 rounded-full"
+                      style={{ background: tier.color, width: `${fillPct}%` }}
+                    />
+                  )}
+                  {/* ponto de progresso no tier atual */}
                   {isCurrent && (
                     <div
-                      className="absolute -top-[3px] -left-[4px] w-3.5 h-3.5 rounded-full bg-primary border-2 border-white shadow-md"
+                      className="absolute -top-[3px] w-3.5 h-3.5 rounded-full bg-primary border-2 border-white shadow-md"
+                      style={{ left: `max(0px, calc(${tierProgress}% - 7px))` }}
                     />
                   )}
                 </div>
@@ -695,33 +703,82 @@ export default function DashboardPage() {
       </Section>
 
       {/* ── CUIDADOS DE HOJE ──────────────────────────────────── */}
-      <Section label={t("cuidados_de_hoje")}>
-        <div className="flex items-baseline gap-1.5 mb-3.5">
-          <span className="text-[36px] font-bold tracking-tight leading-none tabular-nums">
-            {positiveCount}
-          </span>
-          <span className="text-[22px] text-muted-foreground font-normal">
-            / {totalHabits}
-          </span>
-          <span className="ml-auto text-xs font-medium text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-full">
-            {totalHabits > 0 ? positivePct : 0}%
-          </span>
-        </div>
-        <div className="flex flex-wrap gap-1.5">
-          {completedHabits.map(([emoji, label]) => (
+      <Section
+        label={t("cuidados_de_hoje")}
+        extra={
+          <button
+            type="button"
+            onClick={() => router.push("/check-in")}
+            className="flex items-center gap-1 text-primary hover:opacity-70 transition-opacity"
+            aria-label="Editar check-in"
+          >
+            <Pencil className="w-3.5 h-3.5" />
+          </button>
+        }
+      >
+        {!todayCheckIn ? (
+          /* ── SEM CHECK-IN HOJE: CTA proeminente ─── */
+          <button
+            type="button"
+            onClick={() => router.push("/check-in")}
+            className="w-full py-5 rounded-2xl flex flex-col items-center gap-2 border-2 border-dashed transition-colors hover:opacity-80"
+            style={{
+              borderColor: "oklch(.5 .12 160 / .35)",
+              background: "oklch(.5 .12 160 / .04)",
+            }}
+          >
             <span
-              key={label}
-              className="px-2.5 py-[5px] rounded-full text-[11.5px] font-medium border bg-white/70 inline-flex items-center gap-1"
+              className="w-9 h-9 rounded-full flex items-center justify-center"
+              style={{ background: "oklch(.5 .12 160 / .1)" }}
             >
-              {emoji} {label}
+              <Pencil className="w-4 h-4 text-primary" />
             </span>
-          ))}
-          {completedHabits.length === 0 && (
-            <span className="text-sm text-muted-foreground italic">
-              {t("sem_checkin")}
+            <span className="text-[14px] font-semibold text-primary leading-tight">
+              Registrar check-in de hoje
             </span>
-          )}
-        </div>
+            <span className="text-[11px] text-muted-foreground">
+              Seu bem-estar começa aqui
+            </span>
+          </button>
+        ) : (
+          /* ── COM CHECK-IN: mostrar dados + editar ─ */
+          <>
+            <div className="flex items-baseline gap-1.5 mb-3.5">
+              <span className="text-[36px] font-bold tracking-tight leading-none tabular-nums">
+                {positiveCount}
+              </span>
+              <span className="text-[22px] text-muted-foreground font-normal">
+                / {totalHabits}
+              </span>
+              <span className="ml-auto text-xs font-medium text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-full">
+                {totalHabits > 0 ? positivePct : 0}%
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {completedHabits.map(([emoji, label]) => (
+                <span
+                  key={label}
+                  className="px-2.5 py-[5px] rounded-full text-[11.5px] font-medium border bg-white/70 inline-flex items-center gap-1"
+                >
+                  {emoji} {label}
+                </span>
+              ))}
+              {completedHabits.length === 0 && (
+                <span className="text-sm text-muted-foreground italic">
+                  {t("nenhum_cuidado")}
+                </span>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => router.push("/check-in")}
+              className="mt-3 flex items-center gap-1.5 text-[11.5px] text-primary hover:opacity-70 transition-opacity"
+            >
+              <Pencil className="w-3 h-3" />
+              Editar check-in
+            </button>
+          </>
+        )}
       </Section>
 
       {/* ── O FIO DA SEMANA ───────────────────────────────────── */}
