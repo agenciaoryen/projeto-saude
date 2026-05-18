@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "@/lib/useTranslation";
 import { getWeekMondayDate, getWeekSundayDate } from "@/lib/utils";
-import { Loader2, Sparkles } from "lucide-react";
+import { Loader2, Sparkles, ChevronDown } from "lucide-react";
 
 function getWeekLabel(): string {
   const mon = getWeekMondayDate();
@@ -19,6 +19,7 @@ export function WeeklyMirror() {
   const { t, lang } = useTranslation();
   const [narrative, setNarrative] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [open, setOpen] = useState(false);
 
   useEffect(() => {
     const weekKey = getWeekMondayDate();
@@ -52,7 +53,7 @@ export function WeeklyMirror() {
   if (loading) {
     return (
       <div
-        className="rounded-2xl p-5 flex items-center gap-3"
+        className="rounded-2xl p-4 flex items-center gap-3"
         style={{
           background: "linear-gradient(135deg, oklch(.94 .04 280 / .3) 0%, oklch(.97 .02 200 / .2) 100%)",
           border: "1px solid oklch(.6 .08 280 / .15)",
@@ -66,6 +67,8 @@ export function WeeklyMirror() {
 
   if (!narrative) return null;
 
+  const firstPara = narrative.split(/\n+/).filter(Boolean)[0] ?? "";
+
   return (
     <div
       className="rounded-2xl overflow-hidden"
@@ -74,40 +77,71 @@ export function WeeklyMirror() {
         border: "1px solid oklch(.6 .08 280 / .18)",
       }}
     >
-      {/* Header */}
-      <div
-        className="px-5 pt-4 pb-3 flex items-center justify-between"
-        style={{ borderBottom: "1px solid oklch(.6 .08 280 / .1)" }}
+      {/* Header — sempre visível, clicável */}
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="w-full text-left px-5 pt-4 pb-3 flex items-center justify-between"
+        style={{ background: "transparent", border: 0, cursor: "pointer" }}
       >
         <div className="flex items-center gap-2">
           <Sparkles className="size-4 shrink-0" style={{ color: "oklch(.5 .14 280)" }} />
-          <span className="text-sm font-semibold" style={{ color: "oklch(.35 .08 280)" }}>
-            {t("espelho_titulo")}
-          </span>
+          <div>
+            <span className="text-sm font-semibold block" style={{ color: "oklch(.35 .08 280)" }}>
+              {t("espelho_titulo")}
+            </span>
+            <span className="text-[11px] text-muted-foreground tabular-nums">
+              {getWeekLabel()}
+            </span>
+          </div>
         </div>
-        <span className="text-[11px] text-muted-foreground tabular-nums">
-          {getWeekLabel()}
-        </span>
-      </div>
+        <ChevronDown
+          className="size-4 shrink-0 transition-transform duration-200"
+          style={{
+            color: "oklch(.5 .08 280)",
+            transform: open ? "rotate(180deg)" : "rotate(0deg)",
+          }}
+        />
+      </button>
 
-      {/* Narrative */}
-      <div className="px-5 py-4 space-y-3">
-        {narrative.split(/\n+/).filter(Boolean).map((para, i) => (
+      {/* Preview quando fechado */}
+      {!open && (
+        <div
+          className="px-5 pb-4"
+          style={{ borderTop: "1px solid oklch(.6 .08 280 / .08)" }}
+        >
           <p
-            key={i}
-            className="text-sm leading-relaxed"
-            style={{ color: i === 0 ? "var(--foreground)" : "var(--muted-foreground)" }}
+            className="text-sm leading-relaxed line-clamp-2 mt-3"
+            style={{ color: "var(--muted-foreground)" }}
           >
-            {para}
+            {firstPara}
           </p>
-        ))}
-      </div>
+        </div>
+      )}
 
-      <div className="px-5 pb-4">
-        <p className="text-[10px] text-muted-foreground italic">
-          {t("espelho_disclaimer")}
-        </p>
-      </div>
+      {/* Narrativa completa quando aberto */}
+      {open && (
+        <div
+          style={{ borderTop: "1px solid oklch(.6 .08 280 / .1)" }}
+        >
+          <div className="px-5 py-4 space-y-3">
+            {narrative.split(/\n+/).filter(Boolean).map((para, i) => (
+              <p
+                key={i}
+                className="text-sm leading-relaxed"
+                style={{ color: i === 0 ? "var(--foreground)" : "var(--muted-foreground)" }}
+              >
+                {para}
+              </p>
+            ))}
+          </div>
+          <div className="px-5 pb-4">
+            <p className="text-[10px] text-muted-foreground italic">
+              {t("espelho_disclaimer")}
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
