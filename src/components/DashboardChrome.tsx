@@ -12,8 +12,8 @@ import { LogoutButton } from "@/components/LogoutButton";
 import { BottomNav } from "@/components/BottomNav";
 import { EllipsisVertical } from "lucide-react";
 
-const FULLBLEED_ROUTES = ["/dashboard", "/diario", "/diario/novo"];
-const HIDE_BOTTOMNAV_ROUTES = ["/diario/novo"];
+const FULLBLEED_ROUTES = ["/dashboard", "/diario", "/diario/novo", "/check-in"];
+const HIDE_BOTTOMNAV_ROUTES = ["/diario/novo", "/check-in"];
 
 export function HeaderWrapper() {
   const pathname = usePathname();
