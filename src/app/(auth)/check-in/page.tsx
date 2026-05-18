@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { getLocalDate } from "@/lib/utils";
 import { compressImage, uploadToCloud, photoUrl } from "@/lib/photo-storage";
+import { DURATION_CHIPS } from "@/lib/sleep-utils";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -57,6 +58,8 @@ interface CheckInAnswers {
   suicidal_thoughts: boolean;
   drank_water: boolean;
   slept_well: boolean;
+  sleep_quality: number | null;
+  sleep_duration_min: number | null;
   took_medication: boolean;
   talked_to_someone: boolean;
   meditation_prayer_breathing: boolean;
@@ -78,6 +81,8 @@ function defaultAnswers(): CheckInAnswers {
     suicidal_thoughts: false,
     drank_water: false,
     slept_well: false,
+    sleep_quality: null,
+    sleep_duration_min: null,
     took_medication: false,
     talked_to_someone: false,
     meditation_prayer_breathing: false,
@@ -508,6 +513,133 @@ function FeelingStep({ initialValue, onChange, onNext, onPrev }: {
   );
 }
 
+// ── Sleep Step (replaces slept_well habit) ────────────────────────────────────
+
+const SLEEP_EMOJIS: { emoji: string; label: string; quality: number }[] = [
+  { emoji: "😩", label: "Péssimo", quality: 1 },
+  { emoji: "😕", label: "Ruim",    quality: 2 },
+  { emoji: "😐", label: "Ok",      quality: 3 },
+  { emoji: "🙂", label: "Bom",     quality: 4 },
+  { emoji: "😊", label: "Ótimo",   quality: 5 },
+];
+
+function SleepStep({ onAnswer, onPrev }: {
+  onAnswer: (quality: number, durationMin: number | null) => void;
+  onPrev: () => void;
+}) {
+  const [quality, setQuality] = useState<number | null>(null);
+  const [durationMin, setDurationMin] = useState<number | null>(null);
+  const advanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const selectQuality = (q: number) => {
+    setQuality(q);
+    // Auto-advance after 1.4s if user doesn't pick duration
+    if (advanceTimer.current) clearTimeout(advanceTimer.current);
+    advanceTimer.current = setTimeout(() => {
+      onAnswer(q, durationMin);
+    }, 1400);
+  };
+
+  const selectDuration = (mins: number) => {
+    if (advanceTimer.current) clearTimeout(advanceTimer.current);
+    setDurationMin(mins);
+    // Advance quickly once duration is chosen
+    setTimeout(() => {
+      onAnswer(quality!, mins);
+    }, 280);
+  };
+
+  useEffect(() => () => { if (advanceTimer.current) clearTimeout(advanceTimer.current); }, []);
+
+  return (
+    <>
+      <div style={{ fontSize: 72, lineHeight: 1, marginBottom: 20 }}>🌙</div>
+      <h1 style={{ margin: 0, fontSize: 28, fontWeight: 700, letterSpacing: "-0.025em", lineHeight: 1.15 }}>
+        Como foi seu sono?
+      </h1>
+      <p style={{ margin: "8px 0 0", fontSize: 14, color: "var(--muted-foreground)" }}>
+        Ontem à noite
+      </p>
+
+      {/* Quality emojis */}
+      <div style={{ display: "flex", gap: 8, marginTop: 32, justifyContent: "space-between" }}>
+        {SLEEP_EMOJIS.map(({ emoji, label, quality: q }) => (
+          <button
+            key={q}
+            type="button"
+            onClick={() => selectQuality(q)}
+            style={{
+              flex: 1,
+              display: "flex", flexDirection: "column", alignItems: "center", gap: 6,
+              padding: "14px 4px",
+              borderRadius: 16, border: 0, cursor: "pointer",
+              background: quality === q
+                ? "oklch(.5 .12 280 / .18)"
+                : "oklch(1 0 0 / .45)",
+              backdropFilter: "blur(8px)",
+              outline: quality === q ? "2px solid oklch(.5 .12 280 / .5)" : "none",
+              transition: "all .15s ease",
+            }}
+          >
+            <span style={{ fontSize: 32 }}>{emoji}</span>
+            <span style={{ fontSize: 11, fontWeight: 600, color: quality === q ? "oklch(.35 .1 280)" : "var(--muted-foreground)" }}>
+              {label}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      {/* Duration chips — appear after quality selected */}
+      {quality !== null && (
+        <div style={{ marginTop: 20, animation: "fadeIn .2s ease" }}>
+          <p style={{ margin: "0 0 10px", fontSize: 12, color: "var(--muted-foreground)", fontWeight: 600, letterSpacing: ".08em", textTransform: "uppercase" }}>
+            Quanto tempo dormiu?
+          </p>
+          <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
+            {DURATION_CHIPS.map(({ label, value }) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => selectDuration(value)}
+                style={{
+                  padding: "8px 14px", borderRadius: 9999,
+                  border: durationMin === value ? "none" : "1px solid oklch(.5 .12 160 / .2)",
+                  background: durationMin === value ? "var(--primary)" : "oklch(1 0 0 / .55)",
+                  backdropFilter: "blur(8px)", cursor: "pointer",
+                  fontFamily: "inherit", fontSize: 13, fontWeight: 600,
+                  color: durationMin === value ? "#fff" : "var(--foreground)",
+                  transition: "all .15s ease",
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <style>{`@keyframes fadeIn { from { opacity:0; transform:translateY(6px) } to { opacity:1; transform:translateY(0) } }`}</style>
+
+      <button type="button" onClick={onPrev} style={{
+        position: "absolute", bottom: 28, left: 32,
+        background: "transparent", border: 0, cursor: "pointer",
+        fontFamily: "inherit", fontSize: 13, color: "var(--muted-foreground)",
+      }}>← Voltar</button>
+
+      {quality === null && (
+        <button type="button" onClick={() => onAnswer(3, null)} style={{
+          position: "absolute", bottom: 28, right: 32,
+          background: "transparent", border: 0, cursor: "pointer",
+          fontFamily: "inherit", fontSize: 12.5, color: "var(--muted-foreground)",
+          textDecoration: "underline",
+        }}>Pular</button>
+      )}
+    </>
+  );
+}
+
+// ── Habit Step ────────────────────────────────────────────────────────────────
+
 function HabitStep({ habitKey, context, onAnswer, onSkip, onPrev }: {
   habitKey: string;
   context: Record<string, boolean>;
@@ -792,6 +924,16 @@ export default function CheckInPage() {
     setTimeout(() => setStepIdx((i) => Math.min(i + 1, steps.length - 1)), 180);
   }, [steps.length]);
 
+  const handleSleepAnswer = useCallback((quality: number, durationMin: number | null) => {
+    setAnswers((a) => ({
+      ...a,
+      slept_well: quality >= 3,
+      sleep_quality: quality,
+      sleep_duration_min: durationMin,
+    }));
+    setTimeout(() => setStepIdx((i) => Math.min(i + 1, steps.length - 1)), 60);
+  }, [steps.length]);
+
   const handleConfirmAnswer = useCallback((value: boolean) => {
     setAnswers((a) => ({ ...a, suicidal_thoughts: value }));
     setTimeout(() => setStepIdx((i) => Math.min(i + 1, steps.length - 1)), 180);
@@ -803,6 +945,20 @@ export default function CheckInPage() {
     if (!isDone || savedRef.current) return;
     savedRef.current = true;
     const data = latestAnswers.current;
+
+    // Post sleep log separately if quality was captured
+    if (data.sleep_quality !== null) {
+      fetch("/api/sleep", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          date: data.date,
+          quality: data.sleep_quality,
+          duration_min: data.sleep_duration_min,
+          source: "checkin",
+        }),
+      }).catch(() => {});
+    }
 
     fetch("/api/check-ins", {
       method: "POST",
@@ -859,10 +1015,15 @@ export default function CheckInPage() {
         onNext={goNext} onPrev={goPrev}
       />
     );
-    if (cur.kind === "habit") return (
-      <HabitStep habitKey={cur.habitKey} context={context}
-        onAnswer={handleHabitAnswer} onSkip={goNext} onPrev={goPrev} />
-    );
+    if (cur.kind === "habit") {
+      if (cur.habitKey === "slept_well") return (
+        <SleepStep onAnswer={handleSleepAnswer} onPrev={goPrev} />
+      );
+      return (
+        <HabitStep habitKey={cur.habitKey} context={context}
+          onAnswer={handleHabitAnswer} onSkip={goNext} onPrev={goPrev} />
+      );
+    }
     if (cur.kind === "gratitude") return (
       <GratitudeStep
         initialValue={answers.gratitude} initialPhotos={answers.gratitude_photos}

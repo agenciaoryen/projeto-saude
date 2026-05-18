@@ -107,6 +107,37 @@ export interface MealFormData {
   status_analise: MealAnalysisStatus;
 }
 
+// ── Sleep ─────────────────────────────────────────────────────────────────────
+
+export type SleepSource = "checkin" | "battery" | "visibility" | "google_fit";
+
+export interface SleepLog {
+  id: string;
+  user_id: string;
+  date: string;           // YYYY-MM-DD — data do despertar
+  sleep_start: string | null;   // ISO timestamp
+  sleep_end: string | null;     // ISO timestamp
+  duration_min: number | null;
+  quality: number | null;       // 1–5
+  interruptions: number;
+  had_dreams: boolean | null;
+  notes: string | null;
+  source: SleepSource;
+  raw_data: Record<string, unknown> | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SleepStats {
+  avgDurationMin: number;
+  avgQuality: number;
+  totalNights: number;
+  bestNight: SleepLog | null;
+  worstNight: SleepLog | null;
+  consistencyScore: number; // 0–100
+  weeklyLogs: SleepLog[];
+}
+
 export interface DailyNutritionSummary {
   total_calorias: number;
   total_carboidratos: number;

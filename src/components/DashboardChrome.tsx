@@ -12,7 +12,7 @@ import { LogoutButton } from "@/components/LogoutButton";
 import { BottomNav } from "@/components/BottomNav";
 import { EllipsisVertical } from "lucide-react";
 
-const FULLBLEED_ROUTES = ["/dashboard", "/diario", "/diario/novo", "/check-in", "/historico", "/nutricao"];
+const FULLBLEED_ROUTES = ["/dashboard", "/diario", "/diario/novo", "/check-in", "/historico", "/nutricao", "/sono"];
 const HIDE_BOTTOMNAV_ROUTES = ["/diario/novo", "/check-in"];
 
 export function HeaderWrapper() {
@@ -42,6 +42,16 @@ export function HeaderWrapper() {
                   className="w-full text-left px-2 py-1.5 text-sm block"
                 >
                   🍽️ Nutrição
+                </Link>
+              }
+            />
+            <DropdownMenuItem
+              render={
+                <Link
+                  href="/sono"
+                  className="w-full text-left px-2 py-1.5 text-sm block"
+                >
+                  🌙 Sono
                 </Link>
               }
             />

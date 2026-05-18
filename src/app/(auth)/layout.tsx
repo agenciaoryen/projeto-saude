@@ -1,4 +1,5 @@
 import { HeaderWrapper, MainWrapper, BottomNavWrapper } from "@/components/DashboardChrome";
+import { SleepCapture } from "@/components/SleepCapture";
 
 export default function AuthLayout({
   children,
@@ -7,6 +8,7 @@ export default function AuthLayout({
 }) {
   return (
     <div className="flex flex-col min-h-full">
+      <SleepCapture />
       <HeaderWrapper />
       <MainWrapper>{children}</MainWrapper>
       <BottomNavWrapper />
