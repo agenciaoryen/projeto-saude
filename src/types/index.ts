@@ -60,6 +60,7 @@ export type MealClassification =
   | "leve_proteina"
   | "alta_acucar"
   | "alta_gordura"
+  | "alta_sal"
   | "vegetais_baixo"
   | "nao_identificada";
 

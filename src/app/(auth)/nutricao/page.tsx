@@ -143,7 +143,7 @@ export default function NutricaoPage() {
     if (!carbOk) issues.push(carbPct > 65 ? "Carboidratos acima do ideal" : "Carboidratos abaixo do ideal");
     if (!protOk) issues.push(protPct < 15 ? "Proteína abaixo do ideal" : "Proteína acima do ideal");
     if (!gordOk) issues.push(gordPct > 35 ? "Gorduras acima do ideal" : "Gorduras abaixo do ideal");
-    if (freq < 3) issues.push("Poucas refeições no dia (ideal: 3-4)");
+    if (freq < 3) issues.push("Poucas refeições registradas (ideal: 3+). Se comeu mais, vale anotar para uma análise mais fiel.");
 
     const classCount = new Map<string, number>();
     for (const m of todayMeals) {
@@ -348,6 +348,11 @@ export default function NutricaoPage() {
           {/* Lista de refeições */}
           <div className="space-y-3">
             <p className="text-sm font-medium">{t("refeicoes_hoje")}</p>
+            {todayMeals.length > 0 && todayMeals.length < 3 && new Date().getHours() >= 14 && (
+              <p className="text-xs text-muted-foreground bg-muted/50 rounded-xl px-3 py-2.5 leading-relaxed">
+                Você registrou {todayMeals.length} {todayMeals.length === 1 ? "refeição" : "refeições"} hoje — o resumo reflete apenas o que foi anotado. Se comeu mais, vale registrar para uma análise mais completa.
+              </p>
+            )}
             {todayMeals.length === 0 ? (
               <Card className="rounded-2xl border-dashed border-primary/50 bg-primary/5">
                 <CardContent className="py-8 text-center space-y-4">

@@ -56,7 +56,9 @@ export function NutritionTips() {
 
     const sugarCount = recentMeals.filter((m) => m.classificacao === "alta_acucar").length;
     const fatCount = recentMeals.filter((m) => m.classificacao === "alta_gordura").length;
+    const saltCount = recentMeals.filter((m) => m.classificacao === "alta_sal").length;
     const balancedCount = recentMeals.filter((m) => m.classificacao === "equilibrada").length;
+    const avgMealsPerDay = daysWithMeals > 0 ? recentMeals.length / daysWithMeals : 0;
 
     // Check-ins recentes
     const recentCheckIns = checkIns.filter((c) => {
@@ -145,6 +147,26 @@ export function NutritionTips() {
         title: "Tá comendo o suficiente?",
         body: `Sua média diária está em ${avgKcalPerDay} kcal (meta: ${goal}). Comer pouco pode deixar o metabolismo lento e causar cansaço. Inclua snacks saudáveis entre as refeições.`,
         emoji: "🥜",
+      });
+    }
+
+    // 8. Alta em sódio
+    if (saltCount >= 3) {
+      result.push({
+        icon: Lightbulb,
+        title: "Atenção ao sódio",
+        body: `Você teve ${saltCount} refeições com alto teor de sal nos últimos dias. O excesso de sódio pode causar retenção de líquido e pressão elevada. Prefira temperos naturais e alimentos frescos.`,
+        emoji: "🧂",
+      });
+    }
+
+    // 9. Poucas refeições registradas — pode ser registro incompleto
+    if (avgMealsPerDay < 2.5 && daysWithMeals >= 3 && avgKcalPerDay >= 1200) {
+      result.push({
+        icon: Coffee,
+        title: "Registrando todas as refeições?",
+        body: `Você tem registrado em média ${avgMealsPerDay.toFixed(1)} refeições por dia. Se comer mais do que isso, vale anotar tudo — a análise de qualidade fica mais precisa quando os dados estão completos.`,
+        emoji: "📋",
       });
     }
 

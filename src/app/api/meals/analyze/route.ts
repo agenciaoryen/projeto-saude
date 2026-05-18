@@ -24,8 +24,14 @@ Formato exato:
   "observacao_curta": "breve observação em português"
 }
 
-Classificação deve ser uma de: "equilibrada", "leve_proteina", "alta_acucar", "alta_gordura", "vegetais_baixo"
-Se não conseguir identificar, classifique como "nao_identificada".
+Regras de classificação (escolha UMA):
+- "equilibrada": refeição balanceada com proteína, carboidrato e gordura em proporções razoáveis.
+- "leve_proteina": pouca proteína em relação ao total calórico.
+- "alta_acucar": contém açúcar ADICIONADO em quantidade significativa (doces, refrigerante, suco industrializado, sobremesas, bala, chocolate com açúcar). Alimentos naturalmente ricos em amido como pipoca, pão, arroz, batata NÃO são "alta_acucar".
+- "alta_gordura": predominantemente gordurosa (frituras, carnes gordas, queijo, manteiga em excesso).
+- "alta_sal": alimentos muito salgados ou processados com alto teor de sódio (pipoca salgada, salgadinhos, embutidos, fast food, enlatados). Use quando sal/sódio for o destaque negativo.
+- "vegetais_baixo": predominantemente vegetais e/ou muito baixa caloria.
+Se não conseguir identificar com confiança, use "nao_identificada".
 Observação em português, 1-2 frases, tom acolhedor.
 NUNCA use markdown (**), travessão (—) ou caracteres especiais na observação — apenas texto plano com vírgula e ponto final.`;
 

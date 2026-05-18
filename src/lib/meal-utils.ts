@@ -51,6 +51,7 @@ export function classificationLabel(c: MealClassification): string {
     leve_proteina: "Leve em proteína",
     alta_acucar: "Alta em açúcar",
     alta_gordura: "Alta em gordura",
+    alta_sal: "Alta em sódio",
     vegetais_baixo: "Vegetais / Baixa caloria",
     nao_identificada: "Não identificada",
   };
@@ -64,6 +65,7 @@ export function classificationColor(c: MealClassification): string {
     leve_proteina: "bg-yellow-100 text-yellow-800",
     alta_acucar: "bg-red-100 text-red-800",
     alta_gordura: "bg-orange-100 text-orange-800",
+    alta_sal: "bg-purple-100 text-purple-800",
     vegetais_baixo: "bg-blue-100 text-blue-800",
     nao_identificada: "bg-gray-100 text-gray-600",
   };
@@ -152,6 +154,7 @@ export function nutritionScore(meals: { macros: Macros | null; classificacao: Me
     leve_proteina: 5,
     nao_identificada: 5,
     alta_gordura: 2,
+    alta_sal: 2,
     alta_acucar: 1,
   };
   const qualityTotal = meals
