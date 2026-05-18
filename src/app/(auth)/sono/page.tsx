@@ -637,10 +637,27 @@ export default function SonoPage() {
 
         {pushState === "granted" && (
           <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", borderRadius: 12, background: PL, border: PB }}>
-            <BellRing className="size-4" style={{ color: P }} />
-            <p style={{ margin: 0, fontSize: 13, color: "oklch(.35 .1 160)", fontWeight: 500 }}>
+            <BellRing className="size-4 shrink-0" style={{ color: P }} />
+            <p style={{ margin: 0, flex: 1, fontSize: 13, color: "oklch(.35 .1 160)", fontWeight: 500 }}>
               Lembretes de sono ativos
             </p>
+            <button
+              type="button"
+              onClick={async () => {
+                const res = await fetch("/api/push/test", { method: "POST" });
+                if (!res.ok) {
+                  const { error } = await res.json();
+                  alert(error ?? "Erro ao enviar teste");
+                }
+              }}
+              style={{
+                padding: "4px 10px", borderRadius: 9999, border: 0, cursor: "pointer",
+                background: P, color: "#fff", fontFamily: "inherit",
+                fontSize: 11, fontWeight: 600, flexShrink: 0,
+              }}
+            >
+              Testar
+            </button>
           </div>
         )}
 
