@@ -30,31 +30,26 @@ export function urlBase64ToUint8Array(base64String: string): ArrayBuffer {
 /**
  * Request push permission and create a subscription.
  * Registers the SW, waits for it to become active (navigator.serviceWorker.ready),
- * then subscribes. Returns null on failure or denial.
+ * then subscribes. Returns { sub, error } — sub is null on failure.
  */
-export async function requestPushSubscription(): Promise<PushSubscription | null> {
-  if (typeof window === "undefined") return null;
-  if (!("serviceWorker" in navigator) || !("PushManager" in window)) return null;
+export async function requestPushSubscription(): Promise<{ sub: PushSubscription | null; error: string | null }> {
+  if (typeof window === "undefined") return { sub: null, error: "SSR" };
+  if (!("serviceWorker" in navigator) || !("PushManager" in window)) return { sub: null, error: "Push não suportado neste navegador" };
 
   const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-  if (!vapidKey) {
-    console.warn("NEXT_PUBLIC_VAPID_PUBLIC_KEY not set");
-    return null;
-  }
+  if (!vapidKey) return { sub: null, error: "VAPID key não configurada" };
 
   try {
-    // Register (no-op if already registered)
     await navigator.serviceWorker.register("/sw.js");
-    // Wait for SW to be active — this is what enables PushManager
     const reg = await navigator.serviceWorker.ready;
-
     const sub = await reg.pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: urlBase64ToUint8Array(vapidKey),
     });
-    return sub;
+    return { sub, error: null };
   } catch (err) {
-    console.warn("Push subscription failed:", err);
-    return null;
+    const msg = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+    console.error("Push subscription failed:", msg);
+    return { sub: null, error: msg };
   }
 }

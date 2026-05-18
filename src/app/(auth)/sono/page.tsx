@@ -61,16 +61,14 @@ type PushState = "unknown" | "granted" | "denied" | "loading" | "unsupported";
 
 type PushResult = "granted" | "denied" | "error";
 
-async function subscribeToPush(): Promise<PushResult> {
-  const sub = await requestPushSubscription();
+async function subscribeToPush(): Promise<{ result: PushResult; errorMsg?: string }> {
+  const { sub, error } = await requestPushSubscription();
   if (!sub) {
-    // Distinguish user-denied from other failures
     if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "denied") {
-      return "denied";
+      return { result: "denied" };
     }
-    return "error";
+    return { result: "error", errorMsg: error ?? undefined };
   }
-  // Browser permission is the critical part — save to server best-effort
   try {
     await fetch("/api/push/subscribe", {
       method: "POST",
@@ -78,7 +76,7 @@ async function subscribeToPush(): Promise<PushResult> {
       body: JSON.stringify(sub),
     });
   } catch { /* retry on next visit */ }
-  return "granted";
+  return { result: "granted" };
 }
 
 // ── Input style shared ────────────────────────────────────────────────────────
@@ -378,7 +376,7 @@ export default function SonoPage() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [pushState, setPushState] = useState<PushState>("unknown");
-  const [pushError, setPushError] = useState(false);
+  const [pushError, setPushError] = useState<string | null>(null);
   const [config, setConfig] = useState<SleepConfig>(DEFAULT_CONFIG);
   const [configSaving, setConfigSaving] = useState(false);
 
@@ -420,16 +418,15 @@ export default function SonoPage() {
 
   const handleEnablePush = async () => {
     setPushState("loading");
-    const result = await subscribeToPush();
+    const { result, errorMsg } = await subscribeToPush();
     if (result === "granted") {
       setPushState("granted");
     } else if (result === "denied") {
       setPushState("denied");
     } else {
-      // Transient error — go back to unknown so user can try again
       setPushState("unknown");
-      setPushError(true);
-      setTimeout(() => setPushError(false), 4000);
+      setPushError(errorMsg ?? "Erro desconhecido");
+      setTimeout(() => setPushError(null), 8000);
     }
   };
 
@@ -625,11 +622,16 @@ export default function SonoPage() {
         )}
 
         {pushError && pushState === "unknown" && (
-          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", borderRadius: 12, background: "oklch(.95 .02 60 / .5)", border: "1px solid oklch(.7 .06 60 / .3)" }}>
-            <BellOff className="size-4" style={{ color: "oklch(.55 .1 60)" }} />
-            <p style={{ margin: 0, fontSize: 12, color: "oklch(.4 .08 60)", fontWeight: 500 }}>
-              Não foi possível ativar. Verifique a conexão e tente novamente.
-            </p>
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 8, padding: "10px 14px", borderRadius: 12, background: "oklch(.95 .02 60 / .5)", border: "1px solid oklch(.7 .06 60 / .3)" }}>
+            <BellOff className="size-4 mt-0.5 shrink-0" style={{ color: "oklch(.55 .1 60)" }} />
+            <div>
+              <p style={{ margin: 0, fontSize: 12, color: "oklch(.4 .08 60)", fontWeight: 600 }}>
+                Não foi possível ativar
+              </p>
+              <p style={{ margin: "2px 0 0", fontSize: 11, color: "oklch(.5 .06 60)", fontFamily: "monospace", wordBreak: "break-all" }}>
+                {pushError}
+              </p>
+            </div>
           </div>
         )}
 
