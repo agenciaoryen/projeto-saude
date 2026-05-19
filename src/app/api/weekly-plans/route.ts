@@ -13,14 +13,13 @@ export async function GET() {
 
   const { data: plan, error } = await admin
     .from("weekly_plans")
-    .select(`*, weekly_reviews(*), weekly_focus_goals(goal_id, goals(*))`)
+    .select(`*, weekly_reviews(*), weekly_focus_goals(goal_id, goals(*)), weekly_tasks(*)`)
     .eq("user_id", session.user.id)
     .eq("week_start", weekStart)
     .maybeSingle();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  // Also return last 4 weeks for history
   const { data: history } = await admin
     .from("weekly_plans")
     .select(`*, weekly_reviews(*), weekly_focus_goals(goal_id)`)
@@ -38,7 +37,7 @@ export async function POST(req: Request) {
   if (!session) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
 
   const body = await req.json();
-  const { main_focus, linked_goal_id, focus_goal_ids } = body;
+  const { main_focus, main_focus_2, main_focus_3, linked_goal_id, focus_goal_ids } = body;
 
   if (!main_focus) return NextResponse.json({ error: "Foco principal obrigatório" }, { status: 400 });
 
@@ -52,6 +51,8 @@ export async function POST(req: Request) {
         user_id: session.user.id,
         week_start: weekStart,
         main_focus,
+        main_focus_2: main_focus_2 || null,
+        main_focus_3: main_focus_3 || null,
         linked_goal_id: linked_goal_id || null,
         updated_at: new Date().toISOString(),
       },
@@ -62,9 +63,7 @@ export async function POST(req: Request) {
 
   if (error || !plan) return NextResponse.json({ error: error?.message }, { status: 500 });
 
-  // Replace focus goals
   await admin.from("weekly_focus_goals").delete().eq("weekly_plan_id", plan.id);
-
   if (focus_goal_ids?.length) {
     await admin.from("weekly_focus_goals").insert(
       focus_goal_ids.map((gid: string) => ({ weekly_plan_id: plan.id, goal_id: gid }))

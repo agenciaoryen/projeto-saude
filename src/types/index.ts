@@ -203,16 +203,43 @@ export interface Goal {
   stages?: GoalStage[];
 }
 
+export type TaskArea =
+  | "saude" | "carreira" | "financas" | "relacionamentos"
+  | "desenvolvimento" | "familia" | "lazer" | "espiritualidade" | "outros";
+
+export type TaskType = "crescimento" | "manutencao";
+export type TaskStatus = "pendente" | "concluida" | "pulada";
+
+export interface WeeklyTask {
+  id: string;
+  weekly_plan_id: string;
+  user_id: string;
+  title: string;
+  area: TaskArea;
+  task_type: TaskType;
+  linked_goal_id: string | null;
+  linked_action_id: string | null;
+  day_of_week: number;        // 0=Seg … 6=Dom
+  scheduled_time: string | null; // "HH:MM"
+  status: TaskStatus;
+  position: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface WeeklyPlan {
   id: string;
   user_id: string;
   week_start: string;       // YYYY-MM-DD (segunda-feira)
   main_focus: string;
+  main_focus_2: string | null;
+  main_focus_3: string | null;
   linked_goal_id: string | null;
   created_at: string;
   updated_at: string;
   focus_goals?: Goal[];
   review?: WeeklyReview | null;
+  tasks?: WeeklyTask[];
 }
 
 export interface WeeklyReview {
