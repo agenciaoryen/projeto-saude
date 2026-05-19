@@ -81,10 +81,6 @@ async function subscribeToPush(): Promise<{ result: PushResult; errorMsg?: strin
 
 // ── Input style shared ────────────────────────────────────────────────────────
 
-// Wrapper carrega borda e radius; o overflow:hidden evita que o input[type="time"]
-// (que tem largura mínima nativa no mobile) vaze para fora.
-// Altura explícita no wrapper + height:100% no input centraliza o texto
-// independente de como o browser renderiza o input sem borda.
 const timeInputWrap: React.CSSProperties = {
   overflow: "hidden",
   minWidth: 0,
@@ -92,15 +88,16 @@ const timeInputWrap: React.CSSProperties = {
   border: "1px solid oklch(.7 .04 160 / .3)",
   background: "oklch(.97 .005 160)",
   height: 42,
+  display: "flex",
+  alignItems: "center",
 };
 
 const timeInputStyle: React.CSSProperties = {
+  flex: "1 1 0",
   width: "100%",
-  height: "100%",
   maxWidth: "100%",
   boxSizing: "border-box",
   minWidth: 0,
-  display: "block",
   padding: "0 10px",
   border: "none",
   borderRadius: 0,
@@ -306,13 +303,17 @@ function EditSleepModal({ log, onClose, onSaved }: {
 
         {/* Times */}
         <div style={{ display: "flex", flexDirection: "column", gap: 14, marginBottom: 20 }}>
-          <div style={timeInputWrap}>
+          <div>
             {label11("Dormiu às")}
-            <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} style={timeInputStyle} />
+            <div style={timeInputWrap}>
+              <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} style={timeInputStyle} />
+            </div>
           </div>
-          <div style={timeInputWrap}>
+          <div>
             {label11("Acordou às")}
-            <input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} style={timeInputStyle} />
+            <div style={timeInputWrap}>
+              <input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} style={timeInputStyle} />
+            </div>
           </div>
         </div>
 
@@ -415,29 +416,33 @@ function SleepConfigCard({ config, onChange, onSave, saving }: {
       <CardContent className="p-4 space-y-4">
         <p className="text-sm font-semibold">⚙️ Minhas configurações de sono</p>
 
-        {/* Bedtime + Wake — stacked, overflow-hidden prevents time input bleed */}
+        {/* Bedtime + Wake — stacked */}
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <div style={timeInputWrap}>
+          <div>
             <p style={{ margin: "0 0 6px", fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--muted-foreground)" }}>
               Horário de dormir
             </p>
-            <input
-              type="time"
-              value={config.bedtime}
-              onChange={(e) => onChange({ ...config, bedtime: e.target.value })}
-              style={timeInputStyle}
-            />
+            <div style={timeInputWrap}>
+              <input
+                type="time"
+                value={config.bedtime}
+                onChange={(e) => onChange({ ...config, bedtime: e.target.value })}
+                style={timeInputStyle}
+              />
+            </div>
           </div>
-          <div style={timeInputWrap}>
+          <div>
             <p style={{ margin: "0 0 6px", fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--muted-foreground)" }}>
               Horário de acordar
             </p>
-            <input
-              type="time"
-              value={config.wake_time}
-              onChange={(e) => onChange({ ...config, wake_time: e.target.value })}
-              style={timeInputStyle}
-            />
+            <div style={timeInputWrap}>
+              <input
+                type="time"
+                value={config.wake_time}
+                onChange={(e) => onChange({ ...config, wake_time: e.target.value })}
+                style={timeInputStyle}
+              />
+            </div>
           </div>
         </div>
 
