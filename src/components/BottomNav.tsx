@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Home, Camera, Moon, CheckCircle2, Grid2x2, BookOpen, MessageCircle, BarChart2, User, Settings } from "lucide-react";
+// CheckCircle2 used in MORE_ITEMS (check-in entry)
 import { useTranslation } from "@/lib/useTranslation";
 import { UserAvatar } from "@/components/UserAvatar";
 import { useState } from "react";
@@ -10,11 +11,11 @@ import { useState } from "react";
 // ── More sheet items ──────────────────────────────────────────────────────────
 
 const MORE_ITEMS = [
-  { href: "/diario",          icon: BookOpen,     label: "Diário" },
-  { href: "/insights",        icon: MessageCircle, label: "Maya" },
-  { href: "/historico",       icon: BarChart2,     label: "Histórico" },
-  { href: "/perfil",          icon: User,          label: "Perfil" },
-  { href: "/configurações",   icon: Settings,      label: "Config." },
+  { href: "/diario",          icon: BookOpen,      label: "Diário" },
+  { href: "/check-in",        icon: CheckCircle2,  label: "Check-in" },
+  { href: "/historico",       icon: BarChart2,      label: "Histórico" },
+  { href: "/perfil",          icon: User,           label: "Perfil" },
+  { href: "/configurações",   icon: Settings,       label: "Config." },
 ];
 
 function MoreSheet({ onClose }: { onClose: () => void }) {
@@ -146,10 +147,10 @@ export function BottomNav() {
             </span>
           </Link>
 
-          {/* Check-in */}
-          <Link href="/check-in" style={linkStyle(isActive("/check-in"))} prefetch>
-            <CheckCircle2 size={22} />
-            <span style={{ fontSize: 10, fontWeight: 600, lineHeight: 1 }}>Check-in</span>
+          {/* Maya */}
+          <Link href="/insights" style={linkStyle(isActive("/insights"))} prefetch>
+            <MessageCircle size={22} />
+            <span style={{ fontSize: 10, fontWeight: 600, lineHeight: 1 }}>Maya</span>
           </Link>
 
           {/* Mais */}

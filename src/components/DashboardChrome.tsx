@@ -98,10 +98,10 @@ export function HeaderWrapper() {
 export function MainWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   if (FULLBLEED_ROUTES.includes(pathname)) {
-    return <main className="flex-1 w-full">{children}</main>;
+    return <main className="flex-1 overflow-y-auto min-h-0 w-full">{children}</main>;
   }
   return (
-    <main className="flex-1 max-w-4xl mx-auto w-full p-4 sm:p-6 pb-28">
+    <main className="flex-1 overflow-y-auto min-h-0 max-w-4xl mx-auto w-full p-4 sm:p-6 pb-28">
       {children}
     </main>
   );

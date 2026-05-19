@@ -523,7 +523,7 @@ export default function DashboardPage() {
               </button>
             }
           />
-          <DropdownMenuContent align="end">
+          <DropdownMenuContent align="end" side="bottom">
             <DropdownMenuItem
               render={
                 <Link href="/perfil" className="w-full text-left px-2 py-1.5 text-sm block">

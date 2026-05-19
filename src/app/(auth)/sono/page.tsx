@@ -183,19 +183,146 @@ function ManualLogModal({ onClose, onSaved }: { onClose: () => void; onSaved: ()
   );
 }
 
+// ── Sleep edit modal ──────────────────────────────────────────────────────────
+
+function toSPTime(ts: string | null): string {
+  if (!ts) return "";
+  const d = new Date(ts);
+  const sp = new Date(d.getTime() - 3 * 60 * 60 * 1000);
+  return `${String(sp.getUTCHours()).padStart(2, "0")}:${String(sp.getUTCMinutes()).padStart(2, "0")}`;
+}
+
+function EditSleepModal({ log, onClose, onSaved }: {
+  log: SleepLog;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [startTime, setStartTime] = useState(toSPTime(log.sleep_start));
+  const [endTime, setEndTime] = useState(toSPTime(log.sleep_end));
+  const [quality, setQuality] = useState<number | null>(log.quality ?? null);
+  const [saving, setSaving] = useState(false);
+
+  const save = async () => {
+    setSaving(true);
+    const sleepStart = startTime ? `${log.date}T${startTime}:00-03:00` : null;
+    let sleepEnd: string | null = null;
+    let durationMin: number | null = null;
+
+    if (endTime) {
+      const [sh, sm] = startTime.split(":").map(Number);
+      const [eh, em] = endTime.split(":").map(Number);
+      const startMin = sh * 60 + sm;
+      const endMin = eh * 60 + em;
+      // If end < start it crossed midnight: end is next calendar day
+      const crossMidnight = endMin <= startMin;
+      const endDate = crossMidnight
+        ? new Date(new Date(log.date + "T12:00:00").getTime() + 86400000).toISOString().split("T")[0]
+        : log.date;
+      sleepEnd = `${endDate}T${endTime}:00-03:00`;
+      durationMin = crossMidnight ? (24 * 60 - startMin) + endMin : endMin - startMin;
+    }
+
+    await fetch("/api/sleep", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        date: log.date,
+        source: log.source,
+        sleep_start: sleepStart,
+        sleep_end: sleepEnd,
+        duration_min: durationMin,
+        quality: quality ?? log.quality,
+      }),
+    });
+    setSaving(false);
+    onSaved();
+    onClose();
+  };
+
+  const dayLabel = new Date(log.date + "T12:00:00").toLocaleDateString("pt-BR", {
+    weekday: "long", day: "numeric", month: "long",
+  });
+
+  return (
+    <div onClick={onClose} style={{
+      position: "fixed", inset: 0, zIndex: 100,
+      background: "oklch(.1 .02 160 / .45)", backdropFilter: "blur(6px)",
+      display: "flex", alignItems: "flex-end",
+    }}>
+      <div onClick={(e) => e.stopPropagation()} style={{
+        width: "100%", borderRadius: "24px 24px 0 0",
+        background: "oklch(.99 .003 160)",
+        padding: "24px 20px calc(env(safe-area-inset-bottom) + 28px)",
+        boxShadow: "0 -8px 32px oklch(.2 .04 160 / .1)",
+      }}>
+        <div style={{ width: 36, height: 4, borderRadius: 9999, background: "oklch(.85 .02 160)", margin: "0 auto 16px" }} />
+        <h2 style={{ margin: "0 0 4px", fontSize: 17, fontWeight: 700 }}>Editar sono</h2>
+        <p style={{ margin: "0 0 20px", fontSize: 12, color: "var(--muted-foreground)", textTransform: "capitalize" }}>{dayLabel}</p>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 14, marginBottom: 20 }}>
+          <div>
+            <p style={{ margin: "0 0 6px", fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--muted-foreground)" }}>
+              Dormiu às
+            </p>
+            <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} style={timeInputStyle} />
+          </div>
+          <div>
+            <p style={{ margin: "0 0 6px", fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--muted-foreground)" }}>
+              Acordou às
+            </p>
+            <input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} style={timeInputStyle} />
+          </div>
+        </div>
+
+        <p style={{ margin: "0 0 10px", fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--muted-foreground)" }}>
+          Qualidade
+        </p>
+        <div style={{ display: "flex", gap: 8, marginBottom: 24 }}>
+          {[1, 2, 3, 4, 5].map((q) => (
+            <button key={q} type="button" onClick={() => setQuality(q)} style={{
+              flex: 1, padding: "10px 2px", borderRadius: 12, border: 0, cursor: "pointer",
+              display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
+              background: quality === q ? PL : "oklch(.95 .005 160)",
+              outline: quality === q ? `2px solid ${P}` : "none",
+              transition: "all .15s ease",
+            }}>
+              <span style={{ fontSize: 22 }}>{QUALITY_EMOJI[q]}</span>
+              <span style={{ fontSize: 9, fontWeight: 700, color: quality === q ? "oklch(.35 .1 160)" : "var(--muted-foreground)" }}>
+                {QUALITY_LABEL[q]}
+              </span>
+            </button>
+          ))}
+        </div>
+
+        <button type="button" onClick={save} disabled={saving} style={{
+          width: "100%", height: 50, borderRadius: 14, border: 0,
+          cursor: saving ? "not-allowed" : "pointer",
+          background: P, color: "#fff",
+          fontFamily: "inherit", fontSize: 15, fontWeight: 700,
+          opacity: saving ? 0.7 : 1, transition: "opacity .15s ease",
+        }}>{saving ? "Salvando…" : "Salvar alterações"}</button>
+      </div>
+    </div>
+  );
+}
+
 // ── History row ───────────────────────────────────────────────────────────────
 
-function SleepHistoryRow({ log }: { log: SleepLog }) {
+function SleepHistoryRow({ log, onEdit }: { log: SleepLog; onEdit: (log: SleepLog) => void }) {
   const score = sleepScore(log);
   const dayLabel = new Date(log.date + "T12:00:00").toLocaleDateString("pt-BR", {
     weekday: "short", day: "numeric", month: "short",
   });
 
   return (
-    <div style={{
-      display: "flex", alignItems: "center", gap: 12,
-      padding: "11px 0", borderBottom: "1px solid oklch(.88 .02 160 / .5)",
-    }}>
+    <div
+      onClick={() => onEdit(log)}
+      style={{
+        display: "flex", alignItems: "center", gap: 12,
+        padding: "11px 0", borderBottom: "1px solid oklch(.88 .02 160 / .5)",
+        cursor: "pointer",
+      }}
+    >
       <div style={{ fontSize: 22, flexShrink: 0 }}>
         {log.quality ? QUALITY_EMOJI[log.quality] : "😴"}
       </div>
@@ -206,8 +333,11 @@ function SleepHistoryRow({ log }: { log: SleepLog }) {
           {log.sleep_start && log.sleep_end ? ` · ${fmt12(log.sleep_start)}–${fmt12(log.sleep_end)}` : ""}
         </p>
       </div>
-      <div style={{ minWidth: 38, textAlign: "right", fontSize: 15, fontWeight: 700, color: scoreColor(score) }}>
-        {score}
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div style={{ minWidth: 38, textAlign: "right", fontSize: 15, fontWeight: 700, color: scoreColor(score) }}>
+          {score}
+        </div>
+        <span style={{ fontSize: 11, color: "oklch(.65 .04 160)" }}>✏️</span>
       </div>
     </div>
   );
@@ -375,6 +505,7 @@ export default function SonoPage() {
   const [stats, setStats] = useState<SleepStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [editingLog, setEditingLog] = useState<SleepLog | null>(null);
   const [pushState, setPushState] = useState<PushState>("unknown");
   const [pushError, setPushError] = useState<string | null>(null);
   const [config, setConfig] = useState<SleepConfig>(DEFAULT_CONFIG);
@@ -689,7 +820,7 @@ export default function SonoPage() {
                 Pontuação = duração + qualidade + sem interrupções
               </p>
               {logs.slice(0, 14).map((log) => (
-                <SleepHistoryRow key={log.id} log={log} />
+                <SleepHistoryRow key={log.id} log={log} onEdit={setEditingLog} />
               ))}
             </CardContent>
           </Card>
@@ -702,6 +833,9 @@ export default function SonoPage() {
 
       {showModal && (
         <ManualLogModal onClose={() => setShowModal(false)} onSaved={loadLogs} />
+      )}
+      {editingLog && (
+        <EditSleepModal log={editingLog} onClose={() => setEditingLog(null)} onSaved={loadLogs} />
       )}
     </div>
   );

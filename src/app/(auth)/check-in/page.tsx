@@ -99,6 +99,7 @@ function defaultAnswers(): CheckInAnswers {
 function buildSteps(enabledKeys: string[], hasSuicidal: boolean): Step[] {
   const steps: Step[] = [{ kind: "feeling" }];
   for (const key of HABIT_ORDER) {
+    if (key === "slept_well") continue; // sleep captured via módulo de sono
     if (enabledKeys.includes(key)) steps.push({ kind: "habit", habitKey: key });
   }
   steps.push({ kind: "gratitude" });
