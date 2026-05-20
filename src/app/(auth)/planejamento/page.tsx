@@ -189,7 +189,7 @@ function AddTaskSheet({
 }) {
   const [title, setTitle]           = useState("");
   const [area, setArea]             = useState<TaskArea | "">("");
-  const [day, setDay]               = useState<number>(initialDay ?? new Date().getDay() === 0 ? 6 : (new Date().getDay() - 1));
+  const [day, setDay]               = useState<number>(initialDay ?? (new Date().getDay() === 0 ? 6 : new Date().getDay() - 1));
   const [time, setTime]             = useState("");
   const [taskType, setTaskType]     = useState<"crescimento" | "manutencao">("manutencao");
   const [linkedGoalId, setLinkedGoalId]     = useState("");

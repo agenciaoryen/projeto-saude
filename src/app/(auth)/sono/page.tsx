@@ -115,15 +115,43 @@ function ManualLogModal({ onClose, onSaved }: { onClose: () => void; onSaved: ()
   const [quality, setQuality] = useState<number | null>(null);
   const [durationMin, setDurationMin] = useState<number | null>(null);
   const [interruptions, setInterruptions] = useState<number>(0);
+  const [startTime, setStartTime] = useState("");
+  const [endTime, setEndTime] = useState("");
   const [saving, setSaving] = useState(false);
 
   const save = async () => {
     if (!quality) return;
     setSaving(true);
+    const today = getLocalDate();
+    const sleepStart = startTime ? `${today}T${startTime}:00-03:00` : null;
+    let sleepEnd: string | null = null;
+    let computedDuration: number | null = durationMin;
+
+    if (startTime && endTime) {
+      const [sh, sm] = startTime.split(":").map(Number);
+      const [eh, em] = endTime.split(":").map(Number);
+      const startMin = sh * 60 + sm;
+      const endMin = eh * 60 + em;
+      const crossMidnight = endMin <= startMin;
+      const endDate = crossMidnight
+        ? new Date(new Date(today + "T12:00:00").getTime() + 86400000).toISOString().split("T")[0]
+        : today;
+      sleepEnd = `${endDate}T${endTime}:00-03:00`;
+      computedDuration = crossMidnight ? (24 * 60 - startMin) + endMin : endMin - startMin;
+    }
+
     await fetch("/api/sleep", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ date: getLocalDate(), quality, duration_min: durationMin, interruptions, source: "checkin" }),
+      body: JSON.stringify({
+        date: today,
+        quality,
+        duration_min: computedDuration,
+        interruptions,
+        sleep_start: sleepStart,
+        sleep_end: sleepEnd,
+        source: "checkin",
+      }),
     });
     setSaving(false);
     onSaved();
@@ -155,6 +183,22 @@ function ManualLogModal({ onClose, onSaved }: { onClose: () => void; onSaved: ()
       }}>
         <div style={{ width: 36, height: 4, borderRadius: 9999, background: "oklch(.85 .02 160)", margin: "0 auto 20px" }} />
         <h2 style={{ margin: "0 0 20px", fontSize: 19, fontWeight: 700 }}>Registrar sono</h2>
+
+        {/* Times */}
+        <div style={{ display: "flex", gap: 12, marginBottom: 20 }}>
+          <div style={{ flex: 1 }}>
+            {label11("Fui dormir")}
+            <div style={timeInputWrap}>
+              <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} style={timeInputStyle} />
+            </div>
+          </div>
+          <div style={{ flex: 1 }}>
+            {label11("Acordei")}
+            <div style={timeInputWrap}>
+              <input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} style={timeInputStyle} />
+            </div>
+          </div>
+        </div>
 
         {label11("Como foi?")}
         <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>

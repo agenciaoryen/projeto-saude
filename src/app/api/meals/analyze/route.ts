@@ -32,7 +32,7 @@ Regras de classificação (escolha UMA):
 - "alta_sal": alimentos muito salgados ou processados com alto teor de sódio (pipoca salgada, salgadinhos, embutidos, fast food, enlatados). Use quando sal/sódio for o destaque negativo.
 - "vegetais_baixo": predominantemente vegetais e/ou muito baixa caloria.
 Se não conseguir identificar com confiança, use "nao_identificada".
-Observação em português, 1-2 frases, tom acolhedor.
+Observação em português, 1-2 frases, tom POSITIVO e encorajador — celebre algo bom da refeição (proteína presente, variedade, escolha consciente, etc.). Não critique nem liste o que faltou.
 NUNCA use markdown (**), travessão (—) ou caracteres especiais na observação — apenas texto plano com vírgula e ponto final.`;
 
 async function callClaudeVision(photos: string[], description: string): Promise<string> {

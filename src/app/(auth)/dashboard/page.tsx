@@ -8,15 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/lib/useTranslation";
 import { photoUrl } from "@/lib/photo-storage";
 import { sumMacros, nutritionScore, getDailyKcalGoal, DEFAULT_DAILY_KCAL } from "@/lib/meal-utils";
-import { ArrowRight, ChevronRight, MoreVertical, Pencil } from "lucide-react";
-import Link from "next/link";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { LogoutButton } from "@/components/LogoutButton";
+import { ArrowRight, ChevronRight, Pencil } from "lucide-react";
 import type { CheckIn, Meal } from "@/types";
 
 const HABIT_DISPLAY: Record<string, [string, string]> = {
@@ -508,40 +500,6 @@ export default function DashboardPage() {
         `,
       }}
     >
-      {/* Floating kebab — dropdown */}
-      <div className="absolute top-4 right-4 z-10">
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            render={
-              <button
-                type="button"
-                className="w-9 h-9 rounded-full bg-white/55 backdrop-blur-md border-0 flex items-center justify-center shadow-sm cursor-pointer"
-                style={{ color: "var(--foreground)" }}
-                aria-label="Menu"
-              >
-                <MoreVertical className="w-4 h-4" />
-              </button>
-            }
-          />
-          <DropdownMenuContent align="end" side="bottom">
-            <DropdownMenuItem
-              render={
-                <Link href="/perfil" className="w-full text-left px-2 py-1.5 text-sm block">
-                  Meu Perfil
-                </Link>
-              }
-            />
-            <DropdownMenuItem
-              render={
-                <Link href="/nutricao" className="w-full text-left px-2 py-1.5 text-sm block">
-                  🍽️ Nutrição
-                </Link>
-              }
-            />
-            <DropdownMenuItem render={<LogoutButton />} />
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
 
       {/* ── GREETING ──────────────────────────────────────────── */}
       <div className="px-6 pt-6 pb-2">
@@ -827,9 +785,7 @@ export default function DashboardPage() {
                 >
                   {day.label}
                 </span>
-                {day.sleep === true && (
-                  <span className="text-sm leading-none">🌙</span>
-                )}
+                <span className="text-sm leading-none" style={{ visibility: day.sleep === true ? "visible" : "hidden" }}>🌙</span>
                 {day.energy !== null && (
                   <span
                     className="text-[13px] font-bold tabular-nums w-[32px]"
@@ -853,7 +809,7 @@ export default function DashboardPage() {
                     {day.cuidados}/{totalHabits}
                   </span>
                 )}
-                <span className="ml-auto text-[11px] text-muted-foreground tabular-nums">
+                <span className="ml-auto text-[11px] text-muted-foreground tabular-nums text-right" style={{ minWidth: 80 }}>
                   {day.meals > 0
                     ? `${day.meals} ${t("ref_abrev")} · ${day.kcal} kcal`
                     : ""}
@@ -883,26 +839,6 @@ export default function DashboardPage() {
 
       {/* ── REFLEXIVAS ────────────────────────────────────────── */}
       <div className="px-6 pt-8">
-        {testemunhaMsg && (
-          <SoftRow
-            accent="#f43f5e"
-            accentText="#be123c"
-            tag={t("so_pra_voce_saber")}
-            body={testemunhaMsg}
-            onClick={() => router.push("/diario")}
-          />
-        )}
-
-        {portraitNarrative && (
-          <SoftRow
-            accent="#f59e0b"
-            accentText="#b45309"
-            tag={t("retrato_titulo")}
-            body={t("retrato_maya_preparou")}
-            onClick={() => router.push("/diario")}
-          />
-        )}
-
         {nutritionData.score !== null && (
           <button
             type="button"
@@ -1031,7 +967,7 @@ function Sparkline({ data, maxVal }: { data: number[]; maxVal: number }) {
           x2={W - P}
           y1={H / 2}
           y2={H / 2}
-          stroke="oklch(.5 .12 160 / .08)"
+          stroke="oklch(.5 .12 160 / .35)"
           strokeDasharray="2 4"
         />
         <path d={fill} fill="url(#msFill)" />
