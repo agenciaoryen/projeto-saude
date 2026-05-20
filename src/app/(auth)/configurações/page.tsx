@@ -1,52 +1,50 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 import { useTranslation } from "@/lib/useTranslation";
 
 const CONTEXT_QUESTIONS = [
-  { id: "has_medication", qKey: "q_medicacao", dKey: "q_medicacao_desc" },
-  { id: "has_faith", qKey: "q_fe", dKey: "q_fe_desc" },
-  { id: "has_creative_hobby", qKey: "q_criatividade", dKey: "q_criatividade_desc" },
-  { id: "track_suicidal_thoughts", qKey: "q_suicida", dKey: "q_suicida_desc" },
+  { id: "has_medication",          qKey: "q_medicacao",   dKey: "q_medicacao_desc"   },
+  { id: "has_faith",               qKey: "q_fe",          dKey: "q_fe_desc"          },
+  { id: "has_creative_hobby",      qKey: "q_criatividade", dKey: "q_criatividade_desc" },
+  { id: "track_suicidal_thoughts", qKey: "q_suicida",     dKey: "q_suicida_desc"     },
 ];
 
+const P  = "oklch(.5 .12 160)";
+const PL = "oklch(.5 .12 160 / .12)";
+const PB = "1px solid oklch(.5 .12 160 / .15)";
+
 export default function ConfiguracoesPage() {
-  const { t } = useTranslation();
-  const [answers, setAnswers] = useState<Record<string, boolean>>({});
-  const [loading, setLoading] = useState(true);
-  const [saved, setSaved] = useState(false);
+  const router = useRouter();
+  const { t }  = useTranslation();
+
+  const [answers,  setAnswers]  = useState<Record<string, boolean>>({});
+  const [loading,  setLoading]  = useState(true);
+  const [saved,    setSaved]    = useState(false);
+
   const isFirstRender = useRef(true);
-  const autoSaveRef = useRef<ReturnType<typeof setTimeout>>();
+  const autoSaveRef   = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   useEffect(() => {
     fetch("/api/preferences")
-      .then((res) => res.json())
+      .then((r) => r.json())
       .then((data) => {
-        setAnswers(
-          data.context || {
-            has_medication: false,
-            has_faith: false,
-            has_creative_hobby: false,
-            track_suicidal_thoughts: true,
-          }
-        );
+        setAnswers(data.context || {
+          has_medication: false,
+          has_faith: false,
+          has_creative_hobby: false,
+          track_suicidal_thoughts: true,
+        });
         setLoading(false);
       })
       .catch(() => setLoading(false));
   }, []);
 
-  const toggle = (id: string) => {
-    setAnswers((prev) => ({ ...prev, [id]: !prev[id] }));
-  };
+  const toggle = (id: string) => setAnswers((prev) => ({ ...prev, [id]: !prev[id] }));
 
-  // Auto-save with debounce
   useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      return;
-    }
+    if (isFirstRender.current) { isFirstRender.current = false; return; }
     setSaved(false);
     clearTimeout(autoSaveRef.current);
     autoSaveRef.current = setTimeout(async () => {
@@ -55,9 +53,8 @@ export default function ConfiguracoesPage() {
         "creative_activity", "ate_well", "bowel_movement", "exercise_walk",
         "drank_water", "slept_well", "did_something_enjoyable", "worked_on_goals",
       ];
-      if (answers.has_medication) enabled.push("took_medication");
+      if (answers.has_medication)          enabled.push("took_medication");
       if (answers.track_suicidal_thoughts) enabled.push("suicidal_thoughts");
-
       try {
         const res = await fetch("/api/preferences", {
           method: "POST",
@@ -65,69 +62,117 @@ export default function ConfiguracoesPage() {
           body: JSON.stringify({ enabled_questions: enabled, context: answers }),
         });
         if (res.ok) setSaved(true);
-      } catch {
-        // silent
-      }
-    }, 1000);
+      } catch { /* silent */ }
+    }, 900);
     return () => clearTimeout(autoSaveRef.current);
   }, [answers]);
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <p className="text-muted-foreground">{t("carregando")}</p>
+      <div style={{
+        minHeight: "100dvh", display: "flex", alignItems: "center", justifyContent: "center",
+        background: "oklch(.98 .005 160)",
+      }}>
+        <p style={{ color: "var(--muted-foreground)", fontSize: 13 }}>Carregando…</p>
       </div>
     );
   }
 
   return (
-    <div className="max-w-lg mx-auto space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">{t("config_title")}</h1>
-          <p className="text-muted-foreground text-sm">{t("config_subtitle")}</p>
-        </div>
-        {saved && (
-          <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-lg">
-            Salvo ✓
-          </span>
-        )}
-      </div>
+    <div style={{
+      minHeight: "100dvh",
+      background: `radial-gradient(ellipse 80% 50% at 50% 0%, oklch(.95 .04 80 / .4) 0%, transparent 60%),
+                   linear-gradient(180deg, oklch(.985 .004 160) 0%, oklch(.94 .022 160) 100%)`,
+      fontFamily: "var(--font-sans)",
+      color: "var(--foreground)",
+      paddingBottom: 100,
+    }}>
+      <div style={{ maxWidth: 480, margin: "0 auto", padding: "0 20px" }}>
 
-      {CONTEXT_QUESTIONS.map((q) => (
-        <Card key={q.id} className="rounded-2xl">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">{t(q.qKey)}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground mb-3">{t(q.dKey)}</p>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => toggle(q.id)}
-                className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors ${
-                  answers[q.id]
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground hover:bg-muted/80"
-                }`}
-              >
-                {t("sim")}
-              </button>
-              <button
-                type="button"
-                onClick={() => toggle(q.id)}
-                className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors ${
-                  !answers[q.id]
-                    ? "bg-destructive text-destructive-foreground"
-                    : "bg-muted text-muted-foreground hover:bg-muted/80"
-                }`}
-              >
-                {t("nao")}
-              </button>
+        {/* ── Header ──────────────────────────────────────────────── */}
+        <div style={{
+          display: "flex", alignItems: "center", gap: 12,
+          padding: "56px 0 28px",
+        }}>
+          <button
+            type="button"
+            onClick={() => router.back()}
+            style={{
+              width: 36, height: 36, borderRadius: "50%",
+              border: PB, background: "oklch(1 0 0 / .55)",
+              backdropFilter: "blur(8px)", cursor: "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 16, flexShrink: 0,
+            }}
+          >
+            ←
+          </button>
+          <div style={{ flex: 1 }}>
+            <h1 style={{ margin: 0, fontSize: 24, fontWeight: 800, letterSpacing: "-0.025em" }}>
+              {t("config_title")}
+            </h1>
+            <p style={{ margin: "2px 0 0", fontSize: 12.5, color: "var(--muted-foreground)" }}>
+              {t("config_subtitle")}
+            </p>
+          </div>
+          {saved && (
+            <span style={{ fontSize: 11.5, color: P, fontWeight: 600, flexShrink: 0 }}>
+              Salvo ✓
+            </span>
+          )}
+        </div>
+
+        {/* ── Perguntas de contexto ────────────────────────────────── */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {CONTEXT_QUESTIONS.map((q) => (
+            <div key={q.id} style={{
+              background: "oklch(1 0 0 / .55)",
+              backdropFilter: "blur(12px)",
+              borderRadius: 20,
+              border: PB,
+              padding: "18px 18px 16px",
+            }}>
+              <p style={{ margin: "0 0 4px", fontSize: 14, fontWeight: 700 }}>
+                {t(q.qKey)}
+              </p>
+              <p style={{ margin: "0 0 14px", fontSize: 13, color: "var(--muted-foreground)", lineHeight: 1.5 }}>
+                {t(q.dKey)}
+              </p>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button
+                  type="button"
+                  onClick={() => { if (!answers[q.id]) toggle(q.id); }}
+                  style={{
+                    flex: 1, height: 40, borderRadius: 11, border: 0,
+                    cursor: "pointer", fontFamily: "inherit",
+                    fontSize: 13, fontWeight: 700,
+                    transition: "all .15s ease",
+                    background: answers[q.id] ? P : PL,
+                    color: answers[q.id] ? "#fff" : "var(--foreground)",
+                  }}
+                >
+                  {t("sim")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { if (answers[q.id]) toggle(q.id); }}
+                  style={{
+                    flex: 1, height: 40, borderRadius: 11, border: 0,
+                    cursor: "pointer", fontFamily: "inherit",
+                    fontSize: 13, fontWeight: 700,
+                    transition: "all .15s ease",
+                    background: !answers[q.id] ? "oklch(.55 .1 15 / .15)" : PL,
+                    color: !answers[q.id] ? "oklch(.4 .1 15)" : "var(--foreground)",
+                  }}
+                >
+                  {t("nao")}
+                </button>
+              </div>
             </div>
-          </CardContent>
-        </Card>
-      ))}
+          ))}
+        </div>
+
+      </div>
     </div>
   );
 }
