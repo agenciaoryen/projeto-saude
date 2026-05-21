@@ -3,13 +3,25 @@
 export const dynamic = "force-dynamic";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { Suspense } from "react";
 
 const P  = "oklch(.5 .12 160)";
 const PL = "oklch(.5 .12 160 / .12)";
 const PB = "1px solid oklch(.5 .12 160 / .15)";
+
+const pageWrap: React.CSSProperties = {
+  minHeight: "100dvh",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  padding: "24px 20px",
+  background: `radial-gradient(ellipse 80% 50% at 50% 0%, oklch(.95 .04 80 / .4) 0%, transparent 60%),
+               linear-gradient(180deg, oklch(.985 .004 160) 0%, oklch(.94 .022 160) 100%)`,
+  fontFamily: "var(--font-sans)",
+};
 
 const cardStyle: React.CSSProperties = {
   background: "oklch(1 0 0 / .55)",
@@ -49,13 +61,15 @@ const btnPrimary: React.CSSProperties = {
   transition: "opacity .15s",
 };
 
-export default function CadastroPage() {
-  const [email, setEmail]       = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading]   = useState(false);
+function CadastroInner() {
+  const [email, setEmail]         = useState("");
+  const [password, setPassword]   = useState("");
+  const [loading, setLoading]     = useState(false);
   const [waitEmail, setWaitEmail] = useState("");
-  const [error, setError]       = useState("");
-  const router = useRouter();
+  const [error, setError]         = useState("");
+  const router   = useRouter();
+  const params   = useSearchParams();
+  const erroParam = params.get("erro");
 
   const handleCadastro = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -77,84 +91,76 @@ export default function CadastroPage() {
       return;
     }
 
-    // If Supabase auto-confirmed (session returned immediately), go straight to onboarding
+    // Supabase auto-confirmed — session available immediately
     if (data.session) {
       router.push("/onboarding");
       return;
     }
 
-    // Email confirmation required — show waiting screen
+    // Email confirmation required
     setWaitEmail(email);
     setLoading(false);
   };
 
-  /* ── Tela de aguardo de confirmação ──────────────────────────── */
+  /* ── Tela de aguardo ──────────────────────────────────────────── */
   if (waitEmail) {
     return (
-      <div style={{
-        minHeight: "100dvh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "24px 20px",
-        background: `radial-gradient(ellipse 80% 50% at 50% 0%, oklch(.95 .04 80 / .4) 0%, transparent 60%),
-                     linear-gradient(180deg, oklch(.985 .004 160) 0%, oklch(.94 .022 160) 100%)`,
-        fontFamily: "var(--font-sans)",
-      }}>
+      <div style={pageWrap}>
         <div style={{ ...cardStyle, textAlign: "center" }}>
           <div style={{ fontSize: 56, marginBottom: 18 }}>📬</div>
           <h1 style={{ margin: "0 0 10px", fontSize: 22, fontWeight: 800, letterSpacing: "-0.025em" }}>
-            Confirme seu email
+            Verifique seu email
           </h1>
-          <p style={{ margin: "0 0 6px", fontSize: 14, color: "var(--muted-foreground)", lineHeight: 1.6 }}>
-            Enviamos um link para
+          <p style={{ margin: "0 0 20px", fontSize: 14, color: "var(--muted-foreground)", lineHeight: 1.6 }}>
+            Enviamos um link de confirmação para
           </p>
-          <p style={{
-            margin: "0 0 20px", fontSize: 15, fontWeight: 700,
-            background: PL, borderRadius: 10, padding: "8px 14px",
-            border: PB, display: "inline-block",
+          <div style={{
+            background: PL, borderRadius: 12, border: PB,
+            padding: "10px 16px", marginBottom: 24,
+            fontSize: 15, fontWeight: 700,
           }}>
             {waitEmail}
-          </p>
+          </div>
 
           <div style={{
             background: "oklch(.97 .01 160)",
-            borderRadius: 16,
-            border: PB,
-            padding: "18px 16px",
-            textAlign: "left",
-            marginBottom: 22,
+            borderRadius: 16, border: PB,
+            padding: "18px 16px", textAlign: "left", marginBottom: 22,
           }}>
-            <p style={{ margin: "0 0 10px", fontSize: 13.5, fontWeight: 700 }}>Como funciona:</p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {[
-                ["1", "Abra o email no seu Gmail"],
-                ["2", "Clique em \"Confirmar cadastro\""],
-                ["3", "Você entra no app automaticamente"],
-              ].map(([n, txt]) => (
-                <div key={n} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <div style={{
-                    width: 26, height: 26, borderRadius: "50%",
-                    background: P, color: "#fff",
-                    fontSize: 12, fontWeight: 800,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    flexShrink: 0,
-                  }}>{n}</div>
-                  <span style={{ fontSize: 13, lineHeight: 1.4 }}>{txt}</span>
-                </div>
-              ))}
-            </div>
+            <p style={{ margin: "0 0 12px", fontSize: 13.5, fontWeight: 700 }}>Próximos passos:</p>
+            {[
+              ["1", "Abra o Gmail agora"],
+              ["2", "Clique em \"Confirmar cadastro\""],
+              ["3", "Você entra no app automaticamente — sem precisar digitar a senha de novo"],
+            ].map(([n, txt]) => (
+              <div key={n} style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 10 }}>
+                <div style={{
+                  width: 26, height: 26, borderRadius: "50%",
+                  background: P, color: "#fff",
+                  fontSize: 12, fontWeight: 800, flexShrink: 0,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  marginTop: 1,
+                }}>{n}</div>
+                <span style={{ fontSize: 13, lineHeight: 1.5 }}>{txt}</span>
+              </div>
+            ))}
           </div>
 
-          <p style={{ margin: "0 0 6px", fontSize: 12.5, color: "var(--muted-foreground)" }}>
+          <p style={{ margin: "0 0 12px", fontSize: 12.5, color: "var(--muted-foreground)" }}>
             Não achou? Verifique a pasta <strong>Spam</strong> ou <strong>Promoções</strong>.
           </p>
-          <p style={{ margin: 0, fontSize: 12.5, color: "var(--muted-foreground)" }}>
-            Já confirmou?{" "}
-            <Link href="/login" style={{ color: P, fontWeight: 700, textDecoration: "none" }}>
-              Entrar
-            </Link>
-          </p>
+
+          <button
+            type="button"
+            onClick={() => setWaitEmail("")}
+            style={{
+              background: "none", border: PB, borderRadius: 10,
+              padding: "9px 16px", fontSize: 13, cursor: "pointer",
+              color: "var(--muted-foreground)", fontFamily: "var(--font-sans)",
+            }}
+          >
+            ← Errei o email? Voltar
+          </button>
         </div>
       </div>
     );
@@ -162,16 +168,7 @@ export default function CadastroPage() {
 
   /* ── Formulário ───────────────────────────────────────────────── */
   return (
-    <div style={{
-      minHeight: "100dvh",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      padding: "24px 20px",
-      background: `radial-gradient(ellipse 80% 50% at 50% 0%, oklch(.95 .04 80 / .4) 0%, transparent 60%),
-                   linear-gradient(180deg, oklch(.985 .004 160) 0%, oklch(.94 .022 160) 100%)`,
-      fontFamily: "var(--font-sans)",
-    }}>
+    <div style={pageWrap}>
       <div style={cardStyle}>
         <div style={{ textAlign: "center", marginBottom: 28 }}>
           <div style={{ fontSize: 44, marginBottom: 10 }}>🌱</div>
@@ -182,6 +179,16 @@ export default function CadastroPage() {
             Seu companheiro de saúde e evolução
           </p>
         </div>
+
+        {erroParam === "confirmacao" && (
+          <div style={{
+            background: "oklch(.55 .1 15 / .1)", border: "1px solid oklch(.55 .1 15 / .2)",
+            borderRadius: 12, padding: "12px 14px", marginBottom: 16,
+            fontSize: 13, color: "oklch(.4 .1 15)", lineHeight: 1.5,
+          }}>
+            O link de confirmação expirou ou é inválido. Tente criar a conta novamente.
+          </div>
+        )}
 
         <form onSubmit={handleCadastro} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <div>
@@ -231,5 +238,13 @@ export default function CadastroPage() {
         </form>
       </div>
     </div>
+  );
+}
+
+export default function CadastroPage() {
+  return (
+    <Suspense>
+      <CadastroInner />
+    </Suspense>
   );
 }
