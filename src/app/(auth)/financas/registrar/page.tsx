@@ -6,7 +6,7 @@ import { Camera, ImageIcon, X, ArrowLeft, Settings } from "lucide-react";
 import { compressImage } from "@/lib/photo-storage";
 import { useTranslation } from "@/lib/useTranslation";
 import { t as tFn, type Lang } from "@/lib/i18n";
-import { EXPENSE_CATS, INCOME_CATS, getCatById, getSubcats, type FinCat, type CustomCat } from "@/lib/financas-categories";
+import { EXPENSE_CATS, INCOME_CATS, getSubcats, type FinCat, type CustomCat } from "@/lib/financas-categories";
 
 // ── Colors ────────────────────────────────────────────────────────────────────
 
