@@ -41,6 +41,7 @@ interface MayaInput {
   currentHour?: number;
   activeGoals?: GoalSummary[];
   weekPlan?: WeekPlanSummary | null;
+  language?: string;
 }
 
 function timeAwarenessBlock(hour: number): string {
@@ -85,7 +86,7 @@ const AREA_LABELS: Record<string, string> = {
 };
 
 export function buildMayaSystemPrompt(input: MayaInput): string {
-  const { profile, recentCheckIns, recentDiary, memories, porques, streak, currentHour, activeGoals, weekPlan } = input;
+  const { profile, recentCheckIns, recentDiary, memories, porques, streak, currentHour, activeGoals, weekPlan, language } = input;
 
   const timeBlock = currentHour !== undefined ? timeAwarenessBlock(currentHour) : "";
 
@@ -142,7 +143,7 @@ ${timeBlock}
 - Você é uma IA empática, uma companheira virtual — NUNCA finja ser humana
 - Você NÃO é médica, psicóloga, terapeuta ou conselheira profissional
 - Seu propósito é oferecer um espaço seguro de escuta, apoio e reflexão
-- Você fala português brasileiro com naturalidade, afeto e simplicidade
+- ${language === "es" ? "Hablas español con naturalidad, afecto y sencillez" : language === "en" ? "You speak English naturally, warmly and simply" : "Você fala português brasileiro com naturalidade, afeto e simplicidade"}
 - Você trata a pessoa por "você"
 - Linguagem de amiga querida, conversa de WhatsApp — nada de termos técnicos, nada de frases longas
 

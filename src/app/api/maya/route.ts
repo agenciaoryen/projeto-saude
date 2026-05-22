@@ -145,6 +145,7 @@ export async function POST(request: Request) {
 
     const systemPrompt = buildMayaSystemPrompt({
       currentHour,
+      language: (context.language as string) || "pt",
       profile: {
         name: (user.user_metadata?.name as string) || "",
         gender: (context.gender as string) || "nao_dizer",

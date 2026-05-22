@@ -65,12 +65,13 @@ function StarRating({ value, onChange }: { value: number; onChange: (v: number) 
 // ── Focus editor (pedras principais) ──────────────────────────────────────────
 
 function FocusModal({
-  initial, goals, onClose, onSaved,
+  initial, goals, onClose, onSaved, lang = "pt",
 }: {
   initial: { f1: string; f2: string; f3: string; focusGoalIds: string[] };
   goals: GoalFull[];
   onClose: () => void;
   onSaved: () => void;
+  lang?: Lang;
 }) {
   const [f1, setF1] = useState(initial.f1);
   const [f2, setF2] = useState(initial.f2);
@@ -117,20 +118,20 @@ function FocusModal({
         maxHeight: "90dvh", overflowY: "auto",
       }}>
         <div style={{ width: 36, height: 4, borderRadius: 9999, background: "oklch(.85 .02 160)", margin: "0 auto 20px" }} />
-        <h2 style={{ margin: "0 0 4px", fontSize: 19, fontWeight: 800, color: "oklch(.2 .02 160)" }}>Pedras da semana</h2>
+        <h2 style={{ margin: "0 0 4px", fontSize: 19, fontWeight: 800, color: "oklch(.2 .02 160)" }}>{tFn(lang, "plan_pedras_modal_title")}</h2>
         <p style={{ margin: "0 0 20px", fontSize: 12, color: "oklch(.55 .04 160)" }}>
-          1 a 3 prioridades que fazem a semana valer a pena · {weekLabel()}
+          {tFn(lang, "plan_pedras_desc")} · {weekLabel()}
         </p>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 20 }}>
           {[
-            { val: f1, set: setF1, label: "🎯 Pedra 1 (obrigatória)", ph: "O que DEVE acontecer esta semana?" },
-            { val: f2, set: setF2, label: "🪨 Pedra 2 (opcional)", ph: "Segunda prioridade…" },
-            { val: f3, set: setF3, label: "🪨 Pedra 3 (opcional)", ph: "Terceira prioridade…" },
-          ].map(({ val, set, label, ph }) => (
-            <div key={label}>
-              <p style={{ margin: "0 0 6px", fontSize: 11, fontWeight: 700, letterSpacing: ".07em", textTransform: "uppercase", color: "oklch(.55 .04 160)" }}>{label}</p>
-              <input value={val} onChange={(e) => set(e.target.value)} placeholder={ph}
+            { val: f1, set: setF1, labelKey: "plan_pedra_1", phKey: "plan_pedra_1_ph" },
+            { val: f2, set: setF2, labelKey: "plan_pedra_2", phKey: "plan_pedra_2_ph" },
+            { val: f3, set: setF3, labelKey: "plan_pedra_3", phKey: "plan_pedra_3_ph" },
+          ].map(({ val, set, labelKey, phKey }) => (
+            <div key={labelKey}>
+              <p style={{ margin: "0 0 6px", fontSize: 11, fontWeight: 700, letterSpacing: ".07em", textTransform: "uppercase", color: "oklch(.55 .04 160)" }}>{tFn(lang, labelKey)}</p>
+              <input value={val} onChange={(e) => set(e.target.value)} placeholder={tFn(lang, phKey)}
                 style={inputStyle}
                 onFocus={(e) => { (e.target as HTMLInputElement).style.borderColor = "oklch(.5 .12 160)"; }}
                 onBlur={(e) => { (e.target as HTMLInputElement).style.borderColor = "oklch(.82 .03 160)"; }}
@@ -142,7 +143,7 @@ function FocusModal({
         {goals.length > 0 && (
           <div style={{ marginBottom: 20 }}>
             <p style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 700, letterSpacing: ".07em", textTransform: "uppercase", color: "oklch(.55 .04 160)" }}>
-              Metas em destaque esta semana
+              {tFn(lang, "plan_metas_destaque")}
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {goals.map((g) => {
@@ -172,7 +173,7 @@ function FocusModal({
           fontFamily: "inherit", fontSize: 15, fontWeight: 700,
           color: (saving || !f1.trim()) ? "oklch(.6 .02 160)" : "#fff",
         }}>
-          {saving ? "Salvando…" : "Salvar"}
+          {saving ? tFn(lang, "salvando") : tFn(lang, "salvar")}
         </button>
       </div>
     </>
@@ -429,7 +430,7 @@ function AddTaskSheet({
           color: (!canSave || saving) ? "oklch(.6 .02 160)" : "#fff",
           transition: "all .15s ease",
         }}>
-          {saving ? "Salvando…" : "Adicionar tarefa"}
+          {saving ? tFn(lang, "salvando") : tFn(lang, "plan_adicionar_tarefa")}
         </button>
       </div>
     </>
@@ -438,7 +439,7 @@ function AddTaskSheet({
 
 // ── Review modal ──────────────────────────────────────────────────────────────
 
-function ReviewModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
+function ReviewModal({ onClose, onSaved, lang = "pt" }: { onClose: () => void; onSaved: () => void; lang?: Lang }) {
   const [biggestWin, setBiggestWin]   = useState("");
   const [blockedLesson, setBlockedLesson] = useState("");
   const [mainLearning, setMainLearning]   = useState("");
@@ -476,24 +477,24 @@ function ReviewModal({ onClose, onSaved }: { onClose: () => void; onSaved: () =>
         maxHeight: "90dvh", overflowY: "auto",
       }}>
         <div style={{ width: 36, height: 4, borderRadius: 9999, background: "oklch(.85 .02 160)", margin: "0 auto 20px" }} />
-        <h2 style={{ margin: "0 0 4px", fontSize: 19, fontWeight: 800, color: "oklch(.2 .02 160)" }}>Revisão da semana</h2>
+        <h2 style={{ margin: "0 0 4px", fontSize: 19, fontWeight: 800, color: "oklch(.2 .02 160)" }}>{tFn(lang, "plan_revisao_modal_title")}</h2>
         <p style={{ margin: "0 0 24px", fontSize: 12, color: "oklch(.55 .04 160)" }}>{weekLabel()}</p>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
           <div>
-            <p style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "oklch(.55 .04 160)" }}>🏆 Qual foi sua maior vitória?</p>
-            <textarea value={biggestWin} onChange={(e) => setBiggestWin(e.target.value)} placeholder="Celebre algo, por menor que seja..." rows={2} style={fieldStyle} />
+            <p style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "oklch(.55 .04 160)" }}>{tFn(lang, "plan_maior_vitoria_q")}</p>
+            <textarea value={biggestWin} onChange={(e) => setBiggestWin(e.target.value)} placeholder={tFn(lang, "plan_maior_vitoria_ph")} rows={2} style={fieldStyle} />
           </div>
           <div>
-            <p style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "oklch(.55 .04 160)" }}>🔒 O que travou e como lidar diferente?</p>
-            <textarea value={blockedLesson} onChange={(e) => setBlockedLesson(e.target.value)} placeholder="Não é culpa — é aprendizado." rows={2} style={fieldStyle} />
+            <p style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "oklch(.55 .04 160)" }}>{tFn(lang, "plan_travou_q")}</p>
+            <textarea value={blockedLesson} onChange={(e) => setBlockedLesson(e.target.value)} placeholder={tFn(lang, "plan_travou_ph")} rows={2} style={fieldStyle} />
           </div>
           <div>
-            <p style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "oklch(.55 .04 160)" }}>💡 Principal aprendizado</p>
-            <textarea value={mainLearning} onChange={(e) => setMainLearning(e.target.value)} placeholder="Uma coisa que levará para a próxima semana..." rows={2} style={fieldStyle} />
+            <p style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "oklch(.55 .04 160)" }}>{tFn(lang, "plan_aprendizado_q")}</p>
+            <textarea value={mainLearning} onChange={(e) => setMainLearning(e.target.value)} placeholder={tFn(lang, "plan_aprendizado_ph")} rows={2} style={fieldStyle} />
           </div>
           <div>
-            <p style={{ margin: "0 0 12px", fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "oklch(.55 .04 160)" }}>Como foi a semana?</p>
+            <p style={{ margin: "0 0 12px", fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "oklch(.55 .04 160)" }}>{tFn(lang, "plan_como_foi_semana")}</p>
             <StarRating value={weekScore} onChange={setWeekScore} />
           </div>
         </div>
@@ -504,7 +505,7 @@ function ReviewModal({ onClose, onSaved }: { onClose: () => void; onSaved: () =>
           background: (saving || !biggestWin.trim()) ? "oklch(.88 .02 160)" : "linear-gradient(135deg, oklch(.5 .12 160), oklch(.42 .14 200))",
           fontFamily: "inherit", fontSize: 15, fontWeight: 700, color: "#fff",
         }}>
-          {saving ? "Salvando…" : "Fechar semana"}
+          {saving ? tFn(lang, "salvando") : tFn(lang, "plan_fechar_semana")}
         </button>
       </div>
     </>
@@ -590,7 +591,7 @@ function AreaCoverage({ tasks, lang = "pt" }: { tasks: WeeklyTask[]; lang?: Lang
     <div style={{ background: "#fff", borderRadius: 20, boxShadow: "0 2px 16px oklch(.2 .04 160 / .08)", padding: "16px 18px" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
         <p style={{ margin: 0, fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "oklch(.55 .04 160)" }}>
-          Cobertura das áreas
+          {tFn(lang, "plan_cobertura_areas")}
         </p>
         <span style={{ fontSize: 12, fontWeight: 700, color: covered === ALL_AREAS.length ? "oklch(.45 .12 160)" : "oklch(.55 .04 160)" }}>
           {covered}/{ALL_AREAS.length}
@@ -712,8 +713,8 @@ export default function PlanejamentoPage() {
         <div style={{ position: "absolute", bottom: -20, left: -20, width: 100, height: 100, borderRadius: "50%", background: "oklch(1 0 0 / .04)" }} />
         <div style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
           <div>
-            <p style={{ margin: "0 0 2px", fontSize: 13, color: "oklch(1 0 0 / .7)", fontWeight: 500 }}>Planejamento</p>
-            <h1 style={{ margin: "0 0 4px", fontSize: 26, fontWeight: 800, color: "#fff", letterSpacing: "-.5px" }}>Semana atual</h1>
+            <p style={{ margin: "0 0 2px", fontSize: 13, color: "oklch(1 0 0 / .7)", fontWeight: 500 }}>{tFn(lang, "plan_title")}</p>
+            <h1 style={{ margin: "0 0 4px", fontSize: 26, fontWeight: 800, color: "#fff", letterSpacing: "-.5px" }}>{tFn(lang, "plan_semana_atual")}</h1>
             <p style={{ margin: 0, fontSize: 13, color: "oklch(1 0 0 / .75)", fontWeight: 500 }}>
               <Calendar size={13} style={{ display: "inline", marginRight: 4 }} />
               {weekLabel()}
@@ -724,7 +725,7 @@ export default function PlanejamentoPage() {
               fontSize: 13, fontWeight: 700, color: "#fff",
               background: "oklch(1 0 0 / .15)", borderRadius: 10, padding: "6px 12px",
             }}>
-              {tasks.filter((t) => t.status === "concluida").length}/{tasks.length} feitas
+              {tFn(lang, "plan_feitas", { done: String(tasks.filter((t) => t.status === "concluida").length), total: String(tasks.length) })}
             </span>
           </div>
         </div>
@@ -738,14 +739,14 @@ export default function PlanejamentoPage() {
           <div style={{ padding: "14px 18px" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: focuses.length > 0 ? 12 : 0 }}>
               <p style={{ margin: 0, fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "oklch(.55 .04 160)" }}>
-                🎯 Pedras da semana
+                {tFn(lang, "plan_pedras")}
               </p>
               <button type="button" onClick={() => setShowFocus(true)} style={{
                 border: 0, background: "oklch(.93 .03 160)", borderRadius: 8, padding: "6px 10px",
                 cursor: "pointer", display: "flex", alignItems: "center", gap: 5,
                 fontSize: 12, fontWeight: 700, color: "oklch(.45 .1 160)", fontFamily: "inherit",
               }}>
-                <Pencil size={12} /> {focuses.length > 0 ? "Editar" : "Definir"}
+                <Pencil size={12} /> {focuses.length > 0 ? tFn(lang, "plan_editar") : tFn(lang, "plan_definir")}
               </button>
             </div>
             {focuses.length > 0 ? (
@@ -764,7 +765,7 @@ export default function PlanejamentoPage() {
               </div>
             ) : (
               <p style={{ margin: 0, fontSize: 13, color: "oklch(.6 .03 160)", fontStyle: "italic" }}>
-                Nenhuma pedra definida ainda para esta semana.
+                {tFn(lang, "plan_sem_pedras")}
               </p>
             )}
           </div>
@@ -778,7 +779,7 @@ export default function PlanejamentoPage() {
           <div style={{ height: 4, background: "linear-gradient(90deg, oklch(.5 .12 160), oklch(.5 .12 220))" }} />
           <div style={{ padding: "14px 18px 6px" }}>
             <p style={{ margin: "0 0 14px", fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "oklch(.55 .04 160)" }}>
-              Tarefas da semana
+              {tFn(lang, "plan_tarefas_semana")}
             </p>
 
             {DAY_KEYS.map((dayKey, dayIdx) => {
@@ -813,8 +814,8 @@ export default function PlanejamentoPage() {
                     </span>
                     <span style={{ flex: 1, textAlign: "left", fontSize: 13, fontWeight: 600, color: "oklch(.3 .04 160)" }}>
                       {dayTasks.length === 0
-                        ? "Sem tarefas"
-                        : `${doneCount}/${dayTasks.length} concluída${dayTasks.length > 1 ? "s" : ""}`
+                        ? tFn(lang, "plan_sem_tarefas")
+                        : tFn(lang, "plan_concluidas", { done: String(doneCount), total: String(dayTasks.length) })
                       }
                     </span>
                     <button
@@ -858,17 +859,17 @@ export default function PlanejamentoPage() {
             <div style={{ height: 4, background: "linear-gradient(90deg, oklch(.5 .14 50), oklch(.5 .12 85))" }} />
             <div style={{ padding: "16px 18px" }}>
               <p style={{ margin: "0 0 6px", fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "oklch(.55 .04 160)" }}>
-                Revisão semanal
+                {tFn(lang, "plan_revisao_semanal")}
               </p>
               <p style={{ margin: "0 0 14px", fontSize: 13, color: "oklch(.5 .04 160)", lineHeight: 1.5 }}>
-                Reserve 10 minutos para fechar a semana. Celebre o que avançou, aprenda com o que travou.
+                {tFn(lang, "plan_revisao_desc")}
               </p>
               <button type="button" onClick={() => setShowReview(true)} style={{
                 display: "flex", alignItems: "center", gap: 8, padding: "12px 18px", borderRadius: 12,
                 border: 0, cursor: "pointer", background: "oklch(.93 .04 160)",
                 color: "oklch(.4 .12 160)", fontFamily: "inherit", fontSize: 13, fontWeight: 700,
               }}>
-                <Star size={16} /> Fazer revisão
+                <Star size={16} /> {tFn(lang, "plan_fazer_revisao")}
               </button>
             </div>
           </div>
@@ -876,7 +877,7 @@ export default function PlanejamentoPage() {
           <div style={{ background: "#fff", borderRadius: 20, boxShadow: "0 2px 16px oklch(.2 .04 160 / .08)", padding: "16px 18px" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
               <p style={{ margin: 0, fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "oklch(.55 .04 160)" }}>
-                Revisão da semana
+                {tFn(lang, "plan_revisao_feita")}
               </p>
               <div style={{ display: "flex", gap: 2 }}>
                 {Array.from({ length: 5 }).map((_, i) => (
@@ -886,12 +887,12 @@ export default function PlanejamentoPage() {
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               <div style={{ padding: "10px 12px", borderRadius: 12, background: "oklch(.96 .04 160)" }}>
-                <p style={{ margin: "0 0 2px", fontSize: 10, fontWeight: 700, color: "oklch(.45 .1 160)", textTransform: "uppercase" }}>Maior vitória</p>
+                <p style={{ margin: "0 0 2px", fontSize: 10, fontWeight: 700, color: "oklch(.45 .1 160)", textTransform: "uppercase" }}>{tFn(lang, "plan_maior_vitoria")}</p>
                 <p style={{ margin: 0, fontSize: 13, color: "oklch(.3 .06 160)" }}>{review.biggest_win}</p>
               </div>
               {review.main_learning && (
                 <div style={{ padding: "10px 12px", borderRadius: 12, background: "oklch(.96 .04 220)" }}>
-                  <p style={{ margin: "0 0 2px", fontSize: 10, fontWeight: 700, color: "oklch(.45 .1 220)", textTransform: "uppercase" }}>Aprendizado</p>
+                  <p style={{ margin: "0 0 2px", fontSize: 10, fontWeight: 700, color: "oklch(.45 .1 220)", textTransform: "uppercase" }}>{tFn(lang, "plan_aprendizado")}</p>
                   <p style={{ margin: 0, fontSize: 13, color: "oklch(.3 .06 220)" }}>{review.main_learning}</p>
                 </div>
               )}
@@ -975,6 +976,7 @@ export default function PlanejamentoPage() {
           }}
           onClose={() => setShowFocus(false)}
           onSaved={load}
+          lang={lang}
         />
       )}
 
@@ -988,7 +990,7 @@ export default function PlanejamentoPage() {
         />
       )}
 
-      {showReview && <ReviewModal onClose={() => setShowReview(false)} onSaved={load} />}
+      {showReview && <ReviewModal onClose={() => setShowReview(false)} onSaved={load} lang={lang} />}
 
       <style>{`
         @keyframes spin { to { transform: rotate(360deg) } }

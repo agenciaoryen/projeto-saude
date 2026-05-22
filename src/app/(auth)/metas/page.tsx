@@ -154,7 +154,7 @@ function GoalCard({ goal, onClick, lang }: { goal: GoalFull; onClick: () => void
                     padding: "2px 8px", borderRadius: 9999, fontSize: 10, fontWeight: 700,
                     background: "oklch(.97 .05 50)", color: "oklch(.45 .16 50)",
                   }}>
-                    <Calendar size={9} /> {daysLeft}d restantes
+                    <Calendar size={9} /> {tFn(lang, "metas_dias_rest", { n: String(daysLeft) })}
                   </span>
                 )}
               </div>
@@ -295,10 +295,10 @@ export default function MetasPage() {
 
         <div style={{ position: "relative", zIndex: 1 }}>
           <p style={{ margin: "0 0 4px", fontSize: 13, color: "oklch(1 0 0 / .7)", fontWeight: 500 }}>
-            Seu sistema de metas
+            {tFn(lang, "metas_subtitle")}
           </p>
           <h1 style={{ margin: "0 0 20px", fontSize: 28, fontWeight: 800, color: "#fff", letterSpacing: "-.5px" }}>
-            Metas & Objetivos
+            {tFn(lang, "metas_title")}
           </h1>
 
           {/* Limit indicator */}
@@ -308,7 +308,7 @@ export default function MetasPage() {
           }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
               <span style={{ fontSize: 12, color: "oklch(1 0 0 / .85)", fontWeight: 600 }}>
-                Metas ativas
+                {tFn(lang, "metas_ativas_label")}
               </span>
               <span style={{ fontSize: 12, fontWeight: 800, color: "#fff" }}>
                 {activeGoals.length} / 5
@@ -325,12 +325,12 @@ export default function MetasPage() {
             </div>
             {activeGoals.length >= 5 && (
               <p style={{ margin: "8px 0 0", fontSize: 11, color: "oklch(.9 .06 15)", fontWeight: 600 }}>
-                ⚠️ Limite atingido — conclua ou pause uma meta para criar nova
+                ⚠️ {tFn(lang, "metas_limite")}
               </p>
             )}
             {activeGoals.length === 0 && (
               <p style={{ margin: "8px 0 0", fontSize: 11, color: "oklch(1 0 0 / .65)" }}>
-                Pesquisas mostram que 3–5 metas grandes por ano é o ponto ideal de foco
+                {tFn(lang, "metas_dica")}
               </p>
             )}
           </div>
@@ -358,10 +358,10 @@ export default function MetasPage() {
               <Target size={36} style={{ color: "oklch(.5 .12 160)" }} />
             </div>
             <h2 style={{ margin: "0 0 8px", fontSize: 20, fontWeight: 700, color: "oklch(.25 .04 160)" }}>
-              Suas metas começam aqui
+              {tFn(lang, "metas_empty_title")}
             </h2>
             <p style={{ margin: "0 0 28px", fontSize: 14, color: "oklch(.5 .04 160)", lineHeight: 1.6 }}>
-              Crie de 3 a 5 metas grandes para o ano. Cada uma vira um projeto com etapas, ações e um guardião que vai te cobrar.
+              {tFn(lang, "metas_empty_desc")}
             </p>
             <button
               type="button"
@@ -374,7 +374,7 @@ export default function MetasPage() {
                 boxShadow: "0 4px 16px oklch(.5 .12 160 / .35)",
               }}
             >
-              <Plus size={20} /> Criar primeira meta
+              <Plus size={20} /> {tFn(lang, "metas_criar_primeira")}
             </button>
           </div>
         ) : (
@@ -399,7 +399,7 @@ export default function MetasPage() {
             {pausedGoals.length > 0 && (
               <div style={{ marginTop: 8 }}>
                 <p style={{ margin: "0 0 10px", fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "oklch(.6 .04 160)" }}>
-                  Pausadas
+                  {tFn(lang, "metas_pausadas")}
                 </p>
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                   {pausedGoals.map((goal) => (
