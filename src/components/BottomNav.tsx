@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Home, Camera, Moon, CheckCircle2, Grid2x2, BookOpen, MessageCircle, BarChart2, User, Settings, Utensils, Target, CalendarDays } from "lucide-react";
+import { Home, Camera, Moon, CheckCircle2, Grid2x2, BookOpen, MessageCircle, BarChart2, User, Settings, Utensils, Target, CalendarDays, Wallet } from "lucide-react";
 import { useTranslation } from "@/lib/useTranslation";
 import { UserAvatar } from "@/components/UserAvatar";
 import { useState } from "react";
@@ -12,6 +12,7 @@ import { useState } from "react";
 const MORE_ITEMS = [
   { href: "/metas",           icon: Target,        label: "Metas" },
   { href: "/planejamento",    icon: CalendarDays,  label: "Planejar" },
+  { href: "/financas",        icon: Wallet,        label: "Finanças" },
   { href: "/nutricao",        icon: Utensils,      label: "Nutrição" },
   { href: "/diario",          icon: BookOpen,      label: "Diário" },
   { href: "/check-in",        icon: CheckCircle2,  label: "Check-in" },

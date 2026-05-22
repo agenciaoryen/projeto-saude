@@ -251,3 +251,28 @@ export interface WeeklyReview {
   week_score: number;
   created_at: string;
 }
+
+// ── Finances ──────────────────────────────────────────────────────────────────
+
+export type FinancialType = "receita" | "despesa";
+
+export interface FinancialTransaction {
+  id: string;
+  user_id: string;
+  type: FinancialType;
+  amount: number;
+  category: string;
+  description: string | null;
+  date: string;       // YYYY-MM-DD
+  created_at: string;
+  updated_at: string;
+}
+
+export interface FinancialBudget {
+  id: string;
+  user_id: string;
+  category: string;
+  monthly_limit: number;
+  month: string;      // YYYY-MM
+  created_at: string;
+}
