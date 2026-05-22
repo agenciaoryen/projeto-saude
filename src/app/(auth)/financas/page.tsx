@@ -107,6 +107,76 @@ type TxDraft = {
   date: string;
 };
 
+// ── Add type choice sheet ─────────────────────────────────────────────────────
+
+function AddTypeSheet({
+  onManual, onPhoto, onClose, lang,
+}: {
+  onManual: () => void;
+  onPhoto: () => void;
+  onClose: () => void;
+  lang: Lang;
+}) {
+  const opts = [
+    {
+      icon: <Pencil size={22} style={{ color: fc() }} />,
+      title: tFn(lang, "fin_add_manual"),
+      desc: tFn(lang, "fin_add_manual_desc"),
+      action: onManual,
+    },
+    {
+      icon: <Camera size={22} style={{ color: fc() }} />,
+      title: tFn(lang, "fin_add_foto"),
+      desc: tFn(lang, "fin_add_foto_desc"),
+      action: onPhoto,
+    },
+  ];
+
+  return (
+    <>
+      <div
+        onClick={onClose}
+        style={{ position: "fixed", inset: 0, zIndex: 60, background: "oklch(.1 .02 160 / .35)", backdropFilter: "blur(4px)" }}
+      />
+      <div style={{
+        position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 70,
+        borderRadius: "24px 24px 0 0", background: "#fff",
+        padding: "20px 20px calc(env(safe-area-inset-bottom) + 28px)",
+        boxShadow: "0 -8px 40px oklch(.2 .04 160 / .15)",
+      }}>
+        <div style={{ width: 36, height: 4, borderRadius: 9999, background: "oklch(.85 .02 160)", margin: "0 auto 22px" }} />
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {opts.map((o) => (
+            <button
+              key={o.title}
+              type="button"
+              onClick={() => { onClose(); o.action(); }}
+              style={{
+                display: "flex", alignItems: "center", gap: 16,
+                padding: "18px 18px", borderRadius: 18,
+                border: "1.5px solid oklch(.88 .02 160)",
+                background: "#fff", cursor: "pointer", textAlign: "left",
+                transition: "background .12s ease",
+              }}
+            >
+              <div style={{
+                width: 50, height: 50, borderRadius: 16, flexShrink: 0,
+                background: fl(), display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                {o.icon}
+              </div>
+              <div>
+                <p style={{ margin: 0, fontSize: 15, fontWeight: 800, color: "oklch(.2 .02 160)" }}>{o.title}</p>
+                <p style={{ margin: "3px 0 0", fontSize: 12, color: "oklch(.6 .03 160)", lineHeight: 1.4 }}>{o.desc}</p>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+    </>
+  );
+}
+
 // ── Add/Edit Transaction Modal ────────────────────────────────────────────────
 
 function TransactionModal({
@@ -403,6 +473,7 @@ export default function FinancasPage() {
   const [budgets, setBudgets] = useState<FinancialBudget[]>([]);
   const [goals, setGoals] = useState<Goal[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showAddType, setShowAddType] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
   const [showBudget, setShowBudget] = useState(false);
   const [editTx, setEditTx] = useState<FinancialTransaction | null>(null);
@@ -461,6 +532,8 @@ export default function FinancasPage() {
     } catch { /* silent */ }
     setAnalyzing(false);
   };
+
+  const openPhoto = () => fileInputRef.current?.click();
 
   // ── Computed summaries ─────────────────────────────────────────────────────
   const totalReceitas = transactions.filter((t) => t.type === "receita").reduce((s, t) => s + t.amount, 0);
@@ -770,7 +843,6 @@ export default function FinancasPage() {
         ref={fileInputRef}
         type="file"
         accept="image/*"
-        capture="environment"
         style={{ display: "none" }}
         onChange={(e) => {
           const file = e.target.files?.[0];
@@ -779,44 +851,37 @@ export default function FinancasPage() {
         }}
       />
 
-      {/* ── Camera FAB (secondary) ── */}
+      {/* ── FAB ── */}
       <button
         type="button"
-        onClick={() => fileInputRef.current?.click()}
-        disabled={analyzing}
+        onClick={() => setShowAddType(true)}
         style={{
-          position: "fixed", bottom: 88, right: 84, zIndex: 40,
-          width: 48, height: 48, borderRadius: "50%", border: 0,
-          cursor: analyzing ? "not-allowed" : "pointer",
-          background: "oklch(.97 .04 160)",
+          position: "fixed", bottom: 88, right: 20, zIndex: 40,
+          width: 56, height: 56, borderRadius: "50%", border: 0, cursor: "pointer",
+          background: analyzing ? "oklch(.6 .08 160)" : fc(),
           display: "flex", alignItems: "center", justifyContent: "center",
-          boxShadow: "0 3px 14px oklch(.5 .12 160 / .22)",
+          boxShadow: "0 4px 20px oklch(.5 .14 160 / .45)",
           transition: "transform .15s ease",
         }}
-        onMouseEnter={(e) => { if (!analyzing) (e.currentTarget as HTMLButtonElement).style.transform = "scale(1.08)"; }}
-        onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.transform = "scale(1)"; }}
-      >
-        {analyzing ? (
-          <div style={{ width: 20, height: 20, borderRadius: "50%", border: `2.5px solid ${fc()}`, borderTopColor: "transparent", animation: "spin .8s linear infinite" }} />
-        ) : (
-          <Camera size={20} style={{ color: fc() }} />
-        )}
-      </button>
-
-      {/* ── Main FAB ── */}
-      <button type="button" onClick={() => setShowAdd(true)} style={{
-        position: "fixed", bottom: 88, right: 20, zIndex: 40,
-        width: 56, height: 56, borderRadius: "50%", border: 0, cursor: "pointer",
-        background: fc(),
-        display: "flex", alignItems: "center", justifyContent: "center",
-        boxShadow: "0 4px 20px oklch(.5 .14 160 / .45)",
-        transition: "transform .15s ease",
-      }}
         onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.transform = "scale(1.08)"; }}
         onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.transform = "scale(1)"; }}
       >
-        <Plus size={26} color="#fff" />
+        {analyzing ? (
+          <div style={{ width: 22, height: 22, borderRadius: "50%", border: "2.5px solid #fff", borderTopColor: "transparent", animation: "spin .8s linear infinite" }} />
+        ) : (
+          <Plus size={26} color="#fff" />
+        )}
       </button>
+
+      {/* ── Add type sheet ── */}
+      {showAddType && (
+        <AddTypeSheet
+          lang={lang}
+          onManual={() => setShowAdd(true)}
+          onPhoto={openPhoto}
+          onClose={() => setShowAddType(false)}
+        />
+      )}
 
       {/* ── Modals ── */}
       {(showAdd || editTx) && (

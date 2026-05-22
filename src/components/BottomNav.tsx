@@ -7,6 +7,92 @@ import { useTranslation } from "@/lib/useTranslation";
 import { UserAvatar } from "@/components/UserAvatar";
 import { useState } from "react";
 
+// ── Quick capture sheet ───────────────────────────────────────────────────────
+
+function QuickCaptureSheet({ onClose }: { onClose: () => void }) {
+  const router = useRouter();
+
+  const go = (href: string) => {
+    onClose();
+    router.push(href);
+  };
+
+  return (
+    <>
+      <div
+        onClick={onClose}
+        style={{
+          position: "fixed", inset: 0, zIndex: 60,
+          background: "oklch(.1 .02 160 / .35)",
+          backdropFilter: "blur(4px)",
+          animation: "fadeIn .15s ease",
+        }}
+      />
+      <div style={{
+        position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 70,
+        borderRadius: "22px 22px 0 0",
+        background: "oklch(.99 .004 160)",
+        boxShadow: "0 -4px 32px oklch(.2 .04 160 / .12)",
+        padding: "16px 20px calc(env(safe-area-inset-bottom) + 20px)",
+        animation: "slideUp .2s ease",
+      }}>
+        <div style={{ width: 36, height: 4, borderRadius: 9999, background: "oklch(.82 .02 160)", margin: "0 auto 18px" }} />
+        <p style={{ margin: "0 0 14px", fontSize: 11, fontWeight: 700, letterSpacing: ".1em", textTransform: "uppercase", color: "oklch(.55 .04 160)" }}>
+          Registrar por foto
+        </p>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <button
+            type="button"
+            onClick={() => go("/nutricao/registrar")}
+            style={{
+              display: "flex", flexDirection: "column", alignItems: "center", gap: 10,
+              padding: "20px 12px", borderRadius: 18,
+              border: "1.5px solid oklch(.88 .02 160)",
+              background: "#fff", cursor: "pointer",
+              transition: "background .12s ease",
+            }}
+          >
+            <div style={{
+              width: 52, height: 52, borderRadius: 16,
+              background: "oklch(.95 .04 160)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}>
+              <Utensils size={26} style={{ color: "oklch(.4 .12 160)" }} />
+            </div>
+            <div style={{ textAlign: "center" }}>
+              <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: "oklch(.25 .02 160)" }}>Nutrição</p>
+              <p style={{ margin: "2px 0 0", fontSize: 11, color: "oklch(.6 .03 160)" }}>Registrar refeição</p>
+            </div>
+          </button>
+          <button
+            type="button"
+            onClick={() => go("/financas")}
+            style={{
+              display: "flex", flexDirection: "column", alignItems: "center", gap: 10,
+              padding: "20px 12px", borderRadius: 18,
+              border: "1.5px solid oklch(.88 .02 160)",
+              background: "#fff", cursor: "pointer",
+              transition: "background .12s ease",
+            }}
+          >
+            <div style={{
+              width: 52, height: 52, borderRadius: 16,
+              background: "oklch(.95 .04 160)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}>
+              <Wallet size={26} style={{ color: "oklch(.4 .12 160)" }} />
+            </div>
+            <div style={{ textAlign: "center" }}>
+              <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: "oklch(.25 .02 160)" }}>Finanças</p>
+              <p style={{ margin: "2px 0 0", fontSize: 11, color: "oklch(.6 .03 160)" }}>Registrar gasto</p>
+            </div>
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
 // ── More sheet items ──────────────────────────────────────────────────────────
 
 const MORE_ITEMS = [
@@ -85,6 +171,7 @@ export function BottomNav() {
   const { t } = useTranslation();
   const pathname = usePathname();
   const [showMore, setShowMore] = useState(false);
+  const [showCapture, setShowCapture] = useState(false);
 
   const isActive = (href: string) => {
     if (href === "/dashboard") return pathname === "/dashboard";
@@ -128,13 +215,15 @@ export function BottomNav() {
             <span style={{ fontSize: 10, fontWeight: 600, lineHeight: 1 }}>Sono</span>
           </Link>
 
-          {/* FAB — Nutrição */}
-          <Link
-            href="/nutricao/registrar"
+          {/* FAB — Capturar */}
+          <button
+            type="button"
+            onClick={() => setShowCapture(true)}
             style={{
               display: "flex", flexDirection: "column", alignItems: "center",
               justifyContent: "center", gap: 3, height: "100%", flex: 1,
-              minWidth: 0, textDecoration: "none", color: "oklch(.55 .04 160)",
+              minWidth: 0, border: 0, background: "transparent", cursor: "pointer",
+              fontFamily: "inherit", color: "oklch(.55 .04 160)",
               marginTop: -20,
             }}
           >
@@ -147,9 +236,9 @@ export function BottomNav() {
               <Camera size={22} color="#fff" />
             </span>
             <span style={{ fontSize: 10, fontWeight: 600, lineHeight: 1, color: "oklch(.55 .04 160)" }}>
-              {t("nutricao")}
+              Foto
             </span>
-          </Link>
+          </button>
 
           {/* Maya */}
           <Link href="/insights" style={linkStyle(isActive("/insights"))} prefetch>
@@ -174,6 +263,7 @@ export function BottomNav() {
       </nav>
 
       {showMore && <MoreSheet onClose={() => setShowMore(false)} />}
+      {showCapture && <QuickCaptureSheet onClose={() => setShowCapture(false)} />}
     </>
   );
 }
