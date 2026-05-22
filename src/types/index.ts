@@ -262,6 +262,7 @@ export interface FinancialTransaction {
   type: FinancialType;
   amount: number;
   category: string;
+  subcategory: string | null;
   description: string | null;
   date: string;       // YYYY-MM-DD
   created_at: string;

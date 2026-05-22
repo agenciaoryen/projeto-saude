@@ -9,7 +9,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   const { id } = await params;
   const body = await req.json();
-  const { type, amount, category, description, date } = body;
+  const { type, amount, category, subcategory, description, date } = body;
 
   const admin = getSupabaseAdmin();
   const { data, error } = await admin
@@ -18,6 +18,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       ...(type !== undefined && { type }),
       ...(amount !== undefined && { amount: Number(amount) }),
       ...(category !== undefined && { category }),
+      ...(subcategory !== undefined && { subcategory: subcategory || null }),
       ...(description !== undefined && { description: description || null }),
       ...(date !== undefined && { date }),
       updated_at: new Date().toISOString(),

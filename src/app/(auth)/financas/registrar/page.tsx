@@ -1,13 +1,14 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Camera, ImageIcon, X, ArrowLeft } from "lucide-react";
+import { Camera, ImageIcon, X, ArrowLeft, Settings } from "lucide-react";
 import { compressImage } from "@/lib/photo-storage";
 import { useTranslation } from "@/lib/useTranslation";
 import { t as tFn, type Lang } from "@/lib/i18n";
+import { EXPENSE_CATS, INCOME_CATS, getCatById, getSubcats, type FinCat, type CustomCat } from "@/lib/financas-categories";
 
-// ── Colors & categories ───────────────────────────────────────────────────────
+// ── Colors ────────────────────────────────────────────────────────────────────
 
 const H = 160;
 function fc(l = 0.5, c = 0.14) { return `oklch(${l} ${c} ${H})`; }
@@ -15,26 +16,266 @@ function fl() { return `oklch(.96 .04 ${H})`; }
 const GREEN = "oklch(.45 .14 160)";
 const RED = "oklch(.48 .18 15)";
 
-const EXPENSE_CATS = [
-  { id: "moradia",      emoji: "🏠", hue: 40  },
-  { id: "alimentacao",  emoji: "🍽️", hue: 30  },
-  { id: "transporte",   emoji: "🚗", hue: 220 },
-  { id: "saude",        emoji: "💊", hue: 160 },
-  { id: "educacao",     emoji: "📚", hue: 270 },
-  { id: "lazer",        emoji: "🎮", hue: 185 },
-  { id: "beleza",       emoji: "💄", hue: 300 },
-  { id: "assinaturas",  emoji: "📱", hue: 200 },
-  { id: "vestuario",    emoji: "👕", hue: 215 },
-  { id: "outros",       emoji: "⚙️", hue: 160 },
-] as const;
+// ── Category label helper ─────────────────────────────────────────────────────
 
-const INCOME_CATS = [
-  { id: "salario",       emoji: "💼", hue: 160 },
-  { id: "freelance",     emoji: "💻", hue: 220 },
-  { id: "investimentos", emoji: "📈", hue: 75  },
-  { id: "presente",      emoji: "🎁", hue: 300 },
-  { id: "outros",        emoji: "⚙️", hue: 160 },
-] as const;
+function catLabel(c: FinCat, lang: Lang, customCat: CustomCat | null): string {
+  if (c.custom) return customCat?.name ?? tFn(lang, "fin_cat_personalizada");
+  return tFn(lang, `fin_cat_${c.id}`);
+}
+
+// ── Category picker (two-level) ───────────────────────────────────────────────
+
+function CategoryPicker({
+  type, category, subcategory, lang, customCat,
+  onSelect, onEditCustom,
+}: {
+  type: "receita" | "despesa";
+  category: string;
+  subcategory: string;
+  lang: Lang;
+  customCat: CustomCat | null;
+  onSelect: (cat: string, sub: string) => void;
+  onEditCustom: () => void;
+}) {
+  const cats = type === "despesa" ? EXPENSE_CATS : INCOME_CATS;
+  const cols = type === "despesa" ? "repeat(4, 1fr)" : "repeat(5, 1fr)";
+  const selectedCat = cats.find((c) => c.id === category);
+  const subcats = category ? getSubcats(category, cats, customCat) : [];
+
+  return (
+    <div>
+      <p style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 700, letterSpacing: ".07em", textTransform: "uppercase", color: "oklch(.55 .04 160)" }}>
+        {tFn(lang, "fin_categoria")}
+      </p>
+
+      <div style={{ display: "grid", gridTemplateColumns: cols, gap: 6 }}>
+        {cats.map((c) => {
+          const sel = category === c.id;
+          const label = catLabel(c, lang, customCat);
+          const emoji = c.custom ? (customCat?.emoji ?? c.emoji) : c.emoji;
+          return (
+            <div key={c.id} style={{ position: "relative" }}>
+              <button
+                type="button"
+                onClick={() => onSelect(c.id, "")}
+                style={{
+                  width: "100%", padding: "10px 4px", borderRadius: 12,
+                  border: sel ? `2px solid oklch(.5 .14 ${c.hue})` : "2px solid oklch(.88 .02 160)",
+                  background: sel ? `oklch(.95 .05 ${c.hue})` : "#fff",
+                  cursor: "pointer", display: "flex", flexDirection: "column",
+                  alignItems: "center", gap: 3, transition: "all .12s ease",
+                }}
+              >
+                <span style={{ fontSize: 18 }}>{emoji}</span>
+                <span style={{
+                  fontSize: 8, fontWeight: 700, textAlign: "center", lineHeight: 1.2,
+                  color: sel ? `oklch(.45 .12 ${c.hue})` : "oklch(.55 .03 160)",
+                }}>
+                  {label}
+                </span>
+              </button>
+              {c.custom && (
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); onEditCustom(); }}
+                  style={{
+                    position: "absolute", top: 3, right: 3,
+                    width: 18, height: 18, borderRadius: "50%",
+                    background: "oklch(.88 .02 160)", border: 0, cursor: "pointer",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                  }}
+                >
+                  <Settings size={10} style={{ color: "oklch(.5 .04 160)" }} />
+                </button>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Subcategory chips */}
+      {subcats.length > 0 && (
+        <div style={{ marginTop: 10 }}>
+          <p style={{ margin: "0 0 6px", fontSize: 10, fontWeight: 700, letterSpacing: ".06em", textTransform: "uppercase", color: "oklch(.65 .03 160)" }}>
+            {tFn(lang, "fin_subcategoria")}
+          </p>
+          <div style={{ overflowX: "auto", display: "flex", gap: 6, paddingBottom: 4 }}>
+            {subcats.map((sc) => {
+              const selSub = subcategory === sc.label;
+              return (
+                <button
+                  key={sc.id}
+                  type="button"
+                  onClick={() => onSelect(category, sc.label)}
+                  style={{
+                    flexShrink: 0, padding: "6px 13px", borderRadius: 20,
+                    border: selSub
+                      ? `1.5px solid oklch(.5 .14 ${selectedCat?.hue ?? 160})`
+                      : "1.5px solid oklch(.88 .02 160)",
+                    background: selSub ? `oklch(.95 .05 ${selectedCat?.hue ?? 160})` : "#fff",
+                    cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap",
+                    fontSize: 12, fontWeight: 600,
+                    color: selSub ? `oklch(.45 .12 ${selectedCat?.hue ?? 160})` : "oklch(.5 .04 160)",
+                    transition: "all .12s ease",
+                  }}
+                >
+                  {sc.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Custom Category Edit Modal ────────────────────────────────────────────────
+
+function CustomCatModal({
+  customCat, lang, onClose, onSaved,
+}: {
+  customCat: CustomCat | null;
+  lang: Lang;
+  onClose: () => void;
+  onSaved: (updated: CustomCat) => void;
+}) {
+  const [name, setName] = useState(customCat?.name ?? "Personalizada");
+  const [emoji, setEmoji] = useState(customCat?.emoji ?? "⭐");
+  const [subcats, setSubcats] = useState<string[]>(customCat?.subcats ?? ["Personalizado"]);
+  const [newSubcat, setNewSubcat] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const addSubcat = () => {
+    const v = newSubcat.trim();
+    if (v && !subcats.includes(v)) { setSubcats((p) => [...p, v]); }
+    setNewSubcat("");
+  };
+
+  const save = async () => {
+    setSaving(true);
+    const updated: CustomCat = { name: name.trim() || "Personalizada", emoji: emoji || "⭐", subcats };
+    const prefsRes = await fetch("/api/preferences").then((r) => r.json());
+    const ctx = prefsRes.context ?? {};
+    await fetch("/api/preferences", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ context: { ...ctx, custom_fin_cat: updated } }),
+    });
+    setSaving(false);
+    onSaved(updated);
+    onClose();
+  };
+
+  const inputStyle: React.CSSProperties = {
+    width: "100%", boxSizing: "border-box", padding: "10px 12px",
+    borderRadius: 10, border: "1.5px solid oklch(.82 .03 160)",
+    background: "oklch(.98 .005 160)", fontFamily: "inherit",
+    fontSize: 14, color: "oklch(.2 .02 160)", outline: "none",
+  };
+
+  return (
+    <>
+      <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 80, background: "oklch(.1 .02 160 / .4)", backdropFilter: "blur(4px)" }} />
+      <div style={{
+        position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 90,
+        borderRadius: "24px 24px 0 0", background: "#fff",
+        padding: "20px 20px calc(env(safe-area-inset-bottom) + 28px)",
+        boxShadow: "0 -8px 40px oklch(.2 .04 160 / .15)",
+        maxHeight: "90dvh", overflowY: "auto",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+          <div>
+            <div style={{ width: 36, height: 4, borderRadius: 9999, background: "oklch(.85 .02 160)", marginBottom: 14 }} />
+            <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: "oklch(.2 .02 160)" }}>
+              {tFn(lang, "fin_personalizada_editar")}
+            </h2>
+          </div>
+          <button type="button" onClick={onClose} style={{ border: 0, background: "oklch(.93 .02 160)", borderRadius: 10, padding: 8, cursor: "pointer" }}>
+            <X size={18} style={{ color: "oklch(.45 .06 160)" }} />
+          </button>
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div style={{ display: "flex", gap: 10 }}>
+            <div>
+              <p style={{ margin: "0 0 5px", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".07em", color: "oklch(.55 .04 160)" }}>
+                Emoji
+              </p>
+              <input
+                value={emoji}
+                onChange={(e) => setEmoji(e.target.value)}
+                style={{ ...inputStyle, width: 56, textAlign: "center", fontSize: 20, padding: "8px 6px" }}
+                maxLength={4}
+              />
+            </div>
+            <div style={{ flex: 1 }}>
+              <p style={{ margin: "0 0 5px", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".07em", color: "oklch(.55 .04 160)" }}>
+                {tFn(lang, "fin_personalizada_nome")}
+              </p>
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                style={inputStyle}
+                onFocus={(e) => { (e.target as HTMLInputElement).style.borderColor = fc(); }}
+                onBlur={(e) => { (e.target as HTMLInputElement).style.borderColor = "oklch(.82 .03 160)"; }}
+              />
+            </div>
+          </div>
+
+          <div>
+            <p style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".07em", color: "oklch(.55 .04 160)" }}>
+              {tFn(lang, "fin_personalizada_subcats")}
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {subcats.map((sc, i) => (
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ flex: 1, fontSize: 13, color: "oklch(.3 .03 160)", padding: "8px 12px", borderRadius: 10, background: "oklch(.96 .02 160)" }}>
+                    {sc}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setSubcats((p) => p.filter((_, j) => j !== i))}
+                    style={{ border: 0, background: "none", cursor: "pointer", padding: 6, color: "oklch(.65 .08 15)" }}
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+              <input
+                value={newSubcat}
+                onChange={(e) => setNewSubcat(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addSubcat(); } }}
+                placeholder={tFn(lang, "fin_personalizada_adicionar")}
+                style={{ ...inputStyle, flex: 1 }}
+                onFocus={(e) => { (e.target as HTMLInputElement).style.borderColor = fc(); }}
+                onBlur={(e) => { (e.target as HTMLInputElement).style.borderColor = "oklch(.82 .03 160)"; }}
+              />
+              <button type="button" onClick={addSubcat} style={{
+                border: 0, background: fl(), borderRadius: 10, padding: "0 14px",
+                cursor: "pointer", fontSize: 18, color: fc(), fontFamily: "inherit", fontWeight: 700,
+              }}>
+                +
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <button type="button" onClick={save} disabled={saving} style={{
+          marginTop: 20, width: "100%", padding: "14px 20px", borderRadius: 14, border: 0,
+          cursor: saving ? "not-allowed" : "pointer",
+          background: saving ? "oklch(.88 .02 160)" : fc(),
+          fontFamily: "inherit", fontSize: 15, fontWeight: 700,
+          color: saving ? "oklch(.6 .02 160)" : "#fff",
+        }}>
+          {saving ? tFn(lang, "salvando") : tFn(lang, "fin_personalizada_salvar")}
+        </button>
+      </div>
+    </>
+  );
+}
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -44,6 +285,7 @@ type Draft = {
   type: "receita" | "despesa";
   amount: string;
   category: string;
+  subcategory: string;
   description: string;
   date: string;
 };
@@ -56,16 +298,28 @@ export default function FinancasRegistrarPage() {
   const cameraRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
 
+  const [customCat, setCustomCat] = useState<CustomCat | null>(null);
+  const [showCustomEdit, setShowCustomEdit] = useState(false);
   const [photo, setPhoto] = useState<string | null>(null);
   const [stage, setStage] = useState<Stage>("capture");
   const [draft, setDraft] = useState<Draft>({
     type: "despesa",
     amount: "",
     category: "",
+    subcategory: "",
     description: "",
     date: new Date().toISOString().slice(0, 10),
   });
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/preferences")
+      .then((r) => r.json())
+      .then((prefs) => {
+        if (prefs.context?.custom_fin_cat) setCustomCat(prefs.context.custom_fin_cat);
+      })
+      .catch(() => {});
+  }, []);
 
   const handleFile = async (file: File) => {
     try {
@@ -94,6 +348,7 @@ export default function FinancasRegistrarPage() {
           type: data.type ?? "despesa",
           amount: data.amount ? String(data.amount) : "",
           category: data.category ?? "",
+          subcategory: data.subcategory ?? "",
           description: data.description ?? "",
           date: data.date ?? new Date().toISOString().slice(0, 10),
         });
@@ -113,6 +368,7 @@ export default function FinancasRegistrarPage() {
           type: draft.type,
           amount: Number(draft.amount),
           category: draft.category,
+          subcategory: draft.subcategory || null,
           description: draft.description || null,
           date: draft.date,
         }),
@@ -124,7 +380,9 @@ export default function FinancasRegistrarPage() {
   };
 
   const cats = draft.type === "despesa" ? EXPENSE_CATS : INCOME_CATS;
-  const canSave = draft.amount !== "" && Number(draft.amount) > 0 && draft.category.length > 0;
+  const subcatsForCat = draft.category ? getSubcats(draft.category, cats, customCat) : [];
+  const canSave = draft.amount !== "" && Number(draft.amount) > 0 && draft.category.length > 0
+    && (subcatsForCat.length === 0 || draft.subcategory.length > 0);
 
   const inputStyle: React.CSSProperties = {
     width: "100%", boxSizing: "border-box", padding: "12px 14px",
@@ -133,7 +391,7 @@ export default function FinancasRegistrarPage() {
     fontSize: 14, color: "oklch(.2 .02 160)", outline: "none",
   };
 
-  // ── Header shared ─────────────────────────────────────────────────────────
+  // ── Header ────────────────────────────────────────────────────────────────
   const Header = ({ onBack, title }: { onBack: () => void; title: string }) => (
     <div style={{
       background: `linear-gradient(160deg, ${fc(.44, .16)}, ${fc(.38, .14)})`,
@@ -184,7 +442,7 @@ export default function FinancasRegistrarPage() {
 
         <div style={{ padding: "20px 20px", display: "flex", flexDirection: "column", gap: 18 }}>
 
-          {/* Photo thumbnail + retake */}
+          {/* Photo thumbnail */}
           {photo && (
             <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 14px", borderRadius: 16, background: "#fff", border: "1.5px solid oklch(.9 .02 160)" }}>
               <img src={photo} alt="Recibo" style={{ width: 68, height: 52, objectFit: "cover", borderRadius: 10, flexShrink: 0 }} />
@@ -204,13 +462,15 @@ export default function FinancasRegistrarPage() {
           {/* Type toggle */}
           <div style={{ display: "flex", gap: 8 }}>
             {(["despesa", "receita"] as const).map((tp) => (
-              <button key={tp} type="button" onClick={() => setDraft((p) => ({ ...p, type: tp, category: "" }))} style={{
-                flex: 1, padding: "13px 10px", borderRadius: 14, border: 0, cursor: "pointer",
-                fontFamily: "inherit", fontSize: 14, fontWeight: 700,
-                background: draft.type === tp ? (tp === "despesa" ? RED : GREEN) : "oklch(.92 .02 160)",
-                color: draft.type === tp ? "#fff" : "oklch(.45 .06 160)",
-                transition: "all .15s ease",
-              }}>
+              <button key={tp} type="button"
+                onClick={() => setDraft((p) => ({ ...p, type: tp, category: "", subcategory: "" }))}
+                style={{
+                  flex: 1, padding: "13px 10px", borderRadius: 14, border: 0, cursor: "pointer",
+                  fontFamily: "inherit", fontSize: 14, fontWeight: 700,
+                  background: draft.type === tp ? (tp === "despesa" ? RED : GREEN) : "oklch(.92 .02 160)",
+                  color: draft.type === tp ? "#fff" : "oklch(.45 .06 160)",
+                  transition: "all .15s ease",
+                }}>
                 {tp === "despesa" ? `↓ ${tFn(lang, "fin_despesa_label")}` : `↑ ${tFn(lang, "fin_receita_label")}`}
               </button>
             ))}
@@ -236,31 +496,16 @@ export default function FinancasRegistrarPage() {
             />
           </div>
 
-          {/* Category */}
-          <div>
-            <p style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 700, letterSpacing: ".07em", textTransform: "uppercase", color: "oklch(.55 .04 160)" }}>
-              {tFn(lang, "fin_categoria")}
-            </p>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 6 }}>
-              {cats.map((c) => {
-                const sel = draft.category === c.id;
-                return (
-                  <button key={c.id} type="button" onClick={() => setDraft((p) => ({ ...p, category: c.id }))} style={{
-                    padding: "10px 4px", borderRadius: 12,
-                    border: sel ? `2px solid oklch(.5 .14 ${c.hue})` : "2px solid oklch(.88 .02 160)",
-                    background: sel ? `oklch(.95 .05 ${c.hue})` : "#fff",
-                    cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 3,
-                    transition: "all .12s ease",
-                  }}>
-                    <span style={{ fontSize: 18 }}>{c.emoji}</span>
-                    <span style={{ fontSize: 9, fontWeight: 700, textAlign: "center", lineHeight: 1.2, color: sel ? `oklch(.45 .12 ${c.hue})` : "oklch(.55 .03 160)" }}>
-                      {tFn(lang, `fin_cat_${c.id}`)}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+          {/* Category + subcategory picker */}
+          <CategoryPicker
+            type={draft.type}
+            category={draft.category}
+            subcategory={draft.subcategory}
+            lang={lang}
+            customCat={customCat}
+            onSelect={(cat, sub) => setDraft((p) => ({ ...p, category: cat, subcategory: sub }))}
+            onEditCustom={() => setShowCustomEdit(true)}
+          />
 
           {/* Description */}
           <div>
@@ -304,6 +549,15 @@ export default function FinancasRegistrarPage() {
           </button>
         </div>
 
+        {showCustomEdit && (
+          <CustomCatModal
+            customCat={customCat}
+            lang={lang}
+            onClose={() => setShowCustomEdit(false)}
+            onSaved={(updated) => setCustomCat(updated)}
+          />
+        )}
+
         <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
       </div>
     );
@@ -318,7 +572,6 @@ export default function FinancasRegistrarPage() {
 
         {photo ? (
           <>
-            {/* Photo preview */}
             <div style={{ position: "relative" }}>
               <img
                 src={photo}
@@ -335,7 +588,6 @@ export default function FinancasRegistrarPage() {
               </button>
             </div>
 
-            {/* Retake options */}
             <div style={{ display: "flex", gap: 8 }}>
               <button type="button" onClick={() => cameraRef.current?.click()} style={{
                 flex: 1, padding: "11px", borderRadius: 12,
@@ -355,7 +607,6 @@ export default function FinancasRegistrarPage() {
               </button>
             </div>
 
-            {/* Analyze */}
             <button type="button" onClick={analyze} style={{
               width: "100%", padding: "16px 20px", borderRadius: 16, border: 0, cursor: "pointer",
               background: fc(), fontFamily: "inherit", fontSize: 16, fontWeight: 700, color: "#fff",
@@ -364,7 +615,6 @@ export default function FinancasRegistrarPage() {
             </button>
           </>
         ) : (
-          /* Empty state — pick photo */
           <div style={{
             background: "#fff", borderRadius: 24,
             border: "2px dashed oklch(.82 .03 160)",
@@ -401,7 +651,6 @@ export default function FinancasRegistrarPage() {
           </div>
         )}
 
-        {/* Manual fallback */}
         <button type="button" onClick={() => router.push("/financas")} style={{
           border: 0, background: "none", cursor: "pointer",
           fontFamily: "inherit", fontSize: 13, fontWeight: 600,
@@ -411,7 +660,6 @@ export default function FinancasRegistrarPage() {
         </button>
       </div>
 
-      {/* Hidden file inputs */}
       <input
         ref={cameraRef}
         type="file"

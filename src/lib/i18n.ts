@@ -522,6 +522,20 @@ const translations: Record<Lang, Record<string, string>> = {
     fin_cat_freelance: "Freelance",
     fin_cat_investimentos: "Investimentos",
     fin_cat_presente: "Presente",
+    // New expense categories
+    fin_cat_saude_beleza: "Saúde & Beleza",
+    fin_cat_pessoal: "Pessoal & Presentes",
+    fin_cat_servicos_fin: "Serviços Fin.",
+    fin_cat_comunicacao: "Comunicação",
+    fin_cat_doacoes: "Doações & Ofertas",
+    fin_cat_pet: "Animal de Estimação",
+    fin_cat_personalizada: "Personalizada",
+    fin_subcategoria: "Subcategoria",
+    fin_personalizada_nome: "Nome da categoria",
+    fin_personalizada_subcats: "Subcategorias",
+    fin_personalizada_adicionar: "Adicionar subcategoria",
+    fin_personalizada_salvar: "Salvar personalização",
+    fin_personalizada_editar: "Personalizar categoria",
 
     // Metas page
     metas_title: "Metas & Objetivos",
@@ -1076,6 +1090,20 @@ const translations: Record<Lang, Record<string, string>> = {
     fin_cat_freelance: "Freelance",
     fin_cat_investimentos: "Inversiones",
     fin_cat_presente: "Regalo",
+    // New expense categories
+    fin_cat_saude_beleza: "Salud & Belleza",
+    fin_cat_pessoal: "Personal & Regalos",
+    fin_cat_servicos_fin: "Servicios Fin.",
+    fin_cat_comunicacao: "Comunicación",
+    fin_cat_doacoes: "Donaciones",
+    fin_cat_pet: "Mascota",
+    fin_cat_personalizada: "Personalizada",
+    fin_subcategoria: "Subcategoría",
+    fin_personalizada_nome: "Nombre de la categoría",
+    fin_personalizada_subcats: "Subcategorías",
+    fin_personalizada_adicionar: "Agregar subcategoría",
+    fin_personalizada_salvar: "Guardar personalización",
+    fin_personalizada_editar: "Personalizar categoría",
 
     // Metas page
     metas_title: "Metas & Objetivos",
@@ -1680,6 +1708,20 @@ const translations: Record<Lang, Record<string, string>> = {
     fin_cat_freelance: "Freelance",
     fin_cat_investimentos: "Investments",
     fin_cat_presente: "Gift",
+    // New expense categories
+    fin_cat_saude_beleza: "Health & Beauty",
+    fin_cat_pessoal: "Personal & Gifts",
+    fin_cat_servicos_fin: "Fin. Services",
+    fin_cat_comunicacao: "Communication",
+    fin_cat_doacoes: "Donations",
+    fin_cat_pet: "Pet",
+    fin_cat_personalizada: "Custom",
+    fin_subcategoria: "Subcategory",
+    fin_personalizada_nome: "Category name",
+    fin_personalizada_subcats: "Subcategories",
+    fin_personalizada_adicionar: "Add subcategory",
+    fin_personalizada_salvar: "Save customization",
+    fin_personalizada_editar: "Customize category",
   },
 };
 

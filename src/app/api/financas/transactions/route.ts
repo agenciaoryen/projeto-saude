@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
   if (!session) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
 
   const body = await req.json();
-  const { type, amount, category, description, date } = body;
+  const { type, amount, category, subcategory, description, date } = body;
 
   if (!type || !amount || !category || !date) {
     return NextResponse.json({ error: "Campos obrigatórios ausentes" }, { status: 400 });
@@ -48,6 +48,7 @@ export async function POST(req: NextRequest) {
       type,
       amount: Number(amount),
       category,
+      subcategory: subcategory || null,
       description: description || null,
       date,
     })

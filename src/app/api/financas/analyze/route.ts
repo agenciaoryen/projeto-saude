@@ -8,7 +8,7 @@ const CLAUDE_HEADERS = {
   "anthropic-version": "2023-06-01",
 };
 
-const EXPENSE_IDS = ["moradia", "alimentacao", "transporte", "saude", "educacao", "lazer", "beleza", "assinaturas", "vestuario", "outros"];
+const EXPENSE_IDS = ["moradia", "alimentacao", "transporte", "saude_beleza", "educacao", "lazer", "pessoal", "servicos_fin", "comunicacao", "doacoes", "pet", "personalizada"];
 const INCOME_IDS = ["salario", "freelance", "investimentos", "presente", "outros"];
 
 function extractJson(text: string): string {
@@ -37,6 +37,7 @@ Formato exato:
   "type": "despesa",
   "amount": 0.00,
   "category": "categoria",
+  "subcategory": "subcategoria",
   "description": "descrição curta",
   "date": "YYYY-MM-DD"
 }
@@ -48,6 +49,7 @@ Regras:
 - type: "despesa" para compras/pagamentos, "receita" para recebimentos
 - amount: valor total em número (sem símbolo de moeda)
 - category: escolha a categoria mais adequada das listas acima
+- subcategory: texto curto descrevendo a subcategoria específica (ex: "Supermercado", "Uber", "Plano de Saúde")
 - description: máximo 60 caracteres, texto simples
 - date: data do recibo no formato YYYY-MM-DD; se não encontrar, use hoje: ${today}
 
@@ -96,6 +98,7 @@ NUNCA use markdown, apenas o JSON puro.`;
         type: parsed.type ?? "despesa",
         amount: parsed.amount ?? "",
         category: parsed.category ?? "outros",
+        subcategory: parsed.subcategory ?? "",
         description: parsed.description ?? "",
         date: parsed.date ?? today,
       });
