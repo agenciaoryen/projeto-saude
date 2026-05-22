@@ -4,18 +4,20 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Target, Compass, ChevronRight, Trophy, AlertTriangle, Calendar, Shield, Sparkles } from "lucide-react";
 import type { Goal, GoalStage, GoalAction } from "@/types";
+import { useTranslation } from "@/lib/useTranslation";
+import { t as tFn, type Lang } from "@/lib/i18n";
 
 // ── Area config ───────────────────────────────────────────────────────────────
 
-const AREA_CONFIG: Record<string, { label: string; emoji: string; hue: number }> = {
-  saude:          { label: "Saúde",                  emoji: "💚", hue: 160 },
-  carreira:       { label: "Carreira",               emoji: "💼", hue: 220 },
-  financas:       { label: "Finanças",               emoji: "💰", hue: 85  },
-  relacionamentos:{ label: "Relacionamentos",        emoji: "❤️", hue: 15  },
-  desenvolvimento:{ label: "Desenvolvimento",        emoji: "🧠", hue: 270 },
-  familia:        { label: "Família",                emoji: "🏡", hue: 40  },
-  lazer:          { label: "Lazer",                  emoji: "🌊", hue: 185 },
-  espiritualidade:{ label: "Espiritualidade",        emoji: "✨", hue: 300 },
+const AREA_CONFIG: Record<string, { labelKey: string; emoji: string; hue: number }> = {
+  saude:          { labelKey: "area_saude",           emoji: "💚", hue: 160 },
+  carreira:       { labelKey: "area_carreira",        emoji: "💼", hue: 220 },
+  financas:       { labelKey: "area_financas",        emoji: "💰", hue: 85  },
+  relacionamentos:{ labelKey: "area_relacionamentos", emoji: "❤️", hue: 15  },
+  desenvolvimento:{ labelKey: "area_desenvolvimento", emoji: "🧠", hue: 270 },
+  familia:        { labelKey: "area_familia",         emoji: "🏡", hue: 40  },
+  lazer:          { labelKey: "area_lazer",           emoji: "🌊", hue: 185 },
+  espiritualidade:{ labelKey: "area_espiritualidade", emoji: "✨", hue: 300 },
 };
 
 function areaColor(area: string, alpha = 1) {
@@ -60,7 +62,7 @@ function nextAction(goal: GoalFull): string | null {
 
 // ── Goal card ─────────────────────────────────────────────────────────────────
 
-function GoalCard({ goal, onClick }: { goal: GoalFull; onClick: () => void }) {
+function GoalCard({ goal, onClick, lang }: { goal: GoalFull; onClick: () => void; lang: Lang }) {
   const area = AREA_CONFIG[goal.area] ?? AREA_CONFIG.saude;
   const pct = goalProgress(goal);
   const inactive = daysSince(goal.updated_at);
@@ -120,13 +122,13 @@ function GoalCard({ goal, onClick }: { goal: GoalFull; onClick: () => void }) {
                   background: areaLight(goal.area), color: areaColor(goal.area),
                 }}>
                   {goal.type === "destino" ? <Target size={9} /> : <Compass size={9} />}
-                  {goal.type === "destino" ? "Destino" : "Direção"}
+                  {goal.type === "destino" ? tFn(lang, "meta_tipo_destino") : tFn(lang, "meta_tipo_direcao")}
                 </span>
                 <span style={{
                   padding: "2px 8px", borderRadius: 9999, fontSize: 10, fontWeight: 600,
                   background: "oklch(.95 .01 160)", color: "oklch(.45 .06 160)",
                 }}>
-                  {area.label}
+                  {tFn(lang, area.labelKey)}
                 </span>
                 {isInactive && (
                   <span style={{
@@ -134,7 +136,7 @@ function GoalCard({ goal, onClick }: { goal: GoalFull; onClick: () => void }) {
                     padding: "2px 8px", borderRadius: 9999, fontSize: 10, fontWeight: 700,
                     background: "oklch(.97 .06 60)", color: "oklch(.5 .14 60)",
                   }}>
-                    <AlertTriangle size={9} /> {inactive}d sem atividade
+                    <AlertTriangle size={9} /> {tFn(lang, "meta_inativo", { n: String(inactive) })}
                   </span>
                 )}
                 {isOverdue && (
@@ -143,7 +145,7 @@ function GoalCard({ goal, onClick }: { goal: GoalFull; onClick: () => void }) {
                     padding: "2px 8px", borderRadius: 9999, fontSize: 10, fontWeight: 700,
                     background: "oklch(.97 .06 15)", color: "oklch(.5 .18 15)",
                   }}>
-                    <AlertTriangle size={9} /> Prazo vencido
+                    <AlertTriangle size={9} /> {tFn(lang, "meta_prazo_vencido")}
                   </span>
                 )}
                 {isUrgent && !isOverdue && (
@@ -245,6 +247,7 @@ function GoalCard({ goal, onClick }: { goal: GoalFull; onClick: () => void }) {
 
 export default function MetasPage() {
   const router = useRouter();
+  const { lang } = useTranslation();
   const [goals, setGoals] = useState<GoalFull[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -385,6 +388,7 @@ export default function MetasPage() {
                       key={goal.id}
                       goal={goal}
                       onClick={() => router.push(`/metas/${goal.id}`)}
+                      lang={lang}
                     />
                   ))}
                 </div>
@@ -400,7 +404,7 @@ export default function MetasPage() {
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                   {pausedGoals.map((goal) => (
                     <div key={goal.id} style={{ opacity: 0.6 }}>
-                      <GoalCard goal={goal} onClick={() => router.push(`/metas/${goal.id}`)} />
+                      <GoalCard goal={goal} onClick={() => router.push(`/metas/${goal.id}`)} lang={lang} />
                     </div>
                   ))}
                 </div>

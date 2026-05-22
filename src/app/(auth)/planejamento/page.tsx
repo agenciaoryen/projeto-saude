@@ -7,22 +7,24 @@ import {
   Plus, Calendar, Clock, Pencil, Trash2, X,
 } from "lucide-react";
 import type { Goal, GoalStage, GoalAction, WeeklyPlan, WeeklyReview, WeeklyTask, TaskArea } from "@/types";
+import { useTranslation } from "@/lib/useTranslation";
+import { t as tFn, type Lang } from "@/lib/i18n";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const AREA_CONFIG: Record<string, { emoji: string; hue: number; label: string }> = {
-  saude:           { emoji: "💚", hue: 160, label: "Saúde" },
-  carreira:        { emoji: "💼", hue: 220, label: "Carreira" },
-  financas:        { emoji: "💰", hue: 85,  label: "Finanças" },
-  relacionamentos: { emoji: "❤️", hue: 15,  label: "Relacionamentos" },
-  desenvolvimento: { emoji: "🧠", hue: 270, label: "Desenvolvimento" },
-  familia:         { emoji: "🏡", hue: 40,  label: "Família" },
-  lazer:           { emoji: "🌊", hue: 185, label: "Lazer" },
-  espiritualidade: { emoji: "✨", hue: 300, label: "Espiritualidade" },
-  outros:          { emoji: "⚪", hue: 200, label: "Outros" },
+const AREA_CONFIG: Record<string, { emoji: string; hue: number; labelKey: string }> = {
+  saude:           { emoji: "💚", hue: 160, labelKey: "area_saude" },
+  carreira:        { emoji: "💼", hue: 220, labelKey: "area_carreira" },
+  financas:        { emoji: "💰", hue: 85,  labelKey: "area_financas" },
+  relacionamentos: { emoji: "❤️", hue: 15,  labelKey: "area_relacionamentos" },
+  desenvolvimento: { emoji: "🧠", hue: 270, labelKey: "area_desenvolvimento" },
+  familia:         { emoji: "🏡", hue: 40,  labelKey: "area_familia" },
+  lazer:           { emoji: "🌊", hue: 185, labelKey: "area_lazer" },
+  espiritualidade: { emoji: "✨", hue: 300, labelKey: "area_espiritualidade" },
+  outros:          { emoji: "⚪", hue: 200, labelKey: "area_outros" },
 };
 
-const DAYS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
+const DAY_KEYS = ["dia_seg", "dia_ter", "dia_qua", "dia_qui", "dia_sex", "dia_sab", "dia_dom"];
 const ALL_AREAS = Object.keys(AREA_CONFIG) as TaskArea[];
 
 function ac(hue: number, l = 0.5, c = 0.12) { return `oklch(${l} ${c} ${hue})`; }
@@ -180,12 +182,13 @@ function FocusModal({
 // ── Add Task Sheet ─────────────────────────────────────────────────────────────
 
 function AddTaskSheet({
-  goals, initialDay, onClose, onSaved,
+  goals, initialDay, onClose, onSaved, lang,
 }: {
   goals: GoalFull[];
   initialDay?: number;
   onClose: () => void;
   onSaved: (task: WeeklyTask) => void;
+  lang: Lang;
 }) {
   const [title, setTitle]           = useState("");
   const [area, setArea]             = useState<TaskArea | "">("");
@@ -249,7 +252,7 @@ function AddTaskSheet({
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
           <div>
             <div style={{ width: 36, height: 4, borderRadius: 9999, background: "oklch(.85 .02 160)", marginBottom: 14 }} />
-            <h2 style={{ margin: 0, fontSize: 19, fontWeight: 800, color: "oklch(.2 .02 160)" }}>Nova tarefa</h2>
+            <h2 style={{ margin: 0, fontSize: 19, fontWeight: 800, color: "oklch(.2 .02 160)" }}>{tFn(lang, "plan_nova_tarefa")}</h2>
           </div>
           <button type="button" onClick={onClose} style={{ border: 0, background: "oklch(.93 .02 160)", borderRadius: 10, padding: 8, cursor: "pointer" }}>
             <X size={18} style={{ color: "oklch(.45 .06 160)" }} />
@@ -261,10 +264,10 @@ function AddTaskSheet({
           {/* Dia */}
           <div>
             <p style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 700, letterSpacing: ".07em", textTransform: "uppercase", color: "oklch(.55 .04 160)" }}>
-              Dia da semana *
+              {tFn(lang, "plan_dia_semana")}
             </p>
             <div style={{ display: "flex", gap: 6 }}>
-              {DAYS.map((d, i) => (
+              {DAY_KEYS.map((dk, i) => (
                 <button key={i} type="button" onClick={() => setDay(i)} style={{
                   flex: 1, padding: "9px 2px", borderRadius: 10, border: 0, cursor: "pointer",
                   background: day === i ? "oklch(.5 .12 160)" : "oklch(.93 .02 160)",
@@ -272,7 +275,7 @@ function AddTaskSheet({
                   color: day === i ? "#fff" : "oklch(.45 .06 160)",
                   transition: "all .12s ease",
                 }}>
-                  {d}
+                  {tFn(lang, dk)}
                 </button>
               ))}
             </div>
@@ -281,13 +284,13 @@ function AddTaskSheet({
           {/* Título */}
           <div>
             <p style={{ margin: "0 0 6px", fontSize: 11, fontWeight: 700, letterSpacing: ".07em", textTransform: "uppercase", color: "oklch(.55 .04 160)" }}>
-              Título *
+              {tFn(lang, "plan_titulo_campo")}
             </p>
             <input
               autoFocus
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="O que precisa ser feito?"
+              placeholder={tFn(lang, "plan_titulo_ph")}
               style={inputStyle}
               onFocus={(e) => { (e.target as HTMLInputElement).style.borderColor = "oklch(.5 .12 160)"; }}
               onBlur={(e) => { (e.target as HTMLInputElement).style.borderColor = "oklch(.82 .03 160)"; }}
@@ -297,7 +300,7 @@ function AddTaskSheet({
           {/* Área */}
           <div>
             <p style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 700, letterSpacing: ".07em", textTransform: "uppercase", color: "oklch(.55 .04 160)" }}>
-              Área da vida *
+              {tFn(lang, "plan_area_vida")}
             </p>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 7 }}>
               {ALL_AREAS.map((a) => {
@@ -312,7 +315,7 @@ function AddTaskSheet({
                   }}>
                     <span style={{ fontSize: 18 }}>{conf.emoji}</span>
                     <span style={{ fontSize: 10, fontWeight: 700, color: sel ? ac(conf.hue) : "oklch(.45 .04 160)" }}>
-                      {conf.label}
+                      {tFn(lang, conf.labelKey)}
                     </span>
                   </button>
                 );
@@ -323,13 +326,13 @@ function AddTaskSheet({
           {/* Tipo */}
           <div>
             <p style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 700, letterSpacing: ".07em", textTransform: "uppercase", color: "oklch(.55 .04 160)" }}>
-              Tipo
+              {tFn(lang, "plan_tipo")}
             </p>
             <div style={{ display: "flex", gap: 8 }}>
               {([
-                { val: "manutencao", label: "🔄 Manutenção", desc: "Nutre o que já conquistou" },
-                { val: "crescimento", label: "🚀 Crescimento", desc: "Avança em direção a uma meta" },
-              ] as const).map(({ val, label, desc }) => (
+                { val: "manutencao", labelKey: "plan_manutencao", descKey: "plan_manutencao_desc" },
+                { val: "crescimento", labelKey: "plan_crescimento", descKey: "plan_crescimento_desc" },
+              ] as const).map(({ val, labelKey, descKey }) => (
                 <button key={val} type="button" onClick={() => { setTaskType(val); if (val === "manutencao") { setLinkedGoalId(""); setLinkedActionId(""); } }} style={{
                   flex: 1, padding: "12px 10px", borderRadius: 13,
                   border: taskType === val ? "2px solid oklch(.5 .12 160)" : "2px solid oklch(.88 .02 160)",
@@ -337,8 +340,8 @@ function AddTaskSheet({
                   cursor: "pointer", textAlign: "left",
                   transition: "all .12s ease",
                 }}>
-                  <p style={{ margin: "0 0 2px", fontSize: 13, fontWeight: 700, color: "oklch(.25 .02 160)" }}>{label}</p>
-                  <p style={{ margin: 0, fontSize: 11, color: "oklch(.55 .04 160)" }}>{desc}</p>
+                  <p style={{ margin: "0 0 2px", fontSize: 13, fontWeight: 700, color: "oklch(.25 .02 160)" }}>{val === "manutencao" ? "🔄" : "🚀"} {tFn(lang, labelKey)}</p>
+                  <p style={{ margin: 0, fontSize: 11, color: "oklch(.55 .04 160)" }}>{tFn(lang, descKey)}</p>
                 </button>
               ))}
             </div>
@@ -347,7 +350,7 @@ function AddTaskSheet({
           {/* Horário */}
           <div>
             <p style={{ margin: "0 0 6px", fontSize: 11, fontWeight: 700, letterSpacing: ".07em", textTransform: "uppercase", color: "oklch(.55 .04 160)" }}>
-              Horário (opcional)
+              {tFn(lang, "plan_horario")}
             </p>
             <div style={{ ...inputStyle, display: "flex", alignItems: "center", gap: 8, padding: 0, overflow: "hidden" }}>
               <Clock size={15} style={{ color: "oklch(.6 .04 160)", marginLeft: 14, flexShrink: 0 }} />
@@ -368,7 +371,7 @@ function AddTaskSheet({
           {taskType === "crescimento" && goals.length > 0 && (
             <div>
               <p style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 700, letterSpacing: ".07em", textTransform: "uppercase", color: "oklch(.55 .04 160)" }}>
-                Vincular a uma meta (opcional)
+                {tFn(lang, "plan_vincular_meta")}
               </p>
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 {goals.map((g) => {
@@ -394,7 +397,7 @@ function AddTaskSheet({
               {availableActions.length > 0 && (
                 <div style={{ marginTop: 10 }}>
                   <p style={{ margin: "0 0 6px", fontSize: 11, fontWeight: 700, letterSpacing: ".07em", textTransform: "uppercase", color: "oklch(.55 .04 160)" }}>
-                    Ação específica (opcional)
+                    {tFn(lang, "plan_vincular_acao")}
                   </p>
                   <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                     {availableActions.map((a) => {
@@ -510,10 +513,11 @@ function ReviewModal({ onClose, onSaved }: { onClose: () => void; onSaved: () =>
 
 // ── Task row ──────────────────────────────────────────────────────────────────
 
-function TaskRow({ task, onToggle, onDelete }: {
+function TaskRow({ task, onToggle, onDelete, lang = "pt" }: {
   task: WeeklyTask;
   onToggle: () => void;
   onDelete: () => void;
+  lang?: Lang;
 }) {
   const conf = AREA_CONFIG[task.area] ?? AREA_CONFIG.outros;
   const done = task.status === "concluida";
@@ -545,7 +549,7 @@ function TaskRow({ task, onToggle, onDelete }: {
         </p>
         <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
           <span style={{ fontSize: 12 }}>{conf.emoji}</span>
-          <span style={{ fontSize: 11, color: ac(conf.hue), fontWeight: 600 }}>{conf.label}</span>
+          <span style={{ fontSize: 11, color: ac(conf.hue), fontWeight: 600 }}>{tFn(lang, conf.labelKey)}</span>
           {task.scheduled_time && (
             <>
               <span style={{ fontSize: 10, color: "oklch(.7 .02 160)" }}>·</span>
@@ -574,7 +578,7 @@ function TaskRow({ task, onToggle, onDelete }: {
 
 // ── Area coverage widget ──────────────────────────────────────────────────────
 
-function AreaCoverage({ tasks }: { tasks: WeeklyTask[] }) {
+function AreaCoverage({ tasks, lang = "pt" }: { tasks: WeeklyTask[]; lang?: Lang }) {
   const counts = ALL_AREAS.reduce<Record<string, number>>((acc, a) => {
     acc[a] = tasks.filter((t) => t.area === a).length;
     return acc;
@@ -607,7 +611,7 @@ function AreaCoverage({ tasks }: { tasks: WeeklyTask[] }) {
             }}>
               <span style={{ fontSize: 13, filter: active ? "none" : "grayscale(1) opacity(.4)" }}>{conf.emoji}</span>
               <span style={{ fontSize: 11, fontWeight: 700, color: active ? ac(conf.hue) : "oklch(.65 .02 160)" }}>
-                {conf.label}
+                {tFn(lang, conf.labelKey)}
               </span>
               {n > 0 && (
                 <span style={{ fontSize: 10, fontWeight: 800, color: ac(conf.hue), background: al(conf.hue), borderRadius: 9999, padding: "0 5px" }}>
@@ -631,6 +635,7 @@ function AreaCoverage({ tasks }: { tasks: WeeklyTask[] }) {
 
 export default function PlanejamentoPage() {
   const router = useRouter();
+  const { lang } = useTranslation();
   const [goals, setGoals]   = useState<GoalFull[]>([]);
   const [plan, setPlan]     = useState<PlanData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -766,7 +771,7 @@ export default function PlanejamentoPage() {
         </div>
 
         {/* Cobertura das áreas */}
-        {tasks.length > 0 && <AreaCoverage tasks={tasks} />}
+        {tasks.length > 0 && <AreaCoverage tasks={tasks} lang={lang} />}
 
         {/* Tarefas por dia */}
         <div style={{ background: "#fff", borderRadius: 20, boxShadow: "0 2px 16px oklch(.2 .04 160 / .08)", overflow: "hidden" }}>
@@ -776,7 +781,7 @@ export default function PlanejamentoPage() {
               Tarefas da semana
             </p>
 
-            {DAYS.map((dayName, dayIdx) => {
+            {DAY_KEYS.map((dayKey, dayIdx) => {
               const dayTasks = tasks
                 .filter((t) => t.day_of_week === dayIdx)
                 .sort((a, b) => {
@@ -804,7 +809,7 @@ export default function PlanejamentoPage() {
                       fontSize: 11, fontWeight: 800,
                       color: dayTasks.length > 0 ? "oklch(.45 .12 160)" : "oklch(.7 .02 160)",
                     }}>
-                      {dayName}
+                      {tFn(lang, dayKey)}
                     </span>
                     <span style={{ flex: 1, textAlign: "left", fontSize: 13, fontWeight: 600, color: "oklch(.3 .04 160)" }}>
                       {dayTasks.length === 0
@@ -834,6 +839,7 @@ export default function PlanejamentoPage() {
                           task={t}
                           onToggle={() => toggleTask(t.id, t.status)}
                           onDelete={() => deleteTask(t.id)}
+                          lang={lang}
                         />
                       ))}
                     </div>
@@ -978,6 +984,7 @@ export default function PlanejamentoPage() {
           initialDay={addTaskDay}
           onClose={() => setShowAddTask(false)}
           onSaved={(task) => setTasks((prev) => [...prev, task])}
+          lang={lang}
         />
       )}
 

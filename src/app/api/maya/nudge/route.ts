@@ -1,7 +1,8 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { getLocalDate } from "@/lib/utils";
+import { t, type Lang } from "@/lib/i18n";
 
 function spDate(ms: number): string {
   const SP_OFFSET_MS = -3 * 60 * 60 * 1000;
@@ -32,6 +33,15 @@ export async function GET() {
   const nudges: { id: string; message: string }[] = [];
 
   try {
+    // Fetch user language preference
+    const { data: prefs } = await admin
+      .from("user_preferences")
+      .select("context")
+      .eq("user_id", user.id)
+      .single();
+
+    const lang: Lang = (prefs?.context?.language as Lang) || "pt";
+
     // 1. Check-in hoje?
     const { data: checkIns } = await admin
       .from("check_ins")
@@ -40,6 +50,15 @@ export async function GET() {
       .order("date", { ascending: false })
       .limit(7);
 
+    // New user — no check-ins at all → welcome message
+    if (!checkIns || checkIns.length === 0) {
+      nudges.push({
+        id: "boas_vindas",
+        message: t(lang, "nudge_boas_vindas"),
+      });
+      return NextResponse.json({ nudges });
+    }
+
     const todayCheckIn = checkIns?.find((c: { date: string }) => c.date === today);
     const yesterday = spDate(Date.now() - 24 * 60 * 60 * 1000);
     const hadYesterdayCheckIn = checkIns?.find((c: { date: string }) => c.date === yesterday);
@@ -47,14 +66,17 @@ export async function GET() {
     // Não fez check-in hoje
     if (!todayCheckIn && hoursNow() >= 10) {
       if (hadYesterdayCheckIn) {
+        const feeling = hadYesterdayCheckIn.feeling?.slice(0, 40);
         nudges.push({
           id: "checkin_miss",
-          message: `Ei, ainda não te vi hoje por aqui... queria saber como você está. ${hadYesterdayCheckIn.feeling ? `Ontem você falou que estava "${hadYesterdayCheckIn.feeling.slice(0, 40)}". Continua assim?` : "Faz um check-in rapidinho?"}`,
+          message: feeling
+            ? t(lang, "nudge_checkin_miss_feeling", { feeling })
+            : t(lang, "nudge_checkin_miss_nofeel"),
         });
       } else {
         nudges.push({
           id: "checkin_gone",
-          message: "Faz um tempinho que não faz check-in... não precisa ser nada elaborado, só quero saber como você está. Topa?",
+          message: t(lang, "nudge_checkin_gone"),
         });
       }
     }
@@ -74,25 +96,13 @@ export async function GET() {
     const h = hoursNow();
     if (mealsToday.length === 0) {
       if (h >= 9 && h < 11) {
-        nudges.push({
-          id: "breakfast_miss",
-          message: "Bom dia! Já tomou seu café da manhã? Se ainda não registrou, tira uma foto rapidinho — ajuda a manter o hábito.",
-        });
+        nudges.push({ id: "breakfast_miss", message: t(lang, "nudge_cafe") });
       } else if (h >= 12 && h < 14) {
-        nudges.push({
-          id: "lunch_miss",
-          message: "Hora do almoço! O que você vai comer hoje? Registrar as refeições me ajuda a acompanhar seu bem-estar.",
-        });
+        nudges.push({ id: "lunch_miss", message: t(lang, "nudge_almoco") });
       } else if (h >= 18 && h < 21) {
-        nudges.push({
-          id: "dinner_miss",
-          message: "Já pensou no jantar? Se quiser, registra aí — mesmo que seja algo simples. Toda refeição conta.",
-        });
+        nudges.push({ id: "dinner_miss", message: t(lang, "nudge_jantar") });
       } else if (h >= 21) {
-        nudges.push({
-          id: "meals_day_end",
-          message: "Não registrou nenhuma refeição hoje... tudo bem, amanhã é um novo dia. Mas se comeu algo e esqueceu de registrar, ainda dá tempo.",
-        });
+        nudges.push({ id: "meals_day_end", message: t(lang, "nudge_sem_refeicao") });
       }
     }
 
@@ -107,30 +117,22 @@ export async function GET() {
     const diaryDates = diaryEntries?.map((d: { date: string }) => d.date) || [];
     const daysSinceLastDiary = diaryDates.length > 0
       ? Math.floor((Date.now() - new Date(diaryDates[0] + "T12:00:00").getTime()) / (1000 * 60 * 60 * 24))
-      : 7; // no entries at all → treat as 7+ days
+      : 7;
 
     if (daysSinceLastDiary >= 3 && daysSinceLastDiary < 5) {
-      nudges.push({
-        id: "diary_miss_3",
-        message: "Faz 3 dias que você não escreve no diário... às vezes colocar os pensamentos no papel ajuda a clarear a mente. Que tal hoje?",
-      });
+      nudges.push({ id: "diary_miss_3", message: t(lang, "nudge_diario_3") });
     } else if (daysSinceLastDiary >= 5) {
-      nudges.push({
-        id: "diary_miss_5",
-        message: "Já faz quase uma semana sem registro no diário. Sei que às vezes a correria atropela, mas escrever nem que seja uma linha já faz diferença. 💙",
-      });
+      nudges.push({ id: "diary_miss_5", message: t(lang, "nudge_diario_5") });
     }
 
-    // 4. Humor melhorando
+    // 4. Humor melhorando / streak
     if (checkIns && checkIns.length >= 3) {
-      const todayMoodIdx = checkIns.findIndex((c: { date: string; feeling: string }) => c.date === today && c.feeling);
       if (!todayCheckIn && checkIns.length >= 4) {
-        // Só verifica tendência se a pessoa não fez check-in hoje (senão a Maya do chat já comenta)
         const recentFeelings = checkIns.slice(0, 4).filter((c: { feeling: string }) => c.feeling);
         if (recentFeelings.length >= 3) {
           nudges.push({
             id: "checkin_streak_remind",
-            message: `Você tem feito check-ins regularmente — isso é incrível. Sua consistência faz toda diferença. Já fez o de hoje?`,
+            message: t(lang, "nudge_streak"),
           });
         }
       }

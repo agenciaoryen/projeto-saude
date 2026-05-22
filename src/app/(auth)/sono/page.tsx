@@ -12,6 +12,8 @@ import {
 import { requestPushSubscription, hasPushPermission } from "@/lib/push-utils";
 import type { SleepLog, SleepStats } from "@/types";
 import { getLocalDate } from "@/lib/utils";
+import { useTranslation } from "@/lib/useTranslation";
+import { t as tFn, type Lang } from "@/lib/i18n";
 
 interface SleepConfig {
   bedtime: string;
@@ -34,7 +36,16 @@ const PL = "oklch(.5 .12 160 / .15)";
 const PB = "1px solid oklch(.6 .08 160 / .25)";
 
 const QUALITY_EMOJI = ["", "😩", "😕", "😐", "🙂", "😊"];
-const QUALITY_LABEL = ["", "Péssimo", "Ruim", "Ok", "Bom", "Ótimo"];
+
+function getQualityLabels(lang: Lang): string[] {
+  return ["", tFn(lang, "sono_qualidade_1"), tFn(lang, "sono_qualidade_2"), tFn(lang, "sono_qualidade_3"), tFn(lang, "sono_qualidade_4"), tFn(lang, "sono_qualidade_5")];
+}
+
+function dateLocale(lang: Lang): string {
+  if (lang === "es") return "es-ES";
+  if (lang === "en") return "en-US";
+  return "pt-BR";
+}
 
 function qualityColor(q: number | null): string {
   if (!q) return "var(--muted-foreground)";
@@ -49,9 +60,9 @@ function scoreColor(s: number): string {
   return "oklch(.5 .15 15)";
 }
 
-function fmt12(ts: string | null): string {
+function fmt12(ts: string | null, lang: Lang = "pt"): string {
   if (!ts) return "--";
-  return new Date(ts).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  return new Date(ts).toLocaleTimeString(dateLocale(lang), { hour: "2-digit", minute: "2-digit" });
 }
 
 // ── Push helpers ──────────────────────────────────────────────────────────────
@@ -110,7 +121,7 @@ const timeInputStyle: React.CSSProperties = {
 
 // ── Manual log modal ──────────────────────────────────────────────────────────
 
-function ManualLogModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
+function ManualLogModal({ onClose, onSaved, lang }: { onClose: () => void; onSaved: () => void; lang: Lang }) {
   const [quality, setQuality] = useState<number | null>(null);
   const [interruptions, setInterruptions] = useState<number>(0);
   const [startTime, setStartTime] = useState("");
@@ -180,25 +191,25 @@ function ManualLogModal({ onClose, onSaved }: { onClose: () => void; onSaved: ()
         overflow: "hidden",
       }}>
         <div style={{ width: 36, height: 4, borderRadius: 9999, background: "oklch(.85 .02 160)", margin: "0 auto 20px" }} />
-        <h2 style={{ margin: "0 0 20px", fontSize: 19, fontWeight: 700 }}>Registrar sono</h2>
+        <h2 style={{ margin: "0 0 20px", fontSize: 19, fontWeight: 700 }}>{tFn(lang, "sono_registrar_btn")}</h2>
 
         {/* Times */}
         <div style={{ display: "flex", gap: 12, marginBottom: 20 }}>
           <div style={{ flex: 1 }}>
-            {label11("Fui dormir")}
+            {label11(tFn(lang, "sono_fui_dormir"))}
             <div style={timeInputWrap}>
               <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} style={timeInputStyle} />
             </div>
           </div>
           <div style={{ flex: 1 }}>
-            {label11("Acordei")}
+            {label11(tFn(lang, "sono_acordei"))}
             <div style={timeInputWrap}>
               <input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} style={timeInputStyle} />
             </div>
           </div>
         </div>
 
-        {label11("Como foi?")}
+        {label11(tFn(lang, "sono_como_foi"))}
         <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
           {[1, 2, 3, 4, 5].map((q) => (
             <button key={q} type="button" onClick={() => setQuality(q)} style={{
@@ -210,13 +221,13 @@ function ManualLogModal({ onClose, onSaved }: { onClose: () => void; onSaved: ()
             }}>
               <span style={{ fontSize: 26 }}>{QUALITY_EMOJI[q]}</span>
               <span style={{ fontSize: 9, fontWeight: 700, color: quality === q ? "oklch(.35 .1 160)" : "var(--muted-foreground)" }}>
-                {QUALITY_LABEL[q]}
+                {getQualityLabels(lang)[q]}
               </span>
             </button>
           ))}
         </div>
 
-        {label11("Acordou durante a noite?")}
+        {label11(tFn(lang, "sono_acordou_noite"))}
         <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
           {[0, 1, 2, 3, 4].map((n) => (
             <button key={n} type="button" onClick={() => setInterruptions(n)} style={{
@@ -226,7 +237,7 @@ function ManualLogModal({ onClose, onSaved }: { onClose: () => void; onSaved: ()
               color: interruptions === n ? "#fff" : "oklch(.4 .06 160)",
               transition: "all .15s ease",
             }}>
-              {n === 4 ? "4+" : n === 0 ? "Não" : `${n}×`}
+              {n === 4 ? "4+" : n === 0 ? tFn(lang, "nao") : `${n}×`}
             </button>
           ))}
         </div>
@@ -238,7 +249,7 @@ function ManualLogModal({ onClose, onSaved }: { onClose: () => void; onSaved: ()
           color: quality ? "#fff" : "oklch(.6 .04 160)",
           fontFamily: "inherit", fontSize: 15, fontWeight: 700,
           opacity: saving ? 0.7 : 1, transition: "all .2s ease",
-        }}>{saving ? "Salvando…" : "Salvar"}</button>
+        }}>{saving ? tFn(lang, "salvando") : tFn(lang, "sono_salvar_alt")}</button>
       </div>
     </div>
   );
@@ -253,10 +264,11 @@ function toSPTime(ts: string | null): string {
   return `${String(sp.getUTCHours()).padStart(2, "0")}:${String(sp.getUTCMinutes()).padStart(2, "0")}`;
 }
 
-function EditSleepModal({ log, onClose, onSaved }: {
+function EditSleepModal({ log, onClose, onSaved, lang }: {
   log: SleepLog;
   onClose: () => void;
   onSaved: () => void;
+  lang: Lang;
 }) {
   const [startTime, setStartTime] = useState(toSPTime(log.sleep_start));
   const [endTime, setEndTime] = useState(toSPTime(log.sleep_end));
@@ -301,7 +313,7 @@ function EditSleepModal({ log, onClose, onSaved }: {
     onClose();
   };
 
-  const dayLabel = new Date(log.date + "T12:00:00").toLocaleDateString("pt-BR", {
+  const dayLabel = new Date(log.date + "T12:00:00").toLocaleDateString(dateLocale(lang), {
     weekday: "long", day: "numeric", month: "long",
   });
 
@@ -326,19 +338,19 @@ function EditSleepModal({ log, onClose, onSaved }: {
         overflow: "hidden",
       }}>
         <div style={{ width: 36, height: 4, borderRadius: 9999, background: "oklch(.85 .02 160)", margin: "0 auto 16px" }} />
-        <h2 style={{ margin: "0 0 4px", fontSize: 17, fontWeight: 700 }}>Editar sono</h2>
+        <h2 style={{ margin: "0 0 4px", fontSize: 17, fontWeight: 700 }}>{tFn(lang, "sono_editar_title")}</h2>
         <p style={{ margin: "0 0 20px", fontSize: 12, color: "var(--muted-foreground)", textTransform: "capitalize" }}>{dayLabel}</p>
 
         {/* Times */}
         <div style={{ display: "flex", flexDirection: "column", gap: 14, marginBottom: 20 }}>
           <div>
-            {label11("Dormiu às")}
+            {label11(tFn(lang, "sono_dormiu_as"))}
             <div style={timeInputWrap}>
               <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} style={timeInputStyle} />
             </div>
           </div>
           <div>
-            {label11("Acordou às")}
+            {label11(tFn(lang, "sono_acordou_as"))}
             <div style={timeInputWrap}>
               <input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} style={timeInputStyle} />
             </div>
@@ -346,7 +358,7 @@ function EditSleepModal({ log, onClose, onSaved }: {
         </div>
 
         {/* Interruptions */}
-        {label11("Acordou durante a noite?")}
+        {label11(tFn(lang, "sono_acordou_noite"))}
         <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
           {[0, 1, 2, 3, 4].map((n) => (
             <button key={n} type="button" onClick={() => setInterruptions(n)} style={{
@@ -356,13 +368,13 @@ function EditSleepModal({ log, onClose, onSaved }: {
               color: interruptions === n ? "#fff" : "oklch(.4 .06 160)",
               transition: "all .15s ease",
             }}>
-              {n === 4 ? "4+" : n === 0 ? "Não" : `${n}×`}
+              {n === 4 ? "4+" : n === 0 ? tFn(lang, "nao") : `${n}×`}
             </button>
           ))}
         </div>
 
         {/* Quality */}
-        {label11("Qualidade")}
+        {label11(tFn(lang, "sono_qualidade_label"))}
         <div style={{ display: "flex", gap: 8, marginBottom: 24 }}>
           {[1, 2, 3, 4, 5].map((q) => (
             <button key={q} type="button" onClick={() => setQuality(q)} style={{
@@ -374,7 +386,7 @@ function EditSleepModal({ log, onClose, onSaved }: {
             }}>
               <span style={{ fontSize: 22 }}>{QUALITY_EMOJI[q]}</span>
               <span style={{ fontSize: 9, fontWeight: 700, color: quality === q ? "oklch(.35 .1 160)" : "var(--muted-foreground)" }}>
-                {QUALITY_LABEL[q]}
+                {getQualityLabels(lang)[q]}
               </span>
             </button>
           ))}
@@ -386,7 +398,7 @@ function EditSleepModal({ log, onClose, onSaved }: {
           background: P, color: "#fff",
           fontFamily: "inherit", fontSize: 15, fontWeight: 700,
           opacity: saving ? 0.7 : 1, transition: "opacity .15s ease",
-        }}>{saving ? "Salvando…" : "Salvar alterações"}</button>
+        }}>{saving ? tFn(lang, "salvando") : tFn(lang, "sono_salvar_alt")}</button>
       </div>
     </div>
   );
@@ -394,9 +406,9 @@ function EditSleepModal({ log, onClose, onSaved }: {
 
 // ── History row ───────────────────────────────────────────────────────────────
 
-function SleepHistoryRow({ log, onEdit }: { log: SleepLog; onEdit: (log: SleepLog) => void }) {
+function SleepHistoryRow({ log, onEdit, lang }: { log: SleepLog; onEdit: (log: SleepLog) => void; lang: Lang }) {
   const score = sleepScore(log);
-  const dayLabel = new Date(log.date + "T12:00:00").toLocaleDateString("pt-BR", {
+  const dayLabel = new Date(log.date + "T12:00:00").toLocaleDateString(dateLocale(lang), {
     weekday: "short", day: "numeric", month: "short",
   });
 
@@ -416,7 +428,7 @@ function SleepHistoryRow({ log, onEdit }: { log: SleepLog; onEdit: (log: SleepLo
         <p style={{ margin: 0, fontSize: 13, fontWeight: 600 }}>{dayLabel}</p>
         <p style={{ margin: "2px 0 0", fontSize: 11, color: "var(--muted-foreground)" }}>
           {log.duration_min ? formatDuration(log.duration_min) : "--"}
-          {log.sleep_start && log.sleep_end ? ` · ${fmt12(log.sleep_start)}–${fmt12(log.sleep_end)}` : ""}
+          {log.sleep_start && log.sleep_end ? ` · ${fmt12(log.sleep_start, lang)}–${fmt12(log.sleep_end, lang)}` : ""}
         </p>
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -431,24 +443,25 @@ function SleepHistoryRow({ log, onEdit }: { log: SleepLog; onEdit: (log: SleepLo
 
 // ── Sleep config card ─────────────────────────────────────────────────────────
 
-function SleepConfigCard({ config, onChange, onSave, saving }: {
+function SleepConfigCard({ config, onChange, onSave, saving, lang }: {
   config: SleepConfig;
   onChange: (c: SleepConfig) => void;
   onSave: () => void;
   saving: boolean;
+  lang: Lang;
 }) {
   const TARGET_OPTIONS = [6, 7, 7.5, 8, 8.5, 9];
 
   return (
     <Card className="rounded-2xl">
       <CardContent className="p-4 space-y-4">
-        <p className="text-sm font-semibold">⚙️ Minhas configurações de sono</p>
+        <p className="text-sm font-semibold">⚙️ {tFn(lang, "sono_config_title")}</p>
 
         {/* Bedtime + Wake — stacked */}
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <div>
             <p style={{ margin: "0 0 6px", fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--muted-foreground)" }}>
-              Horário de dormir
+              {tFn(lang, "sono_horario_dormir")}
             </p>
             <div style={timeInputWrap}>
               <input
@@ -461,7 +474,7 @@ function SleepConfigCard({ config, onChange, onSave, saving }: {
           </div>
           <div>
             <p style={{ margin: "0 0 6px", fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--muted-foreground)" }}>
-              Horário de acordar
+              {tFn(lang, "sono_horario_acordar")}
             </p>
             <div style={timeInputWrap}>
               <input
@@ -477,7 +490,7 @@ function SleepConfigCard({ config, onChange, onSave, saving }: {
         {/* Target hours */}
         <div>
           <p style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--muted-foreground)" }}>
-            Meta de sono
+            {tFn(lang, "sono_meta")}
           </p>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
             {TARGET_OPTIONS.map((h) => (
@@ -498,10 +511,10 @@ function SleepConfigCard({ config, onChange, onSave, saving }: {
         {/* Reminder time */}
         <div>
           <p style={{ margin: "0 0 6px", fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--muted-foreground)" }}>
-            Lembrete noturno
+            {tFn(lang, "sono_lembrete_noturno")}
           </p>
           <p style={{ margin: "0 0 8px", fontSize: 12, color: "var(--muted-foreground)" }}>
-            Notificação push antes de dormir (requer notificações ativas)
+            {tFn(lang, "sono_lembrete_push_desc")}
           </p>
           <div style={timeInputWrap}>
             <input
@@ -520,7 +533,7 @@ function SleepConfigCard({ config, onChange, onSave, saving }: {
           fontFamily: "inherit", fontSize: 14, fontWeight: 700,
           opacity: saving ? 0.7 : 1, transition: "opacity .15s ease",
         }}>
-          {saving ? "Salvando…" : "Salvar configurações"}
+          {saving ? tFn(lang, "salvando") : tFn(lang, "sono_salvar_config")}
         </button>
       </CardContent>
     </Card>
@@ -529,7 +542,7 @@ function SleepConfigCard({ config, onChange, onSave, saving }: {
 
 // ── Cycle calculator ──────────────────────────────────────────────────────────
 
-function CycleCalculator({ defaultBedtime = "23:00" }: { defaultBedtime?: string }) {
+function CycleCalculator({ defaultBedtime = "23:00", lang = "pt" }: { defaultBedtime?: string; lang?: Lang }) {
   const [bedtime, setBedtime] = useState(defaultBedtime);
   const [synced, setSynced] = useState(defaultBedtime);
 
@@ -550,13 +563,13 @@ function CycleCalculator({ defaultBedtime = "23:00" }: { defaultBedtime?: string
       <CardContent className="p-4 space-y-4">
         <div className="flex items-center gap-2">
           <Clock className="size-4" style={{ color: P }} />
-          <p className="text-sm font-semibold">Calculadora de ciclos</p>
+          <p className="text-sm font-semibold">{tFn(lang, "sono_calc_title")}</p>
         </div>
         <p className="text-xs text-muted-foreground">
-          O sono acontece em ciclos de 90 min. Acorde no fim de um ciclo e você vai se sentir mais descansado.
+          {tFn(lang, "sono_calc_desc")}
         </p>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <label style={{ fontSize: 13, color: "var(--muted-foreground)", flexShrink: 0 }}>Dormir às</label>
+          <label style={{ fontSize: 13, color: "var(--muted-foreground)", flexShrink: 0 }}>{tFn(lang, "sono_dormir_as")}</label>
           <div style={{ ...timeInputWrap, flex: 1 }}>
             <input
               type="time"
@@ -568,7 +581,7 @@ function CycleCalculator({ defaultBedtime = "23:00" }: { defaultBedtime?: string
         </div>
         <div>
           <p style={{ margin: "0 0 10px", fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--muted-foreground)" }}>
-            Horários ideais para acordar
+            {tFn(lang, "sono_horarios_ideais")}
           </p>
           <div style={{ display: "flex", gap: 10 }}>
             {idealWakes.map((w, i) => (
@@ -578,10 +591,10 @@ function CycleCalculator({ defaultBedtime = "23:00" }: { defaultBedtime?: string
                 border: i === 1 ? PB : "1px solid oklch(.87 .02 160)",
               }}>
                 <p style={{ margin: 0, fontSize: 20, fontWeight: 700, color: i === 1 ? "oklch(.35 .1 160)" : "var(--foreground)" }}>
-                  {w.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                  {w.toLocaleTimeString(dateLocale(lang), { hour: "2-digit", minute: "2-digit" })}
                 </p>
                 <p style={{ margin: "3px 0 0", fontSize: 11, color: "var(--muted-foreground)" }}>
-                  {i === 0 ? "5 ciclos · 7h30" : "6 ciclos · 9h"}
+                  {i === 0 ? tFn(lang, "sono_ciclo_5") : tFn(lang, "sono_ciclo_6")}
                 </p>
               </div>
             ))}
@@ -595,6 +608,7 @@ function CycleCalculator({ defaultBedtime = "23:00" }: { defaultBedtime?: string
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function SonoPage() {
+  const { lang } = useTranslation();
   const [logs, setLogs] = useState<SleepLog[]>([]);
   const [stats, setStats] = useState<SleepStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -678,7 +692,7 @@ export default function SonoPage() {
         background: `radial-gradient(ellipse 80% 50% at 50% 0%, oklch(.95 .04 80 / .4) 0%, transparent 60%),
                      linear-gradient(180deg, oklch(.98 .005 160) 0%, oklch(.93 .03 160) 100%)`,
       }}>
-        <p style={{ color: "var(--muted-foreground)", fontSize: 13 }}>Carregando…</p>
+        <p style={{ color: "var(--muted-foreground)", fontSize: 13 }}>{tFn(lang, "carregando")}</p>
       </div>
     );
   }
@@ -704,11 +718,11 @@ export default function SonoPage() {
             fontSize: 13, fontWeight: 600,
             boxShadow: "0 2px 10px -2px oklch(.5 .12 160 / .35)",
           }}>
-            + Registrar
+            + {tFn(lang, "sono_registrar_btn")}
           </button>
         </div>
         <p style={{ margin: "4px 0 0 35px", fontSize: 13, color: "var(--muted-foreground)" }}>
-          Esta semana
+          {tFn(lang, "sono_esta_semana")}
         </p>
       </div>
 
@@ -719,10 +733,9 @@ export default function SonoPage() {
           <Card className="rounded-2xl" style={{ border: "1px dashed oklch(.7 .06 160 / .4)" }}>
             <CardContent className="p-6 text-center space-y-3">
               <div style={{ fontSize: 52 }}>🌙</div>
-              <p className="text-sm font-semibold">Nenhum registro esta semana</p>
+              <p className="text-sm font-semibold">{tFn(lang, "sono_nenhum_reg")}</p>
               <p className="text-xs text-muted-foreground">
-                Responda o check-in diário ou toque em "Registrar" para começar.
-                Quanto mais dados, melhor a análise.
+                {tFn(lang, "sono_cta")}
               </p>
             </CardContent>
           </Card>
@@ -734,7 +747,7 @@ export default function SonoPage() {
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2 mb-2">
                     <Clock className="size-3.5" style={{ color: P }} />
-                    <p className="text-xs text-muted-foreground">Média / noite</p>
+                    <p className="text-xs text-muted-foreground">{tFn(lang, "sono_avg_noite")}</p>
                   </div>
                   <p style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>
                     {stats!.avgDurationMin > 0 ? formatDuration(stats!.avgDurationMin) : "–"}
@@ -746,7 +759,7 @@ export default function SonoPage() {
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2 mb-2">
                     <Zap className="size-3.5 text-amber-400" />
-                    <p className="text-xs text-muted-foreground">Qualidade média</p>
+                    <p className="text-xs text-muted-foreground">{tFn(lang, "sono_avg_qualidade")}</p>
                   </div>
                   <p style={{ margin: 0, fontSize: 22, fontWeight: 700, color: qualityColor(stats!.avgQuality) }}>
                     {stats!.avgQuality > 0 ? `${stats!.avgQuality} ${QUALITY_EMOJI[Math.round(stats!.avgQuality)]}` : "–"}
@@ -758,7 +771,7 @@ export default function SonoPage() {
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2 mb-2">
                     <TrendingUp className="size-3.5 text-emerald-500" />
-                    <p className="text-xs text-muted-foreground">Consistência</p>
+                    <p className="text-xs text-muted-foreground">{tFn(lang, "sono_consistencia")}</p>
                   </div>
                   <p style={{ margin: 0, fontSize: 22, fontWeight: 700, color: scoreColor(stats!.consistencyScore) }}>
                     {stats!.consistencyScore}
@@ -771,7 +784,7 @@ export default function SonoPage() {
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2 mb-2">
                     <Moon className="size-3.5" style={{ color: P }} />
-                    <p className="text-xs text-muted-foreground">Noites esta semana</p>
+                    <p className="text-xs text-muted-foreground">{tFn(lang, "sono_noites_semana")}</p>
                   </div>
                   <p style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>
                     {stats!.totalNights}
@@ -785,9 +798,9 @@ export default function SonoPage() {
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                 <Card className="rounded-2xl" style={{ background: "oklch(.95 .03 160 / .45)", border: "1px solid oklch(.7 .08 160 / .3)" }}>
                   <CardContent className="p-3 text-center">
-                    <p className="text-xs text-muted-foreground mb-1">🌟 Melhor noite</p>
+                    <p className="text-xs text-muted-foreground mb-1">🌟 {tFn(lang, "sono_melhor_noite")}</p>
                     <p style={{ margin: 0, fontSize: 13, fontWeight: 600 }}>
-                      {new Date(stats!.bestNight.date + "T12:00:00").toLocaleDateString("pt-BR", { weekday: "short", day: "numeric" })}
+                      {new Date(stats!.bestNight.date + "T12:00:00").toLocaleDateString(dateLocale(lang), { weekday: "short", day: "numeric" })}
                     </p>
                     <p style={{ margin: "2px 0 0", fontSize: 18, fontWeight: 700, color: "oklch(.4 .15 160)" }}>
                       {stats!.bestNight.quality ? QUALITY_EMOJI[stats!.bestNight.quality] : sleepScore(stats!.bestNight)}
@@ -796,9 +809,9 @@ export default function SonoPage() {
                 </Card>
                 <Card className="rounded-2xl" style={{ background: "oklch(.95 .03 30 / .3)", border: "1px solid oklch(.7 .08 30 / .3)" }}>
                   <CardContent className="p-3 text-center">
-                    <p className="text-xs text-muted-foreground mb-1">💡 A melhorar</p>
+                    <p className="text-xs text-muted-foreground mb-1">💡 {tFn(lang, "sono_a_melhorar")}</p>
                     <p style={{ margin: 0, fontSize: 13, fontWeight: 600 }}>
-                      {new Date(stats!.worstNight.date + "T12:00:00").toLocaleDateString("pt-BR", { weekday: "short", day: "numeric" })}
+                      {new Date(stats!.worstNight.date + "T12:00:00").toLocaleDateString(dateLocale(lang), { weekday: "short", day: "numeric" })}
                     </p>
                     <p style={{ margin: "2px 0 0", fontSize: 18, fontWeight: 700, color: "oklch(.5 .15 30)" }}>
                       {stats!.worstNight.quality ? QUALITY_EMOJI[stats!.worstNight.quality] : sleepScore(stats!.worstNight)}
@@ -811,7 +824,7 @@ export default function SonoPage() {
         )}
 
         {/* ── Cycle calculator ── */}
-        <CycleCalculator defaultBedtime={config.bedtime} />
+        <CycleCalculator defaultBedtime={config.bedtime} lang={lang} />
 
         {/* ── Push notification ── */}
         {pushState === "unknown" && (
@@ -822,10 +835,10 @@ export default function SonoPage() {
             <CardContent className="p-4 space-y-3">
               <div className="flex items-center gap-2">
                 <BellRing className="size-4" style={{ color: P }} />
-                <p className="text-sm font-semibold">Lembretes de sono</p>
+                <p className="text-sm font-semibold">{tFn(lang, "sono_lembretes")}</p>
               </div>
               <p className="text-xs text-muted-foreground">
-                Ative notificações para receber um lembrete na hora de dormir e uma pergunta rápida ao acordar. Só uma permissão, nada mais.
+                {tFn(lang, "sono_lembretes_desc")}
               </p>
               <button type="button" onClick={handleEnablePush} style={{
                 height: 40, padding: "0 18px", borderRadius: 9999,
@@ -833,7 +846,7 @@ export default function SonoPage() {
                 border: 0, cursor: "pointer", fontFamily: "inherit",
                 fontSize: 13, fontWeight: 600,
               }}>
-                Ativar notificações
+                {tFn(lang, "sono_ativar")}
               </button>
             </CardContent>
           </Card>
@@ -842,7 +855,7 @@ export default function SonoPage() {
         {pushState === "loading" && (
           <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", borderRadius: 12, background: PL, border: PB }}>
             <BellRing className="size-4 animate-pulse" style={{ color: P }} />
-            <p style={{ margin: 0, fontSize: 13, fontWeight: 500 }}>Aguardando permissão…</p>
+            <p style={{ margin: 0, fontSize: 13, fontWeight: 500 }}>{tFn(lang, "sono_aguardando_perm")}</p>
           </div>
         )}
 
@@ -851,7 +864,7 @@ export default function SonoPage() {
             <BellOff className="size-4 mt-0.5 shrink-0" style={{ color: "oklch(.55 .1 60)" }} />
             <div>
               <p style={{ margin: 0, fontSize: 12, color: "oklch(.4 .08 60)", fontWeight: 600 }}>
-                Não foi possível ativar
+                {tFn(lang, "sono_nao_foi_possivel")}
               </p>
               <p style={{ margin: "2px 0 0", fontSize: 11, color: "oklch(.5 .06 60)", fontFamily: "monospace", wordBreak: "break-all" }}>
                 {pushError}
@@ -864,7 +877,7 @@ export default function SonoPage() {
           <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", borderRadius: 12, background: PL, border: PB }}>
             <BellRing className="size-4 shrink-0" style={{ color: P }} />
             <p style={{ margin: 0, flex: 1, fontSize: 13, color: "oklch(.35 .1 160)", fontWeight: 500 }}>
-              Lembretes de sono ativos
+              {tFn(lang, "sono_ativos")}
             </p>
             <button
               type="button"
@@ -881,7 +894,7 @@ export default function SonoPage() {
                 fontSize: 11, fontWeight: 600, flexShrink: 0,
               }}
             >
-              Testar
+              {tFn(lang, "sono_testar")}
             </button>
           </div>
         )}
@@ -890,7 +903,7 @@ export default function SonoPage() {
           <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", borderRadius: 12, background: "oklch(.95 .02 30 / .4)", border: "1px solid oklch(.7 .06 30 / .3)" }}>
             <BellOff className="size-4" style={{ color: "oklch(.5 .1 30)" }} />
             <p style={{ margin: 0, fontSize: 12, color: "oklch(.4 .08 30)", fontWeight: 500, lineHeight: 1.4 }}>
-              Notificações bloqueadas. Habilite nas configurações do navegador para ativar lembretes.
+              {tFn(lang, "sono_notif_bloqueadas")}
             </p>
           </div>
         )}
@@ -903,33 +916,34 @@ export default function SonoPage() {
           onChange={setConfig}
           onSave={handleSaveConfig}
           saving={configSaving}
+          lang={lang}
         />
 
         {/* ── History ── */}
         {logs.length > 0 && (
           <Card className="rounded-2xl">
             <CardContent className="p-4">
-              <p className="text-sm font-semibold mb-1">Histórico</p>
+              <p className="text-sm font-semibold mb-1">{tFn(lang, "sono_historico_title")}</p>
               <p className="text-xs text-muted-foreground mb-3">
-                Pontuação = duração + qualidade + sem interrupções
+                {tFn(lang, "sono_pontuacao")} = {tFn(lang, "sono_monitoramento")}
               </p>
               {logs.slice(0, 14).map((log) => (
-                <SleepHistoryRow key={log.id} log={log} onEdit={setEditingLog} />
+                <SleepHistoryRow key={log.id} log={log} onEdit={setEditingLog} lang={lang} />
               ))}
             </CardContent>
           </Card>
         )}
 
         <p className="text-xs text-muted-foreground text-center" style={{ padding: "0 8px" }}>
-          O app monitora passivamente padrões de uso (bateria e tela) para estimar seu sono automaticamente, sem nenhuma permissão extra.
+          {tFn(lang, "sono_monitoramento")}
         </p>
       </div>
 
       {showModal && (
-        <ManualLogModal onClose={() => setShowModal(false)} onSaved={loadLogs} />
+        <ManualLogModal onClose={() => setShowModal(false)} onSaved={loadLogs} lang={lang} />
       )}
       {editingLog && (
-        <EditSleepModal log={editingLog} onClose={() => setEditingLog(null)} onSaved={loadLogs} />
+        <EditSleepModal log={editingLog} onClose={() => setEditingLog(null)} onSaved={loadLogs} lang={lang} />
       )}
     </div>
   );
