@@ -500,6 +500,35 @@ export default function FinancasPage() {
 
   useEffect(() => { load(); }, [load]);
 
+  // Auto-analyze photo stored by BottomNav quick-capture flow
+  useEffect(() => {
+    const raw = sessionStorage.getItem("fin_photo_pending");
+    if (!raw) return;
+    sessionStorage.removeItem("fin_photo_pending");
+    try {
+      const { base64, mediaType } = JSON.parse(raw) as { base64: string; mediaType: string };
+      setAnalyzing(true);
+      fetch("/api/financas/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ photoBase64: base64, mediaType }),
+      })
+        .then((r) => r.json())
+        .then((data) => {
+          setTxDraft({
+            type: data.type ?? "despesa",
+            amount: data.amount ? String(data.amount) : "",
+            category: data.category ?? "",
+            description: data.description ?? "",
+            date: data.date ?? new Date().toISOString().slice(0, 10),
+          });
+          setShowAdd(true);
+        })
+        .catch(() => {})
+        .finally(() => setAnalyzing(false));
+    } catch { /* bad sessionStorage data */ }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const deleteTx = async (id: string) => {
     setTransactions((prev) => prev.filter((t) => t.id !== id));
     await fetch(`/api/financas/transactions/${id}`, { method: "DELETE" });
