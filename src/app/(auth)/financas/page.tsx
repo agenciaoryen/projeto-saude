@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Pencil, Trash2, Target, ChevronLeft, ChevronRight, X, Check, TrendingUp, TrendingDown, Wallet } from "lucide-react";
+import { Plus, Pencil, Trash2, Target, ChevronLeft, ChevronRight, X, TrendingUp, TrendingDown, Wallet, Camera } from "lucide-react";
 import type { FinancialTransaction, FinancialBudget, Goal } from "@/types";
 import { useTranslation } from "@/lib/useTranslation";
 import { t as tFn, type Lang } from "@/lib/i18n";
@@ -59,13 +59,12 @@ function getCatConfig(id: string, type: "receita" | "despesa") {
 
 // ── Colors ────────────────────────────────────────────────────────────────────
 
-const H = 75;
+const H = 160;
 function fc(l = 0.5, c = 0.14) { return `oklch(${l} ${c} ${H})`; }
-function fl(alpha = 1) { return `oklch(.97 .04 ${H} / ${alpha})`; }
+function fl(alpha = 1) { return `oklch(.96 .04 ${H} / ${alpha})`; }
 const GREEN = "oklch(.45 .14 160)";
 const GREEN_L = "oklch(.95 .05 160)";
 const RED = "oklch(.48 .18 15)";
-const RED_L = "oklch(.97 .05 15)";
 
 // ── Month helpers ─────────────────────────────────────────────────────────────
 
@@ -98,22 +97,33 @@ function fmtDateShort(dateStr: string, lang: Lang): string {
   return d.toLocaleDateString(lang === "en" ? "en-US" : lang === "es" ? "es-ES" : "pt-BR", { day: "numeric", month: "short" });
 }
 
+// ── Draft type ────────────────────────────────────────────────────────────────
+
+type TxDraft = {
+  type: "receita" | "despesa";
+  amount: string;
+  category: string;
+  description: string;
+  date: string;
+};
+
 // ── Add/Edit Transaction Modal ────────────────────────────────────────────────
 
 function TransactionModal({
-  initial, onClose, onSaved, lang, currency,
+  initial, prefill, onClose, onSaved, lang, currency,
 }: {
   initial?: FinancialTransaction | null;
+  prefill?: TxDraft;
   onClose: () => void;
   onSaved: () => void;
   lang: Lang;
   currency: string;
 }) {
-  const [type, setType]     = useState<"receita" | "despesa">(initial?.type ?? "despesa");
-  const [amount, setAmount] = useState(initial ? String(initial.amount) : "");
-  const [category, setCat]  = useState<string>(initial?.category ?? "");
-  const [desc, setDesc]     = useState(initial?.description ?? "");
-  const [date, setDate]     = useState(initial?.date ?? new Date().toISOString().slice(0, 10));
+  const [type, setType]     = useState<"receita" | "despesa">(initial?.type ?? prefill?.type ?? "despesa");
+  const [amount, setAmount] = useState(initial ? String(initial.amount) : prefill?.amount ?? "");
+  const [category, setCat]  = useState<string>(initial?.category ?? prefill?.category ?? "");
+  const [desc, setDesc]     = useState(initial?.description ?? prefill?.description ?? "");
+  const [date, setDate]     = useState(initial?.date ?? prefill?.date ?? new Date().toISOString().slice(0, 10));
   const [saving, setSaving] = useState(false);
 
   const cats = type === "despesa" ? EXPENSE_CATS : INCOME_CATS;
@@ -396,6 +406,9 @@ export default function FinancasPage() {
   const [showAdd, setShowAdd] = useState(false);
   const [showBudget, setShowBudget] = useState(false);
   const [editTx, setEditTx] = useState<FinancialTransaction | null>(null);
+  const [txDraft, setTxDraft] = useState<TxDraft | null>(null);
+  const [analyzing, setAnalyzing] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const currentMonth = monthKey(monthOffset);
 
@@ -419,6 +432,34 @@ export default function FinancasPage() {
   const deleteTx = async (id: string) => {
     setTransactions((prev) => prev.filter((t) => t.id !== id));
     await fetch(`/api/financas/transactions/${id}`, { method: "DELETE" });
+  };
+
+  const handlePhoto = async (file: File) => {
+    setAnalyzing(true);
+    try {
+      const buffer = await file.arrayBuffer();
+      const bytes = new Uint8Array(buffer);
+      let binary = "";
+      for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+      const base64 = btoa(binary);
+      const res = await fetch("/api/financas/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ photoBase64: base64, mediaType: file.type || "image/jpeg" }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setTxDraft({
+          type: data.type ?? "despesa",
+          amount: data.amount ? String(data.amount) : "",
+          category: data.category ?? "",
+          description: data.description ?? "",
+          date: data.date ?? new Date().toISOString().slice(0, 10),
+        });
+        setShowAdd(true);
+      }
+    } catch { /* silent */ }
+    setAnalyzing(false);
   };
 
   // ── Computed summaries ─────────────────────────────────────────────────────
@@ -482,7 +523,7 @@ export default function FinancasPage() {
             </p>
             <p style={{
               margin: 0, fontSize: 36, fontWeight: 800, color: "#fff", letterSpacing: "-1px",
-              textShadow: "0 2px 8px oklch(.3 .14 75 / .3)",
+              textShadow: "0 2px 8px oklch(.3 .14 160 / .3)",
             }}>
               {fmt(saldo, currency)}
             </p>
@@ -589,7 +630,7 @@ export default function FinancasPage() {
 
         {/* ── Transactions ── */}
         <div style={{ background: "#fff", borderRadius: 20, boxShadow: "0 2px 16px oklch(.2 .04 160 / .08)", overflow: "hidden" }}>
-          <div style={{ height: 4, background: `linear-gradient(90deg, ${fc(.5, .14)}, oklch(.5 .12 160))` }} />
+          <div style={{ height: 4, background: `linear-gradient(90deg, ${fc(.5, .14)}, ${fc(.42, .10)})` }} />
           <div style={{ padding: "14px 18px 6px" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
               <p style={{ margin: 0, fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "oklch(.55 .04 160)" }}>
@@ -607,7 +648,7 @@ export default function FinancasPage() {
 
             {grouped.length === 0 ? (
               <div style={{ textAlign: "center", padding: "28px 0 24px" }}>
-                <Wallet size={36} style={{ color: fl(), marginBottom: 10 }} />
+                <Wallet size={36} style={{ color: "oklch(.82 .04 160)", marginBottom: 10 }} />
                 <p style={{ margin: 0, fontSize: 13, color: "oklch(.55 .04 160)", fontStyle: "italic" }}>
                   {tFn(lang, "fin_sem_transacoes")}
                 </p>
@@ -724,13 +765,51 @@ export default function FinancasPage() {
 
       </div>
 
-      {/* ── FAB ── */}
+      {/* ── Hidden file input ── */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        style={{ display: "none" }}
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) handlePhoto(file);
+          e.target.value = "";
+        }}
+      />
+
+      {/* ── Camera FAB (secondary) ── */}
+      <button
+        type="button"
+        onClick={() => fileInputRef.current?.click()}
+        disabled={analyzing}
+        style={{
+          position: "fixed", bottom: 88, right: 84, zIndex: 40,
+          width: 48, height: 48, borderRadius: "50%", border: 0,
+          cursor: analyzing ? "not-allowed" : "pointer",
+          background: "oklch(.97 .04 160)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          boxShadow: "0 3px 14px oklch(.5 .12 160 / .22)",
+          transition: "transform .15s ease",
+        }}
+        onMouseEnter={(e) => { if (!analyzing) (e.currentTarget as HTMLButtonElement).style.transform = "scale(1.08)"; }}
+        onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.transform = "scale(1)"; }}
+      >
+        {analyzing ? (
+          <div style={{ width: 20, height: 20, borderRadius: "50%", border: `2.5px solid ${fc()}`, borderTopColor: "transparent", animation: "spin .8s linear infinite" }} />
+        ) : (
+          <Camera size={20} style={{ color: fc() }} />
+        )}
+      </button>
+
+      {/* ── Main FAB ── */}
       <button type="button" onClick={() => setShowAdd(true)} style={{
         position: "fixed", bottom: 88, right: 20, zIndex: 40,
         width: 56, height: 56, borderRadius: "50%", border: 0, cursor: "pointer",
         background: fc(),
         display: "flex", alignItems: "center", justifyContent: "center",
-        boxShadow: `0 4px 20px ${fc(.5, .14)} / .45)`,
+        boxShadow: "0 4px 20px oklch(.5 .14 160 / .45)",
         transition: "transform .15s ease",
       }}
         onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.transform = "scale(1.08)"; }}
@@ -743,7 +822,8 @@ export default function FinancasPage() {
       {(showAdd || editTx) && (
         <TransactionModal
           initial={editTx}
-          onClose={() => { setShowAdd(false); setEditTx(null); }}
+          prefill={!editTx && txDraft ? txDraft : undefined}
+          onClose={() => { setShowAdd(false); setEditTx(null); setTxDraft(null); }}
           onSaved={load}
           lang={lang}
           currency={currency}
