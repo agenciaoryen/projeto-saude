@@ -10,7 +10,7 @@ import { photoUrl } from "@/lib/photo-storage";
 import { sumMacros, nutritionScore, getDailyKcalGoal, DEFAULT_DAILY_KCAL } from "@/lib/meal-utils";
 import { ArrowRight, ChevronRight, Pencil } from "lucide-react";
 import type { CheckIn, Meal } from "@/types";
-import { getMoodById } from "@/lib/checkin-moods";
+import { getMoodById, getMoodLabel } from "@/lib/checkin-moods";
 
 const HABIT_DISPLAY: Record<string, [string, string]> = {
   took_medication: ["💊", "Remédios"],
@@ -925,7 +925,7 @@ export default function DashboardPage() {
                             : "oklch(.38 .09 30)",
                         }}>
                           <span style={{ fontSize: 13 }}>{chip.emoji}</span>
-                          {chip.label}
+                          {getMoodLabel(chip, gender)}
                         </span>
                       );
                     })

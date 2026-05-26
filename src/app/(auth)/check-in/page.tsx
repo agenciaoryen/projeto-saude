@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { getLocalDate } from "@/lib/utils";
 import { compressImage, uploadToCloud, photoUrl } from "@/lib/photo-storage";
-import { MOOD_CHIPS } from "@/lib/checkin-moods";
+import { MOOD_CHIPS, getMoodLabel } from "@/lib/checkin-moods";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -140,11 +140,12 @@ function LoadingScreen() {
 
 // ── EditCheckInView — shown when editing an existing check-in ─────────────────
 
-function EditCheckInView({ answers, setAnswers, enabledKeys, context, onSave, onClose, saving }: {
+function EditCheckInView({ answers, setAnswers, enabledKeys, context, gender, onSave, onClose, saving }: {
   answers: CheckInAnswers;
   setAnswers: React.Dispatch<React.SetStateAction<CheckInAnswers>>;
   enabledKeys: string[];
   context: Record<string, boolean>;
+  gender: string;
   onSave: () => void;
   onClose: () => void;
   saving: boolean;
@@ -253,7 +254,7 @@ function EditCheckInView({ answers, setAnswers, enabledKeys, context, onSave, on
                       : "1px solid oklch(.5 .12 160 / .1)",
                   }}>
                   <span style={{ fontSize: 15 }}>{chip.emoji}</span>
-                  {chip.label}
+                  {getMoodLabel(chip, gender)}
                 </button>
               );
             })}
@@ -500,9 +501,10 @@ function CheckInStage({ stepIdx, totalForProgress, isDone, onClose, children }: 
 
 // ── Ritual steps ──────────────────────────────────────────────────────────────
 
-function FeelingStep({ initialValue, initialMoodTags, onChange, onMoodTagsChange, onNext, onPrev }: {
+function FeelingStep({ initialValue, initialMoodTags, gender, onChange, onMoodTagsChange, onNext, onPrev }: {
   initialValue: string;
   initialMoodTags: string[];
+  gender: string;
   onChange: (v: string) => void;
   onMoodTagsChange: (tags: string[]) => void;
   onNext: () => void;
@@ -556,7 +558,7 @@ function FeelingStep({ initialValue, initialMoodTags, onChange, onMoodTagsChange
               boxShadow: active ? "none" : "0 1px 3px oklch(.2 .02 160 / .06)",
             }}>
               <span style={{ fontSize: 17, lineHeight: 1 }}>{chip.emoji}</span>
-              {chip.label}
+              {getMoodLabel(chip, gender)}
             </button>
           );
         })}
@@ -912,6 +914,7 @@ export default function CheckInPage() {
   const [steps, setSteps] = useState<Step[]>([]);
   const [enabledKeys, setEnabledKeys] = useState<string[]>([]);
   const [context, setContext] = useState<Record<string, boolean>>({});
+  const [gender, setGender] = useState<string>("nao_dizer");
   const [stepIdx, setStepIdx] = useState(0);
   const [answers, setAnswers] = useState<CheckInAnswers>(defaultAnswers);
   const [saving, setSaving] = useState(false);
@@ -932,6 +935,7 @@ export default function CheckInPage() {
       const hasSleepLog = Array.isArray(sleepLogs) && sleepLogs.length > 0;
       setEnabledKeys(enabled);
       setContext(ctx);
+      setGender((prefs.context?.gender as string) ?? "nao_dizer");
       setSteps(buildSteps(enabled, enabled.includes("suicidal_thoughts"), hasSleepLog));
 
       if (existing && existing.date === today) {
@@ -1092,6 +1096,7 @@ export default function CheckInPage() {
         setAnswers={setAnswers}
         enabledKeys={enabledKeys}
         context={context}
+        gender={gender}
         onSave={handleEditSave}
         onClose={() => router.push("/dashboard")}
         saving={saving}
@@ -1107,6 +1112,7 @@ export default function CheckInPage() {
       <FeelingStep
         initialValue={answers.feeling}
         initialMoodTags={answers.mood_tags}
+        gender={gender}
         onChange={(v) => setAnswers((a) => ({ ...a, feeling: v }))}
         onMoodTagsChange={(tags) => setAnswers((a) => ({ ...a, mood_tags: tags }))}
         onNext={goNext} onPrev={goPrev}
