@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { getLocalDate } from "@/lib/utils";
 import { compressImage, uploadToCloud, photoUrl } from "@/lib/photo-storage";
+import { MOOD_CHIPS } from "@/lib/checkin-moods";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -52,6 +53,7 @@ type Step =
 interface CheckInAnswers {
   date: string;
   feeling: string;
+  mood_tags: string[];
   gratitude: string;
   gratitude_photos: string[];
   suicidal_thoughts: boolean;
@@ -76,6 +78,7 @@ function defaultAnswers(): CheckInAnswers {
   return {
     date: getLocalDate(),
     feeling: "",
+    mood_tags: [],
     gratitude: "",
     gratitude_photos: [],
     suicidal_thoughts: false,
@@ -222,16 +225,49 @@ function EditCheckInView({ answers, setAnswers, enabledKeys, context, onSave, on
           <p style={{ margin: "0 0 10px", fontSize: 11, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", color: "var(--muted-foreground)" }}>
             Como você está
           </p>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginBottom: 12 }}>
+            {MOOD_CHIPS.map((chip) => {
+              const active = (answers.mood_tags ?? []).includes(chip.id);
+              const pos = chip.valence === "positive";
+              return (
+                <button key={chip.id} type="button"
+                  onClick={() => setAnswers((a) => {
+                    const cur = a.mood_tags ?? [];
+                    const next = cur.includes(chip.id) ? cur.filter((t) => t !== chip.id) : [...cur, chip.id];
+                    return { ...a, mood_tags: next };
+                  })}
+                  style={{
+                    padding: "7px 12px", borderRadius: 9999, border: 0, cursor: "pointer",
+                    fontFamily: "inherit", fontSize: 12.5, fontWeight: 600,
+                    display: "inline-flex", alignItems: "center", gap: 5,
+                    transition: "all .15s ease",
+                    background: active
+                      ? pos ? "oklch(.5 .12 160 / .18)" : "oklch(.72 .1 30 / .22)"
+                      : "oklch(1 0 0 / .6)",
+                    backdropFilter: "blur(8px)",
+                    color: active
+                      ? pos ? "oklch(.32 .1 160)" : "oklch(.35 .09 30)"
+                      : "var(--foreground)",
+                    outline: active
+                      ? `2px solid ${pos ? "oklch(.5 .12 160 / .35)" : "oklch(.6 .1 30 / .35)"}`
+                      : "1px solid oklch(.5 .12 160 / .1)",
+                  }}>
+                  <span style={{ fontSize: 15 }}>{chip.emoji}</span>
+                  {chip.label}
+                </button>
+              );
+            })}
+          </div>
           <div
             ref={feelingRef}
             contentEditable
             suppressContentEditableWarning
-            data-placeholder="Escreva como você está sentindo…"
+            data-placeholder="Quer detalhar? (opcional)"
             onInput={(e) => setAnswers((a) => ({ ...a, feeling: (e.target as HTMLElement).innerText }))}
             style={{
-              outline: "none", fontSize: 16, lineHeight: 1.55, fontWeight: 500,
-              color: "var(--foreground)", minHeight: 52,
-              padding: "13px 15px", borderRadius: 14,
+              outline: "none", fontSize: 15, lineHeight: 1.55, fontWeight: 500,
+              color: "var(--foreground)", minHeight: 44,
+              padding: "11px 15px", borderRadius: 14,
               background: "oklch(1 0 0 / .55)", backdropFilter: "blur(8px)",
               border: "1px solid oklch(.5 .12 160 / .12)",
             }}
@@ -398,7 +434,7 @@ function CheckInStage({ stepIdx, totalForProgress, isDone, onClose, children }: 
 
   return (
     <div style={{
-      width: "100%", minHeight: "100dvh", overflow: "hidden",
+      width: "100%", minHeight: "100dvh", overflowX: "hidden",
       fontFamily: "var(--font-sans)", color: "var(--foreground)",
       background: isDone
         ? `radial-gradient(ellipse 100% 80% at 50% 50%, oklch(.92 .07 160 / .8) 0%, oklch(.96 .015 160) 70%)`
@@ -408,9 +444,9 @@ function CheckInStage({ stepIdx, totalForProgress, isDone, onClose, children }: 
     }}>
       {!isDone && (
         <button type="button" onClick={onClose} aria-label="Fechar" style={{
-          position: "absolute", top: 14, left: 16, zIndex: 10,
+          position: "fixed", top: 14, left: 16, zIndex: 10,
           width: 36, height: 36, borderRadius: 9999, border: 0, cursor: "pointer",
-          background: "oklch(1 0 0 / .55)", backdropFilter: "blur(12px)",
+          background: "oklch(1 0 0 / .72)", backdropFilter: "blur(12px)",
           display: "flex", alignItems: "center", justifyContent: "center",
           boxShadow: "0 1px 3px oklch(.25 .02 160 / .06)",
         }}>
@@ -423,7 +459,7 @@ function CheckInStage({ stepIdx, totalForProgress, isDone, onClose, children }: 
 
       {!isDone && (
         <div style={{
-          position: "absolute", top: 22, left: 64, right: 64, zIndex: 9,
+          position: "fixed", top: 22, left: 64, right: 64, zIndex: 9,
           display: "flex", gap: 4, alignItems: "center",
         }}>
           {Array.from({ length: totalForProgress }).map((_, i) => (
@@ -438,7 +474,7 @@ function CheckInStage({ stepIdx, totalForProgress, isDone, onClose, children }: 
 
       {!isDone && (
         <p style={{
-          position: "absolute", top: 56, left: 0, right: 0, textAlign: "center", zIndex: 9,
+          position: "fixed", top: 56, left: 0, right: 0, textAlign: "center", zIndex: 9,
           margin: 0, fontFamily: "var(--font-mono, ui-monospace)", fontSize: 10,
           color: "var(--muted-foreground)", letterSpacing: ".16em", textTransform: "uppercase",
         }}>
@@ -447,7 +483,8 @@ function CheckInStage({ stepIdx, totalForProgress, isDone, onClose, children }: 
       )}
 
       <div style={{
-        position: "absolute", inset: 0, padding: "110px 32px 130px",
+        minHeight: "100dvh", boxSizing: "border-box",
+        padding: "110px 32px 130px",
         display: "flex", flexDirection: "column", justifyContent: "center",
       }}>
         {children}
@@ -463,37 +500,84 @@ function CheckInStage({ stepIdx, totalForProgress, isDone, onClose, children }: 
 
 // ── Ritual steps ──────────────────────────────────────────────────────────────
 
-function FeelingStep({ initialValue, onChange, onNext, onPrev }: {
+function FeelingStep({ initialValue, initialMoodTags, onChange, onMoodTagsChange, onNext, onPrev }: {
   initialValue: string;
+  initialMoodTags: string[];
   onChange: (v: string) => void;
+  onMoodTagsChange: (tags: string[]) => void;
   onNext: () => void;
   onPrev: () => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  const [tags, setTags] = useState<string[]>(initialMoodTags);
+
   useEffect(() => {
     if (ref.current && initialValue && !ref.current.innerText) ref.current.innerText = initialValue;
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const toggleTag = (id: string) => {
+    setTags((prev) => {
+      const next = prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id];
+      onMoodTagsChange(next);
+      return next;
+    });
+  };
+
   return (
     <>
-      <h1 style={{ margin: "0 0 8px", fontSize: 30, fontWeight: 700, letterSpacing: "-0.025em", lineHeight: 1.1 }}>
+      <h1 style={{ margin: "0 0 6px", fontSize: 28, fontWeight: 700, letterSpacing: "-0.025em", lineHeight: 1.1 }}>
         Como você está?
       </h1>
-      <p style={{ margin: "0 0 30px", fontSize: 14, color: "var(--muted-foreground)" }}>
-        Em uma frase, do jeito que vier
+      <p style={{ margin: "0 0 20px", fontSize: 14, color: "var(--muted-foreground)" }}>
+        Selecione o que faz sentido agora
+      </p>
+
+      {/* Emotion chips */}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 22 }}>
+        {MOOD_CHIPS.map((chip) => {
+          const active = tags.includes(chip.id);
+          const pos = chip.valence === "positive";
+          return (
+            <button key={chip.id} type="button" onClick={() => toggleTag(chip.id)} style={{
+              padding: "9px 14px", borderRadius: 9999, border: 0, cursor: "pointer",
+              fontFamily: "inherit", fontSize: 13, fontWeight: 600,
+              display: "inline-flex", alignItems: "center", gap: 6,
+              transition: "all .15s ease",
+              background: active
+                ? pos ? "oklch(.5 .12 160 / .18)" : "oklch(.72 .1 30 / .22)"
+                : "oklch(1 0 0 / .6)",
+              backdropFilter: "blur(8px)",
+              color: active
+                ? pos ? "oklch(.32 .1 160)" : "oklch(.35 .09 30)"
+                : "var(--foreground)",
+              outline: active
+                ? `2px solid ${pos ? "oklch(.5 .12 160 / .35)" : "oklch(.6 .1 30 / .35)"}`
+                : "1px solid oklch(.5 .12 160 / .1)",
+              boxShadow: active ? "none" : "0 1px 3px oklch(.2 .02 160 / .06)",
+            }}>
+              <span style={{ fontSize: 17, lineHeight: 1 }}>{chip.emoji}</span>
+              {chip.label}
+            </button>
+          );
+        })}
+      </div>
+
+      <p style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 700, letterSpacing: ".12em", textTransform: "uppercase", color: "var(--muted-foreground)" }}>
+        Quer detalhar? (opcional)
       </p>
       <div ref={ref} contentEditable suppressContentEditableWarning
-        data-placeholder="Escreva como você está sentindo…"
+        data-placeholder="Escreva em palavras próprias…"
         onInput={(e) => onChange((e.target as HTMLElement).innerText)}
         style={{
-          outline: "none", fontSize: 22, lineHeight: 1.4, fontWeight: 500,
-          letterSpacing: "-0.01em", minHeight: 100, color: "var(--foreground)",
+          outline: "none", fontSize: 16, lineHeight: 1.5, fontWeight: 500,
+          color: "var(--foreground)", minHeight: 48,
+          padding: "11px 14px", borderRadius: 14,
+          background: "oklch(1 0 0 / .45)", backdropFilter: "blur(8px)",
+          border: "1px solid oklch(.5 .12 160 / .12)",
         }}
       />
-      <div style={{
-        position: "absolute", bottom: 28, left: 32, right: 32,
-        display: "flex", justifyContent: "space-between", alignItems: "center",
-      }}>
+
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 28 }}>
         <button type="button" onClick={onPrev} style={{
           background: "transparent", border: 0, cursor: "pointer",
           fontFamily: "inherit", fontSize: 13, color: "var(--muted-foreground)",
@@ -855,6 +939,7 @@ export default function CheckInPage() {
         setAnswers((prev) => ({
           ...prev,
           feeling: existing.feeling ?? "",
+          mood_tags: existing.mood_tags ?? [],
           gratitude: existing.gratitude ?? "",
           gratitude_photos: existing.gratitude_photos ?? [],
           ...Object.fromEntries(
@@ -1021,7 +1106,9 @@ export default function CheckInPage() {
     if (cur.kind === "feeling") return (
       <FeelingStep
         initialValue={answers.feeling}
+        initialMoodTags={answers.mood_tags}
         onChange={(v) => setAnswers((a) => ({ ...a, feeling: v }))}
+        onMoodTagsChange={(tags) => setAnswers((a) => ({ ...a, mood_tags: tags }))}
         onNext={goNext} onPrev={goPrev}
       />
     );

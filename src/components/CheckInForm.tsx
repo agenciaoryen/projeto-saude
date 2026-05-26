@@ -99,6 +99,7 @@ export function CheckInForm({ existingCheckIn }: CheckInFormProps) {
     did_something_enjoyable: false,
     worked_on_goals: false,
     feeling: "",
+    mood_tags: [] as string[],
     gratitude: "",
     gratitude_photos: [] as string[],
   });
@@ -140,6 +141,7 @@ export function CheckInForm({ existingCheckIn }: CheckInFormProps) {
         did_something_enjoyable: existingCheckIn.did_something_enjoyable,
         worked_on_goals: existingCheckIn.worked_on_goals,
         feeling: existingCheckIn.feeling,
+        mood_tags: existingCheckIn.mood_tags ?? [],
         gratitude: existingCheckIn.gratitude,
         gratitude_photos: existingCheckIn.gratitude_photos || [],
       });

@@ -16,6 +16,7 @@ export interface CheckIn {
   did_something_enjoyable: boolean;
   worked_on_goals: boolean;
   feeling: string;
+  mood_tags: string[];
   gratitude: string;
   gratitude_photos: string[];
   created_at: string;

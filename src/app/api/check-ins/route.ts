@@ -79,6 +79,7 @@ export async function POST(req: NextRequest) {
       did_something_enjoyable: body.did_something_enjoyable ?? false,
       worked_on_goals: body.worked_on_goals ?? false,
       feeling: body.feeling ?? "",
+      mood_tags: body.mood_tags ?? [],
       gratitude: body.gratitude ?? "",
       gratitude_photos: body.gratitude_photos ?? [],
     };

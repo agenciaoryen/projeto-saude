@@ -10,6 +10,7 @@ import { photoUrl } from "@/lib/photo-storage";
 import { sumMacros, nutritionScore, getDailyKcalGoal, DEFAULT_DAILY_KCAL } from "@/lib/meal-utils";
 import { ArrowRight, ChevronRight, Pencil } from "lucide-react";
 import type { CheckIn, Meal } from "@/types";
+import { getMoodById } from "@/lib/checkin-moods";
 
 const HABIT_DISPLAY: Record<string, [string, string]> = {
   took_medication: ["💊", "Remédios"],
@@ -436,11 +437,14 @@ export default function DashboardPage() {
   const testemunhaMsg = useMemo(() => {
     if (checkIns.length < 2) return null;
     const recent = checkIns.slice(0, 7);
+    const NEGATIVE_TAGS = new Set(["cansada", "ansiosa", "triste", "irritada", "sobrecarregada"]);
     const hardDays = recent.filter((ci) => {
       const energy = (ci as any).energy_level;
       const feeling = (ci.feeling || "").toLowerCase();
+      const tags: string[] = ci.mood_tags ?? [];
       return (
         (energy !== null && energy !== undefined && energy <= 4) ||
+        tags.some((t) => NEGATIVE_TAGS.has(t)) ||
         feeling.includes("triste") ||
         feeling.includes("ansios") ||
         feeling.includes("cansad") ||
@@ -903,19 +907,35 @@ export default function DashboardPage() {
                   {formatWeekdayShort(ci.date)}
                 </div>
               </div>
-              <p
-                className="m-0 text-[13px] leading-[1.45]"
-                style={{
-                  color: ci.feeling ? undefined : "var(--muted-foreground)",
-                  fontStyle: ci.feeling ? "normal" : "italic",
-                }}
-              >
-                {ci.feeling
-                  ? ci.feeling.length > 70
-                    ? ci.feeling.slice(0, 70) + "..."
-                    : ci.feeling
-                  : "—"}
-              </p>
+              <div className="flex flex-wrap gap-1 items-center min-h-[20px]">
+                {(ci.mood_tags ?? []).length > 0
+                  ? (ci.mood_tags ?? []).map((tagId) => {
+                      const chip = getMoodById(tagId);
+                      if (!chip) return null;
+                      return (
+                        <span key={tagId} style={{
+                          display: "inline-flex", alignItems: "center", gap: 3,
+                          padding: "2px 8px", borderRadius: 9999,
+                          fontSize: 11.5, fontWeight: 600,
+                          background: chip.valence === "positive"
+                            ? "oklch(.5 .12 160 / .12)"
+                            : "oklch(.72 .1 30 / .14)",
+                          color: chip.valence === "positive"
+                            ? "oklch(.35 .1 160)"
+                            : "oklch(.38 .09 30)",
+                        }}>
+                          <span style={{ fontSize: 13 }}>{chip.emoji}</span>
+                          {chip.label}
+                        </span>
+                      );
+                    })
+                  : ci.feeling
+                    ? <span className="text-[13px] leading-[1.45]" style={{ color: "var(--foreground)" }}>
+                        {ci.feeling.length > 60 ? ci.feeling.slice(0, 60) + "…" : ci.feeling}
+                      </span>
+                    : <span className="text-[13px] italic" style={{ color: "var(--muted-foreground)" }}>—</span>
+                }
+              </div>
             </div>
           ))}
         </div>
