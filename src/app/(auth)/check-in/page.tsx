@@ -306,7 +306,7 @@ function EditCheckInView({ answers, setAnswers, enabledKeys, context, gender, on
                         </span>
                       </div>
                       <div style={{ display: "flex", gap: 5 }}>
-                        {Array.from({ length: 8 }).map((_, i) => {
+                        {Array.from({ length: WATER_MAX }).map((_, i) => {
                           const n = i + 1;
                           const filled = n <= cups;
                           return (
@@ -773,7 +773,8 @@ function SleepStep({ onAnswer, onPrev }: {
 
 // ── Water Step ────────────────────────────────────────────────────────────────
 
-const WATER_GOAL = 4; // 4 copos × 250ml = 1L
+const WATER_GOAL = 4;  // 4 copos × 250ml = 1L
+const WATER_MAX  = 12; // 12 copos × 250ml = 3L
 
 function WaterStep({ initialCups, onAnswer, onPrev }: {
   initialCups: number;
@@ -798,7 +799,7 @@ function WaterStep({ initialCups, onAnswer, onPrev }: {
       </p>
 
       <div style={{ display: "flex", gap: 6, marginTop: 28, justifyContent: "center" }}>
-        {Array.from({ length: 8 }).map((_, i) => {
+        {Array.from({ length: WATER_MAX }).map((_, i) => {
           const n = i + 1;
           const filled = cups !== null && n <= cups;
           const isGoal = n === WATER_GOAL;
