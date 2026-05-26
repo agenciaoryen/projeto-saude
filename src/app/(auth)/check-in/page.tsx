@@ -289,6 +289,61 @@ function EditCheckInView({ answers, setAnswers, enabledKeys, context, gender, on
                 const label = getHabitLabel(key, context);
                 const value = answers[key as HabitKey];
 
+                if (key === "drank_water") {
+                  const cups = answers.water_cups ?? 0;
+                  return (
+                    <div key={key} style={{
+                      padding: "11px 14px", borderRadius: 14,
+                      background: "oklch(1 0 0 / .55)", backdropFilter: "blur(8px)",
+                      border: "1px solid oklch(.5 .12 160 / .12)",
+                    }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                        <span style={{ fontSize: 21, flexShrink: 0, lineHeight: 1 }}>💧</span>
+                        <span style={{ flex: 1, fontSize: 13.5, fontWeight: 500 }}>Copos de água hoje</span>
+                        <span style={{ fontSize: 12, fontWeight: 700,
+                          color: cups >= WATER_GOAL ? "oklch(.35 .1 160)" : "var(--muted-foreground)" }}>
+                          {cups}/{WATER_GOAL} copos{cups >= WATER_GOAL ? " ✓" : ""}
+                        </span>
+                      </div>
+                      <div style={{ display: "flex", gap: 5 }}>
+                        {Array.from({ length: 8 }).map((_, i) => {
+                          const n = i + 1;
+                          const filled = n <= cups;
+                          return (
+                            <button key={n} type="button"
+                              onClick={() => setAnswers((a) => ({
+                                ...a,
+                                water_cups: n,
+                                drank_water: n >= WATER_GOAL,
+                              }))}
+                              style={{
+                                flex: 1, padding: "7px 2px", borderRadius: 10, border: 0,
+                                cursor: "pointer", display: "flex", flexDirection: "column",
+                                alignItems: "center", gap: 3,
+                                background: filled ? "oklch(.5 .12 160 / .15)" : "oklch(.96 .01 160)",
+                                outline: n === WATER_GOAL && filled ? "2px solid oklch(.5 .12 160 / .4)" : "none",
+                                transition: "all .12s ease",
+                              }}>
+                              <span style={{ fontSize: 16, opacity: filled ? 1 : 0.2, transition: "opacity .12s" }}>💧</span>
+                              <span style={{ fontSize: 9, fontWeight: 700,
+                                color: filled ? "oklch(.35 .1 160)" : "oklch(.6 .04 160)" }}>{n}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {cups > 0 && (
+                        <button type="button"
+                          onClick={() => setAnswers((a) => ({ ...a, water_cups: 0, drank_water: false }))}
+                          style={{ marginTop: 8, background: "transparent", border: 0, cursor: "pointer",
+                            fontFamily: "inherit", fontSize: 11, color: "var(--muted-foreground)",
+                            textDecoration: "underline" }}>
+                          Zerar
+                        </button>
+                      )}
+                    </div>
+                  );
+                }
+
                 return (
                   <div key={key} style={{
                     display: "flex", alignItems: "center", gap: 10,
