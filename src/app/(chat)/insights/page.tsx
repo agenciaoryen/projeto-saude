@@ -10,6 +10,7 @@ interface Message {
   role: "user" | "assistant";
   content: string;
   time: string;
+  date: string;
   seen?: boolean;
 }
 
@@ -17,6 +18,36 @@ const CHAT_CACHE_KEY = "maya_chat";
 
 function formatTime(): string {
   return new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+}
+
+function formatDate(): string {
+  return new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD
+}
+
+const PT_DAYS = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
+
+function getDateLabel(dateStr: string): string {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const d = new Date(dateStr + "T00:00:00");
+  const diff = Math.round((today.getTime() - d.getTime()) / 86400000);
+  if (diff === 0) return "Hoje";
+  if (diff === 1) return "Ontem";
+  if (diff < 7) return PT_DAYS[d.getDay()];
+  return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
+}
+
+function DateSeparator({ dateStr }: { dateStr: string }) {
+  return (
+    <div className="flex items-center justify-center my-3">
+      <span
+        className="px-3 py-1 rounded-lg text-[12px] text-[#667781] select-none"
+        style={{ background: "rgba(255,255,255,0.75)", boxShadow: "0 1px 0.5px rgba(11,20,26,.13)" }}
+      >
+        {getDateLabel(dateStr)}
+      </span>
+    </div>
+  );
 }
 
 function splitIntoParts(text: string): string[] {
@@ -170,7 +201,7 @@ export default function MayaChatPage() {
       setTyping(true);
       await new Promise((r) => setTimeout(r, typingDelayFor(parts[i])));
       setTyping(false);
-      current = [...current, { role: "assistant", content: parts[i], time: formatTime() }];
+      current = [...current, { role: "assistant", content: parts[i], time: formatTime(), date: formatDate() }];
       setMessages(current);
       if (i < parts.length - 1) {
         await new Promise((r) => setTimeout(r, 400));
@@ -196,14 +227,15 @@ export default function MayaChatPage() {
     if (!trimmed || sending || sendingRef.current) return;
 
     const now = formatTime();
-    const userMsg: Message = { role: "user", content: trimmed, time: now, seen: false };
+    const nowDate = formatDate();
+    const userMsg: Message = { role: "user", content: trimmed, time: now, date: nowDate, seen: false };
     const updated = [...messages, userMsg];
     setMessages(updated);
     setInput("");
     setSending(true);
 
     try {
-      const contextMsgs = updated.slice(-20).map(({ role, content }) => ({ role, content }));
+      const contextMsgs = updated.slice(-20).map(({ role, content, date, time }) => ({ role, content, date, time }));
       const res = await fetch("/api/maya", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -216,7 +248,7 @@ export default function MayaChatPage() {
       deliverParts(parts, updated);
     } catch {
       setSending(false);
-      setMessages([...updated, { role: "assistant", content: t("maya_error"), time: formatTime() }]);
+      setMessages([...updated, { role: "assistant", content: t("maya_error"), time: formatTime(), date: formatDate() }]);
     }
   }, [input, sending, messages, t, deliverParts]);
 
@@ -286,10 +318,13 @@ export default function MayaChatPage() {
         {messages.map((msg, i) => {
           const isAssistant = msg.role === "assistant";
           const status: "sent" | "delivered" | "read" = msg.seen ? "read" : "delivered";
+          const prevDate = i > 0 ? messages[i - 1].date : null;
+          const showSeparator = msg.date && msg.date !== prevDate;
 
           return (
+            <div key={i}>
+              {showSeparator && <DateSeparator dateStr={msg.date} />}
             <div
-              key={i}
               className={`flex ${isAssistant ? "justify-start" : "justify-end"} mb-1.5`}
             >
               <div
@@ -314,6 +349,7 @@ export default function MayaChatPage() {
                   {!isAssistant && <Ticks status={status} />}
                 </span>
               </div>
+            </div>
             </div>
           );
         })}

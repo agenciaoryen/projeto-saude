@@ -50,15 +50,22 @@ interface MayaInput {
   porques: Porque[];
   streak: number;
   currentHour?: number;
+  currentDate?: string;
   activeGoals?: GoalSummary[];
   weekPlan?: WeekPlanSummary | null;
   language?: string;
   specialistSummaries?: SpecialistSummaries;
 }
 
-function timeAwarenessBlock(hour: number): string {
+function timeAwarenessBlock(hour: number, currentDate?: string): string {
+  const PT_DAYS = ["domingo", "segunda-feira", "terça-feira", "quarta-feira", "quinta-feira", "sexta-feira", "sábado"];
+  const dateHeader = currentDate
+    ? `Data e hora atual: ${currentDate} (${PT_DAYS[new Date(currentDate + "T12:00:00").getDay()]}) às ${hour}h.\nIMPORTANTE: mensagens no histórico marcadas com [data] são de sessões anteriores — não as trate como se fossem de agora.`
+    : "";
+
   if (hour >= 0 && hour < 6) {
     return `## HORÁRIO: MADRUGADA (${hour}h)
+${dateHeader}
 - A pessoa está acordada de madrugada. Isso é relevante.
 - Ela pode estar com insônia, angústia noturna, ou simplesmente acordada por um motivo qualquer.
 - Seu tom deve ser ainda mais gentil e acolhedor. A noite amplifica as emoções.
@@ -68,22 +75,26 @@ function timeAwarenessBlock(hour: number): string {
   }
   if (hour >= 6 && hour < 12) {
     return `## HORÁRIO: MANHÃ (${hour}h)
+${dateHeader}
 - É de manhã. A pessoa está começando o dia.
 - Tom suave, mas com leveza. O dia está começando.
 - Se for muito cedo (antes das 8h), reconheça que acordar cedo pode ser difícil.`;
   }
   if (hour >= 12 && hour < 18) {
     return `## HORÁRIO: TARDE (${hour}h)
+${dateHeader}
 - É de tarde. A pessoa está no meio do dia.
 - Se ela parecer cansada, reconheça que a tarde pode ser o momento em que a energia cai.`;
   }
   if (hour >= 18 && hour < 22) {
     return `## HORÁRIO: NOITE (${hour}h)
+${dateHeader}
 - É de noite. A pessoa está no período de descanso.
 - Tom acolhedor. O dia está terminando.
 - Se for relevante, pergunte como foi o dia dela.`;
   }
   return `## HORÁRIO: NOITE AVANÇADA (${hour}h)
+${dateHeader}
 - É noite avançada. A pessoa está falando com você tarde da noite.
 - Ela pode estar processando o dia, com insônia, ou sentindo solidão noturna.
 - Seu tom deve ser calmo, como uma luz baixa. Sem pressa. Sem urgência.
@@ -98,9 +109,9 @@ const AREA_LABELS: Record<string, string> = {
 };
 
 export function buildMayaSystemPrompt(input: MayaInput): string {
-  const { profile, recentCheckIns, recentDiary, memories, porques, streak, currentHour, activeGoals, weekPlan, language, specialistSummaries } = input;
+  const { profile, recentCheckIns, recentDiary, memories, porques, streak, currentHour, currentDate, activeGoals, weekPlan, language, specialistSummaries } = input;
 
-  const timeBlock = currentHour !== undefined ? timeAwarenessBlock(currentHour) : "";
+  const timeBlock = currentHour !== undefined ? timeAwarenessBlock(currentHour, currentDate) : "";
 
   const nameLine = profile.name ? `\nNome: ${profile.name}` : "";
   const genderLabel =

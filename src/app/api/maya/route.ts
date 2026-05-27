@@ -46,7 +46,7 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const messages: { role: string; content: string }[] = body.messages || [];
+    const messages: { role: string; content: string; date?: string; time?: string }[] = body.messages || [];
 
     if (!messages.length) {
       return NextResponse.json({ error: "Mensagens vazias" }, { status: 400 });
@@ -142,12 +142,23 @@ export async function POST(request: Request) {
 
     const streak = calculateStreak(checkIns.map((c: Record<string, unknown>) => c.date as string));
 
-    // Hora atual no fuso brasileiro (America/Sao_Paulo)
-    const brHour = new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo", hour: "numeric", hour12: false });
+    // Hora e data atuais no fuso brasileiro (America/Sao_Paulo)
+    const brNow = new Date();
+    const brHour = brNow.toLocaleString("en-US", { timeZone: "America/Sao_Paulo", hour: "numeric", hour12: false });
     const currentHour = parseInt(brHour, 10);
+    const currentDate = brNow.toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" }); // YYYY-MM-DD
+
+    // Annotate messages from past sessions so Maya understands the timeline
+    const anthropicMessages = messages.map((m) => ({
+      role: m.role,
+      content: m.date && m.date !== currentDate
+        ? `[${m.date}${m.time ? " " + m.time : ""}] ${m.content}`
+        : m.content,
+    }));
 
     const systemPrompt = buildMayaSystemPrompt({
       currentHour,
+      currentDate,
       language: (context.language as string) || "pt",
       profile: {
         name: (user.user_metadata?.name as string) || "",
@@ -196,7 +207,7 @@ export async function POST(request: Request) {
         : undefined,
     });
 
-    const reply = await callAnthropicChat(systemPrompt, messages, 400);
+    const reply = await callAnthropicChat(systemPrompt, anthropicMessages, 400);
 
     // Extract new facts from the conversation (fire and forget)
     const lastUserMsg = [...messages].reverse().find(m => m.role === "user");
