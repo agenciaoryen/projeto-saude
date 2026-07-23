@@ -296,10 +296,9 @@ export default function PerfilPage() {
   return (
     <div style={{
       minHeight: "100dvh",
-      background: `radial-gradient(ellipse 80% 50% at 50% 0%, oklch(.95 .04 80 / .4) 0%, transparent 60%),
-                   linear-gradient(180deg, oklch(.985 .004 160) 0%, oklch(.94 .022 160) 100%)`,
+      background: "oklch(0.12 0.012 270)",
       fontFamily: "var(--font-sans)",
-      color: "var(--foreground)",
+      color: "#e0d6ff",
       paddingBottom: 100,
     }}>
       <div style={{ maxWidth: 480, margin: "0 auto", padding: "0 20px" }}>
@@ -310,8 +309,8 @@ export default function PerfilPage() {
           padding: "56px 0 24px",
         }}>
           <div>
-            <h1 style={{ margin: 0, fontSize: 26, fontWeight: 800, letterSpacing: "-0.025em" }}>
-              Meu Perfil
+            <h1 style={{ margin: 0, fontSize: 26, fontWeight: 800, letterSpacing: "-0.025em", color: "#e0d6ff" }}>
+              Minha jornada com Maya
             </h1>
             {saved && (
               <p style={{ margin: "2px 0 0", fontSize: 11.5, color: P, fontWeight: 600 }}>

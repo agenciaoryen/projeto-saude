@@ -4,6 +4,7 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowUpRight, X } from "lucide-react";
+import { MayaAvatar } from "@/components/MayaAvatar";
 
 interface Nudge {
   id: string;
@@ -58,9 +59,7 @@ export function MayaNudge() {
     >
       <CardContent className="p-3 pr-9">
         <div className="flex items-start gap-2.5">
-          <div className="size-9 rounded-full overflow-hidden shrink-0">
-            <img src="/Maya.png" alt="Maya" className="size-full object-cover" />
-          </div>
+          <MayaAvatar state="mini" size={36} />
           <div className="flex-1 min-w-0">
             <p className="text-xs font-medium text-primary/70 mb-0.5">Maya</p>
             <p className="text-sm leading-relaxed text-foreground/85">{nudge.message}</p>

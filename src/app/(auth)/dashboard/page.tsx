@@ -7,9 +7,9 @@ import { cachedFetch } from "@/lib/fetch-cache";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/lib/useTranslation";
 import { photoUrl } from "@/lib/photo-storage";
-import { sumMacros, nutritionScore, getDailyKcalGoal, DEFAULT_DAILY_KCAL } from "@/lib/meal-utils";
 import { ArrowRight, Pencil } from "lucide-react";
-import type { CheckIn, Meal, WeeklyTask } from "@/types";
+import { MayaAvatar } from "@/components/MayaAvatar";
+import type { CheckIn, WeeklyTask } from "@/types";
 
 // ── Constants ───────────────────────────────────────────────────
 
@@ -28,31 +28,31 @@ const HABIT_CHIP: Record<string, [string, (ci: CheckIn) => string]> = {
 
 const CAROUSEL_SLIDES = [
   {
-    eyebrow: "NOVO",
-    title: "Fio da Semana com sentimentos",
-    body: "Veja como você se sentiu cada dia.",
-    cta: "Ver",
-    ctaHref: "/historico" as string | null,
-    bg: "linear-gradient(135deg,#312e81 0%,#1e1b4b 100%)",
-    accent: "oklch(.55 .2 280)",
+    eyebrow: "MAYA DETECTOU",
+    title: "Padrões que você não vê",
+    body: "A Maya cruza seu sono, humor e gastos para revelar conexões ocultas.",
+    cta: "Ver análise",
+    ctaHref: "/analise" as string | null,
+    bg: "linear-gradient(135deg,#2D1B69 0%,#1A1035 100%)",
+    accent: "oklch(.55 .2 270)",
   },
   {
-    eyebrow: "LEMBRETE",
-    title: "Conversar com Maya é gratuito sempre",
-    body: "Ela está acordada quando você precisar.",
+    eyebrow: "CONVERSE",
+    title: "Falar com Maya é o centro do app",
+    body: "Ela te conhece. Conte o que está acontecendo.",
     cta: "Conversar",
     ctaHref: "/insights" as string | null,
-    bg: "linear-gradient(135deg,#065f46 0%,#022c22 100%)",
-    accent: "oklch(.55 .15 160)",
+    bg: "linear-gradient(135deg,#134E4A 0%,#0F2E2C 100%)",
+    accent: "oklch(.7 .12 175)",
   },
   {
     eyebrow: "EM BREVE",
     title: "Meditações guiadas pela Maya",
-    body: "Sessões curtas, dia ou noite.",
+    body: "Sessões curtas baseadas no seu estado real.",
     cta: "Avise-me",
     ctaHref: null as string | null,
-    bg: "linear-gradient(135deg,#7c2d12 0%,#431407 100%)",
-    accent: "oklch(.55 .2 40)",
+    bg: "linear-gradient(135deg,#4C1D95 0%,#2D1065 100%)",
+    accent: "oklch(.55 .18 290)",
   },
 ];
 
@@ -67,6 +67,112 @@ function greetingTimeOfDay(t: (k: string) => string) {
   if (h < 12) return t("bom_dia");
   if (h < 18) return t("boa_tarde");
   return t("boa_noite");
+}
+
+// ── StatChip ────────────────────────────────────────────────────
+
+function StatChip({
+  emoji, label, value, sub, subColor, onClick,
+}: {
+  emoji: string;
+  label: string;
+  value: string;
+  sub?: string;
+  subColor?: string;
+  onClick?: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        background: "oklch(0.16 0.012 270)",
+        border: "1px solid oklch(0.28 0.02 270 / 0.5)",
+        borderRadius: 16,
+        padding: "14px 12px",
+        textAlign: "left",
+        cursor: onClick ? "pointer" : "default",
+        display: "flex",
+        flexDirection: "column",
+        gap: 6,
+        width: "100%",
+      }}
+    >
+      <span style={{ fontSize: 22 }}>{emoji}</span>
+      <div>
+        <p style={{ margin: 0, fontSize: 11, color: "oklch(0.55 0.03 270)", fontWeight: 500 }}>
+          {label}
+        </p>
+        <p style={{ margin: "2px 0 0", fontSize: 15, fontWeight: 700, color: "#e0d6ff" }}>
+          {value}
+        </p>
+        {sub && (
+          <p style={{ margin: 0, fontSize: 10, color: subColor || "oklch(0.5 0.03 270)" }}>
+            {sub}
+          </p>
+        )}
+      </div>
+    </button>
+  );
+}
+
+// ── SparkSmall ──────────────────────────────────────────────────
+
+function SparkSmall({ data, color = "oklch(.58 .18 270)" }: { data: number[]; color?: string }) {
+  const W = 140;
+  const H = 38;
+  const P = 2;
+  const max = Math.max(...data, 1);
+  const xStep = (W - P * 2) / Math.max(data.length - 1, 1);
+  const points = data.map((v, i) => {
+    const x = P + i * xStep;
+    const y = P + (H - P * 2) * (1 - v / max);
+    return [x, y] as const;
+  });
+  const line = points
+    .map((p, i) => (i === 0 ? `M ${p[0]} ${p[1]}` : `L ${p[0]} ${p[1]}`))
+    .join(" ");
+  const fill = `${line} L ${points[points.length - 1][0]} ${H} L ${points[0][0]} ${H} Z`;
+
+  return (
+    <svg
+      viewBox={`0 0 ${W} ${H}`}
+      style={{ width: "100%", height: 38, display: "block" }}
+      preserveAspectRatio="none"
+    >
+      <defs>
+        <linearGradient id="ssFill2" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity=".25" />
+          <stop offset="100%" stopColor={color} stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <path d={fill} fill="url(#ssFill2)" />
+      <path
+        d={line}
+        fill="none"
+        stroke={color}
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+// ── CarouselArtwork ─────────────────────────────────────────────
+
+function CarouselArtwork({ accent }: { accent: string }) {
+  return (
+    <>
+      <div
+        className="absolute -right-12 -top-12 w-44 h-44 rounded-full pointer-events-none opacity-[.35]"
+        style={{ background: `radial-gradient(circle, ${accent} 0%, transparent 70%)` }}
+      />
+      <div className="absolute -right-7 top-4 w-32 h-32 rounded-full border border-white/[.18] pointer-events-none" />
+      <div className="absolute -right-3 top-9 w-20 h-20 rounded-full border border-white/[.12] pointer-events-none" />
+      <div className="absolute right-5 top-5 w-14 h-14 rounded-full bg-white/[.08] backdrop-blur-md border border-white/20 pointer-events-none" />
+    </>
+  );
 }
 
 // ── Page ────────────────────────────────────────────────────────
@@ -89,12 +195,14 @@ export default function DashboardPage() {
   const [porques, setPorques] = useState<Porque[]>([]);
   const [porqueIndex, setPorqueIndex] = useState(0);
   const [porquePhoto, setPorquePhoto] = useState<string | null>(null);
-  const [todayMeals, setTodayMeals] = useState<Meal[]>([]);
-  const [allMeals, setAllMeals] = useState<Meal[]>([]);
-  const [kcalGoal, setKcalGoal] = useState(DEFAULT_DAILY_KCAL);
+  const [kcalGoal] = useState(2200);
   const [userName, setUserName] = useState("");
   const [carouselIdx, setCarouselIdx] = useState(0);
   const [todayTasks, setTodayTasks] = useState<WeeklyTask[]>([]);
+  const [yesterdaySleep, setYesterdaySleep] = useState<boolean | null>(null);
+  const [lastMood, setLastMood] = useState<string>("");
+  const [todaySpending, setTodaySpending] = useState<number | null>(null);
+  const [spendingLimit, setSpendingLimit] = useState<number>(80);
 
   useEffect(() => {
     const d = new Date();
@@ -114,33 +222,37 @@ export default function DashboardPage() {
         context?: Record<string, unknown>;
       }>("/api/preferences"),
       fetch("/api/profile").then((r) => r.json()).catch(() => ({})),
-      cachedFetch<Meal[]>(`/api/meals?date=${today}`),
-      cachedFetch<Meal[]>("/api/meals"),
       fetch("/api/weekly-plans").then((r) => r.json()).catch(() => null),
     ])
-      .then(([checkInsData, prefsData, profileData, todayMealsData, allMealsData, weeklyPlanData]) => {
+      .then(([checkInsData, prefsData, profileData, weeklyPlanData]) => {
         if (!prefsData.onboarding_completed) {
           router.push("/onboarding");
           return;
         }
         setEnabledKeys(prefsData.enabled_questions || []);
-        setKcalGoal(getDailyKcalGoal((prefsData.context || {}) as Record<string, unknown>));
 
         if (Array.isArray(checkInsData)) {
           setCheckIns(checkInsData);
           setTodayCheckIn(checkInsData.find((c: CheckIn) => c.date === today) || null);
+
+          // Yesterday's sleep
+          const yesterday = new Date();
+          yesterday.setDate(yesterday.getDate() - 1);
+          const yd = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, "0")}-${String(yesterday.getDate()).padStart(2, "0")}`;
+          const yci = checkInsData.find((c: CheckIn) => c.date === yd);
+          if (yci) setYesterdaySleep(yci.slept_well);
+
+          // Last mood
+          const lastCi = checkInsData.find((c: CheckIn) => c.mood_tags?.length > 0);
+          if (lastCi?.mood_tags?.[0]) setLastMood(lastCi.mood_tags[0]);
         }
 
         if (profileData.name) setUserName(profileData.name);
         if (profileData.porques?.length > 0) {
           setPorques(profileData.porques);
-          setPorqueIndex(0);
           const pq = profileData.porques[0];
           if (pq.photoPath) setPorquePhoto(photoUrl(pq.photoPath));
         }
-
-        if (Array.isArray(todayMealsData)) setTodayMeals(todayMealsData);
-        if (Array.isArray(allMealsData)) setAllMeals(allMealsData);
 
         const todayDow = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1;
         const allTasks: WeeklyTask[] = weeklyPlanData?.current?.weekly_tasks ?? [];
@@ -150,14 +262,30 @@ export default function DashboardPage() {
       })
       .catch(() => setLoading(false));
 
-    // Maya nudge loads independently — doesn't block the dashboard
+    // Maya nudge loads independently
     fetch("/api/maya/nudge")
       .then((r) => r.json())
       .then((data) => setMayaNudgeText(data.nudges?.[0]?.message ?? ""))
       .catch(() => setMayaNudgeText(""));
+
+    // Finance data
+    const now = new Date();
+    const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    cachedFetch<{ transactions?: { amount: number }[]; budgets?: { monthly_limit: number }[] }>(
+      `/api/financas/transactions?month=${currentMonth}`
+    )
+      .then((data) => {
+        if (data?.transactions) {
+          const todayStr = today;
+          const todayTx = data.transactions.filter((tx: any) => tx.date === todayStr);
+          const total = todayTx.reduce((sum: number, tx: any) => sum + (tx.type === "despesa" ? tx.amount : 0), 0);
+          setTodaySpending(total);
+        }
+      })
+      .catch(() => {});
   }, [router]);
 
-  // Auto-rotate porquê every 30s (sequential)
+  // Auto-rotate porquê every 30s
   useEffect(() => {
     if (porques.length <= 1) return;
     const id = setInterval(() => {
@@ -170,15 +298,6 @@ export default function DashboardPage() {
     }, 30000);
     return () => clearInterval(id);
   }, [porques]);
-
-  const goToPorque = (dir: 1 | -1) => {
-    setPorqueIndex((i) => {
-      const next = (i + dir + porques.length) % porques.length;
-      const pq = porques[next];
-      setPorquePhoto(pq.photoPath ? photoUrl(pq.photoPath) : null);
-      return next;
-    });
-  };
 
   // Carousel auto-advance every 8s
   useEffect(() => {
@@ -201,7 +320,6 @@ export default function DashboardPage() {
 
   const positivePct = totalHabits > 0 ? Math.round((positiveCount / totalHabits) * 100) : 0;
 
-  // Chips with value labels (excludes water — shown separately)
   const completedHabitsChips = todayCheckIn
     ? enabledNonSuicidal
         .filter((k) => k !== "drank_water" && (todayCheckIn as unknown as Record<string, unknown>)[k] === true)
@@ -211,13 +329,38 @@ export default function DashboardPage() {
         }))
     : [];
 
-  // Water label: ml below 1L, then L
   const waterLabel = (() => {
     const ml = (todayCheckIn?.water_cups ?? 0) * 250;
     if (ml === 0) return "0ml";
     if (ml < 1000) return `${ml}ml`;
     return `${(ml / 1000).toFixed(1).replace(".0", "")}L`;
   })();
+
+  // ── Maya proactive message ────────────────────────────────────
+
+  const mayaMessage = useMemo(() => {
+    if (!firstName) return null;
+    const sleepHours = yesterdaySleep === true ? "dormiu bem" : yesterdaySleep === false ? "dormiu só 5h32" : null;
+    const spendingPct = todaySpending !== null && spendingLimit > 0 ? Math.round((todaySpending / spendingLimit) * 100) : null;
+
+    if (!todayCheckIn) {
+      let msg = `Oi ${firstName}! `;
+      if (sleepHours === "dormiu só 5h32" && spendingPct && spendingPct > 60) {
+        msg += `Você dormiu pouco e já gastou ${spendingPct}% do orçamento. Como pretende virar esse jogo hoje?`;
+      } else if (sleepHours === "dormiu bem") {
+        msg += `Que bom que descansou bem. Bora fazer hoje valer?`;
+      } else {
+        msg += `Registre como está hoje. Quanto mais você me conta, mais eu posso te ajudar.`;
+      }
+      return msg;
+    }
+
+    if (lastMood && NEGATIVE_MOODS.has(lastMood)) {
+      return `Sei que "${lastMood}" não é fácil, ${firstName}. Quer conversar sobre o que está pesando?`;
+    }
+
+    return mayaNudgeText || `Bom te ver, ${firstName}. Como está sendo seu dia?`;
+  }, [firstName, todayCheckIn, yesterdaySleep, todaySpending, spendingLimit, lastMood, mayaNudgeText]);
 
   // ── Fio da Semana ─────────────────────────────────────────────
 
@@ -302,15 +445,6 @@ export default function DashboardPage() {
     return t("estavel");
   })();
 
-  // ── Nutrição ─────────────────────────────────────────────────
-
-  const nutritionData = useMemo(() => {
-    const analyzed = todayMeals.filter((m) => m.macros && m.status_analise === "analisado");
-    const total = sumMacros(analyzed);
-    const score = analyzed.length > 0 ? nutritionScore(analyzed) : null;
-    return { analyzed, total, score };
-  }, [todayMeals]);
-
   // ─────────────────────────────────────────────────────────────
 
   if (loading) {
@@ -321,87 +455,48 @@ export default function DashboardPage() {
     );
   }
 
+  const todayDone = todayTasks.filter(t => t.status === "concluida").length;
+  const todayTotal = todayTasks.length;
+  const spendingPct = todaySpending !== null && spendingLimit > 0 ? `${Math.round((todaySpending / spendingLimit) * 100)}% do limite` : null;
+
   return (
     <div
       className="relative min-h-screen pb-28"
-      style={{
-        background: `
-          radial-gradient(ellipse 80% 50% at 20% 0%, oklch(.95 .04 80 / .35) 0%, transparent 50%),
-          linear-gradient(180deg, oklch(.97 .005 160) 0%, oklch(.94 .02 160) 100%)
-        `,
-      }}
+      style={{ background: "oklch(0.12 0.012 270)" }}
     >
-
-      {/* ═ GREETING ═ */}
-      <div className="px-5 pt-[22px] pb-1">
-        <p className="m-0 text-xs uppercase tracking-wider font-semibold text-muted-foreground">
-          {greetingTimeOfDay(t)}
-        </p>
-        <h1 className="mt-1 text-[34px] font-bold tracking-tight leading-[1.05]">
-          {firstName || "—"}
-        </h1>
-        <p className="mt-1 font-mono text-[11px] uppercase text-muted-foreground">
-          {todayDisplay}
-        </p>
-      </div>
-
-      {/* ═ MAYA CARD ═ */}
-      <div className="px-3.5 pt-4">
+      {/* ═══════════════ MAYA — PROACTIVE MESSAGE ═══════════════ */}
+      <div className="px-3.5 pt-[22px]">
         <div
-          className="relative rounded-[22px] border overflow-hidden p-[18px]"
+          className="relative rounded-[22px] overflow-hidden p-[18px]"
           style={{
-            background: `
-              radial-gradient(circle at 100% 100%, oklch(.88 .12 160 / .35), transparent 60%),
-              linear-gradient(135deg, oklch(.95 .02 160) 0%, oklch(.92 .04 160) 100%)
-            `,
-            borderColor: "oklch(.5 .12 160 / .15)",
+            background: "linear-gradient(135deg, oklch(0.18 0.02 270) 0%, oklch(0.14 0.015 270) 100%)",
+            border: "1px solid oklch(0.58 0.18 270 / 0.2)",
           }}
         >
-          {/* Rings at bottom-right */}
+          {/* Subtle glow behind avatar */}
           <div
-            className="absolute -right-12 -bottom-12 w-44 h-44 rounded-full border pointer-events-none"
-            style={{ borderColor: "oklch(.5 .12 160 / .15)" }}
-          />
-          <div
-            className="absolute -right-6 -bottom-6 w-32 h-32 rounded-full border pointer-events-none"
-            style={{ borderColor: "oklch(.5 .12 160 / .1)" }}
+            className="absolute -top-8 -right-8 w-28 h-28 rounded-full pointer-events-none"
+            style={{ background: "radial-gradient(circle, oklch(.55 .2 270 / .15), transparent 70%)" }}
           />
 
           <div className="relative flex gap-3 items-start">
-            <div className="relative flex-none">
-              {/* Breathing aura */}
-              <span
-                className="absolute -inset-1.5 rounded-full pointer-events-none"
-                style={{
-                  background: "oklch(.78 .14 160 / .12)",
-                  animation: "mayaBreathe 3s ease-in-out infinite",
-                }}
-              />
-              <span className="block w-[60px] h-[60px] rounded-full overflow-hidden border-[2.5px] border-white relative shadow-lg">
-                <img src="/Maya.png" alt="Maya" className="w-full h-full object-cover" />
-              </span>
-              {/* Online dot */}
-              <span
-                className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-[2.5px] border-white"
-                style={{ background: "#22c55e" }}
-              />
-            </div>
+            <MayaAvatar state="idle" size={52} />
             <div className="flex-1 min-w-0">
               <p
-                className="m-0 text-[10px] font-bold tracking-wider uppercase"
-                style={{ color: "oklch(.4 .12 160)" }}
+                className="m-0 text-[10px] font-bold tracking-[.12em] uppercase"
+                style={{ color: "#A78BFA" }}
               >
                 Maya · agora
               </p>
-              {mayaNudgeText === null ? (
+              {mayaMessage === null ? (
                 <div className="mt-2 space-y-2">
                   <div className="h-3.5 rounded-full bg-current opacity-[0.08] animate-pulse w-[90%]" />
                   <div className="h-3.5 rounded-full bg-current opacity-[0.08] animate-pulse w-[75%]" />
                   <div className="h-3.5 rounded-full bg-current opacity-[0.08] animate-pulse w-[55%]" />
                 </div>
               ) : (
-                <p className="mt-1 text-[14.5px] leading-[1.4] font-medium tracking-tight whitespace-pre-wrap">
-                  {mayaNudgeText || t("nudge_boas_vindas")}
+                <p className="mt-1 text-[14.5px] leading-[1.4] font-medium tracking-tight whitespace-pre-wrap" style={{ color: "#e0d6ff" }}>
+                  {mayaMessage}
                 </p>
               )}
             </div>
@@ -410,8 +505,8 @@ export default function DashboardPage() {
           <Button
             className="mt-3 w-full h-[38px] rounded-xl text-[13px] font-semibold gap-1.5"
             style={{
-              background: "oklch(.4 .12 160)",
-              boxShadow: "0 4px 12px -4px oklch(.4 .12 160 / .45)",
+              background: "#7C5CFF",
+              boxShadow: "0 4px 12px -4px oklch(.55 .2 270 / .45)",
             }}
             onClick={() => router.push("/insights")}
           >
@@ -421,269 +516,161 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* ═ MEU PORQUÊ ═ */}
-      {porques.length > 0 && (
-        <div className="px-6 pt-[22px]">
-          <div className="flex items-baseline justify-between mb-3">
-            <p
-              className="m-0 text-[10.5px] font-bold tracking-[.14em] uppercase"
-              style={{ color: "oklch(.55 .12 20)" }}
-            >
-              Meu Porquê
-            </p>
-            {porques.length > 1 && (
-              <div className="flex gap-1">
-                {porques.map((_, i) => (
-                  <span
-                    key={i}
-                    className="h-[5px] rounded-full"
-                    style={{
-                      width: i === porqueIndex ? 14 : 5,
-                      transition: "width .3s ease",
-                      background:
-                        i === porqueIndex ? "oklch(.55 .12 20)" : "oklch(.5 .1 20 / .25)",
-                    }}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-          <div className="relative">
-            <div className="grid grid-cols-[74px_1fr] gap-3.5 items-center">
-              <div
-                className="w-[74px] h-[74px] rounded-2xl overflow-hidden flex-none flex items-center justify-center border-2 border-white"
-                style={{
-                  background: "linear-gradient(135deg, oklch(.9 .06 30) 0%, oklch(.82 .12 30) 100%)",
-                  boxShadow: "0 4px 14px -6px oklch(.4 .12 30 / .35)",
-                }}
-              >
-                {porquePhoto ? (
-                  <img src={porquePhoto} alt="" className="w-full h-full object-cover" />
-                ) : (
-                  <svg width="34" height="34" viewBox="0 0 24 24" fill="oklch(.45 .12 30 / .5)">
-                    <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" />
-                    <path d="M3 21a9 9 0 0 1 18 0Z" />
-                  </svg>
-                )}
-              </div>
-              <p className="m-0 text-[16.5px] leading-[1.4] tracking-tight italic font-medium">
-                &ldquo;{porques[porqueIndex]?.text || "—"}&rdquo;
-              </p>
-            </div>
-            {/* Edge tap zones — only shown when multiple porquês exist */}
-            {porques.length > 1 && (
-              <>
-                <button
-                  type="button"
-                  className="absolute left-0 top-0 bottom-0 w-[38%] cursor-pointer"
-                  style={{ background: "transparent" }}
-                  aria-label="Porquê anterior"
-                  onClick={() => goToPorque(-1)}
-                />
-                <button
-                  type="button"
-                  className="absolute right-0 top-0 bottom-0 w-[38%] cursor-pointer"
-                  style={{ background: "transparent" }}
-                  aria-label="Próximo porquê"
-                  onClick={() => goToPorque(1)}
-                />
-              </>
-            )}
-          </div>
+      {/* ═══════════════ SUA VIDA HOJE ═══════════════ */}
+      <div className="px-3.5 pt-4">
+        <p
+          className="m-0 mb-2.5 text-[10px] font-bold tracking-[.12em] uppercase"
+          style={{ color: "oklch(0.65 0.12 270)", paddingLeft: 4 }}
+        >
+          Sua vida hoje
+        </p>
+        <div className="grid grid-cols-2 gap-2">
+          <StatChip
+            emoji="😴"
+            label="Sono"
+            value={yesterdaySleep === true ? "Dormiu bem" : yesterdaySleep === false ? "Dormiu mal" : "—"}
+            sub={yesterdaySleep === true ? "Boa noite" : yesterdaySleep === false ? "Abaixo da média" : "Sem registro"}
+            subColor={yesterdaySleep === true ? "#22D18B" : yesterdaySleep === false ? "#FF5C5C" : undefined}
+            onClick={() => router.push("/sono")}
+          />
+          <StatChip
+            emoji="😊"
+            label="Humor"
+            value={todayCheckIn?.feeling ? `"${todayCheckIn.feeling.slice(0, 20)}${todayCheckIn.feeling.length > 20 ? "…" : ""}"` : "—"}
+            sub={todayCheckIn ? "Check-in feito" : "Pendente"}
+            subColor={todayCheckIn ? "#22D18B" : undefined}
+            onClick={() => router.push("/check-in")}
+          />
+          <StatChip
+            emoji="💰"
+            label="Gastos"
+            value={todaySpending !== null ? `R$ ${todaySpending.toFixed(2)}` : "—"}
+            sub={spendingPct || "Sem dados"}
+            subColor={spendingPct && parseInt(spendingPct) > 70 ? "#FF5C5C" : "#22D18B"}
+            onClick={() => router.push("/financas")}
+          />
+          <StatChip
+            emoji="🎯"
+            label="Meta do dia"
+            value={todayTotal > 0 ? `${todayDone}/${todayTotal}` : "—"}
+            sub={todayTotal > 0 ? (todayDone === todayTotal ? "Tudo feito!" : "em andamento") : "Sem tarefas"}
+            subColor={todayDone === todayTotal && todayTotal > 0 ? "#22D18B" : undefined}
+            onClick={() => router.push("/planejamento")}
+          />
         </div>
-      )}
+      </div>
 
-      {/* ═ CUIDADOS DE HOJE ═ */}
-      <div className="px-6 pt-8">
-        <div className="flex items-baseline justify-between mb-3.5">
-          <p className="m-0 text-[10.5px] font-bold tracking-[.14em] uppercase text-amber-700">
-            Cuidados de hoje
-          </p>
-          {todayCheckIn && (
-            <span className="text-[11.5px] font-semibold text-amber-700 tabular-nums">
+      {/* ═══════════════ CTA REGISTRAR ═══════════════ */}
+      <div className="px-3.5 pt-4">
+        <button
+          type="button"
+          onClick={() => router.push("/check-in")}
+          style={{
+            width: "100%",
+            padding: "15px 0",
+            borderRadius: 16,
+            background: "linear-gradient(135deg, #7C5CFF, #A78BFA)",
+            border: 0,
+            color: "#fff",
+            fontSize: 15,
+            fontWeight: 700,
+            cursor: "pointer",
+            fontFamily: "inherit",
+            boxShadow: "0 4px 20px oklch(0.55 0.2 270 / 0.35)",
+          }}
+        >
+          {todayCheckIn ? "Editar check-in de hoje" : "✓ Registrar meu dia"}
+        </button>
+        <p style={{ textAlign: "center", margin: "6px 0 0", fontSize: 11, color: "oklch(0.55 0.03 270)" }}>
+          {todayCheckIn ? "Maya vai conectar os pontos." : "É assim que me atualizo."}
+        </p>
+      </div>
+
+      {/* ═══════════════ CUIDADOS DE HOJE ═══════════════ */}
+      {todayCheckIn && (
+        <div className="px-3.5 pt-5">
+          <div className="flex items-baseline justify-between mb-2.5 px-1">
+            <p className="m-0 text-[10px] font-bold tracking-[.12em] uppercase" style={{ color: "#A78BFA" }}>
+              Cuidados de hoje
+            </p>
+            <span className="text-[11px] font-semibold tabular-nums" style={{ color: "#A78BFA" }}>
               {positivePct}%
             </span>
-          )}
-        </div>
+          </div>
 
-        {!todayCheckIn ? (
+          {/* Progress bar */}
+          <div className="px-1 mb-3">
+            <div
+              className="h-1.5 rounded-full overflow-hidden"
+              style={{ background: "oklch(.25 .02 270)" }}
+            >
+              <div
+                className="h-full rounded-full transition-[width] duration-700"
+                style={{
+                  width: `${positivePct}%`,
+                  background: "linear-gradient(90deg, #7C5CFF, #A78BFA)",
+                }}
+              />
+            </div>
+            <p className="m-0 mt-1 text-[10px]" style={{ color: "oklch(.55 .03 270)" }}>
+              {positiveCount} cuidados feitos · {totalHabits - positiveCount} pendentes
+            </p>
+          </div>
+
+          {/* Chips */}
+          <div className="flex flex-wrap gap-1.5">
+            <span
+              className="px-3 py-1.5 rounded-full text-[12px] font-medium border inline-flex items-center gap-1"
+              style={{
+                background: "oklch(0.18 0.015 270)",
+                borderColor: "oklch(0.28 0.02 270 / 0.5)",
+                color: "#e0d6ff",
+              }}
+            >
+              💧 {waterLabel}
+            </span>
+            {completedHabitsChips.map(({ emoji, value }) => (
+              <span
+                key={value}
+                className="px-3 py-1.5 rounded-full text-[12px] font-medium border inline-flex items-center gap-1"
+                style={{
+                  background: "oklch(0.18 0.015 270)",
+                  borderColor: "oklch(0.28 0.02 270 / 0.5)",
+                  color: "#e0d6ff",
+                }}
+              >
+                {emoji} {value}
+              </span>
+            ))}
+          </div>
+
           <button
             type="button"
             onClick={() => router.push("/check-in")}
-            className="w-full py-5 rounded-2xl flex flex-col items-center gap-2 border-2 border-dashed transition-colors hover:opacity-80"
-            style={{
-              borderColor: "oklch(.5 .12 160 / .35)",
-              background: "oklch(.5 .12 160 / .04)",
-            }}
+            className="mt-2.5 inline-flex items-center gap-1.5 bg-transparent border-0 p-0 cursor-pointer text-[12px] font-semibold"
+            style={{ color: "#A78BFA" }}
           >
-            <span
-              className="w-9 h-9 rounded-full flex items-center justify-center"
-              style={{ background: "oklch(.5 .12 160 / .1)" }}
-            >
-              <Pencil className="w-4 h-4 text-primary" />
-            </span>
-            <span className="text-[14px] font-semibold text-primary leading-tight">
-              Registrar check-in de hoje
-            </span>
-            <span className="text-[11px] text-muted-foreground">
-              Seu bem-estar começa aqui
-            </span>
-          </button>
-        ) : (
-          <>
-            {/* Hero row: big number + progress bar */}
-            <div className="grid grid-cols-[auto_1fr] gap-[18px] items-center mb-4">
-              <div className="flex items-baseline gap-1.5">
-                <span className="text-[56px] font-bold tracking-[-0.035em] leading-[0.85] tabular-nums text-stone-900">
-                  {positiveCount}
-                </span>
-                <span className="text-[22px] text-muted-foreground font-normal leading-none">
-                  / {totalHabits}
-                </span>
-              </div>
-              <div>
-                <div
-                  className="h-1.5 rounded-full overflow-hidden"
-                  style={{ background: "oklch(.85 .05 80 / .35)" }}
-                >
-                  <div
-                    className="h-full rounded-full transition-[width] duration-700"
-                    style={{
-                      width: `${positivePct}%`,
-                      background: "linear-gradient(90deg,#d97706,#f59e0b)",
-                    }}
-                  />
-                </div>
-                <p className="m-0 mt-1.5 text-[10.5px] text-muted-foreground">
-                  {positiveCount} cuidados feitos · {totalHabits - positiveCount} pendentes
-                </p>
-              </div>
-            </div>
-
-            {/* Chips with value labels */}
-            <div className="flex flex-wrap gap-1.5">
-              <span
-                className="px-3 py-1.5 rounded-full text-[12px] font-medium border inline-flex items-center gap-1"
-                style={{
-                  background: "oklch(1 0 0 / .85)",
-                  backdropFilter: "blur(4px)",
-                  borderColor: "oklch(.85 .05 80 / .5)",
-                  boxShadow: "0 1px 0 oklch(.25 .02 160 / .04)",
-                  color: "#1c1917",
-                }}
-              >
-                💧 {waterLabel}
-              </span>
-              {completedHabitsChips.map(({ emoji, value }) => (
-                <span
-                  key={value}
-                  className="px-3 py-1.5 rounded-full text-[12px] font-medium border inline-flex items-center gap-1"
-                  style={{
-                    background: "oklch(1 0 0 / .85)",
-                    backdropFilter: "blur(4px)",
-                    borderColor: "oklch(.85 .05 80 / .5)",
-                    boxShadow: "0 1px 0 oklch(.25 .02 160 / .04)",
-                    color: "#1c1917",
-                  }}
-                >
-                  {emoji} {value}
-                </span>
-              ))}
-            </div>
-
-            <button
-              type="button"
-              onClick={() => router.push("/check-in")}
-              className="mt-3.5 inline-flex items-center gap-1.5 bg-transparent border-0 p-0 cursor-pointer text-[12px] font-semibold text-amber-700"
-            >
-              <Pencil className="w-3 h-3" />
-              Editar check-in
-            </button>
-          </>
-        )}
-      </div>
-
-      {/* ═ METAS DA SEMANA ═ */}
-      <div className="px-3.5 pt-8">
-        <div
-          className="relative rounded-[18px] overflow-hidden text-white px-[18px] py-4"
-          style={{
-            background: `
-              radial-gradient(circle at 100% 0, oklch(.62 .12 260 / .22), transparent 50%),
-              linear-gradient(160deg, oklch(.48 .09 260) 0%, oklch(.38 .07 260) 100%)
-            `,
-            boxShadow: "0 6px 20px -10px oklch(.35 .1 260 / .4)",
-          }}
-        >
-          <div className="flex items-baseline justify-between mb-2">
-            <p className="m-0 text-[10px] font-bold tracking-[.12em] uppercase text-white/80">
-              Hoje no plano
-            </p>
-            {todayTasks.length > 0 && (
-              <span className="text-[10px] text-white/60">
-                {todayTasks.filter(t => t.status === "concluida").length}/{todayTasks.length} feitos
-              </span>
-            )}
-          </div>
-
-          {todayTasks.length > 0 ? (
-            <div className="flex flex-col gap-1.5">
-              {todayTasks.slice(0, 4).map((task) => {
-                const done = task.status === "concluida";
-                return (
-                  <div key={task.id} className="flex items-center gap-2.5">
-                    <span style={{
-                      width: 14, height: 14, borderRadius: task.task_type === "manutencao" ? 9999 : 4,
-                      border: done ? "none" : "1.5px solid oklch(1 0 0 / .5)",
-                      background: done ? "oklch(1 0 0 / .7)" : "transparent",
-                      flexShrink: 0, display: "inline-block",
-                    }} />
-                    <span className="text-[13px] text-white/90 leading-tight" style={{
-                      textDecoration: done ? "line-through" : "none",
-                      opacity: done ? 0.55 : 1,
-                    }}>
-                      {task.title}
-                    </span>
-                  </div>
-                );
-              })}
-              {todayTasks.length > 4 && (
-                <p className="m-0 text-[11px] text-white/55 mt-0.5">
-                  +{todayTasks.length - 4} {todayTasks.length - 4 === 1 ? "item" : "itens"}
-                </p>
-              )}
-            </div>
-          ) : (
-            <p className="m-0 text-[13px] text-white/75 py-0.5">
-              Nenhuma tarefa planejada para hoje.
-            </p>
-          )}
-
-          <button
-            type="button"
-            onClick={() => router.push("/planejamento")}
-            className="mt-3 bg-transparent border-0 p-0 cursor-pointer text-[12px] font-semibold text-white/80 underline underline-offset-2"
-          >
-            {todayTasks.length > 0 ? "Ver planejamento completo →" : "+ Planejar a semana"}
+            <Pencil className="w-3 h-3" />
+            Editar check-in
           </button>
         </div>
-      </div>
+      )}
 
-      {/* ═ O FIO DA SEMANA ═ */}
-      <div className="px-3.5 pt-2.5">
+      {/* ═══════════════ O FIO DA SEMANA ═══════════════ */}
+      <div className="px-3.5 pt-5">
         <div
-          className="rounded-[18px] px-4 pt-4 pb-[18px] border shadow-sm"
+          className="rounded-[18px] px-4 pt-4 pb-[18px] border"
           style={{
-            background: "linear-gradient(180deg, #fff, oklch(.96 .02 180))",
-            borderColor: "oklch(.5 .12 180 / .12)",
+            background: "oklch(0.16 0.012 270)",
+            borderColor: "oklch(0.28 0.02 270 / 0.5)",
           }}
         >
           <div className="flex items-baseline justify-between mb-3">
-            <p className="m-0 text-[10px] font-bold tracking-[.12em] uppercase text-cyan-700">
+            <p className="m-0 text-[10px] font-bold tracking-[.12em] uppercase" style={{ color: "#5EEAD4" }}>
               O Fio · 7 dias
             </p>
             {avgEnergy > 0 && (
-              <span className="text-[10.5px] text-muted-foreground">
+              <span className="text-[10.5px]" style={{ color: "oklch(0.55 0.03 270)" }}>
                 Energia média {avgEnergy.toFixed(1)}
               </span>
             )}
@@ -707,21 +694,21 @@ export default function DashboardPage() {
                     display: "grid",
                     gridTemplateColumns: "32px 14px 38px 1fr",
                     gap: 8,
-                    background: isToday ? "oklch(.5 .12 180 / .08)" : "transparent",
+                    background: isToday ? "oklch(0.58 0.18 270 / .08)" : "transparent",
                   }}
                 >
                   <span
                     className="text-[10.5px] tracking-wider uppercase"
                     style={{
                       fontWeight: isToday ? 700 : 600,
-                      color: isToday ? "oklch(.35 .12 180)" : "var(--muted-foreground)",
+                      color: isToday ? "#A78BFA" : "oklch(0.55 0.03 270)",
                     }}
                   >
                     {day.label}
                   </span>
                   <span
                     className="text-[13px] leading-none"
-                    style={{ opacity: day.sleep === true ? 1 : 0.4 }}
+                    style={{ opacity: day.sleep === true ? 1 : 0.35 }}
                   >
                     {day.sleep === true ? "🌙" : "😵"}
                   </span>
@@ -730,12 +717,12 @@ export default function DashboardPage() {
                     style={{
                       color:
                         dayScore === null
-                          ? "var(--muted-foreground)"
+                          ? "oklch(0.55 0.03 270)"
                           : dayScore >= 7
-                            ? "#059669"
+                            ? "#22D18B"
                             : dayScore >= 5
-                              ? "#b45309"
-                              : "#dc2626",
+                              ? "#f59e0b"
+                              : "#FF5C5C",
                     }}
                   >
                     {dayScore !== null ? `${dayScore}/10` : "—"}
@@ -746,15 +733,15 @@ export default function DashboardPage() {
                         className="px-1.5 py-px rounded-full text-[9.5px] font-semibold flex-none"
                         style={{
                           background: moodNeg
-                            ? "oklch(.92 .05 30 / .6)"
-                            : "oklch(.88 .08 160 / .5)",
-                          color: moodNeg ? "oklch(.4 .1 30)" : "oklch(.32 .1 160)",
+                            ? "oklch(.92 .05 30 / .25)"
+                            : "oklch(.55 .18 270 / .2)",
+                          color: moodNeg ? "#FF5C5C" : "#A78BFA",
                         }}
                       >
                         {moodTag}{extraMoods > 0 ? ` +${extraMoods}` : ""}
                       </span>
                     )}
-                    <span className="text-[11px] text-muted-foreground truncate">
+                    <span className="text-[11px] truncate" style={{ color: "oklch(0.55 0.03 270)" }}>
                       {day.feeling || "—"}
                     </span>
                   </div>
@@ -765,7 +752,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* ═ CARROSSEL DE DESCOBERTA ═ */}
+      {/* ═══════════════ CARROSSEL ═══════════════ */}
       <div className="px-3.5 pt-2.5">
         <div className="rounded-[18px] overflow-hidden min-h-[144px] relative">
           {CAROUSEL_SLIDES.map((s, i) => (
@@ -782,7 +769,6 @@ export default function DashboardPage() {
               }}
             >
               <CarouselArtwork accent={s.accent} />
-              {/* Content at z-20 so it's above the tap zones at z-10 */}
               <div className="relative max-w-[78%]" style={{ zIndex: 20 }}>
                 <p className="m-0 text-[10px] font-bold tracking-[.14em] uppercase text-white/65">
                   {s.eyebrow}
@@ -824,7 +810,7 @@ export default function DashboardPage() {
             </div>
           ))}
 
-          {/* Edge tap zones — left = previous, right = next */}
+          {/* Edge tap zones */}
           <button
             type="button"
             className="absolute left-0 top-0 bottom-0 w-[30%] z-10 cursor-pointer"
@@ -851,174 +837,49 @@ export default function DashboardPage() {
                 width: i === carouselIdx ? 16 : 5,
                 background:
                   i === carouselIdx
-                    ? "var(--foreground)"
-                    : "oklch(.5 .12 160 / .2)",
+                    ? "#A78BFA"
+                    : "oklch(.28 .02 270)",
               }}
             />
           ))}
         </div>
       </div>
 
-      {/* ═ NUTRIÇÃO + EVOLUÇÃO ═ */}
-      <div className="px-3.5 pt-2.5 grid grid-cols-2 gap-2.5">
-        {/* Nutrição */}
-        <button
-          type="button"
-          className="text-left rounded-[18px] px-3.5 pt-3.5 pb-4 border shadow-sm"
-          style={{
-            background: "linear-gradient(180deg, #fff, oklch(.96 .03 30))",
-            borderColor: "oklch(.5 .12 30 / .12)",
-          }}
-          onClick={() => router.push("/nutricao")}
-        >
-          <p className="m-0 text-[9.5px] font-bold tracking-[.12em] uppercase text-rose-700">
-            Nutrição
-          </p>
-          {nutritionData.score !== null ? (
-            <>
-              <div className="flex items-center gap-2.5 mt-2">
-                <NutritionRing score={nutritionData.score} />
-                <div className="flex-1 min-w-0">
-                  <div className="text-[20px] font-bold tracking-tight leading-none tabular-nums">
-                    {Math.round(nutritionData.total.calorias_kcal)}
-                  </div>
-                  <div className="text-[10.5px] text-muted-foreground mt-0.5">
-                    kcal · {nutritionData.analyzed.length} ref
-                  </div>
-                </div>
-              </div>
-            </>
-          ) : (
-            <p className="m-0 text-[11px] text-muted-foreground mt-2">
-              Sem refeições hoje
-            </p>
-          )}
-        </button>
-
-        {/* Evolução */}
+      {/* ═══════════════ EVOLUÇÃO 14d ═══════════════ */}
+      <div className="px-3.5 pt-5">
         <div
-          className="rounded-[18px] bg-white px-3.5 pt-3.5 pb-4 border shadow-sm flex flex-col"
-          style={{ borderColor: "oklch(.5 .12 160 / .12)" }}
+          className="rounded-[18px] px-4 pt-4 pb-[18px] border"
+          style={{
+            background: "oklch(0.16 0.012 270)",
+            borderColor: "oklch(0.28 0.02 270 / 0.5)",
+          }}
         >
-          <p
-            className="m-0 text-[9.5px] font-bold tracking-[.12em] uppercase"
-            style={{ color: "oklch(.4 .12 160)" }}
-          >
-            Evolução · 14d
-          </p>
+          <div className="flex items-baseline justify-between mb-2">
+            <p className="m-0 text-[10px] font-bold tracking-[.12em] uppercase" style={{ color: "#A78BFA" }}>
+              Evolução · 14d
+            </p>
+          </div>
           {sparkData.some((v) => v > 0) ? (
             <>
-              <div className="flex items-baseline gap-1.5 mt-2">
-                <span className="text-[20px] font-bold tracking-tight leading-none tabular-nums">
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-[20px] font-bold tracking-tight leading-none tabular-nums" style={{ color: "#e0d6ff" }}>
                   {sparkAvg.toFixed(1)}
                 </span>
-                <span className="text-[10.5px] text-muted-foreground">
+                <span className="text-[10.5px]" style={{ color: "oklch(0.55 0.03 270)" }}>
                   média{sparkTrend ? ` · ${sparkTrend}` : ""}
                 </span>
               </div>
-              <div className="mt-auto pt-2">
+              <div className="mt-2">
                 <SparkSmall data={sparkData} />
               </div>
             </>
           ) : (
-            <p className="m-0 text-[11px] text-muted-foreground mt-2">
-              Faça mais check-ins
+            <p className="m-0 text-[11px]" style={{ color: "oklch(0.55 0.03 270)" }}>
+              Faça mais check-ins para ver sua evolução
             </p>
           )}
         </div>
       </div>
     </div>
-  );
-}
-
-// ── NutritionRing ──────────────────────────────────────────────
-
-function NutritionRing({ score }: { score: number }) {
-  const ringLen = 94.2;
-  const dashLen = (score / 100) * ringLen;
-  const color = score >= 80 ? "#10b981" : score >= 60 ? "#f59e0b" : "#ef4444";
-  const textColor = score >= 80 ? "#047857" : score >= 60 ? "#b45309" : "#be123c";
-
-  return (
-    <div className="w-12 h-12 relative flex-none">
-      <svg
-        viewBox="0 0 36 36"
-        className="w-full h-full"
-        style={{ transform: "rotate(-90deg)" }}
-      >
-        <circle cx="18" cy="18" r="15" fill="none" stroke="oklch(.25 .02 160 / .12)" strokeWidth="2.5" />
-        <circle
-          cx="18" cy="18" r="15" fill="none"
-          stroke={color} strokeWidth="2.5"
-          strokeDasharray={`${dashLen} ${ringLen}`}
-          strokeLinecap="round"
-        />
-      </svg>
-      <div
-        className="absolute inset-0 flex items-center justify-center text-[11px] font-bold"
-        style={{ color: textColor }}
-      >
-        {score}
-      </div>
-    </div>
-  );
-}
-
-// ── CarouselArtwork ─────────────────────────────────────────────
-
-function CarouselArtwork({ accent }: { accent: string }) {
-  return (
-    <>
-      <div
-        className="absolute -right-12 -top-12 w-44 h-44 rounded-full pointer-events-none opacity-[.35]"
-        style={{ background: `radial-gradient(circle, ${accent} 0%, transparent 70%)` }}
-      />
-      <div className="absolute -right-7 top-4 w-32 h-32 rounded-full border border-white/[.18] pointer-events-none" />
-      <div className="absolute -right-3 top-9 w-20 h-20 rounded-full border border-white/[.12] pointer-events-none" />
-      <div className="absolute right-5 top-5 w-14 h-14 rounded-full bg-white/[.08] backdrop-blur-md border border-white/20 pointer-events-none" />
-    </>
-  );
-}
-
-// ── SparkSmall ──────────────────────────────────────────────────
-
-function SparkSmall({ data }: { data: number[] }) {
-  const W = 140;
-  const H = 38;
-  const P = 2;
-  const max = Math.max(...data, 1);
-  const xStep = (W - P * 2) / Math.max(data.length - 1, 1);
-  const points = data.map((v, i) => {
-    const x = P + i * xStep;
-    const y = P + (H - P * 2) * (1 - v / max);
-    return [x, y] as const;
-  });
-  const line = points
-    .map((p, i) => (i === 0 ? `M ${p[0]} ${p[1]}` : `L ${p[0]} ${p[1]}`))
-    .join(" ");
-  const fill = `${line} L ${points[points.length - 1][0]} ${H} L ${points[0][0]} ${H} Z`;
-
-  return (
-    <svg
-      viewBox={`0 0 ${W} ${H}`}
-      style={{ width: "100%", height: 38, display: "block" }}
-      preserveAspectRatio="none"
-    >
-      <defs>
-        <linearGradient id="ssFill" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="oklch(.5 .12 160)" stopOpacity=".25" />
-          <stop offset="100%" stopColor="oklch(.5 .12 160)" stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      <path d={fill} fill="url(#ssFill)" />
-      <path
-        d={line}
-        fill="none"
-        stroke="oklch(.5 .12 160)"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
   );
 }

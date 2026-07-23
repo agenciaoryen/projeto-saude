@@ -884,7 +884,7 @@ export default function PlanejamentoPage() {
       {/* ═ GREETING ═ */}
       <div style={{ padding: "22px 20px 4px" }}>
         <p style={{ margin: 0, fontSize: 12, color: "oklch(.55 .03 160)", letterSpacing: ".05em", textTransform: "uppercase", fontWeight: 600 }}>
-          Planejamento · Semana {getISOWeek()}
+          Maya sugeriu este plano · Semana {getISOWeek()}
         </p>
         <h1 style={{ margin: "4px 0 4px", fontSize: 30, fontWeight: 700, letterSpacing: "-0.025em", lineHeight: 1.05, color: "oklch(.2 .02 160)" }}>
           Suas Pedras
@@ -1075,7 +1075,7 @@ export default function PlanejamentoPage() {
             }}>
               <Sparkles size={12} color="#fff" />
             </span>
-            Maya pode ajudar a equilibrar a roda
+            Ações sugeridas por Maya
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
               strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
               style={{ color: "oklch(.55 .03 160)", marginLeft: -2 }}>

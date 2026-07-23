@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/lib/useTranslation";
 import { Send, ArrowLeft } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { MayaAvatar } from "@/components/MayaAvatar";
 
 interface Message {
   role: "user" | "assistant";
@@ -43,7 +44,7 @@ function DateSeparator({ label }: { label: string }) {
     <div className="flex items-center justify-center my-4">
       <span
         className="px-3 py-1 rounded-full text-[12px] font-medium select-none"
-        style={{ background: "#d1e7dd", color: "#3d6b55", boxShadow: "0 1px 2px rgba(0,0,0,.12)" }}
+        style={{ background: "oklch(0.22 0.02 270)", color: "oklch(0.65 0.05 270)", boxShadow: "0 1px 2px rgba(0,0,0,.12)" }}
       >
         {label}
       </span>
@@ -84,7 +85,7 @@ function loadProfileCache() {
 
 // WhatsApp-style SVG ticks
 function Ticks({ status }: { status: "sent" | "delivered" | "read" }) {
-  const color = status === "read" ? "#53bdeb" : "#8696a0";
+  const color = status === "read" ? "#A78BFA" : "oklch(0.55 0.03 270)";
   const Tick = (
     <svg width="14" height="11" viewBox="0 0 18 13" fill="none" stroke="currentColor"
          strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
@@ -268,20 +269,17 @@ export default function MayaChatPage() {
       className="flex flex-col"
       style={{
         height: viewportH > 0 ? `${viewportH}px` : "100dvh",
-        background: "#efeae2",
-        backgroundImage: `
-          radial-gradient(circle at 12% 18%, #e0d9cd 0 1.5px, transparent 2px),
-          radial-gradient(circle at 32% 62%, #e0d9cd 0 1.2px, transparent 2px),
-          radial-gradient(circle at 58% 26%, #e0d9cd 0 1.6px, transparent 2px),
-          radial-gradient(circle at 78% 78%, #e0d9cd 0 1.4px, transparent 2px),
-          radial-gradient(circle at 88% 12%, #e0d9cd 0 1.2px, transparent 2px),
-          radial-gradient(circle at 20% 88%, #e0d9cd 0 1.4px, transparent 2px)
-        `,
-        backgroundSize: "220px 220px",
+        background: "oklch(0.12 0.012 270)",
       }}
     >
       {/* Header */}
-      <div className="shrink-0 flex items-center gap-3 px-4 py-2.5 bg-background border-b border-border safe-top">
+      <div
+        className="shrink-0 flex items-center gap-3 px-4 py-2.5 safe-top"
+        style={{
+          background: "oklch(0.14 0.012 270)",
+          borderBottom: "1px solid oklch(0.28 0.02 270 / 0.5)",
+        }}
+      >
         <button
           type="button"
           onClick={() => router.push("/dashboard")}
@@ -291,13 +289,11 @@ export default function MayaChatPage() {
           <ArrowLeft className="size-5" />
         </button>
 
-        <div className="size-10 rounded-full overflow-hidden shrink-0">
-          <img src="/Maya.png" alt="Maya" className="size-full object-cover" />
-        </div>
+        <MayaAvatar state="mini" size={36} />
 
         <div className="min-w-0">
           <p className="text-sm font-semibold leading-tight">Maya</p>
-          <p className="text-[11px] text-muted-foreground leading-tight">
+          <p className="text-[11px] leading-tight" style={{ color: "oklch(0.55 0.03 270)" }}>
             {typing ? t("maya_typing") : t("maya_subtitle")}
           </p>
         </div>
@@ -308,8 +304,12 @@ export default function MayaChatPage() {
         {hydrated && messages.length === 0 && welcomeMessage && (
           <div className="flex justify-center pt-12">
             <div
-              className="rounded-[8px] px-4 py-3 text-sm text-center max-w-sm text-[#111b21]"
-              style={{ background: "#ffffff", boxShadow: "0 1px 0.5px rgba(11,20,26,.13)" }}
+              className="rounded-[8px] px-4 py-3 text-sm text-center max-w-sm"
+              style={{
+                background: "oklch(0.16 0.012 270)",
+                color: "#e0d6ff",
+                boxShadow: "0 2px 8px oklch(0.3 0.03 270 / 0.3)",
+              }}
             >
               <div className="whitespace-pre-line">{welcomeMessage}</div>
             </div>
@@ -338,21 +338,23 @@ export default function MayaChatPage() {
               className={`flex ${isAssistant ? "justify-start" : "justify-end"} mb-1.5`}
             >
               <div
-                className="max-w-[80%] rounded-[8px] px-3 pt-1.5 pb-2 text-[14px] leading-[1.32] text-[#111b21] whitespace-pre-line"
+                className="max-w-[80%] rounded-[8px] px-3 pt-1.5 pb-2 text-[14px] leading-[1.32] whitespace-pre-line"
                 style={{
-                  background: isAssistant ? "#ffffff" : "#d9fdd3",
+                  background: isAssistant ? "oklch(0.16 0.012 270)" : "#7C5CFF",
+                  color: isAssistant ? "#e0d6ff" : "#fff",
                   boxShadow: "0 1px 0.5px rgba(11,20,26,.13)",
                 }}
               >
                 {msg.content}
                 <span
-                  className="text-[11px] text-[#667781] leading-none whitespace-nowrap"
+                  className="text-[11px] leading-none whitespace-nowrap"
                   style={{
                     float: "right",
                     display: "inline-flex",
                     alignItems: "center",
                     gap: 3,
                     margin: "8px -4px -5px 8px",
+                    color: isAssistant ? "oklch(0.55 0.03 270)" : "rgba(255,255,255,0.7)",
                   }}
                 >
                   {msg.time}
@@ -367,13 +369,16 @@ export default function MayaChatPage() {
         {typing && (
           <div className="flex justify-start mb-1.5">
             <div
-              className="rounded-[8px] bg-white px-3.5 py-2"
-              style={{ boxShadow: "0 1px 0.5px rgba(11,20,26,.13)" }}
+              className="rounded-[8px] px-3.5 py-2"
+              style={{
+                background: "oklch(0.16 0.012 270)",
+                boxShadow: "0 1px 0.5px rgba(11,20,26,.13)",
+              }}
             >
               <div className="flex items-center gap-1">
-                <span className="size-2 rounded-full bg-[#667781]/40 animate-bounce [animation-delay:0ms]" />
-                <span className="size-2 rounded-full bg-[#667781]/40 animate-bounce [animation-delay:150ms]" />
-                <span className="size-2 rounded-full bg-[#667781]/40 animate-bounce [animation-delay:300ms]" />
+                <span className="size-2 rounded-full bg-[#A78BFA]/60 animate-bounce [animation-delay:0ms]" />
+                <span className="size-2 rounded-full bg-[#A78BFA]/60 animate-bounce [animation-delay:150ms]" />
+                <span className="size-2 rounded-full bg-[#A78BFA]/60 animate-bounce [animation-delay:300ms]" />
               </div>
             </div>
           </div>
@@ -384,8 +389,10 @@ export default function MayaChatPage() {
 
       {/* Input bar */}
       <div
-        className="shrink-0 px-3 pt-2.5 bg-background border-t border-border"
+        className="shrink-0 px-3 pt-2.5"
         style={{
+          background: "oklch(0.14 0.012 270)",
+          borderTop: "1px solid oklch(0.28 0.02 270 / 0.5)",
           paddingBottom: keyboardOpen
             ? "calc(8px + env(safe-area-inset-bottom, 0px))"
             : "calc(80px + env(safe-area-inset-bottom, 0px))",
@@ -403,18 +410,24 @@ export default function MayaChatPage() {
                 setKeyboardOpen(false);
               }, 150);
             }}
-            placeholder={t("maya_placeholder")}
+            placeholder="Falar com Maya..."
             disabled={busy}
             rows={1}
-            className="flex-1 resize-none rounded-xl border border-border bg-muted/60 px-4 py-2.5 text-sm placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
+            className="flex-1 resize-none rounded-xl border px-4 py-2.5 text-sm placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 disabled:opacity-50"
+            style={{
+              background: "oklch(0.12 0.012 270)",
+              borderColor: "oklch(0.28 0.02 270 / 0.5)",
+              color: "#e0d6ff",
+            }}
           />
           <Button
             size="icon"
             className="rounded-full size-10 shrink-0"
+            style={{ background: "#7C5CFF" }}
             onClick={sendMessage}
             disabled={!input.trim() || busy}
           >
-            <Send className="size-4" />
+            <Send className="size-4" color="#fff" />
           </Button>
         </div>
       </div>

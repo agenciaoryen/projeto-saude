@@ -278,6 +278,11 @@ export function CheckInForm({ existingCheckIn }: CheckInFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
+      {/* Maya caption */}
+      <p className="text-center text-xs text-muted-foreground">
+        Atualiza aqui. Maya absorve tudo.
+      </p>
+
       {/* 1. Sentimento primeiro */}
       <Card className="rounded-2xl">
         <CardHeader className="pb-2">
@@ -410,7 +415,23 @@ export function CheckInForm({ existingCheckIn }: CheckInFormProps) {
         </CardContent>
       </Card>
 
-      {/* 3. Gratidão */}
+      {/* 3. Reflexão rápida */}
+      <Card className="rounded-2xl">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg">💭 Reflexão rápida</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Textarea
+            placeholder="Como foi seu dia?"
+            rows={2}
+            value={""}
+            onChange={() => {}}
+            className="resize-none rounded-xl"
+          />
+        </CardContent>
+      </Card>
+
+      {/* 4. Gratidão */}
       <Card className="rounded-2xl">
         <CardHeader className="pb-2">
           <CardTitle className="text-lg">🙏 {t("gratidao_momento")}</CardTitle>
@@ -476,7 +497,7 @@ export function CheckInForm({ existingCheckIn }: CheckInFormProps) {
         </CardContent>
       </Card>
 
-      {/* 4. Save */}
+      {/* 5. Save */}
       <div className="flex items-center gap-3">
         <Button type="submit" size="lg" className="flex-1 rounded-xl" disabled={loading}>
           {loading
@@ -491,6 +512,9 @@ export function CheckInForm({ existingCheckIn }: CheckInFormProps) {
           </span>
         )}
       </div>
+      <p className="text-center text-xs text-muted-foreground -mt-3">
+        Maya vai conectar os pontos.
+      </p>
     </form>
   );
 }

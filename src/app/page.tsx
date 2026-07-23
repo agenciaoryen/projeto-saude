@@ -1,44 +1,61 @@
 export default function LandingPage() {
   const features = [
-    { emoji: "🌙", title: "Sono",          desc: "Horários, qualidade e ciclos — entenda seu descanso" },
-    { emoji: "🍽️", title: "Nutrição",      desc: "Análise de refeições com IA e acompanhamento calórico" },
-    { emoji: "🎯", title: "Metas",         desc: "Metas com etapas, guardião e plano SE-ENTÃO" },
-    { emoji: "📅", title: "Planejamento",  desc: "Semana organizada por dia e área de vida" },
-    { emoji: "✍️", title: "Check-in",      desc: "Hábitos, sentimento e gratidão em minutos" },
-    { emoji: "✨", title: "Maya",          desc: "IA que conhece seu diário, metas e histórico" },
+    { emoji: "💜", title: "Maya te conhece", desc: "Ela cruza seu sono, humor e metas em tempo real" },
+    { emoji: "📊", title: "Análise pessoal", desc: "Correlações que só uma IA próxima consegue ver" },
+    { emoji: "🌙", title: "Sono",          desc: "Registre e entenda seus padrões de descanso" },
+    { emoji: "🎯", title: "Metas",         desc: "Defina, acompanhe e conquiste com suporte" },
+    { emoji: "📅", title: "Planejamento",  desc: "Semana organizada com foco no que importa" },
+    { emoji: "✍️", title: "Check-in",      desc: "2 minutos por dia para se manter no rumo" },
   ];
 
   return (
     <main style={{
       minHeight: "100dvh",
-      background: `radial-gradient(ellipse 90% 55% at 50% -5%, oklch(.93 .05 80 / .55) 0%, transparent 65%),
-                   linear-gradient(180deg, oklch(.985 .004 160) 0%, oklch(.94 .022 160) 100%)`,
+      background: "linear-gradient(180deg, oklch(0.12 0.012 270) 0%, oklch(0.16 0.015 270) 100%)",
       fontFamily: "var(--font-sans)",
-      color: "var(--foreground)",
+      color: "#e0d6ff",
       overflowX: "hidden",
     }}>
       <div style={{ maxWidth: 460, margin: "0 auto", padding: "60px 26px 88px" }}>
 
         {/* ── Hero ──────────────────────────────────────────────── */}
         <div style={{ textAlign: "center", marginBottom: 44 }}>
-          <div style={{ fontSize: 52, lineHeight: 1, marginBottom: 22 }}>🌱</div>
+          {/* Maya avatar placeholder */}
+          <div style={{
+            width: 80, height: 80, borderRadius: "50%",
+            background: "radial-gradient(circle at 35% 30%, #A78BFA 0%, #7C5CFF 100%)",
+            margin: "0 auto 22px",
+            boxShadow: "0 0 32px oklch(0.55 0.2 270 / 0.5)",
+          }}>
+            <div style={{
+              width: "100%", height: "100%", borderRadius: "50%",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 36, color: "#fff", fontWeight: 700,
+            }}>
+              M
+            </div>
+          </div>
 
           <h1 style={{
             margin: "0 0 14px",
-            fontSize: 32, fontWeight: 800,
+            fontSize: 34, fontWeight: 800,
             letterSpacing: "-0.03em", lineHeight: 1.12,
+            background: "linear-gradient(135deg, #A78BFA, #5EEAD4)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
           }}>
-            Seu companheiro de<br />saúde e evolução
+            Maya
           </h1>
 
           <p style={{
-            margin: 0, fontSize: 15.5,
-            color: "var(--muted-foreground)",
-            lineHeight: 1.65, fontWeight: 430,
+            margin: "0 0 6px",
+            fontSize: 15.5,
+            color: "#e0d6ff",
+            lineHeight: 1.65, fontWeight: 500,
           }}>
-            Do sono à nutrição, das metas ao planejamento semanal —
-            acompanhe tudo com a <strong style={{ fontWeight: 650, color: "oklch(.45 .12 160)" }}>Maya</strong>,
-            sua IA pessoal que entende seu contexto completo.
+            Sua IA pessoal que conecta sono, humor, hábitos,<br />
+            metas e dinheiro para mostrar<br />
+            o que você sozinho não enxerga.
           </p>
         </div>
 
@@ -49,18 +66,18 @@ export default function LandingPage() {
         }}>
           {features.map(({ emoji, title, desc }) => (
             <div key={title} style={{
-              background: "oklch(1 0 0 / .58)",
+              background: "oklch(0.18 0.015 270 / .7)",
               backdropFilter: "blur(12px)",
               borderRadius: 18,
               padding: "18px 15px",
-              border: "1px solid oklch(.5 .12 160 / .1)",
-              boxShadow: "0 1px 3px oklch(.2 .04 160 / .05)",
+              border: "1px solid oklch(0.58 0.18 270 / .15)",
+              boxShadow: "0 1px 3px oklch(.2 .04 270 / .05)",
             }}>
               <div style={{ fontSize: 27, lineHeight: 1, marginBottom: 9 }}>{emoji}</div>
-              <p style={{ margin: "0 0 4px", fontSize: 13, fontWeight: 700 }}>{title}</p>
+              <p style={{ margin: "0 0 4px", fontSize: 13, fontWeight: 700, color: "#e0d6ff" }}>{title}</p>
               <p style={{
                 margin: 0, fontSize: 11.5,
-                color: "var(--muted-foreground)",
+                color: "oklch(0.6 0.03 270)",
                 lineHeight: 1.45,
               }}>{desc}</p>
             </div>
@@ -71,7 +88,7 @@ export default function LandingPage() {
         <div style={{
           display: "flex", justifyContent: "center",
           gap: 20, marginBottom: 28,
-          fontSize: 12, color: "var(--muted-foreground)",
+          fontSize: 12, color: "oklch(0.6 0.03 270)",
           fontWeight: 600, letterSpacing: ".02em",
         }}>
           <span>🔒 Privacidade total</span>
@@ -88,10 +105,11 @@ export default function LandingPage() {
             style={{
               display: "flex", alignItems: "center", justifyContent: "center",
               height: 54, borderRadius: 16,
-              background: "oklch(.5 .12 160)", color: "#fff",
+              background: "linear-gradient(135deg, #7C5CFF, #A78BFA)",
+              color: "#fff",
               fontSize: 15.5, fontWeight: 700, letterSpacing: "-0.01em",
               textDecoration: "none",
-              boxShadow: "0 4px 18px -4px oklch(.5 .12 160 / .5)",
+              boxShadow: "0 4px 18px -4px oklch(.55 .2 270 / .5)",
               transition: "opacity .15s ease",
             }}
           >
@@ -102,11 +120,11 @@ export default function LandingPage() {
             style={{
               display: "flex", alignItems: "center", justifyContent: "center",
               height: 48, borderRadius: 14,
-              background: "oklch(1 0 0 / .52)",
+              background: "oklch(0.18 0.015 270 / .52)",
               backdropFilter: "blur(8px)",
-              border: "1px solid oklch(.5 .12 160 / .18)",
+              border: "1px solid oklch(.58 .18 270 / .2)",
               fontSize: 14, fontWeight: 500,
-              color: "var(--foreground)",
+              color: "#e0d6ff",
               textDecoration: "none",
             }}
           >

@@ -10,14 +10,14 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Diário de Saúde Mental",
+  title: "Maya",
   description:
-    "Acompanhamento diário da sua saúde mental com carinho e propósito.",
+    "Sua IA pessoal que conecta sono, humor, hábitos, metas e dinheiro para mostrar o que você sozinho não enxerga.",
   manifest: "/manifest.json",
 };
 
 export const viewport: Viewport = {
-  themeColor: "#2a6b5c",
+  themeColor: "#7C5CFF",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,

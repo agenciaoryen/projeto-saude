@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Refeição — Explorações</title>
+  <link rel="stylesheet" href="colors_and_type.css">
+  <style>
+    html, body { margin: 0; padding: 0; height: 100%; background: #f1f0ec; font-family: var(--font-sans); }
+    .device {
+      position: relative;
+      width: 100%; height: 100%;
+      border-radius: 38px; overflow: hidden;
+      background: var(--background);
+      box-shadow: inset 0 0 0 1px oklch(.25 .02 160 / .08);
+    }
+    .device::before {
+      content: '9:41';
+      position: absolute; top: 0; left: 0; right: 0; z-index: 50;
+      height: 44px;
+      display: flex; align-items: center; padding: 14px 28px 0;
+      font-family: -apple-system, "SF Pro", system-ui;
+      font-weight: 600; font-size: 15px; pointer-events: none;
+    }
+    .device::after {
+      content: '';
+      position: absolute; bottom: 0; left: 0; right: 0; z-index: 60;
+      height: 70px;
+      background: linear-gradient(180deg, transparent 0%, var(--background) 30%);
+      pointer-events: none;
+    }
+    .island {
+      position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+      width: 110px; height: 32px; border-radius: 9999px; background: #000; z-index: 51;
+    }
+    .homeind {
+      position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
+      width: 130px; height: 5px; border-radius: 9999px;
+      background: oklch(.25 .02 160 / .35); z-index: 70;
+    }
+    .device > .surface { position: absolute; inset: 50px 0 0; overflow: hidden; }
+  </style>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel" src="design-canvas.jsx"></script>
+  <script type="text/babel" src="dashboards/RefeicaoRegistro.jsx"></script>
+  <script type="text/babel">
+    function Page() {
+      return (
+        <DesignCanvas style={{ height: '100vh', background: '#f1f0ec' }}>
+          <DCSection
+            id="refeicao"
+            title="Refeição — 3 estados do fluxo"
+            subtitle="Captura → Análise → Resultados. Foto em primeiro, IA preenche o resto."
+          >
+            <DCArtboard id="capture" label="01 · Captura — foto em primeiro" width={390} height={844}>
+              <div className="device" data-screen-label="01 Captura">
+                <div className="island" />
+                <div className="surface"><RefeicaoRegistroCapture /></div>
+                <div className="homeind" />
+              </div>
+            </DCArtboard>
+
+            <DCArtboard id="analyzing" label="02 · Maya analisando" width={390} height={844}>
+              <div className="device" data-screen-label="02 Analyzing">
+                <div className="island" />
+                <div className="surface"><RefeicaoRegistroAnalyzing /></div>
+                <div className="homeind" />
+              </div>
+            </DCArtboard>
+
+            <DCArtboard id="results" label="03 · Resultado — editável" width={390} height={844}>
+              <div className="device" data-screen-label="03 Results">
+                <div className="island" />
+                <div className="surface"><RefeicaoRegistroResults /></div>
+                <div className="homeind" />
+              </div>
+            </DCArtboard>
+          </DCSection>
+
+          <DCPostIt top={120} left={40} width={230} rotate={-3}>
+            <strong>Captura</strong>: hero de foto grande com aspecto 4:3, gradient warm. Tipo da refeição já detectado pela hora (chip clicável). Descrição abaixo como contenteditable. Sticky "Analisar" no rodapé.
+          </DCPostIt>
+          <DCPostIt top={520} left={40} width={230} rotate={2}>
+            <strong>Analyzing</strong>: foto vira blur warm, Maya pulsa no centro com "Maya está olhando…". Skeleton tiles dos macros abaixo. Não trava nem trava UI.
+          </DCPostIt>
+          <DCPostIt top={120} right={40} width={220} rotate={3}>
+            <strong>Results</strong>: macros como <strong>4 mini-tiles bento</strong> coloridos (Kcal âmbar, Carb amarelo, Prot azul, Gord roxo). Itens como chips editáveis. Classificação como badge verde com explicação. CTA primary + escape "Salvar sem análise".
+          </DCPostIt>
+        </DesignCanvas>
+      );
+    }
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<Page />);
+  </script>
+</body>
+</html>

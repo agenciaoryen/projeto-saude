@@ -204,10 +204,10 @@ const translations: Record<Lang, Record<string, string>> = {
     nao: "Não",
 
     // Maya
-    maya_subtitle: "Uma companheira para conversar e refletir",
-    maya_placeholder: "Escreva sua mensagem...",
+    maya_subtitle: "Direta. Inteligente. Magnética.",
+    maya_placeholder: "Falar com Maya...",
     maya_welcome:
-      "Oi! Eu sou a Maya, sua companheira virtual 🌸\n\nEstou aqui para te ouvir, conversar e oferecer um olhar acolhedor sobre seu momento. Não sou terapeuta nem médica — sou como uma amiga que te ajuda a refletir.\n\nComo você está hoje?",
+      "Oi! Eu sou a Maya. 💜\n\nEu conecto seu sono, humor, hábitos, metas e gastos para conversas que realmente fazem sentido.\n\nQuanto mais você registra, mais eu te conheço.\n\nComo você está agora?",
     maya_typing: "Maya está escrevendo...",
     maya_error:
       "Tive dificuldade de me conectar agora. Tente novamente em alguns instantes. 💛",
@@ -774,10 +774,10 @@ const translations: Record<Lang, Record<string, string>> = {
     nao: "No",
 
     // Maya
-    maya_subtitle: "Una compañera para conversar y reflexionar",
-    maya_placeholder: "Escribe tu mensaje...",
+    maya_subtitle: "Directa. Inteligente. Magnética.",
+    maya_placeholder: "Hablar con Maya...",
     maya_welcome:
-      "¡Hola! Soy Maya, tu compañera virtual 🌸\n\nEstoy aquí para escucharte, conversar y ofrecerte una mirada acogedora sobre tu momento. No soy terapeuta ni médica — soy como una amiga que te ayuda a reflexionar.\n\n¿Cómo estás hoy?",
+      "¡Hola! Soy Maya. 💜\n\nConecto tu sueño, estado de ánimo, hábitos, metas y gastos para conversaciones que realmente tienen sentido.\n\nMientras más registras, más te conozco.\n\n¿Cómo estás ahora?",
     maya_typing: "Maya está escribiendo...",
     maya_error:
       "Tuve dificultad para conectarme ahora. Intenta de nuevo en unos instantes. 💛",
@@ -1342,10 +1342,10 @@ const translations: Record<Lang, Record<string, string>> = {
     nao: "No",
 
     // Maya
-    maya_subtitle: "A companion to talk and reflect",
-    maya_placeholder: "Write your message...",
+    maya_subtitle: "Direct. Intelligent. Magnetic.",
+    maya_placeholder: "Talk to Maya...",
     maya_welcome:
-      "Hi! I'm Maya, your virtual companion 🌸\n\nI'm here to listen, chat, and offer a warm perspective on your moment. I'm not a therapist or doctor — I'm like a friend who helps you reflect.\n\nHow are you today?",
+      "Hey! I'm Maya. 💜\n\nI connect your sleep, mood, habits, goals and spending for conversations that actually make sense.\n\nThe more you log, the more I get to know you.\n\nHow are you doing right now?",
     maya_typing: "Maya is typing...",
     maya_error:
       "I had trouble connecting right now. Please try again in a moment. 💛",

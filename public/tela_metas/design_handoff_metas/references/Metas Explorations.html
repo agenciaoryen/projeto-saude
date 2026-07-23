@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Metas — Explorações</title>
+  <link rel="stylesheet" href="colors_and_type.css">
+  <style>
+    html, body { margin: 0; padding: 0; height: 100%; background: #f1f0ec; font-family: var(--font-sans); }
+    .device {
+      position: relative;
+      width: 100%; height: 100%;
+      border-radius: 38px; overflow: hidden;
+      background: var(--background);
+      box-shadow: inset 0 0 0 1px oklch(.25 .02 160 / .08);
+    }
+    .device::before {
+      content: '9:41';
+      position: absolute; top: 0; left: 0; right: 0; z-index: 50;
+      height: 44px;
+      display: flex; align-items: center; padding: 14px 28px 0;
+      font-family: -apple-system, "SF Pro", system-ui;
+      font-weight: 600; font-size: 15px; pointer-events: none;
+    }
+    .device::after {
+      content: '';
+      position: absolute; bottom: 0; left: 0; right: 0; z-index: 60;
+      height: 70px;
+      background: linear-gradient(180deg, transparent 0%, var(--background) 30%);
+      pointer-events: none;
+    }
+    .island {
+      position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+      width: 110px; height: 32px; border-radius: 9999px; background: #000; z-index: 51;
+    }
+    .homeind {
+      position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
+      width: 130px; height: 5px; border-radius: 9999px;
+      background: oklch(.25 .02 160 / .35); z-index: 70;
+    }
+    .device > .surface { position: absolute; inset: 50px 0 0; overflow: hidden; }
+  </style>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel" src="design-canvas.jsx"></script>
+  <script type="text/babel" src="dashboards/MetasLista.jsx"></script>
+  <script type="text/babel" src="dashboards/MetaDetalhe.jsx"></script>
+  <script type="text/babel" src="dashboards/MetasListaEditorial.jsx"></script>
+  <script type="text/babel" src="dashboards/MetaDetalheEditorial.jsx"></script>
+  <script type="text/babel" src="dashboards/MetaWizard.jsx"></script>
+  <script type="text/babel" src="dashboards/MayaCoachEditorial.jsx"></script>
+  <script type="text/babel">
+    function Page() {
+      return (
+        <DesignCanvas style={{ height: '100vh', background: '#f1f0ec' }}>
+          <DCSection
+            id="metas-final"
+            title="Metas — direção final (mista)"
+            subtitle="Lista editorial · Detalhe bento · Wizard bento · Coach editorial"
+          >
+            <DCArtboard id="lista" label="01 · Lista (Editorial · B1 aprovada)" width={390} height={844}>
+              <div className="device" data-screen-label="01 Lista">
+                <div className="island" />
+                <div className="surface"><MetasListaEditorial /></div>
+                <div className="homeind" />
+              </div>
+            </DCArtboard>
+            <DCArtboard id="detalhe" label="02 · Detalhe (Bento · A2 aprovada)" width={390} height={844}>
+              <div className="device" data-screen-label="02 Detalhe">
+                <div className="island" />
+                <div className="surface"><MetaDetalhe /></div>
+                <div className="homeind" />
+              </div>
+            </DCArtboard>
+            <DCArtboard id="wizard" label="03 · Wizard Nova Meta (Bento — passo 1: Área)" width={390} height={844}>
+              <div className="device" data-screen-label="03 Wizard">
+                <div className="island" />
+                <div className="surface"><MetaWizard initialStep={0} /></div>
+                <div className="homeind" />
+              </div>
+            </DCArtboard>
+            <DCArtboard id="coach" label="04 · Coach Maya (Editorial)" width={390} height={844}>
+              <div className="device" data-screen-label="04 Coach">
+                <div className="island" />
+                <div className="surface"><MayaCoachEditorial /></div>
+                <div className="homeind" />
+              </div>
+            </DCArtboard>
+          </DCSection>
+        </DesignCanvas>
+      );
+    }
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<Page />);
+  </script>
+</body>
+</html>
