@@ -8,9 +8,9 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Suspense } from "react";
 
-const P  = "oklch(.5 .12 160)";
-const PL = "oklch(.5 .12 160 / .12)";
-const PB = "1px solid oklch(.5 .12 160 / .15)";
+const P  = "#7C5CFF";
+const PL = "oklch(0.5 0.12 270 / .12)";
+const PB = "1px solid oklch(0.5 0.12 270 / .15)";
 
 const pageWrap: React.CSSProperties = {
   minHeight: "100dvh",
@@ -18,13 +18,12 @@ const pageWrap: React.CSSProperties = {
   alignItems: "center",
   justifyContent: "center",
   padding: "24px 20px",
-  background: `radial-gradient(ellipse 80% 50% at 50% 0%, oklch(.95 .04 80 / .4) 0%, transparent 60%),
-               linear-gradient(180deg, oklch(.985 .004 160) 0%, oklch(.94 .022 160) 100%)`,
+  background: "oklch(0.12 0.012 270)",
   fontFamily: "var(--font-sans)",
 };
 
 const cardStyle: React.CSSProperties = {
-  background: "oklch(1 0 0 / .55)",
+  background: "oklch(0.16 0.012 270 / .85)",
   backdropFilter: "blur(12px)",
   borderRadius: 24,
   border: PB,
@@ -38,7 +37,7 @@ const inputStyle: React.CSSProperties = {
   height: 44,
   borderRadius: 11,
   border: PB,
-  background: "oklch(1 0 0 / .6)",
+  background: "oklch(0.14 0.012 270)",
   padding: "0 14px",
   fontSize: 14,
   fontFamily: "var(--font-sans)",
@@ -123,7 +122,7 @@ function CadastroInner() {
           </div>
 
           <div style={{
-            background: "oklch(.97 .01 160)",
+            background: "oklch(0.16 0.012 270)",
             borderRadius: 16, border: PB,
             padding: "18px 16px", textAlign: "left", marginBottom: 22,
           }}>

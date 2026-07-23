@@ -132,11 +132,10 @@ function LoadingScreen() {
   return (
     <div style={{
       minHeight: "100dvh",
-      background: `radial-gradient(ellipse 80% 50% at 50% 0%, oklch(.95 .04 80 / .5) 0%, transparent 60%),
-                   linear-gradient(180deg, oklch(.98 .005 160) 0%, oklch(.93 .03 160) 100%)`,
+      background: "oklch(0.12 0.012 270)",
       display: "flex", alignItems: "center", justifyContent: "center",
     }}>
-      <p style={{ color: "var(--muted-foreground)", fontSize: 13 }}>Carregando…</p>
+      <p style={{ color: "#e0d6ff", fontSize: 13 }}>Carregando…</p>
     </div>
   );
 }
@@ -184,24 +183,23 @@ function EditCheckInView({ answers, setAnswers, enabledKeys, context, gender, on
       ? warm
         ? { background: "oklch(.72 .1 30 / .35)", color: "oklch(.35 .08 30)" }
         : { background: "var(--primary)", color: "#fff" }
-      : { background: "oklch(.5 .12 160 / .1)", color: "var(--muted-foreground)" }),
+      : { background: "oklch(0.5 0.12 270 / .1)", color: "var(--muted-foreground)" }),
   });
 
   return (
     <div style={{
       width: "100%", minHeight: "100dvh", overflowY: "auto",
       fontFamily: "var(--font-sans)", color: "var(--foreground)",
-      background: `radial-gradient(ellipse 80% 50% at 50% 0%, oklch(.95 .04 80 / .5) 0%, transparent 60%),
-                   linear-gradient(180deg, oklch(.98 .005 160) 0%, oklch(.93 .03 160) 100%)`,
+      background: "oklch(0.12 0.012 270)",
       paddingBottom: 100,
     }}>
       {/* Close */}
       <button type="button" onClick={onClose} aria-label="Fechar" style={{
         position: "fixed", top: 14, left: 16, zIndex: 10,
         width: 36, height: 36, borderRadius: 9999, border: 0, cursor: "pointer",
-        background: "oklch(1 0 0 / .72)", backdropFilter: "blur(12px)",
+        background: "oklch(0.16 0.012 270 / 0.85)", backdropFilter: "blur(12px)",
         display: "flex", alignItems: "center", justifyContent: "center",
-        boxShadow: "0 1px 3px oklch(.25 .02 160 / .06)",
+        boxShadow: "0 1px 3px oklch(0.28 0.02 270 / .06)",
       }}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
           strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
@@ -246,15 +244,15 @@ function EditCheckInView({ answers, setAnswers, enabledKeys, context, gender, on
                     display: "inline-flex", alignItems: "center", gap: 5,
                     transition: "all .15s ease",
                     background: active
-                      ? pos ? "oklch(.5 .12 160 / .18)" : "oklch(.72 .1 30 / .22)"
-                      : "oklch(1 0 0 / .6)",
+                      ? pos ? "oklch(0.5 0.12 270 / .18)" : "oklch(.72 .1 30 / .22)"
+                      : "oklch(0.14 0.012 270)",
                     backdropFilter: "blur(8px)",
                     color: active
-                      ? pos ? "oklch(.32 .1 160)" : "oklch(.35 .09 30)"
+                      ? pos ? "#e0d6ff" : "oklch(.35 .09 30)"
                       : "var(--foreground)",
                     outline: active
-                      ? `2px solid ${pos ? "oklch(.5 .12 160 / .35)" : "oklch(.6 .1 30 / .35)"}`
-                      : "1px solid oklch(.5 .12 160 / .1)",
+                      ? `2px solid ${pos ? "oklch(0.5 0.12 270 / .35)" : "oklch(.6 .1 30 / .35)"}`
+                      : "1px solid oklch(0.5 0.12 270 / .1)",
                   }}>
                   <span style={{ fontSize: 15 }}>{chip.emoji}</span>
                   {getMoodLabel(chip, gender)}
@@ -272,8 +270,8 @@ function EditCheckInView({ answers, setAnswers, enabledKeys, context, gender, on
               outline: "none", fontSize: 15, lineHeight: 1.55, fontWeight: 500,
               color: "var(--foreground)", minHeight: 44,
               padding: "11px 15px", borderRadius: 14,
-              background: "oklch(1 0 0 / .55)", backdropFilter: "blur(8px)",
-              border: "1px solid oklch(.5 .12 160 / .12)",
+              background: "oklch(0.16 0.012 270 / 0.7)", backdropFilter: "blur(8px)",
+              border: "1px solid oklch(0.5 0.12 270 / .12)",
             }}
           />
         </section>
@@ -295,14 +293,14 @@ function EditCheckInView({ answers, setAnswers, enabledKeys, context, gender, on
                   return (
                     <div key={key} style={{
                       padding: "11px 14px", borderRadius: 14,
-                      background: "oklch(1 0 0 / .55)", backdropFilter: "blur(8px)",
-                      border: "1px solid oklch(.5 .12 160 / .12)",
+                      background: "oklch(0.16 0.012 270 / 0.7)", backdropFilter: "blur(8px)",
+                      border: "1px solid oklch(0.5 0.12 270 / .12)",
                     }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
                         <span style={{ fontSize: 21, flexShrink: 0, lineHeight: 1 }}>🥛</span>
                         <span style={{ flex: 1, fontSize: 13.5, fontWeight: 500 }}>Copos de água hoje</span>
                         <span style={{ fontSize: 12, fontWeight: 700,
-                          color: cups >= WATER_GOAL ? "oklch(.35 .1 160)" : "var(--muted-foreground)" }}>
+                          color: cups >= WATER_GOAL ? "#e0d6ff" : "var(--muted-foreground)" }}>
                           {cups * ML_PER_CUP}ml{cups >= WATER_GOAL ? " ✓" : ""}
                         </span>
                       </div>
@@ -322,8 +320,8 @@ function EditCheckInView({ answers, setAnswers, enabledKeys, context, gender, on
                   <div key={key} style={{
                     display: "flex", alignItems: "center", gap: 10,
                     padding: "11px 14px", borderRadius: 14,
-                    background: "oklch(1 0 0 / .55)", backdropFilter: "blur(8px)",
-                    border: "1px solid oklch(.5 .12 160 / .12)",
+                    background: "oklch(0.16 0.012 270 / 0.7)", backdropFilter: "blur(8px)",
+                    border: "1px solid oklch(0.5 0.12 270 / .12)",
                   }}>
                     <span style={{ fontSize: 21, flexShrink: 0, lineHeight: 1 }}>{base.emoji}</span>
                     <span style={{ flex: 1, fontSize: 13.5, fontWeight: 500, lineHeight: 1.3 }}>{label}</span>
@@ -355,8 +353,8 @@ function EditCheckInView({ answers, setAnswers, enabledKeys, context, gender, on
               outline: "none", fontSize: 16, lineHeight: 1.55, fontStyle: "italic",
               color: "var(--foreground)", minHeight: 52,
               padding: "13px 15px", borderRadius: 14,
-              background: "oklch(1 0 0 / .55)", backdropFilter: "blur(8px)",
-              border: "1px solid oklch(.5 .12 160 / .12)",
+              background: "oklch(0.16 0.012 270 / 0.7)", backdropFilter: "blur(8px)",
+              border: "1px solid oklch(0.5 0.12 270 / .12)",
             }}
           />
 
@@ -379,8 +377,8 @@ function EditCheckInView({ answers, setAnswers, enabledKeys, context, gender, on
             ))}
             <button type="button" onClick={() => photoInputRef.current?.click()} style={{
               display: "inline-flex", alignItems: "center", gap: 5, padding: "7px 12px",
-              borderRadius: 9999, background: "oklch(1 0 0 / .55)", backdropFilter: "blur(8px)",
-              border: "1px solid oklch(.5 .12 160 / .2)", cursor: "pointer",
+              borderRadius: 9999, background: "oklch(0.16 0.012 270 / 0.7)", backdropFilter: "blur(8px)",
+              border: "1px solid oklch(0.5 0.12 270 / .2)", cursor: "pointer",
               fontFamily: "inherit", fontSize: 12, color: "var(--foreground)",
             }}>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
@@ -399,7 +397,7 @@ function EditCheckInView({ answers, setAnswers, enabledKeys, context, gender, on
         {/* ── Pensamentos (suicidal_thoughts) ── */}
         {hasConfirm && (
           <section>
-            <p style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", color: "oklch(.45 .02 160)" }}>
+            <p style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", color: "oklch(0.55 0.03 270)" }}>
               Só pra confirmar
             </p>
             <p style={{ margin: "0 0 12px", fontSize: 15, fontWeight: 600, letterSpacing: "-0.01em", lineHeight: 1.4 }}>
@@ -410,9 +408,9 @@ function EditCheckInView({ answers, setAnswers, enabledKeys, context, gender, on
                 height: 48, borderRadius: 12, cursor: "pointer", fontFamily: "inherit",
                 fontSize: 14, fontWeight: 500, textAlign: "left", padding: "0 18px",
                 transition: "all .15s ease",
-                background: answers.suicidal_thoughts === false ? "var(--primary)" : "oklch(1 0 0 / .55)",
+                background: answers.suicidal_thoughts === false ? "var(--primary)" : "oklch(0.16 0.012 270 / 0.7)",
                 backdropFilter: "blur(8px)",
-                border: answers.suicidal_thoughts === false ? "none" : "1px solid oklch(.5 .12 160 / .2)",
+                border: answers.suicidal_thoughts === false ? "none" : "1px solid oklch(0.5 0.12 270 / .2)",
                 color: answers.suicidal_thoughts === false ? "#fff" : "var(--foreground)",
               }}>
                 Não, hoje não.
@@ -436,14 +434,14 @@ function EditCheckInView({ answers, setAnswers, enabledKeys, context, gender, on
       <div style={{
         position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 20,
         padding: "12px 24px 32px",
-        background: "linear-gradient(180deg, transparent 0%, oklch(.98 .005 160 / .92) 30%, oklch(.98 .005 160) 100%)",
+        background: "linear-gradient(180deg, transparent 0%, oklch(0.12 0.012 270 / .92) 30%, oklch(0.12 0.012 270) 100%)",
       }}>
         <button type="button" onClick={onSave} disabled={saving} style={{
           width: "100%", height: 52, borderRadius: 16, border: 0,
           cursor: saving ? "not-allowed" : "pointer",
           background: "var(--primary)", color: "#fff",
           fontFamily: "inherit", fontSize: 15, fontWeight: 600, letterSpacing: "-0.01em",
-          boxShadow: "0 4px 14px -4px oklch(.5 .12 160 / .45)",
+          boxShadow: "0 4px 14px -4px oklch(0.5 0.12 270 / .45)",
           opacity: saving ? 0.7 : 1, transition: "opacity .15s ease",
         }}>
           {saving ? "Salvando…" : "Salvar alterações"}
@@ -468,19 +466,16 @@ function CheckInStage({ stepIdx, totalForProgress, isDone, onClose, children }: 
     <div style={{
       width: "100%", minHeight: "100dvh", overflowX: "hidden",
       fontFamily: "var(--font-sans)", color: "var(--foreground)",
-      background: isDone
-        ? `radial-gradient(ellipse 100% 80% at 50% 50%, oklch(.92 .07 160 / .8) 0%, oklch(.96 .015 160) 70%)`
-        : `radial-gradient(ellipse 80% 50% at 50% 0%, oklch(.95 .04 80 / .5) 0%, transparent 60%),
-           linear-gradient(180deg, oklch(.98 .005 160) 0%, oklch(.93 .03 160) 100%)`,
+      background: "oklch(0.12 0.012 270)",
       position: "relative", transition: "background .6s ease",
     }}>
       {!isDone && (
         <button type="button" onClick={onClose} aria-label="Fechar" style={{
           position: "fixed", top: 14, left: 16, zIndex: 10,
           width: 36, height: 36, borderRadius: 9999, border: 0, cursor: "pointer",
-          background: "oklch(1 0 0 / .72)", backdropFilter: "blur(12px)",
+          background: "oklch(0.16 0.012 270 / 0.85)", backdropFilter: "blur(12px)",
           display: "flex", alignItems: "center", justifyContent: "center",
-          boxShadow: "0 1px 3px oklch(.25 .02 160 / .06)",
+          boxShadow: "0 1px 3px oklch(0.28 0.02 270 / .06)",
         }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
             strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
@@ -497,7 +492,7 @@ function CheckInStage({ stepIdx, totalForProgress, isDone, onClose, children }: 
           {Array.from({ length: totalForProgress }).map((_, i) => (
             <div key={i} style={{
               flex: 1, height: 3, borderRadius: 9999,
-              background: i < progress ? "var(--primary)" : "oklch(.5 .12 160 / .15)",
+              background: i < progress ? "var(--primary)" : "oklch(0.5 0.12 270 / .15)",
               transition: "background .3s ease",
             }} />
           ))}
@@ -577,16 +572,16 @@ function FeelingStep({ initialValue, initialMoodTags, gender, onChange, onMoodTa
               display: "inline-flex", alignItems: "center", gap: 6,
               transition: "all .15s ease",
               background: active
-                ? pos ? "oklch(.5 .12 160 / .18)" : "oklch(.72 .1 30 / .22)"
-                : "oklch(1 0 0 / .6)",
+                ? pos ? "oklch(0.5 0.12 270 / .18)" : "oklch(.72 .1 30 / .22)"
+                : "oklch(0.14 0.012 270)",
               backdropFilter: "blur(8px)",
               color: active
-                ? pos ? "oklch(.32 .1 160)" : "oklch(.35 .09 30)"
+                ? pos ? "#e0d6ff" : "oklch(.35 .09 30)"
                 : "var(--foreground)",
               outline: active
-                ? `2px solid ${pos ? "oklch(.5 .12 160 / .35)" : "oklch(.6 .1 30 / .35)"}`
-                : "1px solid oklch(.5 .12 160 / .1)",
-              boxShadow: active ? "none" : "0 1px 3px oklch(.2 .02 160 / .06)",
+                ? `2px solid ${pos ? "oklch(0.5 0.12 270 / .35)" : "oklch(.6 .1 30 / .35)"}`
+                : "1px solid oklch(0.5 0.12 270 / .1)",
+              boxShadow: active ? "none" : "0 1px 3px oklch(0.2 0.02 270 / .06)",
             }}>
               <span style={{ fontSize: 17, lineHeight: 1 }}>{chip.emoji}</span>
               {getMoodLabel(chip, gender)}
@@ -605,8 +600,8 @@ function FeelingStep({ initialValue, initialMoodTags, gender, onChange, onMoodTa
           outline: "none", fontSize: 16, lineHeight: 1.5, fontWeight: 500,
           color: "var(--foreground)", minHeight: 48,
           padding: "11px 14px", borderRadius: 14,
-          background: "oklch(1 0 0 / .45)", backdropFilter: "blur(8px)",
-          border: "1px solid oklch(.5 .12 160 / .12)",
+          background: "oklch(0.14 0.012 270)", backdropFilter: "blur(8px)",
+          border: "1px solid oklch(0.5 0.12 270 / .12)",
         }}
       />
 
@@ -620,7 +615,7 @@ function FeelingStep({ initialValue, initialMoodTags, gender, onChange, onMoodTa
           background: "var(--primary)", color: "#fff", border: 0, cursor: "pointer",
           fontFamily: "inherit", fontSize: 14, fontWeight: 600,
           display: "inline-flex", alignItems: "center", gap: 6,
-          boxShadow: "0 4px 14px -4px oklch(.5 .12 160 / .45)",
+          boxShadow: "0 4px 14px -4px oklch(0.5 0.12 270 / .45)",
         }}>
           Continuar
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -644,8 +639,8 @@ const SLEEP_EMOJIS: { emoji: string; label: string; quality: number }[] = [
 
 const sleepTimeWrap: React.CSSProperties = {
   overflow: "hidden", minWidth: 0, borderRadius: 10,
-  border: "1px solid oklch(.7 .04 160 / .3)",
-  background: "oklch(1 0 0 / .55)", backdropFilter: "blur(8px)",
+  border: "1px solid oklch(0.5 0.04 270 / .3)",
+  background: "oklch(0.16 0.012 270 / 0.7)", backdropFilter: "blur(8px)",
   height: 42, display: "flex", alignItems: "center",
 };
 const sleepTimeInput: React.CSSProperties = {
@@ -703,13 +698,13 @@ function SleepStep({ onAnswer, onPrev }: {
             <button key={q} type="button" onClick={() => setQuality(q)} style={{
               flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 5,
               padding: "12px 2px", borderRadius: 14, border: 0, cursor: "pointer",
-              background: quality === q ? "oklch(.5 .12 280 / .18)" : "oklch(1 0 0 / .45)",
+              background: quality === q ? "oklch(0.5 0.12 270 / .18)" : "oklch(0.14 0.012 270)",
               backdropFilter: "blur(8px)",
-              outline: quality === q ? "2px solid oklch(.5 .12 280 / .5)" : "none",
+              outline: quality === q ? "2px solid oklch(0.5 0.12 270 / .5)" : "none",
               transition: "all .15s ease",
             }}>
               <span style={{ fontSize: 26 }}>{emoji}</span>
-              <span style={{ fontSize: 10, fontWeight: 600, color: quality === q ? "oklch(.35 .1 280)" : "var(--muted-foreground)" }}>
+              <span style={{ fontSize: 10, fontWeight: 600, color: quality === q ? "#e0d6ff" : "var(--muted-foreground)" }}>
                 {label}
               </span>
             </button>
@@ -721,8 +716,8 @@ function SleepStep({ onAnswer, onPrev }: {
         disabled={!quality} style={{
           marginTop: 24, width: "100%", height: 50, borderRadius: 14, border: 0,
           cursor: quality ? "pointer" : "not-allowed",
-          background: quality ? "var(--primary)" : "oklch(.88 .02 160)",
-          color: quality ? "#fff" : "oklch(.6 .04 160)",
+          background: quality ? "var(--primary)" : "oklch(0.2 0.02 270)",
+          color: quality ? "#fff" : "oklch(0.55 0.03 270)",
           fontFamily: "inherit", fontSize: 15, fontWeight: 600,
           transition: "all .2s ease",
         }}>
@@ -754,23 +749,23 @@ const ML_PER_CUP   = 250;
 function CupIcon({ filled, size = 28 }: { filled: boolean; size?: number }) {
   const w = size * 0.85;
   const h = size;
-  const fillColor = "oklch(.42 .13 160)";
-  const emptyStroke = "oklch(.65 .06 160 / .45)";
+  const fillColor = "#7C5CFF";
+  const emptyStroke = "oklch(0.5 0.06 270 / .45)";
   return (
     <svg width={w} height={h} viewBox="0 0 22 28" fill="none">
       <path d="M3 2 L5.5 22 H16.5 L19 2 H3Z"
-        fill={filled ? "oklch(.5 .13 160 / .22)" : "oklch(.88 .02 160 / .4)"}
+        fill={filled ? "oklch(0.5 0.13 270 / .22)" : "oklch(0.28 0.02 270 / .4)"}
         stroke={filled ? fillColor : emptyStroke}
         strokeWidth="1.6" strokeLinejoin="round"
       />
       <path d="M5.5 22 H16.5 L15.5 26 H6.5 Z"
-        fill={filled ? "oklch(.5 .13 160 / .3)" : "oklch(.88 .02 160 / .4)"}
+        fill={filled ? "oklch(0.5 0.13 270 / .3)" : "oklch(0.28 0.02 270 / .4)"}
         stroke={filled ? fillColor : emptyStroke}
         strokeWidth="1.6" strokeLinejoin="round"
       />
       {filled && (
         <path d="M6.5 17 Q11 14 15.5 17 L16.5 22 H5.5 Z"
-          fill="oklch(.5 .15 200 / .35)"
+          fill="oklch(0.5 0.15 270 / .35)"
         />
       )}
     </svg>
@@ -804,13 +799,13 @@ function WaterCupSelector({ cups, size, onChange }: {
               style={{
                 width: cupW, height: cupW * 1.15,
                 borderRadius: 14, border: 0, cursor: handleClick ? "pointer" : "default",
-                background: filled ? "oklch(.5 .12 160 / .1)" : "oklch(1 0 0 / .45)",
+                background: filled ? "oklch(0.5 0.12 270 / .1)" : "oklch(0.14 0.012 270)",
                 backdropFilter: "blur(8px)",
                 outline: isLastFilled
-                  ? "2.5px solid oklch(.5 .12 160 / .5)"
+                  ? "2.5px solid oklch(0.5 0.12 270 / .5)"
                   : i === WATER_GOAL - 1 && filled
-                    ? "2px solid oklch(.5 .12 160 / .25)"
-                    : "1px solid oklch(.5 .12 160 / .1)",
+                    ? "2px solid oklch(0.5 0.12 270 / .25)"
+                    : "1px solid oklch(0.5 0.12 270 / .1)",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 transition: "all .15s ease",
                 position: "relative",
@@ -819,7 +814,7 @@ function WaterCupSelector({ cups, size, onChange }: {
               {isLastFilled && (
                 <span style={{
                   position: "absolute", top: 4, right: 5,
-                  fontSize: 9, color: "oklch(.5 .12 160)", fontWeight: 700, lineHeight: 1,
+                  fontSize: 9, color: "#7C5CFF", fontWeight: 700, lineHeight: 1,
                 }}>−</span>
               )}
             </button>
@@ -828,19 +823,19 @@ function WaterCupSelector({ cups, size, onChange }: {
         {cups < WATER_MAX && (
           <button type="button" onClick={() => onChange(cups + 1)} style={{
             width: cupW, height: cupW * 1.15,
-            borderRadius: 14, border: "1.5px dashed oklch(.5 .12 160 / .3)",
+            borderRadius: 14, border: "1.5px dashed oklch(0.5 0.12 270 / .3)",
             cursor: "pointer",
-            background: "oklch(1 0 0 / .35)", backdropFilter: "blur(8px)",
+            background: "oklch(0.14 0.012 270 / 0.7)", backdropFilter: "blur(8px)",
             display: "flex", alignItems: "center", justifyContent: "center",
             transition: "background .15s ease",
           }}>
-            <span style={{ fontSize: 24, color: "oklch(.5 .12 160)", fontWeight: 300, lineHeight: 1 }}>+</span>
+            <span style={{ fontSize: 24, color: "#7C5CFF", fontWeight: 300, lineHeight: 1 }}>+</span>
           </button>
         )}
       </div>
       <p style={{
         margin: "10px 0 0", fontSize: 13,
-        color: cups >= WATER_GOAL ? "oklch(.4 .12 160)" : "var(--muted-foreground)",
+        color: cups >= WATER_GOAL ? "#e0d6ff" : "var(--muted-foreground)",
       }}>
         <span style={{ fontWeight: 700, fontSize: 15 }}>{totalMl}ml</span>
         {" · 250ml por copo · "}
@@ -912,7 +907,7 @@ function HabitStep({ habitKey, context, onAnswer, onSkip, onPrev }: {
           flex: 1, height: 56, borderRadius: 16, border: 0, cursor: "pointer",
           background: "var(--primary)", color: "#fff",
           fontFamily: "inherit", fontSize: 16, fontWeight: 600, letterSpacing: "-0.005em",
-          boxShadow: "0 4px 14px -4px oklch(.5 .12 160 / .45)",
+          boxShadow: "0 4px 14px -4px oklch(0.5 0.12 270 / .45)",
           display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
         }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -923,8 +918,8 @@ function HabitStep({ habitKey, context, onAnswer, onSkip, onPrev }: {
         </button>
         <button type="button" onClick={() => onAnswer(habitKey, false)} style={{
           flex: 1, height: 56, borderRadius: 16,
-          background: "oklch(1 0 0 / .55)", backdropFilter: "blur(8px)",
-          border: "1px solid oklch(.5 .12 160 / .15)", cursor: "pointer",
+          background: "oklch(0.16 0.012 270 / 0.7)", backdropFilter: "blur(8px)",
+          border: "1px solid oklch(0.5 0.12 270 / .15)", cursor: "pointer",
           fontFamily: "inherit", fontSize: 16, fontWeight: 500,
           color: "var(--foreground)", letterSpacing: "-0.005em",
         }}>{base.b}</button>
@@ -985,8 +980,8 @@ function GratitudeStep({ initialValue, initialPhotos, onChange, onPhotosChange, 
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 16, flexWrap: "wrap" }}>
         <button type="button" onClick={() => photoInputRef.current?.click()} style={{
           display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px",
-          borderRadius: 9999, background: "oklch(1 0 0 / .55)", backdropFilter: "blur(8px)",
-          border: "1px solid oklch(.5 .12 160 / .2)", cursor: "pointer",
+          borderRadius: 9999, background: "oklch(0.16 0.012 270 / 0.7)", backdropFilter: "blur(8px)",
+          border: "1px solid oklch(0.5 0.12 270 / .2)", cursor: "pointer",
           fontFamily: "inherit", fontSize: 12, color: "var(--foreground)",
         }}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
@@ -1011,7 +1006,7 @@ function GratitudeStep({ initialValue, initialPhotos, onChange, onPhotosChange, 
           background: "var(--primary)", color: "#fff", border: 0, cursor: "pointer",
           fontFamily: "inherit", fontSize: 14, fontWeight: 600,
           display: "inline-flex", alignItems: "center", gap: 6,
-          boxShadow: "0 4px 14px -4px oklch(.5 .12 160 / .45)",
+          boxShadow: "0 4px 14px -4px oklch(0.5 0.12 270 / .45)",
         }}>
           Continuar
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -1026,7 +1021,7 @@ function GratitudeStep({ initialValue, initialPhotos, onChange, onPhotosChange, 
 function ConfirmStep({ onAnswer, onPrev }: { onAnswer: (v: boolean) => void; onPrev: () => void; }) {
   return (
     <>
-      <p style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 700, letterSpacing: ".16em", textTransform: "uppercase", color: "oklch(.45 .02 160)" }}>
+      <p style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 700, letterSpacing: ".16em", textTransform: "uppercase", color: "oklch(0.55 0.03 270)" }}>
         Só pra confirmar
       </p>
       <h1 style={{ margin: 0, fontSize: 24, fontWeight: 600, letterSpacing: "-0.02em", lineHeight: 1.3 }}>
@@ -1038,8 +1033,8 @@ function ConfirmStep({ onAnswer, onPrev }: { onAnswer: (v: boolean) => void; onP
       <div style={{ marginTop: 36, display: "flex", flexDirection: "column", gap: 8 }}>
         <button type="button" onClick={() => onAnswer(false)} style={{
           height: 52, borderRadius: 14,
-          background: "oklch(1 0 0 / .55)", backdropFilter: "blur(8px)",
-          border: "1px solid oklch(.5 .12 160 / .2)", cursor: "pointer",
+          background: "oklch(0.16 0.012 270 / 0.7)", backdropFilter: "blur(8px)",
+          border: "1px solid oklch(0.5 0.12 270 / .2)", cursor: "pointer",
           fontFamily: "inherit", fontSize: 15, fontWeight: 500,
           color: "var(--foreground)", textAlign: "left", padding: "0 18px",
         }}>Não, hoje não.</button>
@@ -1064,13 +1059,13 @@ function DoneStep() {
     <div style={{ textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center" }}>
       <div style={{
         width: 92, height: 92, borderRadius: 9999, marginBottom: 24,
-        background: "oklch(.5 .12 160 / .15)",
+        background: "oklch(0.5 0.12 270 / .15)",
         display: "flex", alignItems: "center", justifyContent: "center",
-        boxShadow: "0 0 0 12px oklch(.5 .12 160 / .07), 0 0 0 28px oklch(.5 .12 160 / .04)",
+        boxShadow: "0 0 0 12px oklch(0.5 0.12 270 / .07), 0 0 0 28px oklch(0.5 0.12 270 / .04)",
         animation: "pulse 2s ease-in-out infinite",
       }}>
         <svg width="42" height="42" viewBox="0 0 24 24" fill="none"
-          stroke="oklch(.45 .15 160)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          stroke="#7C5CFF" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M5 12 10 17 19 7" />
         </svg>
       </div>

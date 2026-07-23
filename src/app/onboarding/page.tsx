@@ -96,18 +96,19 @@ export default function OnboardingPage() {
   };
 
   return (
-    <main className="flex-1 flex flex-col items-center justify-start overflow-y-auto p-6 pt-10 pb-12 bg-gradient-to-b from-background to-secondary/30">
+    <main style={{ background: "oklch(0.12 0.012 270)", color: "#e0d6ff" }}
+      className="flex-1 flex flex-col items-center justify-start overflow-y-auto p-6 pt-10 pb-12">
       <div className="max-w-lg w-full space-y-6">
         <div className="text-center space-y-2">
           <div className="text-5xl">🌱</div>
-          <h1 className="text-2xl font-bold">{t("vamos_conhecer")}</h1>
-          <p className="text-muted-foreground text-sm">{t("onboarding_subtitle")}</p>
+          <h1 className="text-2xl font-bold" style={{ color: "#e0d6ff" }}>{t("vamos_conhecer")}</h1>
+          <p className="text-sm" style={{ color: "oklch(0.55 0.03 270)" }}>{t("onboarding_subtitle")}</p>
         </div>
 
         {/* Language selector */}
-        <Card className="rounded-2xl">
+        <Card className="rounded-2xl" style={{ background: "oklch(0.16 0.012 270)", borderColor: "oklch(0.28 0.02 270 / 0.5)" }}>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">Idioma / Language</CardTitle>
+            <CardTitle className="text-base" style={{ color: "#e0d6ff" }}>Idioma / Language</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex gap-2">
@@ -116,11 +117,10 @@ export default function OnboardingPage() {
                   key={opt.id}
                   type="button"
                   onClick={() => setLanguage(opt.id)}
-                  className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-                    language === opt.id
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted text-muted-foreground hover:bg-muted/80"
-                  }`}
+                  style={language === opt.id
+                    ? { background: "#7C5CFF", color: "#fff" }
+                    : { background: "oklch(0.14 0.012 270)", color: "oklch(0.55 0.03 270)" }}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-medium transition-colors"
                 >
                   {opt.flag} {opt.label}
                 </button>
@@ -130,12 +130,12 @@ export default function OnboardingPage() {
         </Card>
 
         {/* Gender question */}
-        <Card className="rounded-2xl">
+        <Card className="rounded-2xl" style={{ background: "oklch(0.16 0.012 270)", borderColor: "oklch(0.28 0.02 270 / 0.5)" }}>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">{t("pergunta_genero")}</CardTitle>
+            <CardTitle className="text-base" style={{ color: "#e0d6ff" }}>{t("pergunta_genero")}</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground mb-3">
+            <p className="text-sm mb-3" style={{ color: "oklch(0.55 0.03 270)" }}>
               {t("genero_subtitle_onboarding")}
             </p>
             <div className="flex gap-2">
@@ -144,11 +144,10 @@ export default function OnboardingPage() {
                   key={opt.id}
                   type="button"
                   onClick={() => setGender(opt.id)}
-                  className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-                    gender === opt.id
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted text-muted-foreground hover:bg-muted/80"
-                  }`}
+                  style={gender === opt.id
+                    ? { background: "#7C5CFF", color: "#fff" }
+                    : { background: "oklch(0.14 0.012 270)", color: "oklch(0.55 0.03 270)" }}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-medium transition-colors"
                 >
                   {opt.emoji} {opt.label}
                 </button>
@@ -158,32 +157,30 @@ export default function OnboardingPage() {
         </Card>
 
         {CONTEXT_QUESTIONS.map((q) => (
-          <Card key={q.id} className="rounded-2xl">
+          <Card key={q.id} className="rounded-2xl" style={{ background: "oklch(0.16 0.012 270)", borderColor: "oklch(0.28 0.02 270 / 0.5)" }}>
             <CardHeader className="pb-2">
-              <CardTitle className="text-base">{t(q.qKey)}</CardTitle>
+              <CardTitle className="text-base" style={{ color: "#e0d6ff" }}>{t(q.qKey)}</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground mb-3">{t(q.dKey)}</p>
+              <p className="text-sm mb-3" style={{ color: "oklch(0.55 0.03 270)" }}>{t(q.dKey)}</p>
               <div className="flex gap-2">
                 <button
                   type="button"
                   onClick={() => toggle(q.id)}
-                  className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-                    answers[q.id]
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted text-muted-foreground hover:bg-muted/80"
-                  }`}
+                  style={answers[q.id]
+                    ? { background: "#7C5CFF", color: "#fff" }
+                    : { background: "oklch(0.14 0.012 270)", color: "oklch(0.55 0.03 270)" }}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-medium transition-colors"
                 >
                   {t("sim")}
                 </button>
                 <button
                   type="button"
                   onClick={() => toggle(q.id)}
-                  className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-                    !answers[q.id]
-                      ? "bg-destructive text-destructive-foreground"
-                      : "bg-muted text-muted-foreground hover:bg-muted/80"
-                  }`}
+                  style={!answers[q.id]
+                    ? { background: "oklch(0.72 0.1 30 / .35)", color: "oklch(0.35 0.07 30)" }
+                    : { background: "oklch(0.14 0.012 270)", color: "oklch(0.55 0.03 270)" }}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-medium transition-colors"
                 >
                   {t("nao")}
                 </button>
@@ -195,6 +192,7 @@ export default function OnboardingPage() {
         <Button
           size="lg"
           className="w-full rounded-xl"
+          style={{ background: "linear-gradient(135deg, #7C5CFF, #A78BFA)", color: "#fff", border: 0 }}
           onClick={handleSave}
           disabled={loading}
         >
