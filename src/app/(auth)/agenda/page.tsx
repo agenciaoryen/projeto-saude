@@ -20,9 +20,9 @@ function formatDateLabel(dateStr: string): string {
   return `${DAY_NAMES[d.getDay()]}, ${d.getDate()} de ${d.toLocaleDateString("pt-BR", { month: "long" })}`;
 }
 
-function weekRangeLabel(): string {
-  const now = new Date();
-  const mon = new Date(now); mon.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+function weekRangeLabel(dateStr: string): string {
+  const d = new Date(dateStr + "T12:00:00");
+  const mon = new Date(d); mon.setDate(d.getDate() - ((d.getDay() + 6) % 7));
   const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
   return `${mon.getDate()} de ${mon.toLocaleDateString("pt-BR", { month: "long" })} – ${sun.getDate()} de ${sun.toLocaleDateString("pt-BR", { month: "long" })}`;
 }
@@ -185,7 +185,7 @@ export default function AgendaPage() {
               {viewMode === "semana" ? "Agenda da semana" : viewMode === "lista" ? "Agenda" : "Agenda do dia"}
             </h1>
             <p style={{ margin: "2px 0 0", fontSize: 13, color: "#A78BFA", fontWeight: 500 }}>
-              {viewMode === "semana" ? weekRangeLabel() : formatDateLabel(selectedDate)}
+              {viewMode === "semana" ? weekRangeLabel(selectedDate) : formatDateLabel(selectedDate)}
             </p>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
