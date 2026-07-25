@@ -50,15 +50,19 @@ function PriorityBadge({ priority }: { priority: EisenhowerPriority }) {
 // ── Page ─────────────────────────────────────────────────────────
 
 type ViewMode = "dia" | "semana" | "lista";
-type FilterType = "todos" | "compromisso" | "tarefa";
+type ActiveModule = "agenda" | "metas" | "planejamento";
 
 export default function AgendaPage() {
   const router = useRouter();
   const today = getLocalDate();
   const [selectedDate, setSelectedDate] = useState(today);
   const [viewMode, setViewMode] = useState<ViewMode>("dia");
-  const [filterType, setFilterType] = useState<FilterType>("todos");
+  const [activeModule, setActiveModule] = useState<ActiveModule>("agenda");
   const [items, setItems] = useState<AgendaItem[]>([]);
+  const [showMetasSheet, setShowMetasSheet] = useState(false);
+  const [showPlanSheet, setShowPlanSheet] = useState(false);
+  const [goals, setGoals] = useState<any[]>([]);
+  const [weekPlan, setWeekPlan] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showNewItem, setShowNewItem] = useState(false);
@@ -117,8 +121,23 @@ export default function AgendaPage() {
     items.filter(i => i.item_type === "tarefa"),
   [items]);
 
-  const filteredCompromissos = filterType === "tarefa" ? [] : compromissos;
-  const filteredTarefas = filterType === "compromisso" ? [] : tarefas;
+  const fetchGoals = async () => {
+    try {
+      const res = await fetch("/api/goals");
+      if (res.ok) setGoals(await res.json());
+    } catch {}
+  };
+
+  const fetchWeekPlan = async () => {
+    try {
+      const res = await fetch("/api/weekly-plans");
+      if (res.ok) setWeekPlan(await res.json());
+    } catch {}
+  };
+
+  // Show all items, no filtering
+  const filteredCompromissos = compromissos;
+  const filteredTarefas = tarefas;
 
   const pendingTarefas = filteredTarefas.filter(t => t.status !== "concluida");
   const completedTarefas = filteredTarefas.filter(t => t.status === "concluida");
@@ -216,32 +235,26 @@ export default function AgendaPage() {
           ))}
         </div>
 
-        {/* ── Toggle Compromisso/Tarefa ─────────────────────────── */}
+        {/* ── Hub buttons — sempre mostram os outros 2 módulos ── */}
         <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
-          <button type="button" onClick={() => setFilterType(filterType === "compromisso" ? "todos" : "compromisso")}
-            style={{
-              flex: 3, padding: "12px 0", borderRadius: 14, border: 0, cursor: "pointer",
-              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-              fontFamily: "inherit", fontSize: 13, fontWeight: 700,
-              background: filterType === "compromisso" || filterType === "todos"
-                ? "linear-gradient(135deg, #7C5CFF, #A78BFA)" : "#1a1530",
-              color: filterType === "compromisso" || filterType === "todos" ? "#fff" : "#9e96b5",
-              border: filterType === "compromisso" || filterType === "todos" ? "none" : "1px solid rgba(167,139,250,0.15)",
-            }}>
-            📅 Compromissos
-          </button>
-          <button type="button" onClick={() => setFilterType(filterType === "tarefa" ? "todos" : "tarefa")}
-            style={{
-              flex: 2, padding: "12px 0", borderRadius: 14, border: 0, cursor: "pointer",
-              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-              fontFamily: "inherit", fontSize: 13, fontWeight: 700,
-              background: filterType === "tarefa" || filterType === "todos"
-                ? "linear-gradient(135deg, #7C5CFF, #A78BFA)" : "#1a1530",
-              color: filterType === "tarefa" || filterType === "todos" ? "#fff" : "#9e96b5",
-              border: filterType === "tarefa" || filterType === "todos" ? "none" : "1px solid rgba(167,139,250,0.15)",
-            }}>
-            ☑️ Tarefas
-          </button>
+          {activeModule !== "agenda" && (
+            <button type="button" onClick={() => setActiveModule("agenda")}
+              style={hubBtnStyle}>
+              📅 Agenda
+            </button>
+          )}
+          {activeModule !== "metas" && (
+            <button type="button" onClick={() => { setActiveModule("metas"); fetchGoals(); }}
+              style={hubBtnStyle}>
+              🎯 Metas
+            </button>
+          )}
+          {activeModule !== "planejamento" && (
+            <button type="button" onClick={() => { setActiveModule("planejamento"); fetchWeekPlan(); }}
+              style={hubBtnStyle}>
+              📋 Planejar
+            </button>
+          )}
         </div>
 
         {/* ── Priority Legend ──────────────────────────────────── */}
@@ -262,8 +275,79 @@ export default function AgendaPage() {
           })}
         </div>
 
-        {/* ── TIMELINE ─────────────────────────────────────────── */}
-        {filteredCompromissos.length > 0 && (
+        {/* ── METAS VIEW ─────────────────────────────────────── */}
+        {activeModule === "metas" && (
+          <div style={{ marginBottom: 20 }}>
+            {goals.length === 0 ? (
+              <div style={{ textAlign: "center", padding: 32, background: "#1a1530", borderRadius: 18, border: "1px dashed rgba(167,139,250,0.15)" }}>
+                <p style={{ color: "#9e96b5", fontSize: 13 }}>Nenhuma meta ativa</p>
+                <button type="button" onClick={() => router.push("/metas/nova")}
+                  style={{ marginTop: 8, padding: "8px 16px", borderRadius: 10, border: 0, cursor: "pointer", background: "#7C5CFF", color: "#fff", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>
+                  + Criar meta
+                </button>
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {goals.filter((g: any) => g.status === "ativa").slice(0, 5).map((goal: any) => {
+                  const areaEmojis: Record<string, string> = { saude: "💚", carreira: "💼", financas: "💰", relacionamentos: "❤️", desenvolvimento: "🧠", familia: "🏡", lazer: "🌊", espiritualidade: "✨" };
+                  const pct = goal.goal_stages?.length > 0
+                    ? Math.round((goal.goal_stages.filter((s: any) => s.status === "concluida").length / goal.goal_stages.length) * 100) : 0;
+                  return (
+                    <button key={goal.id} type="button" onClick={() => router.push(`/metas/${goal.id}`)}
+                      style={{ textAlign: "left", padding: "14px 16px", borderRadius: 14, border: "1px solid rgba(167,139,250,0.15)", background: "#1a1530", cursor: "pointer", display: "flex", alignItems: "center", gap: 12 }}>
+                      <span style={{ fontSize: 22 }}>{areaEmojis[goal.area] || "🎯"}</span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "#e0d6ff" }}>{goal.title}</p>
+                        <div style={{ marginTop: 4, height: 3, borderRadius: 9999, background: "rgba(167,139,250,0.12)", overflow: "hidden" }}>
+                          <div style={{ height: "100%", width: `${pct}%`, background: "#7C5CFF", borderRadius: 9999 }} />
+                        </div>
+                      </div>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: "#A78BFA" }}>{pct}%</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── PLANEJAMENTO VIEW ───────────────────────────────── */}
+        {activeModule === "planejamento" && (
+          <div style={{ marginBottom: 20 }}>
+            {!weekPlan?.current?.main_focus ? (
+              <div style={{ textAlign: "center", padding: 32, background: "#1a1530", borderRadius: 18, border: "1px dashed rgba(167,139,250,0.15)" }}>
+                <p style={{ color: "#9e96b5", fontSize: 13 }}>Nenhum plano esta semana</p>
+                <button type="button" onClick={() => router.push("/planejamento")}
+                  style={{ marginTop: 8, padding: "8px 16px", borderRadius: 10, border: 0, cursor: "pointer", background: "#7C5CFF", color: "#fff", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>
+                  + Criar plano
+                </button>
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {/* Stones */}
+                {[weekPlan.current.main_focus, weekPlan.current.main_focus_2, weekPlan.current.main_focus_3].filter(Boolean).map((focus: string, i: number) => (
+                  <div key={i} style={{ padding: "14px 16px", borderRadius: 14, border: "1px solid rgba(167,139,250,0.15)", background: "#1a1530", display: "flex", alignItems: "center", gap: 12 }}>
+                    <span style={{ fontSize: 22, fontWeight: 800, color: "#A78BFA", fontFamily: "monospace", opacity: 0.6 }}>{["I", "II", "III"][i]}</span>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: "#e0d6ff" }}>{focus}</span>
+                  </div>
+                ))}
+                {/* Tasks summary */}
+                {weekPlan.current.weekly_tasks?.length > 0 && (
+                  <p style={{ margin: 0, fontSize: 11, color: "#9e96b5", textAlign: "center" }}>
+                    {weekPlan.current.weekly_tasks.filter((t: any) => t.status === "concluida").length} de {weekPlan.current.weekly_tasks.length} tarefas concluídas
+                  </p>
+                )}
+                <button type="button" onClick={() => router.push("/planejamento")}
+                  style={{ width: "100%", padding: "10px 0", borderRadius: 12, border: 0, cursor: "pointer", background: "rgba(124,92,255,0.12)", color: "#A78BFA", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>
+                  Ver planejamento completo →
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── TIMELINE (só na view agenda) ──────────────────────── */}
+        {activeModule === "agenda" && filteredCompromissos.length > 0 && (
           <div style={{
             background: "#1a1530", borderRadius: 18,
             border: "1px solid rgba(167,139,250,0.12)",
@@ -331,8 +415,8 @@ export default function AgendaPage() {
           </div>
         )}
 
-        {/* Empty timeline state */}
-        {filteredCompromissos.length === 0 && filterType !== "tarefa" && (
+        {/* Empty timeline state (só agenda) */}
+        {activeModule === "agenda" && filteredCompromissos.length === 0 && (
           <div style={{
             textAlign: "center", padding: "32px 16px", marginBottom: 20,
             background: "#1a1530", borderRadius: 18,
@@ -548,4 +632,12 @@ const navBtnStyle: React.CSSProperties = {
   background: "#1a1530", cursor: "pointer",
   display: "flex", alignItems: "center", justifyContent: "center",
   color: "#e0d6ff",
+};
+
+const hubBtnStyle: React.CSSProperties = {
+  flex: 1, padding: "12px 0", borderRadius: 14, border: 0, cursor: "pointer",
+  display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+  fontFamily: "inherit", fontSize: 13, fontWeight: 700,
+  background: "#1a1530", color: "#9e96b5",
+  border: "1px solid rgba(167,139,250,0.15)",
 };
