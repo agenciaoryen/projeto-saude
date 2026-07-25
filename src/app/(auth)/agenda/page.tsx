@@ -60,6 +60,13 @@ export default function AgendaPage() {
   const [selectedDate, setSelectedDate] = useState(today);
   const [viewMode, setViewMode] = useState<ViewMode>("dia");
   const [activeModule, setActiveModule] = useState<ActiveModule>("agenda");
+
+  // Sync: segmented control ↔ module
+  const switchView = (mode: ViewMode) => {
+    setViewMode(mode);
+    if (mode === "semana") setActiveModule("planejamento");
+    else if (mode === "dia" || mode === "lista") setActiveModule("agenda");
+  };
   const [items, setItems] = useState<AgendaItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -160,13 +167,6 @@ export default function AgendaPage() {
     return `${String(h).padStart(2, "0")}:00`;
   });
 
-  // ── View switching ─────────────────────────────────────────────
-  if (viewMode === "semana") {
-    // Switch to Planejamento module in the hub
-    setViewMode("dia");
-    setActiveModule("planejamento");
-  }
-
   return (
     <div style={{ minHeight: "100dvh", background: "#0B0B10", paddingBottom: 100 }}>
       <div style={{ maxWidth: 480, margin: "0 auto", padding: "0 20px" }}>
@@ -204,7 +204,7 @@ export default function AgendaPage() {
             { key: "semana", icon: Calendar, label: "Semana" },
             { key: "lista", icon: List, label: "Lista" },
           ] as const).map(({ key, icon: Icon, label }) => (
-            <button key={key} type="button" onClick={() => setViewMode(key)}
+            <button key={key} type="button" onClick={() => switchView(key)}
               style={{
                 flex: 1, padding: "10px 0", borderRadius: 12, border: 0,
                 cursor: "pointer", display: "flex", alignItems: "center",
@@ -267,8 +267,8 @@ export default function AgendaPage() {
         {/* ── PLANEJAMENTO VIEW ───────────────────────────────── */}
         {activeModule === "planejamento" && <PlanejamentoPanel />}
 
-        {/* ── TIMELINE (só na view agenda) ──────────────────────── */}
-        {activeModule === "agenda" && filteredCompromissos.length > 0 && (
+        {/* ── TIMELINE (só agenda, view dia) ──────────────────── */}
+        {activeModule === "agenda" && viewMode === "dia" && filteredCompromissos.length > 0 && (
           <div style={{
             background: "#1a1530", borderRadius: 18,
             border: "1px solid rgba(167,139,250,0.12)",
@@ -336,8 +336,8 @@ export default function AgendaPage() {
           </div>
         )}
 
-        {/* Empty timeline state (só agenda) */}
-        {activeModule === "agenda" && filteredCompromissos.length === 0 && (
+        {/* Empty timeline state (só agenda, view dia) */}
+        {activeModule === "agenda" && viewMode === "dia" && filteredCompromissos.length === 0 && (
           <div style={{
             textAlign: "center", padding: "32px 16px", marginBottom: 20,
             background: "#1a1530", borderRadius: 18,
@@ -348,8 +348,8 @@ export default function AgendaPage() {
           </div>
         )}
 
-        {/* ── TAREFAS DO DIA (só na agenda) ──────────────────── */}
-        {activeModule === "agenda" && (
+        {/* ── TAREFAS DO DIA (só agenda, view dia) ────────────── */}
+        {activeModule === "agenda" && viewMode === "dia" && (
         <div style={{
           background: "#151520", borderRadius: 18,
           border: "1px solid rgba(167,139,250,0.1)",
