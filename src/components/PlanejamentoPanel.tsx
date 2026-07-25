@@ -44,7 +44,7 @@ function MiniRadar({ counts }: { counts: Record<string, number> }) {
     { key: "espiritualidade", label: "Espirit.", emoji: "✨", hue: 300 },
     { key: "outros", label: "Outros", emoji: "⚪", hue: 200 },
   ];
-  const N = RADAR.length, MAX = 5, cx = 100, cy = 100, R = 70;
+  const N = RADAR.length, MAX = 5, cx = 115, cy = 115, R = 65;
   const pt = (i: number, v: number) => {
     const a = -Math.PI / 2 + (i * 2 * Math.PI) / N;
     return [cx + R * (Math.min(v, MAX) / MAX) * Math.cos(a), cy + R * (Math.min(v, MAX) / MAX) * Math.sin(a)];
@@ -58,7 +58,7 @@ function MiniRadar({ counts }: { counts: Record<string, number> }) {
         <p style={{ margin: 0, fontSize: 10, fontWeight: 700, letterSpacing: ".1em", textTransform: "uppercase", color: "#A78BFA" }}>Roda das áreas</p>
         <span style={{ fontSize: 10, color: "#9e96b5" }}>{covered}/{N} cobertas</span>
       </div>
-      <svg viewBox="0 0 220 230" style={{ width: "100%", display: "block", margin: "0 auto" }}>
+      <svg viewBox="0 0 240 250" style={{ width: "100%", display: "block", margin: "0 auto" }}>
         {[0.25, 0.5, 0.75, 1].map(r => (
           <polygon key={r} points={RADAR.map((_, i) => {
             const a = -Math.PI / 2 + (i * 2 * Math.PI) / N;
