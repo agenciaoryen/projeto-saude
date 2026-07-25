@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus } from "lucide-react";
 import { GoalCreateSheet } from "@/components/GoalCreateSheet";
 import { GoalDetailSheet } from "@/components/GoalDetailSheet";
 
@@ -40,19 +39,11 @@ export function MetasPanel() {
         <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#e0d6ff" }}>
           {activeGoals.length} meta{activeGoals.length !== 1 ? "s" : ""} ativa{activeGoals.length !== 1 ? "s" : ""}
         </h2>
-        <button type="button" onClick={() => setShowCreate(true)}
-          style={{ background: "none", border: 0, cursor: "pointer", fontSize: 12, fontWeight: 600, color: "#A78BFA", display: "flex", alignItems: "center", gap: 4, fontFamily: "inherit" }}>
-          <Plus size={14} /> Nova meta
-        </button>
       </div>
 
       {activeGoals.length === 0 && completedGoals.length === 0 ? (
         <div style={{ textAlign: "center", padding: 32, background: "#1a1530", borderRadius: 18, border: "1px dashed rgba(167,139,250,0.15)" }}>
           <p style={{ color: "#9e96b5", fontSize: 13, margin: "0 0 12px" }}>Nenhuma meta ainda</p>
-          <button type="button" onClick={() => setShowCreate(true)}
-            style={{ padding: "8px 16px", borderRadius: 10, border: 0, cursor: "pointer", background: "#7C5CFF", color: "#fff", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>
-            + Criar primeira meta
-          </button>
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>

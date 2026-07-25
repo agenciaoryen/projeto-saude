@@ -459,8 +459,8 @@ export default function AgendaPage() {
         }} />
       )}
 
-      {/* ── FAB ──────────────────────────────────────────────── */}
-      {activeModule === "agenda" && (
+      {/* ── FAB (só na view Dia) ─────────────────────────────── */}
+      {activeModule === "agenda" && viewMode === "dia" && (
         <button type="button" onClick={() => { setNewItemType("tarefa"); setShowNewItem(true); }}
           style={{
             position: "fixed", bottom: 84, right: 20, zIndex: 40,
