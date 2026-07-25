@@ -24,6 +24,7 @@ export function MetasPanel() {
       const data = await r.json();
       if (Array.isArray(data)) setGoals(data);
     } catch {}
+    setLoading(false);
   };
 
   useEffect(() => { refresh(); }, []);
@@ -91,8 +92,9 @@ export function MetasPanel() {
           })}
           {activeGoals.length > 5 && (
             <button type="button" onClick={() => router.push("/metas")}
-              style={{ width: "100%", padding: "10px 0", borderRadius: 12, border: 0, cursor: "pointer", background: "rgba(124,92,255,0.08)", color: "#A78BFA", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>
-              Ver todas as {activeGoals.length} metas →
+              style={{ width: "100%", padding: "10px 0", borderRadius: 12, border: 0, cursor: "pointer", background: "rgba(124,92,255,0.08)", color: "#A78BFA", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}
+              disabled>
+              {activeGoals.length} metas ativas
             </button>
           )}
         </div>
