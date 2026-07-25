@@ -346,7 +346,8 @@ export default function AgendaPage() {
           </div>
         )}
 
-        {/* ── TAREFAS DO DIA ───────────────────────────────────── */}
+        {/* ── TAREFAS DO DIA (só na agenda) ──────────────────── */}
+        {activeModule === "agenda" && (
         <div style={{
           background: "#151520", borderRadius: 18,
           border: "1px solid rgba(167,139,250,0.1)",
@@ -364,14 +365,6 @@ export default function AgendaPage() {
                 </span>
               )}
             </div>
-            <button type="button" onClick={() => { setNewItemType("tarefa"); setShowNewItem(true); }}
-              style={{
-                background: "none", border: 0, cursor: "pointer",
-                fontSize: 12, fontWeight: 600, color: "#A78BFA",
-                display: "flex", alignItems: "center", gap: 4, fontFamily: "inherit",
-              }}>
-              <Plus size={14} /> Nova tarefa
-            </button>
           </div>
 
           {/* Pending tasks */}
@@ -417,6 +410,7 @@ export default function AgendaPage() {
             </div>
           )}
         </div>
+        )}
 
       </div>
 

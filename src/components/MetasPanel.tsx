@@ -29,8 +29,8 @@ export function MetasPanel() {
 
   useEffect(() => { refresh(); }, []);
 
-  const activeGoals = goals.filter((g: any) => g.status === "ativa");
-  const pausedGoals = goals.filter((g: any) => g.status === "pausada");
+  const activeGoals = goals.filter((g: any) => g.status === "ativa" || g.status === "pausada");
+  const completedGoals = goals.filter((g: any) => g.status === "concluida");
 
   if (loading) return <p style={{ color: "#9e96b5", fontSize: 13, textAlign: "center", padding: 20 }}>Carregando...</p>;
 
@@ -46,7 +46,7 @@ export function MetasPanel() {
         </button>
       </div>
 
-      {activeGoals.length === 0 && pausedGoals.length === 0 ? (
+      {activeGoals.length === 0 && completedGoals.length === 0 ? (
         <div style={{ textAlign: "center", padding: 32, background: "#1a1530", borderRadius: 18, border: "1px dashed rgba(167,139,250,0.15)" }}>
           <p style={{ color: "#9e96b5", fontSize: 13, margin: "0 0 12px" }}>Nenhuma meta ainda</p>
           <button type="button" onClick={() => setShowCreate(true)}
@@ -97,6 +97,49 @@ export function MetasPanel() {
               {activeGoals.length} metas ativas
             </button>
           )}
+        </div>
+      )}
+
+      {/* Completed goals */}
+      {completedGoals.length > 0 && (
+        <div style={{ marginTop: 16 }}>
+          <p style={{ margin: "0 0 8px", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".1em", color: "#5a5470" }}>
+            Concluídas ({completedGoals.length})
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {completedGoals.slice(0, 3).map((goal: any) => {
+              const area = AREA_CONFIG[goal.area] || { emoji: "🎯", hue: 270 };
+              return (
+                <div key={goal.id} style={{
+                  display: "flex", alignItems: "center", gap: 10,
+                  padding: "10px 14px", borderRadius: 12,
+                  background: "rgba(34,197,94,0.05)", border: "1px solid rgba(34,197,94,0.1)",
+                  opacity: 0.6,
+                }}>
+                  <span style={{ fontSize: 18 }}>{area.emoji}</span>
+                  <span style={{ flex: 1, fontSize: 12, fontWeight: 500, color: "#9e96b5", textDecoration: "line-through" }}>
+                    {goal.title}
+                  </span>
+                  <button type="button" onClick={async () => {
+                    await fetch(`/api/goals/${goal.id}`, {
+                      method: "PATCH",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ status: "arquivada" }),
+                    });
+                    refresh();
+                  }}
+                    style={{ background: "none", border: 0, color: "#5a5470", cursor: "pointer", fontSize: 10, fontWeight: 600, fontFamily: "inherit" }}>
+                    Arquivar
+                  </button>
+                </div>
+              );
+            })}
+            {completedGoals.length > 3 && (
+              <p style={{ margin: 0, fontSize: 10, color: "#5a5470", textAlign: "center" }}>
+                +{completedGoals.length - 3} concluídas
+              </p>
+            )}
+          </div>
         </div>
       )}
 
