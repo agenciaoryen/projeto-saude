@@ -600,14 +600,36 @@ const navBtnStyle: React.CSSProperties = {
 };
 
 function ListView({ allWeekTasks, loadWeekTasks, compromissos, selectedDate }: { allWeekTasks: any[]; loadWeekTasks: () => void; compromissos: AgendaItem[]; selectedDate: string }) {
-  useEffect(() => { if (allWeekTasks.length === 0) loadWeekTasks(); }, []); // eslint-disable-line
+  const [goals, setGoals] = useState<any[]>([]);
+  const [editingItem, setEditingItem] = useState<any>(null);
+  const [editTitle, setEditTitle] = useState("");
+
+  useEffect(() => {
+    if (allWeekTasks.length === 0) loadWeekTasks();
+    fetch("/api/goals").then(r => r.json()).then(d => { if (Array.isArray(d)) setGoals(d.filter((g: any) => g.status === "ativa")); }).catch(() => {});
+  }, []); // eslint-disable-line
 
   const todayComp = compromissos.filter(c => c.item_type === "compromisso");
+  const todayAgendaTarefas = compromissos.filter(c => c.item_type === "tarefa");
 
-  // Calculate selected day of week (0=Mon, 6=Sun)
+  const activeGoals = goals.slice(0, 5);
   const selD = new Date(selectedDate + "T12:00:00");
   const selDow = selD.getDay() === 0 ? 6 : selD.getDay() - 1;
-  const dayTasks = allWeekTasks.filter((t: any) => t.day_of_week === selDow);
+  const dayPlanTasks = allWeekTasks.filter((t: any) => t.day_of_week === selDow);
+
+  const openEditor = (item: any) => { setEditingItem(item); setEditTitle(item.title || ""); };
+
+  const saveEdit = async () => {
+    if (!editTitle.trim() || !editingItem) return;
+    if (editingItem.item_type) {
+      // Agenda item
+      await fetch("/api/agenda", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: editingItem.id, title: editTitle.trim() }) });
+    } else {
+      // Weekly task
+      await fetch(`/api/weekly-plans/tasks/${editingItem.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: editTitle.trim() }) });
+    }
+    setEditingItem(null); loadWeekTasks();
+  };
 
   return (
     <div style={{ marginBottom: 20, padding: "0 16px" }}>
@@ -616,31 +638,79 @@ function ListView({ allWeekTasks, loadWeekTasks, compromissos, selectedDate }: {
         <div style={{ marginBottom: 16 }}>
           <h3 style={{ margin: "0 0 10px", fontSize: 13, fontWeight: 700, color: "#A78BFA", textTransform: "uppercase", letterSpacing: ".06em" }}>Compromissos do dia</h3>
           {todayComp.map(c => (
-            <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 0", borderTop: "1px solid rgba(167,139,250,0.05)" }}>
+            <button key={c.id} type="button" onClick={() => openEditor(c)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "10px 0", borderTop: "1px solid rgba(167,139,250,0.05)", background: "none", borderLeft: 0, borderRight: 0, cursor: "pointer", textAlign: "left", fontFamily: "inherit" }}>
               <span style={{ fontSize: 12 }}>{c.emoji || "📅"}</span>
               <span style={{ flex: 1, fontSize: 12, color: "#e0d6ff" }}>{c.title}</span>
               {c.start_time && <span style={{ fontSize: 9, color: "#9e96b5", fontFamily: "monospace" }}>{c.start_time.slice(0,5)}</span>}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Tarefas da agenda */}
+      {todayAgendaTarefas.length > 0 && (
+        <div style={{ marginBottom: 16 }}>
+          <h3 style={{ margin: "0 0 10px", fontSize: 13, fontWeight: 700, color: "#A78BFA", textTransform: "uppercase", letterSpacing: ".06em" }}>Tarefas do dia</h3>
+          {todayAgendaTarefas.map(t => (
+            <button key={t.id} type="button" onClick={() => openEditor(t)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "10px 0", borderTop: "1px solid rgba(167,139,250,0.05)", background: "none", borderLeft: 0, borderRight: 0, cursor: "pointer", textAlign: "left", fontFamily: "inherit" }}>
+              <span style={{ fontSize: 12 }}>{t.emoji || "☑️"}</span>
+              <span style={{ flex: 1, fontSize: 12, color: t.status === "concluida" ? "#5a5470" : "#e0d6ff", textDecoration: t.status === "concluida" ? "line-through" : "none" }}>{t.title}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Tarefas do planejamento */}
+      {dayPlanTasks.length > 0 && (
+        <div style={{ marginBottom: 16 }}>
+          <h3 style={{ margin: "0 0 10px", fontSize: 13, fontWeight: 700, color: "#A78BFA", textTransform: "uppercase", letterSpacing: ".06em" }}>Plano do dia</h3>
+          {dayPlanTasks.map((t: any) => {
+            const area = AREA_CONFIG_PT[t.area] || { emoji: "⚪" };
+            const done = t.status === "concluida";
+            return (
+              <button key={t.id} type="button" onClick={() => openEditor(t)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "10px 0", borderTop: "1px solid rgba(167,139,250,0.05)", background: "none", borderLeft: 0, borderRight: 0, cursor: "pointer", textAlign: "left", fontFamily: "inherit" }}>
+                <span style={{ fontSize: 12 }}>{area.emoji}</span>
+                <span style={{ flex: 1, fontSize: 12, color: done ? "#5a5470" : "#e0d6ff", textDecoration: done ? "line-through" : "none" }}>{t.title}</span>
+                {t.scheduled_time && <span style={{ fontSize: 9, color: "#9e96b5", fontFamily: "monospace" }}>{t.scheduled_time.slice(0,5)}</span>}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Metas ativas */}
+      {activeGoals.length > 0 && (
+        <div style={{ marginBottom: 16 }}>
+          <h3 style={{ margin: "0 0 10px", fontSize: 13, fontWeight: 700, color: "#A78BFA", textTransform: "uppercase", letterSpacing: ".06em" }}>Metas ativas</h3>
+          {activeGoals.map((g: any) => (
+            <div key={g.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 0", borderTop: "1px solid rgba(167,139,250,0.05)" }}>
+              <span style={{ fontSize: 12 }}>{(AREA_CONFIG_PT as any)[g.area]?.emoji || "🎯"}</span>
+              <span style={{ flex: 1, fontSize: 12, color: "#9e96b5" }}>{g.title}</span>
+              <span style={{ fontSize: 9, color: "#A78BFA" }}>{(g.goal_stages?.filter((s: any) => s.status === "concluida").length || 0)}/{g.goal_stages?.length || 0}</span>
             </div>
           ))}
         </div>
       )}
 
-      {/* Tarefas do dia */}
-      <h3 style={{ margin: "0 0 10px", fontSize: 13, fontWeight: 700, color: "#A78BFA", textTransform: "uppercase", letterSpacing: ".06em" }}>Tarefas do dia</h3>
-      {dayTasks.length === 0 ? (
-        <p style={{ color: "#9e96b5", fontSize: 13, textAlign: "center", padding: 20 }}>Nenhuma tarefa neste dia</p>
-      ) : (
-        dayTasks.map((t: any) => {
-          const area = AREA_CONFIG_PT[t.area] || { emoji: "⚪" };
-          const done = t.status === "concluida";
-          return (
-            <div key={t.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 0", borderTop: "1px solid rgba(167,139,250,0.05)" }}>
-              <span style={{ fontSize: 12 }}>{area.emoji}</span>
-              <span style={{ flex: 1, fontSize: 12, color: done ? "#5a5470" : "#e0d6ff", textDecoration: done ? "line-through" : "none" }}>{t.title}</span>
-              {t.scheduled_time && <span style={{ fontSize: 9, color: "#9e96b5", fontFamily: "monospace" }}>{t.scheduled_time.slice(0,5)}</span>}
+      {todayComp.length === 0 && todayAgendaTarefas.length === 0 && dayPlanTasks.length === 0 && activeGoals.length === 0 && (
+        <p style={{ color: "#9e96b5", fontSize: 13, textAlign: "center", padding: 32 }}>Nenhuma atividade neste dia</p>
+      )}
+
+      {/* Edit modal */}
+      {editingItem && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 100, background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          <div style={{ width: "100%", maxWidth: 400, background: "#151520", borderRadius: 24, padding: 24, border: "1px solid rgba(167,139,250,0.15)" }}>
+            <h3 style={{ margin: "0 0 16px", fontSize: 15, fontWeight: 700, color: "#e0d6ff" }}>Editar</h3>
+            <input value={editTitle} onChange={e => setEditTitle(e.target.value)} placeholder="Título" autoFocus
+              style={{ width: "100%", boxSizing: "border-box", padding: "12px 14px", borderRadius: 12, border: "1px solid rgba(167,139,250,0.2)", background: "#0B0B10", color: "#e0d6ff", fontSize: 14, fontFamily: "inherit", outline: "none" }} />
+            <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
+              <button type="button" onClick={() => setEditingItem(null)}
+                style={{ flex: 1, padding: 14, borderRadius: 14, border: "1px solid rgba(167,139,250,0.2)", background: "transparent", color: "#9e96b5", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Cancelar</button>
+              <button type="button" onClick={saveEdit}
+                style={{ flex: 2, padding: 14, borderRadius: 14, border: 0, background: "#7C5CFF", color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Salvar</button>
             </div>
-          );
-        })
+          </div>
+        </div>
       )}
     </div>
   );
