@@ -130,7 +130,10 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
     setLoading(false);
   };
 
-  useEffect(() => { fetchPlan(); }, [selectedDate]);
+  useEffect(() => {
+    setLoading(true);
+    fetchPlan();
+  }, [selectedDate]);
 
   const toggleTask = async (taskId: string, current: string) => {
     const next = current === "concluida" ? "pendente" : "concluida";
