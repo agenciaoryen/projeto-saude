@@ -146,6 +146,24 @@ export default function AgendaPage() {
 
   useEffect(() => { fetchItems(selectedDate); }, [selectedDate, fetchItems]);
 
+  // Lock body scroll when popup is open
+  useEffect(() => {
+    if (showNewItem || editingItem) {
+      document.body.style.overflow = "hidden";
+      document.body.style.position = "fixed";
+      document.body.style.width = "100%";
+    } else {
+      document.body.style.overflow = "";
+      document.body.style.position = "";
+      document.body.style.width = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+      document.body.style.position = "";
+      document.body.style.width = "";
+    };
+  }, [showNewItem, editingItem]);
+
   const compromissos = useMemo(() =>
     items.filter(i => i.item_type === "compromisso").sort((a, b) => (a.start_time || "").localeCompare(b.start_time || "")),
   [items]);
@@ -564,13 +582,15 @@ export default function AgendaPage() {
 
       {/* ── New Item Modal ──────────────────────────────────── */}
       {showNewItem && (
-        <div style={{
-          position: "fixed", inset: 0, zIndex: 100,
-          background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)",
-          display: "flex", alignItems: "flex-start", justifyContent: "center",
-          padding: "16px 12px", paddingTop: "max(40px, env(safe-area-inset-top))",
-          overflowY: "auto", WebkitOverflowScrolling: "touch",
-        }}>
+        <div
+          onTouchMove={(e) => e.stopPropagation()}
+          style={{
+            position: "fixed", inset: 0, zIndex: 100,
+            background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)",
+            display: "flex", alignItems: "flex-start", justifyContent: "center",
+            padding: "16px 12px", paddingTop: "max(40px, env(safe-area-inset-top))",
+            overflowY: "auto", WebkitOverflowScrolling: "touch",
+          }}>
           <div style={{
             width: "100%", maxWidth: 420,
             background: "#151520", borderRadius: 24,
@@ -614,16 +634,16 @@ export default function AgendaPage() {
 
             {/* Time (only for compromisso) */}
             {newItemType === "compromisso" && (
-              <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 10 }}>
+                <div>
                   <label style={{ fontSize: 10, color: "#9e96b5", marginBottom: 4, display: "block" }}>Início</label>
                   <input type="time" value={newStartTime} onChange={(e) => setNewStartTime(e.target.value)}
-                    style={{ ...modalInput, padding: "10px 8px" }} />
+                    style={{ ...modalInput, width: "100%", boxSizing: "border-box" }} />
                 </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
+                <div>
                   <label style={{ fontSize: 10, color: "#9e96b5", marginBottom: 4, display: "block" }}>Fim</label>
                   <input type="time" value={newEndTime} onChange={(e) => setNewEndTime(e.target.value)}
-                    style={{ ...modalInput, padding: "10px 8px" }} />
+                    style={{ ...modalInput, width: "100%", boxSizing: "border-box" }} />
                 </div>
               </div>
             )}
