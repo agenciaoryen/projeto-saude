@@ -567,13 +567,14 @@ export default function AgendaPage() {
         <div style={{
           position: "fixed", inset: 0, zIndex: 100,
           background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          padding: 20,
+          display: "flex", alignItems: "flex-start", justifyContent: "center",
+          padding: "16px 12px", paddingTop: "max(40px, env(safe-area-inset-top))",
+          overflowY: "auto", WebkitOverflowScrolling: "touch",
         }}>
           <div style={{
-            width: "100%", maxWidth: 420, maxHeight: "80dvh", overflowY: "auto",
+            width: "100%", maxWidth: 420,
             background: "#151520", borderRadius: 24,
-            padding: 24,
+            padding: 20,
             border: "1px solid rgba(167,139,250,0.15)",
           }}>
             <h2 style={{ margin: "0 0 4px", fontSize: 18, fontWeight: 700, color: "#e0d6ff" }}>
@@ -613,16 +614,16 @@ export default function AgendaPage() {
 
             {/* Time (only for compromisso) */}
             {newItemType === "compromisso" && (
-              <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
-                <div style={{ flex: 1 }}>
+              <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
                   <label style={{ fontSize: 10, color: "#9e96b5", marginBottom: 4, display: "block" }}>Início</label>
                   <input type="time" value={newStartTime} onChange={(e) => setNewStartTime(e.target.value)}
-                    style={modalInput} />
+                    style={{ ...modalInput, padding: "10px 8px" }} />
                 </div>
-                <div style={{ flex: 1 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
                   <label style={{ fontSize: 10, color: "#9e96b5", marginBottom: 4, display: "block" }}>Fim</label>
                   <input type="time" value={newEndTime} onChange={(e) => setNewEndTime(e.target.value)}
-                    style={modalInput} />
+                    style={{ ...modalInput, padding: "10px 8px" }} />
                 </div>
               </div>
             )}
