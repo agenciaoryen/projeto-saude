@@ -276,7 +276,7 @@ export default function AgendaPage() {
         {activeModule === "metas" && <MetasPanel />}
 
         {/* ── PLANEJAMENTO VIEW ───────────────────────────────── */}
-        {activeModule === "planejamento" && <PlanejamentoPanel />}
+        {activeModule === "planejamento" && <PlanejamentoPanel selectedDate={selectedDate} />}
 
         {/* ── TIMELINE (só agenda, view dia) ──────────────────── */}
         {activeModule === "agenda" && viewMode === "dia" && filteredCompromissos.length > 0 && (

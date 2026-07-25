@@ -22,8 +22,8 @@ const AREAS_LABELS: Record<string, string> = {
 const DAY_NAMES = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
 const DAY_FULL = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"];
 
-function weekRange() {
-  const now = new Date();
+function weekRange(dateStr?: string) {
+  const now = dateStr ? new Date(dateStr + "T12:00:00") : new Date();
   const mon = new Date(now); mon.setDate(now.getDate() - ((now.getDay() + 6) % 7));
   const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
   const M = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
@@ -89,7 +89,7 @@ function MiniRadar({ counts }: { counts: Record<string, number> }) {
 
 // ── Panel ───────────────────────────────────────────────────────
 
-export function PlanejamentoPanel() {
+export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
   const router = useRouter();
   const [plan, setPlan] = useState<any>(null);
   const [tasks, setTasks] = useState<any[]>([]);
@@ -115,7 +115,12 @@ export function PlanejamentoPanel() {
 
   const fetchPlan = async () => {
     try {
-      const res = await fetch("/api/weekly-plans");
+      // Calculate week from selectedDate
+      const d = selectedDate ? new Date(selectedDate + "T12:00:00") : new Date();
+      const mon = new Date(d); mon.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+      const weekStart = `${mon.getFullYear()}-${String(mon.getMonth() + 1).padStart(2, "0")}-${String(mon.getDate()).padStart(2, "0")}`;
+
+      const res = await fetch(`/api/weekly-plans?week=${weekStart}`);
       if (res.ok) {
         const data = await res.json();
         setPlan(data);
@@ -125,7 +130,7 @@ export function PlanejamentoPanel() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchPlan(); }, []);
+  useEffect(() => { fetchPlan(); }, [selectedDate]);
 
   const toggleTask = async (taskId: string, current: string) => {
     const next = current === "concluida" ? "pendente" : "concluida";
@@ -223,7 +228,7 @@ export function PlanejamentoPanel() {
       {/* Radar — always visible */}
       <MiniRadar counts={taskCountsByArea} />
 
-      <p style={{ margin: "0 0 6px", fontSize: 11, color: "#9e96b5", fontFamily: "monospace" }}>{weekRange()} · {doneTasks}/{tasks.length} ✓</p>
+      <p style={{ margin: "0 0 6px", fontSize: 11, color: "#9e96b5", fontFamily: "monospace" }}>{weekRange(selectedDate)} · {doneTasks}/{tasks.length} ✓</p>
 
       {/* Day selector */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 3, marginBottom: 12 }}>
@@ -393,7 +398,7 @@ export function PlanejamentoPanel() {
         <div style={{ position: "fixed", inset: 0, zIndex: 100, background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
           <div style={{ width: "100%", maxWidth: 400, maxHeight: "85dvh", overflowY: "auto", background: "#151520", borderRadius: 24, padding: 24, border: "1px solid rgba(167,139,250,0.15)" }}>
             <h3 style={{ margin: "0 0 4px", fontSize: 16, fontWeight: 700, color: "#e0d6ff" }}>Revisão da semana</h3>
-            <p style={{ margin: "0 0 16px", fontSize: 12, color: "#9e96b5" }}>{weekRange()}</p>
+            <p style={{ margin: "0 0 16px", fontSize: 12, color: "#9e96b5" }}>{weekRange(selectedDate)}</p>
             <textarea value={reviewWin} onChange={e => setReviewWin(e.target.value)} placeholder="🏆 Qual foi sua maior vitória?" rows={2} style={{ ...inputS, resize: "none", height: 56, marginBottom: 10 }} />
             <textarea value={reviewBlock} onChange={e => setReviewBlock(e.target.value)} placeholder="🔒 O que travou?" rows={2} style={{ ...inputS, resize: "none", height: 56, marginBottom: 10 }} />
             <textarea value={reviewLearn} onChange={e => setReviewLearn(e.target.value)} placeholder="💡 Principal aprendizado" rows={2} style={{ ...inputS, resize: "none", height: 56, marginBottom: 12 }} />
