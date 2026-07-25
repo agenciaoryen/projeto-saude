@@ -189,14 +189,18 @@ export default function AgendaPage() {
             </p>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
-            <button type="button" onClick={() => setSelectedDate(shiftDate(selectedDate, -1))}
+            <button type="button"
+              onClick={() => {
+                if (viewMode === "semana") setSelectedDate(shiftDate(selectedDate, -7));
+                else setSelectedDate(shiftDate(selectedDate, -1));
+              }}
               style={navBtnStyle}><ChevronLeft size={18} /></button>
-            <button type="button" onClick={() => setSelectedDate(shiftDate(selectedDate, 1))}
+            <button type="button"
+              onClick={() => {
+                if (viewMode === "semana") setSelectedDate(shiftDate(selectedDate, 7));
+                else setSelectedDate(shiftDate(selectedDate, 1));
+              }}
               style={navBtnStyle}><ChevronRight size={18} /></button>
-            <button type="button" onClick={() => setSelectedDate(today)}
-              style={{ ...navBtnStyle, background: "#7C5CFF", color: "#fff" }}>
-              <Calendar size={18} />
-            </button>
           </div>
         </div>
 

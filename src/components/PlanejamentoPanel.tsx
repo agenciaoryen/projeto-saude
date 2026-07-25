@@ -104,6 +104,8 @@ export function PlanejamentoPanel() {
   const [newTaskDay, setNewTaskDay] = useState(selectedDay);
   const [newTaskTime, setNewTaskTime] = useState("");
   const [newTaskType, setNewTaskType] = useState<"manutencao" | "crescimento">("manutencao");
+  const [newIsStone, setNewIsStone] = useState(false);
+  const [newStoneRank, setNewStoneRank] = useState(1);
 
   // Review form
   const [reviewWin, setReviewWin] = useState("");
@@ -136,6 +138,8 @@ export function PlanejamentoPanel() {
 
   const addTask = async () => {
     if (!newTaskTitle.trim()) return;
+
+    // Create task
     const res = await fetch("/api/weekly-plans/tasks", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -146,8 +150,19 @@ export function PlanejamentoPanel() {
     if (res.ok) {
       const task = await res.json();
       setTasks((prev: any[]) => [...prev, task]);
-      setShowAddTask(false); setNewTaskTitle(""); setNewTaskTime("");
     }
+
+    // Define as pedra da semana
+    if (newIsStone && currentPlan) {
+      const stoneField = newStoneRank === 1 ? "main_focus" : newStoneRank === 2 ? "main_focus_2" : "main_focus_3";
+      await fetch("/api/weekly-plans", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ [stoneField]: newTaskTitle.trim() }),
+      });
+    }
+
+    setShowAddTask(false); setNewTaskTitle(""); setNewTaskTime(""); setNewIsStone(false); setNewStoneRank(1);
+    fetchPlan();
   };
 
   const saveReview = async () => {
@@ -199,8 +214,8 @@ export function PlanejamentoPanel() {
           </div>
         ) : (
           <div style={{ textAlign: "center", padding: 20, background: "#1a1530", borderRadius: 14, border: "1px dashed rgba(167,139,250,0.15)" }}>
-            <p style={{ margin: "0 0 4px", color: "#9e96b5", fontSize: 13 }}>Nenhuma pedra definida</p>
-            <p style={{ margin: 0, color: "#9e96b5", fontSize: 11 }}>Use o planejamento completo para definir</p>
+            <p style={{ margin: "0 0 6px", color: "#9e96b5", fontSize: 13 }}>Nenhuma pedra definida</p>
+            <p style={{ margin: 0, color: "#9e96b5", fontSize: 11 }}>Toque no + para criar uma atividade e defini-la como pedra</p>
           </div>
         )}
       </div>
@@ -337,6 +352,30 @@ export function PlanejamentoPanel() {
               <button type="button" onClick={() => setNewTaskType("crescimento")}
                 style={{ flex: 1, padding: "8px 0", borderRadius: 10, border: newTaskType === "crescimento" ? "2px solid #7C5CFF" : "1px solid rgba(167,139,250,0.15)", background: newTaskType === "crescimento" ? "rgba(124,92,255,0.1)" : "transparent", cursor: "pointer", color: newTaskType === "crescimento" ? "#A78BFA" : "#9e96b5", fontSize: 11, fontWeight: 600, fontFamily: "inherit" }}>↑ Crescer</button>
             </div>
+            {/* Pedra da semana */}
+            <div style={{ marginTop: 14, padding: "12px 14px", borderRadius: 14, background: "#0B0B10", border: newIsStone ? "1px solid rgba(124,92,255,0.3)" : "1px solid rgba(167,139,250,0.1)" }}>
+              <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
+                <input type="checkbox" checked={newIsStone} onChange={e => setNewIsStone(e.target.checked)}
+                  style={{ accentColor: "#7C5CFF", width: 18, height: 18 }} />
+                <span style={{ fontSize: 13, fontWeight: 600, color: "#e0d6ff" }}>Definir como pedra da semana</span>
+              </label>
+              {newIsStone && (
+                <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                  {[1,2,3].map(n => (
+                    <button key={n} type="button" onClick={() => setNewStoneRank(n)}
+                      style={{
+                        flex: 1, padding: "8px 0", borderRadius: 10, border: 0, cursor: "pointer",
+                        fontFamily: "inherit", fontSize: 12, fontWeight: 700,
+                        background: newStoneRank === n ? "#7C5CFF" : "rgba(167,139,250,0.08)",
+                        color: newStoneRank === n ? "#fff" : "#9e96b5",
+                      }}>
+                      {["I", "II", "III"][n-1]}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
             <input type="time" value={newTaskTime} onChange={e => setNewTaskTime(e.target.value)}
               style={{ ...inputS, marginTop: 12 }} />
             <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
