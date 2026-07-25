@@ -95,6 +95,8 @@ export default function AgendaPage() {
   const [newPriority, setNewPriority] = useState<EisenhowerPriority>("importante_nao_urgente");
   const [newStartTime, setNewStartTime] = useState("09:00");
   const [newEndTime, setNewEndTime] = useState("10:00");
+  const [newDescription, setNewDescription] = useState("");
+  const [newColor, setNewColor] = useState("#7C5CFF");
   const [saving, setSaving] = useState(false);
 
   const handleCreate = async () => {
@@ -111,6 +113,8 @@ export default function AgendaPage() {
         end_time: newItemType === "compromisso" ? newEndTime : null,
         priority: newPriority,
         emoji: newEmoji || null,
+        description: newDescription || null,
+        color: newColor,
       }),
     });
     if (res.ok) {
@@ -603,6 +607,25 @@ export default function AgendaPage() {
                 </div>
               </div>
             )}
+
+            {/* Description */}
+            <textarea value={newDescription} onChange={e => setNewDescription(e.target.value)}
+              placeholder="Descrição (opcional)"
+              rows={2}
+              style={{ ...modalInput, marginTop: 10, resize: "none", height: 56 }} />
+
+            {/* Color picker */}
+            <div style={{ marginTop: 14 }}>
+              <label style={{ fontSize: 10, color: "#9e96b5", marginBottom: 6, display: "block" }}>Cor</label>
+              <div style={{ display: "flex", gap: 8 }}>
+                {["#7C5CFF", "#FF4D4D", "#FF9F43", "#FFD43B", "#4CD97B", "#5EEAD4", "#F472B6", "#818CF8"].map(c => (
+                  <button key={c} type="button" onClick={() => setNewColor(c)}
+                    style={{
+                      width: 28, height: 28, borderRadius: "50%", background: c, border: newColor === c ? "2.5px solid #fff" : "2px solid transparent", cursor: "pointer", transition: "all .1s", boxShadow: newColor === c ? "0 0 8px " + c + "66" : "none",
+                    }} />
+                ))}
+              </div>
+            </div>
 
             {/* Priority */}
             <div style={{ marginTop: 14 }}>

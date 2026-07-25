@@ -51,6 +51,11 @@ export async function POST(req: NextRequest) {
       priority: body.priority || "importante_nao_urgente",
       emoji: body.emoji || null,
       status: "pendente",
+      description: body.description || null,
+      color: body.color || null,
+      repeat_type: body.repeat_type || "none",
+      notify_minutes: body.notify_minutes || null,
+      due_date: body.due_date || null,
       linked_goal_id: body.linked_goal_id || null,
       linked_action_id: body.linked_action_id || null,
       linked_weekly_task_id: body.linked_weekly_task_id || null,
@@ -87,6 +92,11 @@ export async function PATCH(req: NextRequest) {
   if (body.date !== undefined) updates.date = body.date;
   if (body.item_type !== undefined) updates.item_type = body.item_type;
   if (body.position !== undefined) updates.position = body.position;
+  if (body.description !== undefined) updates.description = body.description;
+  if (body.color !== undefined) updates.color = body.color;
+  if (body.repeat_type !== undefined) updates.repeat_type = body.repeat_type;
+  if (body.notify_minutes !== undefined) updates.notify_minutes = body.notify_minutes;
+  if (body.due_date !== undefined) updates.due_date = body.due_date;
   updates.updated_at = new Date().toISOString();
 
   const { data, error } = await admin

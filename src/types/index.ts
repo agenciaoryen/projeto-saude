@@ -301,6 +301,11 @@ export interface AgendaItem {
   priority: EisenhowerPriority;
   emoji: string | null;
   status: "pendente" | "concluida";
+  description: string | null;
+  color: string | null;
+  repeat_type: "none" | "daily" | "weekly" | "monthly" | "yearly" | "weekdays";
+  notify_minutes: number | null;
+  due_date: string | null;
   linked_goal_id: string | null;
   linked_action_id: string | null;
   linked_weekly_task_id: string | null;
