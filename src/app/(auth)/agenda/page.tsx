@@ -448,7 +448,7 @@ export default function AgendaPage() {
 
       {/* ── LISTA ───────────────────────────────────────────── */}
       {viewMode === "lista" && (
-        <ListView allWeekTasks={allWeekTasks} compromissos={items} loadWeekTasks={async () => {
+        <ListView allWeekTasks={allWeekTasks} compromissos={items} selectedDate={selectedDate} loadWeekTasks={async () => {
           try {
             const res = await fetch("/api/weekly-plans");
             if (res.ok) {
@@ -599,19 +599,24 @@ const navBtnStyle: React.CSSProperties = {
   color: "#e0d6ff",
 };
 
-function ListView({ allWeekTasks, loadWeekTasks, compromissos }: { allWeekTasks: any[]; loadWeekTasks: () => void; compromissos: AgendaItem[] }) {
+function ListView({ allWeekTasks, loadWeekTasks, compromissos, selectedDate }: { allWeekTasks: any[]; loadWeekTasks: () => void; compromissos: AgendaItem[]; selectedDate: string }) {
   useEffect(() => { if (allWeekTasks.length === 0) loadWeekTasks(); }, []); // eslint-disable-line
 
   const todayComp = compromissos.filter(c => c.item_type === "compromisso");
 
+  // Calculate selected day of week (0=Mon, 6=Sun)
+  const selD = new Date(selectedDate + "T12:00:00");
+  const selDow = selD.getDay() === 0 ? 6 : selD.getDay() - 1;
+  const dayTasks = allWeekTasks.filter((t: any) => t.day_of_week === selDow);
+
   return (
-    <div style={{ marginBottom: 20, padding: "0 4px" }}>
+    <div style={{ marginBottom: 20 }}>
       {/* Compromissos do dia */}
       {todayComp.length > 0 && (
         <div style={{ marginBottom: 16 }}>
-          <h3 style={{ margin: "0 0 10px", fontSize: 13, fontWeight: 700, color: "#A78BFA", textTransform: "uppercase", letterSpacing: ".06em" }}>Compromissos de hoje</h3>
+          <h3 style={{ margin: "0 0 10px", fontSize: 13, fontWeight: 700, color: "#A78BFA", textTransform: "uppercase", letterSpacing: ".06em", paddingLeft: 4 }}>Compromissos do dia</h3>
           {todayComp.map(c => (
-            <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 0", borderTop: "1px solid rgba(167,139,250,0.05)" }}>
+            <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 4px", borderTop: "1px solid rgba(167,139,250,0.05)" }}>
               <span style={{ fontSize: 12 }}>{c.emoji || "📅"}</span>
               <span style={{ flex: 1, fontSize: 12, color: "#e0d6ff" }}>{c.title}</span>
               {c.start_time && <span style={{ fontSize: 9, color: "#9e96b5", fontFamily: "monospace" }}>{c.start_time.slice(0,5)}</span>}
@@ -620,28 +625,19 @@ function ListView({ allWeekTasks, loadWeekTasks, compromissos }: { allWeekTasks:
         </div>
       )}
 
-      {/* Tarefas da semana */}
-      <h3 style={{ margin: "0 0 10px", fontSize: 13, fontWeight: 700, color: "#A78BFA", textTransform: "uppercase", letterSpacing: ".06em" }}>Tarefas da semana</h3>
-      {allWeekTasks.length === 0 ? (
-        <p style={{ color: "#9e96b5", fontSize: 13, textAlign: "center", padding: 20 }}>Nenhuma tarefa esta semana</p>
+      {/* Tarefas do dia */}
+      <h3 style={{ margin: "0 0 10px", fontSize: 13, fontWeight: 700, color: "#A78BFA", textTransform: "uppercase", letterSpacing: ".06em", paddingLeft: 4 }}>Tarefas do dia</h3>
+      {dayTasks.length === 0 ? (
+        <p style={{ color: "#9e96b5", fontSize: 13, textAlign: "center", padding: 20 }}>Nenhuma tarefa neste dia</p>
       ) : (
-        DAY_NAMES.map((label, i) => {
-          const tasks = allWeekTasks.filter((t: any) => t.day_of_week === i);
-          if (tasks.length === 0) return null;
+        dayTasks.map((t: any) => {
+          const area = AREA_CONFIG_PT[t.area] || { emoji: "⚪" };
+          const done = t.status === "concluida";
           return (
-            <div key={label} style={{ marginBottom: 12 }}>
-              <p style={{ margin: "0 0 6px", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".1em", color: "#A78BFA" }}>{DAY_FULL_NAMES[i]}</p>
-              {tasks.map((t: any) => {
-                const area = AREA_CONFIG_PT[t.area] || { emoji: "⚪" };
-                const done = t.status === "concluida";
-                return (
-                  <div key={t.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 0", borderTop: "1px solid rgba(167,139,250,0.05)" }}>
-                    <span style={{ fontSize: 12 }}>{area.emoji}</span>
-                    <span style={{ flex: 1, fontSize: 12, color: done ? "#5a5470" : "#e0d6ff", textDecoration: done ? "line-through" : "none" }}>{t.title}</span>
-                    {t.scheduled_time && <span style={{ fontSize: 9, color: "#9e96b5", fontFamily: "monospace" }}>{t.scheduled_time.slice(0,5)}</span>}
-                  </div>
-                );
-              })}
+            <div key={t.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 4px", borderTop: "1px solid rgba(167,139,250,0.05)" }}>
+              <span style={{ fontSize: 12 }}>{area.emoji}</span>
+              <span style={{ flex: 1, fontSize: 12, color: done ? "#5a5470" : "#e0d6ff", textDecoration: done ? "line-through" : "none" }}>{t.title}</span>
+              {t.scheduled_time && <span style={{ fontSize: 9, color: "#9e96b5", fontFamily: "monospace" }}>{t.scheduled_time.slice(0,5)}</span>}
             </div>
           );
         })
