@@ -27,8 +27,6 @@ const GENDER_OPTIONS = [
 
 const NAV_LINKS = [
   { href: "/agenda",       label: "Agenda",         emoji: "📅" },
-  { href: "/planejamento", label: "Planejamento",   emoji: "📋" },
-  { href: "/metas",        label: "Metas",           emoji: "🎯" },
   { href: "/diario",       label: "Diário",          emoji: "📖" },
   { href: "/sono",         label: "Sono",            emoji: "😴" },
   { href: "/nutricao",     label: "Nutrição",        emoji: "🥗" },

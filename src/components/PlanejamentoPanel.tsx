@@ -68,8 +68,13 @@ function MiniRadar({ counts }: { counts: Record<string, number> }) {
         })}
         {RADAR.map((a, i) => {
           const angle = -Math.PI / 2 + (i * 2 * Math.PI) / N;
-          const lx = cx + (R + 18) * Math.cos(angle), ly = cy + (R + 18) * Math.sin(angle);
-          return <text key={a.key} x={lx} y={ly} textAnchor="middle" dominantBaseline="middle" fontSize="11">{a.emoji}</text>;
+          const lx = cx + (R + 28) * Math.cos(angle), ly = cy + (R + 28) * Math.sin(angle);
+          return (
+            <g key={a.key}>
+              <text x={lx} y={ly - 6} textAnchor="middle" dominantBaseline="middle" fontSize="12">{a.emoji}</text>
+              <text x={lx} y={ly + 7} textAnchor="middle" dominantBaseline="middle" fontSize="8" fill="#9e96b5" fontWeight={600}>{a.label}</text>
+            </g>
+          );
         })}
       </svg>
     </div>
@@ -171,10 +176,12 @@ export function PlanejamentoPanel() {
       <div style={{ marginBottom: 14 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
           <h2 style={{ margin: 0, fontSize: 13, fontWeight: 700, color: "#A78BFA", textTransform: "uppercase", letterSpacing: ".08em" }}>Pedras</h2>
-          <button type="button" onClick={() => router.push("/planejamento")}
-            style={{ background: "none", border: 0, cursor: "pointer", color: "#A78BFA", fontFamily: "inherit", fontSize: 11, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
-            <Pencil size={11} /> {focuses.length > 0 ? "Editar" : "Definir"}
-          </button>
+          {focuses.length > 0 && (
+            <button type="button" onClick={() => router.push("/planejamento")}
+              style={{ background: "none", border: 0, cursor: "pointer", color: "#A78BFA", fontFamily: "inherit", fontSize: 11, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
+              <Pencil size={11} /> Editar
+            </button>
+          )}
         </div>
         {focuses.length > 0 ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -186,10 +193,10 @@ export function PlanejamentoPanel() {
             ))}
           </div>
         ) : (
-          <button type="button" onClick={() => router.push("/planejamento")}
-            style={{ width: "100%", padding: 16, borderRadius: 14, border: "2px dashed rgba(167,139,250,0.2)", background: "rgba(124,92,255,0.04)", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600, color: "#A78BFA", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-            <Plus size={16} /> Definir pedras
-          </button>
+          <div style={{ textAlign: "center", padding: 20, background: "#1a1530", borderRadius: 14, border: "1px dashed rgba(167,139,250,0.15)" }}>
+            <p style={{ margin: "0 0 4px", color: "#9e96b5", fontSize: 13 }}>Nenhuma pedra definida</p>
+            <p style={{ margin: 0, color: "#9e96b5", fontSize: 11 }}>Use o planejamento completo para definir</p>
+          </div>
         )}
       </div>
 
@@ -286,10 +293,6 @@ export function PlanejamentoPanel() {
               })}
             </div>
           )}
-          <button type="button" onClick={() => router.push("/planejamento")}
-            style={{ width: "100%", marginTop: 12, padding: "10px 0", borderRadius: 12, border: 0, cursor: "pointer", background: "rgba(124,92,255,0.1)", color: "#A78BFA", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>
-            Abrir planejamento completo →
-          </button>
         </div>
       )}
 

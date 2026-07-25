@@ -696,7 +696,7 @@ export default function DashboardPage() {
             value={todayTotal > 0 ? `${todayDone}/${todayTotal}` : "—"}
             sub={todayTotal > 0 ? (todayDone === todayTotal ? "Tudo feito!" : "em andamento") : "Sem tarefas"}
             subColor={todayDone === todayTotal && todayTotal > 0 ? "#22D18B" : undefined}
-            onClick={() => router.push("/planejamento")}
+            onClick={() => router.push("/agenda")}
           />
         </div>
       </div>
