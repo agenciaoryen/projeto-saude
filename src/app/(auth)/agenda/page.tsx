@@ -423,13 +423,7 @@ export default function AgendaPage() {
             border: "1px dashed rgba(167,139,250,0.15)",
           }}>
             <p style={{ color: "#9e96b5", fontSize: 13 }}>Nenhum compromisso hoje</p>
-            <button type="button" onClick={() => { setNewItemType("compromisso"); setShowNewItem(true); }}
-              style={{
-                marginTop: 8, padding: "8px 16px", borderRadius: 10, border: 0, cursor: "pointer",
-                background: "#7C5CFF", color: "#fff", fontSize: 12, fontWeight: 600, fontFamily: "inherit",
-              }}>
-              + Novo compromisso
-            </button>
+            <p style={{ color: "#9e96b5", fontSize: 11, marginTop: 4 }}>Toque no + para adicionar</p>
           </div>
         )}
 
@@ -507,21 +501,34 @@ export default function AgendaPage() {
 
       </div>
 
+      {/* ── FAB ──────────────────────────────────────────────── */}
+      {activeModule === "agenda" && (
+        <button type="button" onClick={() => { setNewItemType("tarefa"); setShowNewItem(true); }}
+          style={{
+            position: "fixed", bottom: 84, right: 20, zIndex: 40,
+            width: 56, height: 56, borderRadius: "50%",
+            background: "#7C5CFF", border: 0, cursor: "pointer",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            boxShadow: "0 4px 20px rgba(124,92,255,0.4)",
+          }}>
+          <Plus size={24} color="#fff" />
+        </button>
+      )}
+
       {/* ── New Item Modal ──────────────────────────────────── */}
       {showNewItem && (
         <div style={{
           position: "fixed", inset: 0, zIndex: 100,
           background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)",
-          display: "flex", alignItems: "flex-end", justifyContent: "center",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          padding: 20,
         }}>
           <div style={{
-            width: "100%", maxWidth: 480, maxHeight: "85dvh", overflowY: "auto",
-            background: "#151520", borderRadius: "24px 24px 0 0",
-            padding: "20px 20px calc(env(safe-area-inset-bottom) + 20px)",
+            width: "100%", maxWidth: 420, maxHeight: "80dvh", overflowY: "auto",
+            background: "#151520", borderRadius: 24,
+            padding: 24,
             border: "1px solid rgba(167,139,250,0.15)",
           }}>
-            <div style={{ width: 36, height: 4, borderRadius: 9999, background: "rgba(167,139,250,0.2)", margin: "0 auto 18px" }} />
-
             <h2 style={{ margin: "0 0 4px", fontSize: 18, fontWeight: 700, color: "#e0d6ff" }}>
               {newItemType === "compromisso" ? "Novo compromisso" : "Nova tarefa"}
             </h2>
