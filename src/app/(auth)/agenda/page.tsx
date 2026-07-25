@@ -65,6 +65,7 @@ export default function AgendaPage() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showNewItem, setShowNewItem] = useState(false);
   const [newItemType, setNewItemType] = useState<"compromisso" | "tarefa">("tarefa");
+  const [allWeekTasks, setAllWeekTasks] = useState<any[]>([]);
   const [newTitle, setNewTitle] = useState("");
   const [newEmoji, setNewEmoji] = useState("");
   const [newPriority, setNewPriority] = useState<EisenhowerPriority>("importante_nao_urgente");
@@ -161,8 +162,9 @@ export default function AgendaPage() {
 
   // ── View switching ─────────────────────────────────────────────
   if (viewMode === "semana") {
-    router.push("/planejamento");
-    return null;
+    // Switch to Planejamento module in the hub
+    setViewMode("dia");
+    setActiveModule("planejamento");
   }
 
   return (
@@ -224,19 +226,19 @@ export default function AgendaPage() {
           {activeModule !== "agenda" && (
             <button type="button" onClick={() => setActiveModule("agenda")}
               style={hubBtnStyle}>
-              📅 Agenda
+              Agenda
             </button>
           )}
           {activeModule !== "metas" && (
             <button type="button" onClick={() => setActiveModule("metas")}
               style={hubBtnStyle}>
-              🎯 Metas
+              Metas
             </button>
           )}
           {activeModule !== "planejamento" && (
             <button type="button" onClick={() => setActiveModule("planejamento")}
               style={hubBtnStyle}>
-              📋 Planejar
+              Planejar
             </button>
           )}
         </div>
@@ -414,6 +416,19 @@ export default function AgendaPage() {
 
       </div>
 
+      {/* ── LISTA ───────────────────────────────────────────── */}
+      {viewMode === "lista" && (
+        <ListView allWeekTasks={allWeekTasks} loadWeekTasks={async () => {
+          try {
+            const res = await fetch("/api/weekly-plans");
+            if (res.ok) {
+              const data = await res.json();
+              setAllWeekTasks(data.current?.weekly_tasks || []);
+            }
+          } catch {}
+        }} />
+      )}
+
       {/* ── FAB ──────────────────────────────────────────────── */}
       {activeModule === "agenda" && (
         <button type="button" onClick={() => { setNewItemType("tarefa"); setShowNewItem(true); }}
@@ -553,6 +568,49 @@ const navBtnStyle: React.CSSProperties = {
   display: "flex", alignItems: "center", justifyContent: "center",
   color: "#e0d6ff",
 };
+
+function ListView({ allWeekTasks, loadWeekTasks }: { allWeekTasks: any[]; loadWeekTasks: () => void }) {
+  useEffect(() => { if (allWeekTasks.length === 0) loadWeekTasks(); }, []); // eslint-disable-line
+
+  const tasksByDay = DAY_NAMES.map((label, i) => ({
+    label, full: DAY_FULL_NAMES[i],
+    tasks: allWeekTasks.filter((t: any) => t.day_of_week === i),
+  }));
+
+  return (
+    <div style={{ marginBottom: 20 }}>
+      <h3 style={{ margin: "0 0 12px", fontSize: 15, fontWeight: 700, color: "#e0d6ff" }}>Todas as tarefas</h3>
+      {tasksByDay.filter(d => d.tasks.length > 0).length === 0 ? (
+        <p style={{ color: "#9e96b5", fontSize: 13, textAlign: "center", padding: 20 }}>Nenhuma tarefa esta semana</p>
+      ) : (
+        tasksByDay.map(day => day.tasks.length > 0 && (
+          <div key={day.label} style={{ marginBottom: 12 }}>
+            <p style={{ margin: "0 0 6px", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".1em", color: "#A78BFA" }}>{day.full}</p>
+            {day.tasks.map((t: any) => {
+              const area = AREA_CONFIG_PT[t.area] || { emoji: "⚪" };
+              const done = t.status === "concluida";
+              return (
+                <div key={t.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 0", borderTop: "1px solid rgba(167,139,250,0.05)" }}>
+                  <span style={{ fontSize: 12 }}>{area.emoji}</span>
+                  <span style={{ flex: 1, fontSize: 12, color: done ? "#5a5470" : "#e0d6ff", textDecoration: done ? "line-through" : "none" }}>{t.title}</span>
+                  {t.scheduled_time && <span style={{ fontSize: 9, color: "#9e96b5", fontFamily: "monospace" }}>{t.scheduled_time.slice(0, 5)}</span>}
+                </div>
+              );
+            })}
+          </div>
+        ))
+      )}
+    </div>
+  );
+}
+
+const AREA_CONFIG_PT: Record<string, { emoji: string }> = {
+  saude: { emoji: "💚" }, carreira: { emoji: "💼" }, financas: { emoji: "💰" },
+  relacionamentos: { emoji: "❤️" }, desenvolvimento: { emoji: "🧠" }, familia: { emoji: "🏡" },
+  lazer: { emoji: "🌊" }, espiritualidade: { emoji: "✨" }, outros: { emoji: "⚪" },
+};
+
+const DAY_FULL_NAMES = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"];
 
 const hubBtnStyle: React.CSSProperties = {
   flex: 1, padding: "12px 0", borderRadius: 14, border: 0, cursor: "pointer",
