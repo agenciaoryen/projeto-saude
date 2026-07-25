@@ -3,13 +3,15 @@ import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 import { getWeekMondayDate } from "@/lib/utils";
 
-export async function GET() {
+export async function GET(req: Request) {
   const supabase = await createServerSupabaseClient();
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
 
   const admin = getSupabaseAdmin();
-  const weekStart = getWeekMondayDate();
+  const url = new URL(req.url);
+  const weekParam = url.searchParams.get("week");
+  const weekStart = weekParam || getWeekMondayDate();
 
   const { data: plan, error } = await admin
     .from("weekly_plans")
