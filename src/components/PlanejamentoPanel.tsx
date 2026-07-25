@@ -38,7 +38,7 @@ function MiniRadar({ counts }: { counts: Record<string, number> }) {
     { key: "espiritualidade", label: "Espirit.", emoji: "✨", hue: 300 },
     { key: "outros", label: "Outros", emoji: "⚪", hue: 200 },
   ];
-  const N = RADAR.length, MAX = 5, cx = 100, cy = 100, R = 64;
+  const N = RADAR.length, MAX = 5, cx = 120, cy = 120, R = 72;
   const pt = (i: number, v: number) => {
     const a = -Math.PI / 2 + (i * 2 * Math.PI) / N;
     return [cx + R * (Math.min(v, MAX) / MAX) * Math.cos(a), cy + R * (Math.min(v, MAX) / MAX) * Math.sin(a)];
@@ -52,7 +52,7 @@ function MiniRadar({ counts }: { counts: Record<string, number> }) {
         <p style={{ margin: 0, fontSize: 10, fontWeight: 700, letterSpacing: ".1em", textTransform: "uppercase", color: "#A78BFA" }}>Roda das áreas</p>
         <span style={{ fontSize: 10, color: "#9e96b5" }}>{covered}/{N} cobertas</span>
       </div>
-      <svg viewBox="0 0 200 200" style={{ width: "100%", maxWidth: 220, display: "block", margin: "0 auto" }}>
+      <svg viewBox="0 0 260 260" style={{ width: "100%", maxWidth: 260, display: "block", margin: "0 auto" }}>
         {[0.25, 0.5, 0.75, 1].map(r => (
           <polygon key={r} points={RADAR.map((_, i) => {
             const a = -Math.PI / 2 + (i * 2 * Math.PI) / N;
@@ -68,11 +68,11 @@ function MiniRadar({ counts }: { counts: Record<string, number> }) {
         })}
         {RADAR.map((a, i) => {
           const angle = -Math.PI / 2 + (i * 2 * Math.PI) / N;
-          const lx = cx + (R + 28) * Math.cos(angle), ly = cy + (R + 28) * Math.sin(angle);
+          const lx = cx + (R + 38) * Math.cos(angle), ly = cy + (R + 38) * Math.sin(angle);
           return (
             <g key={a.key}>
-              <text x={lx} y={ly - 6} textAnchor="middle" dominantBaseline="middle" fontSize="12">{a.emoji}</text>
-              <text x={lx} y={ly + 7} textAnchor="middle" dominantBaseline="middle" fontSize="8" fill="#9e96b5" fontWeight={600}>{a.label}</text>
+              <text x={lx} y={ly - 7} textAnchor="middle" dominantBaseline="middle" fontSize="13">{a.emoji}</text>
+              <text x={lx} y={ly + 8} textAnchor="middle" dominantBaseline="middle" fontSize="9" fill="#9e96b5" fontWeight={600}>{a.label}</text>
             </g>
           );
         })}
@@ -303,13 +303,17 @@ export function PlanejamentoPanel() {
             <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 700, color: "#e0d6ff" }}>Nova tarefa</h3>
             <input value={newTaskTitle} onChange={e => setNewTaskTitle(e.target.value)} placeholder="Título" autoFocus style={inputS} />
             <p style={{ fontSize: 10, color: "#A78BFA", margin: "12px 0 6px", fontWeight: 600, textTransform: "uppercase", letterSpacing: ".08em" }}>Área</p>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 4 }}>
-              {ALL_AREAS.slice(0,9).map(a => (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 4 }}>
+              {ALL_AREAS.slice(0,9).map(a => {
+                const area = AREA_CONFIG[a];
+                return (
                 <button key={a} type="button" onClick={() => setNewTaskArea(a)}
-                  style={{ padding: "6px 2px", borderRadius: 10, border: newTaskArea === a ? "2px solid #7C5CFF" : "1px solid rgba(167,139,250,0.15)", background: newTaskArea === a ? "rgba(124,92,255,0.1)" : "#0B0B10", cursor: "pointer", fontFamily: "inherit" }}>
-                  <span style={{ fontSize: 16 }}>{AREA_CONFIG[a]?.emoji}</span>
+                  style={{ padding: "8px 4px", borderRadius: 10, border: newTaskArea === a ? "2px solid #7C5CFF" : "1px solid rgba(167,139,250,0.15)", background: newTaskArea === a ? "rgba(124,92,255,0.1)" : "#0B0B10", cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ fontSize: 16 }}>{area?.emoji}</span>
+                  <span style={{ fontSize: 10, fontWeight: 600, color: newTaskArea === a ? "#A78BFA" : "#9e96b5" }}>{a === "desenvolvimento" ? "Desenv." : a === "relacionamentos" ? "Relac." : a === "espiritualidade" ? "Espirit." : a.charAt(0).toUpperCase() + a.slice(1)}</span>
                 </button>
-              ))}
+                );
+              })}
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
               <div style={{ flex: 1 }}>
