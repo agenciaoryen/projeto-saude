@@ -525,7 +525,7 @@ export default function AgendaPage() {
         </div>
       )}
 
-      {/* ── FAB (Dia e Metas) ────────────────────────────────── */}
+      {/* ── FAB (Dia) ────────────────────────────────────────── */}
       {(activeModule === "agenda" && viewMode === "dia") && (
         <button type="button" onClick={() => { setNewItemType("tarefa"); setShowNewItem(true); }}
           style={{

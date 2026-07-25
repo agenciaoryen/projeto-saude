@@ -52,10 +52,6 @@ export function MetasPanel() {
         <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#e0d6ff" }}>
           {activeGoals.length} meta{activeGoals.length !== 1 ? "s" : ""} ativa{activeGoals.length !== 1 ? "s" : ""}
         </h2>
-        <button type="button" onClick={() => setShowCreate(true)}
-          style={{ background: "none", border: 0, cursor: "pointer", fontSize: 12, fontWeight: 600, color: "#A78BFA", display: "flex", alignItems: "center", gap: 4, fontFamily: "inherit" }}>
-          <Plus size={14} /> Nova meta
-        </button>
       </div>
 
       {activeGoals.length === 0 && completedGoals.length === 0 ? (
@@ -182,6 +178,18 @@ export function MetasPanel() {
 
       {showCreate && <GoalCreateSheet onClose={() => setShowCreate(false)} onCreated={refresh} />}
       {detailGoalId && <GoalDetailSheet goalId={detailGoalId} onClose={() => setDetailGoalId(null)} onUpdated={refresh} />}
+
+      {/* FAB */}
+      <button type="button" onClick={() => setShowCreate(true)}
+        style={{
+          position: "fixed", bottom: 84, right: 20, zIndex: 40,
+          width: 56, height: 56, borderRadius: "50%",
+          background: "#7C5CFF", border: 0, cursor: "pointer",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          boxShadow: "0 4px 20px rgba(124,92,255,0.4)",
+        }}>
+        <Plus size={24} color="#fff" />
+      </button>
     </div>
   );
 }
