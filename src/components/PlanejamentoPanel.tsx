@@ -97,7 +97,6 @@ export function PlanejamentoPanel() {
   const [selectedDay, setSelectedDay] = useState(() => { const d = new Date().getDay(); return d === 0 ? 6 : d - 1; });
   const [showAddTask, setShowAddTask] = useState(false);
   const [showReview, setShowReview] = useState(false);
-  const [avancado, setAvancado] = useState(false);
 
   // Add task form
   const [newTaskTitle, setNewTaskTitle] = useState("");
@@ -269,12 +268,6 @@ export function PlanejamentoPanel() {
         </button>
       )}
 
-      {/* Avançado toggle */}
-      <button type="button" onClick={() => setAvancado(!avancado)}
-        style={{ width: "100%", padding: "8px 0", borderRadius: 12, border: 0, background: "transparent", cursor: "pointer", color: "#9e96b5", fontSize: 11, fontWeight: 500, fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
-        {avancado ? "Recolher" : "Avançado"} <ChevronDown size={12} style={{ transform: avancado ? "rotate(180deg)" : "none", transition: "transform .2s" }} />
-      </button>
-
       {/* FAB */}
       <button type="button" onClick={() => { setNewTaskDay(selectedDay); setShowAddTask(true); }}
         style={{
@@ -287,26 +280,22 @@ export function PlanejamentoPanel() {
         <Plus size={24} color="#fff" />
       </button>
 
-      {avancado && (
-        <div style={{ marginTop: 8 }}>
-          {/* History */}
-          {plan?.history?.length > 0 && (
-            <div>
-              <p style={{ margin: "0 0 6px", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".1em", color: "#5a5470" }}>Semanas anteriores</p>
-              {plan.history.slice(0, 3).map((h: any) => {
-                const d = new Date(h.week_start + "T12:00:00");
-                const M = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
-                const rev = (h as any).weekly_reviews?.[0];
-                return (
-                  <div key={h.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderTop: "1px solid rgba(167,139,250,0.05)" }}>
-                    <span style={{ flex: 1, fontSize: 11, color: "#9e96b5" }}>{d.getDate()} {M[d.getMonth()]}</span>
-                    <span style={{ fontSize: 11, color: "#9e96b5", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 140 }}>{h.main_focus || "—"}</span>
-                    {rev && <span>{Array.from({length:5}).map((_,i) => <span key={i} style={{ fontSize: 9, color: i < rev.week_score ? "#f59e0b" : "rgba(167,139,250,0.1)" }}>★</span>)}</span>}
-                  </div>
-                );
-              })}
-            </div>
-          )}
+      {/* History */}
+      {plan?.history?.length > 0 && (
+        <div style={{ marginTop: 12 }}>
+          <p style={{ margin: "0 0 6px", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".1em", color: "#5a5470" }}>Semanas anteriores</p>
+          {plan.history.slice(0, 3).map((h: any) => {
+            const d = new Date(h.week_start + "T12:00:00");
+            const M = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
+            const rev = (h as any).weekly_reviews?.[0];
+            return (
+              <div key={h.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderTop: "1px solid rgba(167,139,250,0.05)" }}>
+                <span style={{ flex: 1, fontSize: 11, color: "#9e96b5" }}>{d.getDate()} {M[d.getMonth()]}</span>
+                <span style={{ fontSize: 11, color: "#9e96b5", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 140 }}>{h.main_focus || "—"}</span>
+                {rev && <span>{Array.from({length:5}).map((_,i) => <span key={i} style={{ fontSize: 9, color: i < rev.week_score ? "#f59e0b" : "rgba(167,139,250,0.1)" }}>★</span>)}</span>}
+              </div>
+            );
+          })}
         </div>
       )}
 
