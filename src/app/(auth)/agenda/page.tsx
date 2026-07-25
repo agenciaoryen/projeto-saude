@@ -184,7 +184,7 @@ export default function AgendaPage() {
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: 12, marginBottom: 8 }}>
           <div>
             <h1 style={{ margin: 0, fontSize: 26, fontWeight: 800, color: "#e0d6ff", letterSpacing: "-0.02em" }}>
-              {activeModule === "metas" ? "Metas" : activeModule === "planejamento" ? "Agenda da semana" : viewMode === "lista" ? "Agenda" : "Agenda do dia"}
+              {activeModule === "metas" ? "Metas" : activeModule === "planejamento" ? "Agenda da semana" : viewMode === "lista" ? "Lista" : "Agenda do dia"}
             </h1>
             <p style={{ margin: "2px 0 0", fontSize: 13, color: "#A78BFA", fontWeight: 500 }}>
               {activeModule === "metas" ? "" : activeModule === "planejamento" || viewMode === "semana" ? weekRangeLabel(selectedDate) : formatDateLabel(selectedDate)}
@@ -260,24 +260,24 @@ export default function AgendaPage() {
 
         {/* ── Priority Legend (filtro clicável, só view Dia) ──── */}
         {viewMode === "dia" && activeModule === "agenda" && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 20 }}>
+        <div style={{ display: "flex", gap: 4, marginBottom: 20, flexWrap: "nowrap" }}>
           {(Object.entries(PRIORITY_CONFIG) as [EisenhowerPriority, typeof PRIORITY_CONFIG[EisenhowerPriority]][]).map(([key, cfg]) => {
             const Icon = cfg.icon;
             const active = priorityFilter === key;
             return (
               <button key={key} type="button" onClick={() => setPriorityFilter(active ? null : key)}
                 style={{
-                  display: "inline-flex", alignItems: "center", gap: 5, fontSize: 10, fontWeight: 600,
-                  padding: "5px 10px", borderRadius: 9999, border: active ? `1.5px solid ${cfg.color}` : "1px solid rgba(167,139,250,0.1)",
+                  display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 600,
+                  padding: "4px 8px", borderRadius: 9999, border: active ? `1.5px solid ${cfg.color}` : "1px solid rgba(167,139,250,0.1)",
                   background: active ? cfg.color + "18" : "transparent",
                   color: active ? cfg.color : "#9e96b5", cursor: "pointer", fontFamily: "inherit",
-                  transition: "all .15s ease",
+                  transition: "all .15s ease", whiteSpace: "nowrap",
                 }}>
                 <span style={{
-                  width: 14, height: 14, borderRadius: "50%", background: cfg.color + "33",
+                  width: 12, height: 12, borderRadius: "50%", background: cfg.color + "33",
                   display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
                 }}>
-                  <Icon size={8} color={cfg.color} />
+                  <Icon size={7} color={cfg.color} />
                 </span>
                 {cfg.shortLabel}
               </button>
@@ -285,8 +285,8 @@ export default function AgendaPage() {
           })}
           {priorityFilter && (
             <button type="button" onClick={() => setPriorityFilter(null)}
-              style={{ padding: "5px 8px", borderRadius: 9999, border: 0, background: "rgba(167,139,250,0.08)", color: "#9e96b5", fontSize: 10, cursor: "pointer", fontFamily: "inherit" }}>
-              ✕ limpar
+              style={{ padding: "4px 6px", borderRadius: 9999, border: 0, background: "rgba(167,139,250,0.08)", color: "#9e96b5", fontSize: 11, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
+              ✕
             </button>
           )}
         </div>
