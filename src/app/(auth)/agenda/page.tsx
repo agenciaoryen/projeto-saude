@@ -257,7 +257,8 @@ export default function AgendaPage() {
           )}
         </div>
 
-        {/* ── Priority Legend (filtro clicável) ────────────────── */}
+        {/* ── Priority Legend (filtro clicável, só view Dia) ──── */}
+        {viewMode === "dia" && activeModule === "agenda" && (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 20 }}>
           {(Object.entries(PRIORITY_CONFIG) as [EisenhowerPriority, typeof PRIORITY_CONFIG[EisenhowerPriority]][]).map(([key, cfg]) => {
             const Icon = cfg.icon;
@@ -288,6 +289,7 @@ export default function AgendaPage() {
             </button>
           )}
         </div>
+        )}
 
         {/* ── METAS VIEW ─────────────────────────────────────── */}
         {activeModule === "metas" && <MetasPanel />}
