@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   ChevronLeft, ChevronRight, Calendar, Sun, List,
-  CheckCircle2, GripVertical, Plus, Clock, Star, Zap, Leaf, AlertCircle,
+  CheckCircle2, GripVertical, Plus, Clock, Star, Zap, Leaf, AlertCircle, Target,
 } from "lucide-react";
 import { getLocalDate } from "@/lib/utils";
 import type { AgendaItem, EisenhowerPriority } from "@/types";
@@ -59,7 +59,7 @@ function PriorityBadge({ priority }: { priority: EisenhowerPriority }) {
 
 // ── Page ─────────────────────────────────────────────────────────
 
-type ViewMode = "dia" | "semana" | "lista";
+type ViewMode = "dia" | "semana" | "lista" | "metas";
 type ActiveModule = "agenda" | "metas" | "planejamento";
 
 export default function AgendaPage() {
@@ -73,7 +73,8 @@ export default function AgendaPage() {
   const switchView = (mode: ViewMode) => {
     setViewMode(mode);
     if (mode === "semana") setActiveModule("planejamento");
-    else if (mode === "dia" || mode === "lista") setActiveModule("agenda");
+    else if (mode === "metas") setActiveModule("metas");
+    else setActiveModule("agenda");
   };
   const [items, setItems] = useState<AgendaItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -208,7 +209,7 @@ export default function AgendaPage() {
           </div>
         </div>
 
-        {/* ── Segmented control Dia/Semana/Lista ────────────────── */}
+        {/* ── Segmented control Dia/Semana/Lista/Metas ──────────── */}
         <div style={{
           display: "flex", borderRadius: 14, background: "#1a1530",
           border: "1px solid rgba(167,139,250,0.15)", padding: 3,
@@ -218,44 +219,23 @@ export default function AgendaPage() {
             { key: "dia", icon: Sun, label: "Dia" },
             { key: "semana", icon: Calendar, label: "Semana" },
             { key: "lista", icon: List, label: "Lista" },
+            { key: "metas", icon: Target, label: "Metas" },
           ] as const).map(({ key, icon: Icon, label }) => (
             <button key={key} type="button" onClick={() => switchView(key)}
               style={{
                 flex: 1, padding: "10px 0", borderRadius: 12, border: 0,
                 cursor: "pointer", display: "flex", alignItems: "center",
-                justifyContent: "center", gap: 6, fontFamily: "inherit",
-                fontSize: 13, fontWeight: 600,
+                justifyContent: "center", gap: 5, fontFamily: "inherit",
+                fontSize: 12, fontWeight: 600,
                 background: viewMode === key
                   ? "linear-gradient(135deg, #7C5CFF, #A78BFA)"
                   : "transparent",
                 color: viewMode === key ? "#fff" : "#9e96b5",
                 transition: "all 0.2s ease",
               }}>
-              <Icon size={14} /> {label}
+              <Icon size={13} /> {label}
             </button>
           ))}
-        </div>
-
-        {/* ── Hub buttons — sempre mostram os outros 2 módulos ── */}
-        <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
-          {activeModule !== "agenda" && (
-            <button type="button" onClick={() => setActiveModule("agenda")}
-              style={hubBtnStyle}>
-              Agenda
-            </button>
-          )}
-          {activeModule !== "metas" && (
-            <button type="button" onClick={() => setActiveModule("metas")}
-              style={hubBtnStyle}>
-              Metas
-            </button>
-          )}
-          {activeModule !== "planejamento" && (
-            <button type="button" onClick={() => setActiveModule("planejamento")}
-              style={hubBtnStyle}>
-              Planejar
-            </button>
-          )}
         </div>
 
         {/* ── Priority Legend (filtro clicável, só view Dia) ──── */}
