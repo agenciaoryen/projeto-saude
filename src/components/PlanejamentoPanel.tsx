@@ -44,7 +44,7 @@ function MiniRadar({ counts }: { counts: Record<string, number> }) {
     { key: "espiritualidade", label: "Espirit.", emoji: "✨", hue: 300 },
     { key: "outros", label: "Outros", emoji: "⚪", hue: 200 },
   ];
-  const N = RADAR.length, MAX = 5, cx = 140, cy = 140, R = 80;
+  const N = RADAR.length, MAX = 5, cx = 160, cy = 160, R = 80;
   const pt = (i: number, v: number) => {
     const a = -Math.PI / 2 + (i * 2 * Math.PI) / N;
     return [cx + R * (Math.min(v, MAX) / MAX) * Math.cos(a), cy + R * (Math.min(v, MAX) / MAX) * Math.sin(a)];
@@ -53,12 +53,12 @@ function MiniRadar({ counts }: { counts: Record<string, number> }) {
   const covered = RADAR.filter(a => (counts[a.key] ?? 0) > 0).length;
 
   return (
-    <div style={{ background: "#1a1530", borderRadius: 18, border: "1px solid rgba(167,139,250,0.1)", padding: "14px 14px 10px", marginBottom: 16 }}>
+    <div style={{ background: "#1a1530", borderRadius: 18, border: "1px solid rgba(167,139,250,0.1)", padding: "14px 8px 10px", marginBottom: 16, overflow: "visible" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
         <p style={{ margin: 0, fontSize: 10, fontWeight: 700, letterSpacing: ".1em", textTransform: "uppercase", color: "#A78BFA" }}>Roda das áreas</p>
         <span style={{ fontSize: 10, color: "#9e96b5" }}>{covered}/{N} cobertas</span>
       </div>
-      <svg viewBox="0 0 300 310" style={{ width: "100%", maxWidth: 300, display: "block", margin: "0 auto" }}>
+      <svg viewBox="0 0 340 350" style={{ width: "100%", display: "block", margin: "0 auto", overflow: "visible" }}>
         {[0.25, 0.5, 0.75, 1].map(r => (
           <polygon key={r} points={RADAR.map((_, i) => {
             const a = -Math.PI / 2 + (i * 2 * Math.PI) / N;
