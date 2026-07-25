@@ -218,8 +218,8 @@ export default function AgendaPage() {
           {([
             { key: "dia", icon: Sun, label: "Dia" },
             { key: "semana", icon: Calendar, label: "Semana" },
-            { key: "lista", icon: List, label: "Lista" },
             { key: "metas", icon: Target, label: "Metas" },
+            { key: "lista", icon: List, label: "Lista" },
           ] as const).map(({ key, icon: Icon, label }) => (
             <button key={key} type="button" onClick={() => switchView(key)}
               style={{
@@ -440,8 +440,8 @@ export default function AgendaPage() {
         }} />
       )}
 
-      {/* ── FAB (só na view Dia) ─────────────────────────────── */}
-      {activeModule === "agenda" && viewMode === "dia" && (
+      {/* ── FAB (Dia e Metas) ────────────────────────────────── */}
+      {(activeModule === "agenda" && viewMode === "dia") && (
         <button type="button" onClick={() => { setNewItemType("tarefa"); setShowNewItem(true); }}
           style={{
             position: "fixed", bottom: 84, right: 20, zIndex: 40,

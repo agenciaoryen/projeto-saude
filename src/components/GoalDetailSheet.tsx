@@ -219,11 +219,6 @@ export function GoalDetailSheet({ goalId, onClose, onUpdated }: { goalId: string
           </button>
         )}
 
-        {/* Maya pill */}
-        <button type="button" onClick={() => { onClose(); router.push(`/insights?draft=Quero falar sobre minha meta: ${goal.title}`); }}
-          style={{ width: "100%", marginTop: 16, padding: "10px 0", borderRadius: 12, border: "1px solid rgba(167,139,250,0.15)", background: "rgba(124,92,255,0.06)", cursor: "pointer", color: "#A78BFA", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>
-          💜 Conversar com Maya sobre esta meta
-        </button>
       </div>
     </div>
   );

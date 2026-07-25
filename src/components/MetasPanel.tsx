@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import { GoalCreateSheet } from "@/components/GoalCreateSheet";
 import { GoalDetailSheet } from "@/components/GoalDetailSheet";
@@ -13,10 +14,21 @@ const AREA_CONFIG: Record<string, { emoji: string; hue: number }> = {
 };
 
 export function MetasPanel() {
+  const router = useRouter();
   const [goals, setGoals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [detailGoalId, setDetailGoalId] = useState<string | null>(null);
+  const [showMayaPick, setShowMayaPick] = useState(false);
+
+  const talkToMaya = () => {
+    const active = goals.filter((g: any) => g.status === "ativa");
+    if (active.length === 1) {
+      router.push(`/insights?draft=Quero falar sobre minha meta: ${active[0].title}`);
+    } else if (active.length > 1) {
+      setShowMayaPick(true);
+    }
+  };
 
   const refresh = async () => {
     try {
@@ -139,6 +151,31 @@ export function MetasPanel() {
                 +{completedGoals.length - 3} concluídas
               </p>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Maya button */}
+      {goals.filter((g: any) => g.status === "ativa").length > 0 && (
+        <button type="button" onClick={talkToMaya}
+          style={{ width: "100%", marginTop: 12, padding: "12px 0", borderRadius: 14, border: "1px solid rgba(167,139,250,0.15)", background: "rgba(124,92,255,0.06)", cursor: "pointer", color: "#A78BFA", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>
+          💜 Conversar com Maya sobre uma meta
+        </button>
+      )}
+
+      {/* Maya goal picker */}
+      {showMayaPick && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 100, background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          <div style={{ width: "100%", maxWidth: 380, maxHeight: "70dvh", overflowY: "auto", background: "#151520", borderRadius: 24, padding: 24, border: "1px solid rgba(167,139,250,0.15)" }}>
+            <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 700, color: "#e0d6ff" }}>Qual meta?</h3>
+            {goals.filter((g: any) => g.status === "ativa").map((g: any) => (
+              <button key={g.id} type="button" onClick={() => { setShowMayaPick(false); router.push(`/insights?draft=Quero falar sobre minha meta: ${g.title}`); }}
+                style={{ width: "100%", textAlign: "left", padding: "12px 14px", borderRadius: 12, border: "1px solid rgba(167,139,250,0.15)", background: "#0B0B10", cursor: "pointer", color: "#e0d6ff", fontSize: 13, fontWeight: 600, fontFamily: "inherit", marginBottom: 8 }}>
+                {g.title}
+              </button>
+            ))}
+            <button type="button" onClick={() => setShowMayaPick(false)}
+              style={{ width: "100%", marginTop: 8, padding: 12, borderRadius: 14, border: "1px solid rgba(167,139,250,0.2)", background: "transparent", color: "#9e96b5", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Cancelar</button>
           </div>
         </div>
       )}
