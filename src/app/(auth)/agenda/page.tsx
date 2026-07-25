@@ -97,6 +97,9 @@ export default function AgendaPage() {
   const [newEndTime, setNewEndTime] = useState("10:00");
   const [newDescription, setNewDescription] = useState("");
   const [newColor, setNewColor] = useState("#7C5CFF");
+  const [newRepeat, setNewRepeat] = useState("none");
+  const [newNotify, setNewNotify] = useState<number | null>(null);
+  const [newDueDate, setNewDueDate] = useState("");
   const [saving, setSaving] = useState(false);
 
   const handleCreate = async () => {
@@ -115,6 +118,9 @@ export default function AgendaPage() {
         emoji: newEmoji || null,
         description: newDescription || null,
         color: newColor,
+        repeat_type: newRepeat,
+        notify_minutes: newNotify,
+        due_date: newDueDate || null,
       }),
     });
     if (res.ok) {
@@ -474,19 +480,32 @@ export default function AgendaPage() {
         <div style={{ position: "fixed", inset: 0, zIndex: 100, background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
           <div style={{ width: "100%", maxWidth: 400, background: "#151520", borderRadius: 24, padding: 24, border: "1px solid rgba(167,139,250,0.15)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
-              <div>
-                <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#e0d6ff" }}>
-                  {editingItem.emoji && <span style={{ marginRight: 6 }}>{editingItem.emoji}</span>}
-                  {editingItem.title}
-                </h3>
-                {editingItem.start_time && (
-                  <p style={{ margin: "4px 0 0", fontSize: 12, color: "#A78BFA" }}>
-                    {editingItem.start_time.slice(0, 5)} – {editingItem.end_time?.slice(0, 5)}
-                  </p>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                {editingItem.color && (
+                  <div style={{ width: 10, height: 40, borderRadius: 5, background: editingItem.color, flexShrink: 0 }} />
                 )}
+                <div>
+                  <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#e0d6ff" }}>
+                    {editingItem.emoji && <span style={{ marginRight: 6 }}>{editingItem.emoji}</span>}
+                    {editingItem.title}
+                  </h3>
+                  {editingItem.start_time && (
+                    <p style={{ margin: "4px 0 0", fontSize: 12, color: "#A78BFA" }}>
+                      {editingItem.start_time.slice(0, 5)} – {editingItem.end_time?.slice(0, 5)}
+                    </p>
+                  )}
+                </div>
               </div>
               <button type="button" onClick={() => setEditingItem(null)} style={{ background: "none", border: 0, color: "#9e96b5", fontSize: 18, cursor: "pointer" }}>✕</button>
             </div>
+
+            {editingItem.description && (
+              <p style={{ margin: "0 0 12px", fontSize: 13, color: "#9e96b5", lineHeight: 1.5 }}>{editingItem.description}</p>
+            )}
+
+            {editingItem.notify_minutes && (
+              <p style={{ margin: "0 0 12px", fontSize: 11, color: "#9e96b5" }}>🔔 {editingItem.notify_minutes} min antes</p>
+            )}
 
             <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
               <button type="button" onClick={() => {
@@ -626,6 +645,60 @@ export default function AgendaPage() {
                 ))}
               </div>
             </div>
+
+            {/* Repeat (só compromisso) */}
+            {newItemType === "compromisso" && (
+              <div style={{ marginTop: 14 }}>
+                <label style={{ fontSize: 10, color: "#9e96b5", marginBottom: 6, display: "block" }}>Repetir</label>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                  {[
+                    { val: "none", label: "Não" },
+                    { val: "daily", label: "Diário" },
+                    { val: "weekly", label: "Semanal" },
+                    { val: "monthly", label: "Mensal" },
+                  ].map(r => (
+                    <button key={r.val} type="button" onClick={() => setNewRepeat(r.val)}
+                      style={{
+                        padding: "5px 10px", borderRadius: 9999, border: 0, cursor: "pointer", fontFamily: "inherit",
+                        fontSize: 10, fontWeight: 600, background: newRepeat === r.val ? "#7C5CFF" : "#1e1840",
+                        color: newRepeat === r.val ? "#fff" : "#9e96b5",
+                      }}>{r.label}</button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Notification */}
+            {newItemType === "compromisso" && (
+              <div style={{ marginTop: 14 }}>
+                <label style={{ fontSize: 10, color: "#9e96b5", marginBottom: 6, display: "block" }}>Notificação</label>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                  {[
+                    { val: null, label: "Nenhum" },
+                    { val: 5, label: "5 min" },
+                    { val: 15, label: "15 min" },
+                    { val: 30, label: "30 min" },
+                    { val: 60, label: "1 hora" },
+                  ].map(n => (
+                    <button key={String(n.val)} type="button" onClick={() => setNewNotify(n.val)}
+                      style={{
+                        padding: "5px 10px", borderRadius: 9999, border: 0, cursor: "pointer", fontFamily: "inherit",
+                        fontSize: 10, fontWeight: 600, background: newNotify === n.val ? "#7C5CFF" : "#1e1840",
+                        color: newNotify === n.val ? "#fff" : "#9e96b5",
+                      }}>{n.label}</button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Due date (só tarefa) */}
+            {newItemType === "tarefa" && (
+              <div style={{ marginTop: 14 }}>
+                <label style={{ fontSize: 10, color: "#9e96b5", marginBottom: 6, display: "block" }}>Data limite</label>
+                <input type="date" value={newDueDate} onChange={e => setNewDueDate(e.target.value)}
+                  style={{ ...modalInput }} />
+              </div>
+            )}
 
             {/* Priority */}
             <div style={{ marginTop: 14 }}>
