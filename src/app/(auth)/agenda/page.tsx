@@ -185,10 +185,10 @@ export default function AgendaPage() {
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: 12, marginBottom: 8 }}>
           <div>
             <h1 style={{ margin: 0, fontSize: 26, fontWeight: 800, color: "#e0d6ff", letterSpacing: "-0.02em" }}>
-              {activeModule === "metas" ? "Metas" : activeModule === "planejamento" ? "Agenda da semana" : viewMode === "lista" ? "Lista" : "Agenda do dia"}
+              {viewMode === "metas" ? "Metas" : viewMode === "semana" ? "Agenda da semana" : viewMode === "lista" ? "Lista" : "Agenda do dia"}
             </h1>
             <p style={{ margin: "2px 0 0", fontSize: 13, color: "#A78BFA", fontWeight: 500 }}>
-              {activeModule === "metas" ? "" : activeModule === "planejamento" || viewMode === "semana" ? weekRangeLabel(selectedDate) : formatDateLabel(selectedDate)}
+              {viewMode === "metas" ? "Acompanhe seu progresso" : viewMode === "semana" ? weekRangeLabel(selectedDate) : formatDateLabel(selectedDate)}
             </p>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
