@@ -286,8 +286,14 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
         </div>
       ) : (
         <button type="button" onClick={() => setShowReview(true)}
-          style={{ width: "100%", padding: 12, borderRadius: 14, border: "1px dashed rgba(167,139,250,0.2)", background: "transparent", cursor: "pointer", color: "#A78BFA", fontSize: 12, fontWeight: 600, fontFamily: "inherit", marginBottom: 8 }}>
-          <Star size={14} /> Fazer revisão da semana
+          style={{
+            width: "100%", padding: "16px 0", borderRadius: 16, border: "1px solid rgba(167,139,250,0.2)",
+            background: "linear-gradient(135deg, rgba(124,92,255,0.08) 0%, rgba(167,139,250,0.04) 100%)",
+            cursor: "pointer", color: "#A78BFA", fontSize: 13, fontWeight: 600, fontFamily: "inherit",
+            marginBottom: 8, display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+            transition: "all .15s ease",
+          }}>
+          <span style={{ fontSize: 18 }}>⭐</span> Fazer revisão da semana
         </button>
       )}
 

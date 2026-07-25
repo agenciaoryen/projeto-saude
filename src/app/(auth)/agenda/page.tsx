@@ -34,10 +34,10 @@ function shiftDate(dateStr: string, days: number): string {
 }
 
 const PRIORITY_CONFIG: Record<EisenhowerPriority, { icon: typeof AlertCircle; color: string; label: string; shortLabel: string }> = {
-  importante_urgente:          { icon: AlertCircle, color: "#FF4D4D", label: "Importante e urgente", shortLabel: "Urgente" },
-  importante_nao_urgente:      { icon: Star, color: "#FF9F43", label: "Importante não urgente", shortLabel: "Importante" },
-  nao_importante_urgente:      { icon: Zap,  color: "#FFD43B", label: "Não importante mas urgente", shortLabel: "Urgente NP" },
-  nao_importante_nao_urgente:  { icon: Leaf, color: "#4CD97B", label: "Não importante e não urgente", shortLabel: "Baixa" },
+  importante_urgente:          { icon: AlertCircle, color: "#FF4D4D", label: "Urgente e importante", shortLabel: "Urgente" },
+  importante_nao_urgente:      { icon: Star, color: "#FF9F43", label: "Importante, não urgente", shortLabel: "Importante" },
+  nao_importante_urgente:      { icon: Zap,  color: "#FFD43B", label: "Urgente, não importante", shortLabel: "Urgente" },
+  nao_importante_nao_urgente:  { icon: Leaf, color: "#4CD97B", label: "Nem urgente, nem importante", shortLabel: "Depois" },
 };
 
 // ── PriorityBadge ────────────────────────────────────────────────
@@ -80,6 +80,7 @@ export default function AgendaPage() {
   const [showNewItem, setShowNewItem] = useState(false);
   const [newItemType, setNewItemType] = useState<"compromisso" | "tarefa">("tarefa");
   const [allWeekTasks, setAllWeekTasks] = useState<any[]>([]);
+  const [priorityFilter, setPriorityFilter] = useState<EisenhowerPriority | null>(null);
   const [newTitle, setNewTitle] = useState("");
   const [newEmoji, setNewEmoji] = useState("");
   const [newPriority, setNewPriority] = useState<EisenhowerPriority>("importante_nao_urgente");
@@ -256,22 +257,36 @@ export default function AgendaPage() {
           )}
         </div>
 
-        {/* ── Priority Legend ──────────────────────────────────── */}
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "8px 16px", marginBottom: 20 }}>
+        {/* ── Priority Legend (filtro clicável) ────────────────── */}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 20 }}>
           {(Object.entries(PRIORITY_CONFIG) as [EisenhowerPriority, typeof PRIORITY_CONFIG[EisenhowerPriority]][]).map(([key, cfg]) => {
             const Icon = cfg.icon;
+            const active = priorityFilter === key;
             return (
-              <span key={key} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 10, color: "#9e96b5" }}>
+              <button key={key} type="button" onClick={() => setPriorityFilter(active ? null : key)}
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: 5, fontSize: 10, fontWeight: 600,
+                  padding: "5px 10px", borderRadius: 9999, border: active ? `1.5px solid ${cfg.color}` : "1px solid rgba(167,139,250,0.1)",
+                  background: active ? cfg.color + "18" : "transparent",
+                  color: active ? cfg.color : "#9e96b5", cursor: "pointer", fontFamily: "inherit",
+                  transition: "all .15s ease",
+                }}>
                 <span style={{
-                  width: 18, height: 18, borderRadius: "50%", background: cfg.color + "22",
+                  width: 14, height: 14, borderRadius: "50%", background: cfg.color + "33",
                   display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
                 }}>
-                  <Icon size={10} color={cfg.color} />
+                  <Icon size={8} color={cfg.color} />
                 </span>
                 {cfg.shortLabel}
-              </span>
+              </button>
             );
           })}
+          {priorityFilter && (
+            <button type="button" onClick={() => setPriorityFilter(null)}
+              style={{ padding: "5px 8px", borderRadius: 9999, border: 0, background: "rgba(167,139,250,0.08)", color: "#9e96b5", fontSize: 10, cursor: "pointer", fontFamily: "inherit" }}>
+              ✕ limpar
+            </button>
+          )}
         </div>
 
         {/* ── METAS VIEW ─────────────────────────────────────── */}
