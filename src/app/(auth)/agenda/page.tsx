@@ -10,6 +10,7 @@ import { getLocalDate } from "@/lib/utils";
 import type { AgendaItem, EisenhowerPriority } from "@/types";
 import { MetasPanel } from "@/components/MetasPanel";
 import { PlanejamentoPanel } from "@/components/PlanejamentoPanel";
+import { GoalDetailSheet } from "@/components/GoalDetailSheet";
 
 // ── Helpers ──────────────────────────────────────────────────────
 
@@ -603,10 +604,16 @@ function ListView({ allWeekTasks, loadWeekTasks, compromissos, selectedDate }: {
   const [goals, setGoals] = useState<any[]>([]);
   const [editingItem, setEditingItem] = useState<any>(null);
   const [editTitle, setEditTitle] = useState("");
+  const [editDone, setEditDone] = useState(false);
+  const [detailGoalId, setDetailGoalId] = useState<string | null>(null);
+
+  const refreshGoals = () => {
+    fetch("/api/goals").then(r => r.json()).then(d => { if (Array.isArray(d)) setGoals(d.filter((g: any) => g.status === "ativa")); }).catch(() => {});
+  };
 
   useEffect(() => {
     if (allWeekTasks.length === 0) loadWeekTasks();
-    fetch("/api/goals").then(r => r.json()).then(d => { if (Array.isArray(d)) setGoals(d.filter((g: any) => g.status === "ativa")); }).catch(() => {});
+    refreshGoals();
   }, []); // eslint-disable-line
 
   const todayComp = compromissos.filter(c => c.item_type === "compromisso");
@@ -617,18 +624,33 @@ function ListView({ allWeekTasks, loadWeekTasks, compromissos, selectedDate }: {
   const selDow = selD.getDay() === 0 ? 6 : selD.getDay() - 1;
   const dayPlanTasks = allWeekTasks.filter((t: any) => t.day_of_week === selDow);
 
-  const openEditor = (item: any) => { setEditingItem(item); setEditTitle(item.title || ""); };
+  const openEditor = (item: any) => {
+    setEditingItem(item);
+    setEditTitle(item.title || "");
+    setEditDone(item.status === "concluida");
+  };
 
   const saveEdit = async () => {
     if (!editTitle.trim() || !editingItem) return;
     if (editingItem.item_type) {
-      // Agenda item
-      await fetch("/api/agenda", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: editingItem.id, title: editTitle.trim() }) });
+      await fetch("/api/agenda", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: editingItem.id, title: editTitle.trim(), status: editDone ? "concluida" : "pendente" }) });
     } else {
-      // Weekly task
-      await fetch(`/api/weekly-plans/tasks/${editingItem.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: editTitle.trim() }) });
+      await fetch(`/api/weekly-plans/tasks/${editingItem.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: editTitle.trim(), status: editDone ? "concluida" : "pendente" }) });
     }
     setEditingItem(null); loadWeekTasks();
+    // Refresh compromissos too
+    window.location.reload();
+  };
+
+  const deleteItem = async () => {
+    if (!confirm("Tem certeza que deseja excluir?")) return;
+    if (editingItem.item_type) {
+      await fetch(`/api/agenda?id=${editingItem.id}`, { method: "DELETE" });
+    } else {
+      await fetch(`/api/weekly-plans/tasks/${editingItem.id}`, { method: "DELETE" });
+    }
+    setEditingItem(null); loadWeekTasks();
+    window.location.reload();
   };
 
   return (
@@ -683,11 +705,11 @@ function ListView({ allWeekTasks, loadWeekTasks, compromissos, selectedDate }: {
         <div style={{ marginBottom: 16 }}>
           <h3 style={{ margin: "0 0 10px", fontSize: 13, fontWeight: 700, color: "#A78BFA", textTransform: "uppercase", letterSpacing: ".06em" }}>Metas ativas</h3>
           {activeGoals.map((g: any) => (
-            <div key={g.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 0", borderTop: "1px solid rgba(167,139,250,0.05)" }}>
+            <button key={g.id} type="button" onClick={() => setDetailGoalId(g.id)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "10px 0", borderTop: "1px solid rgba(167,139,250,0.05)", background: "none", borderLeft: 0, borderRight: 0, cursor: "pointer", textAlign: "left", fontFamily: "inherit" }}>
               <span style={{ fontSize: 12 }}>{(AREA_CONFIG_PT as any)[g.area]?.emoji || "🎯"}</span>
               <span style={{ flex: 1, fontSize: 12, color: "#9e96b5" }}>{g.title}</span>
               <span style={{ fontSize: 9, color: "#A78BFA" }}>{(g.goal_stages?.filter((s: any) => s.status === "concluida").length || 0)}/{g.goal_stages?.length || 0}</span>
-            </div>
+            </button>
           ))}
         </div>
       )}
@@ -697,18 +719,31 @@ function ListView({ allWeekTasks, loadWeekTasks, compromissos, selectedDate }: {
       )}
 
       {/* Edit modal */}
+      {detailGoalId && <GoalDetailSheet goalId={detailGoalId} onClose={() => setDetailGoalId(null)} onUpdated={refreshGoals} />}
+
       {editingItem && (
         <div style={{ position: "fixed", inset: 0, zIndex: 100, background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
           <div style={{ width: "100%", maxWidth: 400, background: "#151520", borderRadius: 24, padding: 24, border: "1px solid rgba(167,139,250,0.15)" }}>
             <h3 style={{ margin: "0 0 16px", fontSize: 15, fontWeight: 700, color: "#e0d6ff" }}>Editar</h3>
             <input value={editTitle} onChange={e => setEditTitle(e.target.value)} placeholder="Título" autoFocus
               style={{ width: "100%", boxSizing: "border-box", padding: "12px 14px", borderRadius: 12, border: "1px solid rgba(167,139,250,0.2)", background: "#0B0B10", color: "#e0d6ff", fontSize: 14, fontFamily: "inherit", outline: "none" }} />
+            {/* Toggle concluído */}
+            <label style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 14, cursor: "pointer" }}>
+              <input type="checkbox" checked={editDone} onChange={e => setEditDone(e.target.checked)}
+                style={{ accentColor: "#7C5CFF", width: 20, height: 20 }} />
+              <span style={{ fontSize: 13, fontWeight: 600, color: "#e0d6ff" }}>Concluído</span>
+            </label>
             <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
               <button type="button" onClick={() => setEditingItem(null)}
                 style={{ flex: 1, padding: 14, borderRadius: 14, border: "1px solid rgba(167,139,250,0.2)", background: "transparent", color: "#9e96b5", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Cancelar</button>
               <button type="button" onClick={saveEdit}
                 style={{ flex: 2, padding: 14, borderRadius: 14, border: 0, background: "#7C5CFF", color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Salvar</button>
             </div>
+            {/* Delete */}
+            <button type="button" onClick={deleteItem}
+              style={{ width: "100%", marginTop: 12, padding: "12px 0", borderRadius: 14, border: 0, background: "rgba(255,92,92,0.1)", color: "#FF5C5C", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+              🗑 Excluir
+            </button>
           </div>
         </div>
       )}
