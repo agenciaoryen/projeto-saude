@@ -190,16 +190,10 @@ export default function AgendaPage() {
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             <button type="button"
-              onClick={() => {
-                if (viewMode === "semana") setSelectedDate(shiftDate(selectedDate, -7));
-                else setSelectedDate(shiftDate(selectedDate, -1));
-              }}
+              onClick={() => setSelectedDate(shiftDate(selectedDate, activeModule === "planejamento" ? -7 : -1))}
               style={navBtnStyle}><ChevronLeft size={18} /></button>
             <button type="button"
-              onClick={() => {
-                if (viewMode === "semana") setSelectedDate(shiftDate(selectedDate, 7));
-                else setSelectedDate(shiftDate(selectedDate, 1));
-              }}
+              onClick={() => setSelectedDate(shiftDate(selectedDate, activeModule === "planejamento" ? 7 : 1))}
               style={navBtnStyle}><ChevronRight size={18} /></button>
           </div>
         </div>
