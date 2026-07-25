@@ -8,7 +8,7 @@ const AREAS = [
   { id: "carreira", emoji: "💼", label: "Carreira" },
   { id: "financas", emoji: "💰", label: "Finanças" },
   { id: "relacionamentos", emoji: "❤️", label: "Relac." },
-  { id: "desenvolvimento", emoji: "🧠", label: "Desenv." },
+  { id: "desenvolvimento", emoji: "🧠", label: "Mente" },
   { id: "familia", emoji: "🏡", label: "Família" },
   { id: "lazer", emoji: "🌊", label: "Lazer" },
   { id: "espiritualidade", emoji: "✨", label: "Espirit." },

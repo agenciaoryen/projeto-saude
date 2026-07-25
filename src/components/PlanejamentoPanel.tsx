@@ -16,7 +16,7 @@ const ALL_AREAS = Object.keys(AREA_CONFIG);
 
 const AREAS_LABELS: Record<string, string> = {
   saude: "Saúde", carreira: "Carreira", financas: "Finanças",
-  relacionamentos: "Relac.", desenvolvimento: "Desenv.", familia: "Família",
+  relacionamentos: "Relac.", desenvolvimento: "Mente", familia: "Família",
   lazer: "Lazer", espiritualidade: "Espirit.", outros: "Outros",
 };
 const DAY_NAMES = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
@@ -38,7 +38,7 @@ function MiniRadar({ counts }: { counts: Record<string, number> }) {
     { key: "carreira", label: "Carreira", emoji: "💼", hue: 220 },
     { key: "financas", label: "Finanças", emoji: "💰", hue: 85 },
     { key: "relacionamentos", label: "Relac.", emoji: "❤️", hue: 15 },
-    { key: "desenvolvimento", label: "Desenv.", emoji: "🧠", hue: 270 },
+    { key: "desenvolvimento", label: "Mente", emoji: "🧠", hue: 270 },
     { key: "familia", label: "Família", emoji: "🏡", hue: 40 },
     { key: "lazer", label: "Lazer", emoji: "🌊", hue: 185 },
     { key: "espiritualidade", label: "Espirit.", emoji: "✨", hue: 300 },

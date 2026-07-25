@@ -8,7 +8,7 @@ import { GoalDetailSheet } from "@/components/GoalDetailSheet";
 const AREA_CONFIG: Record<string, { emoji: string; hue: number }> = {
   saude: { emoji: "💚", hue: 160 }, carreira: { emoji: "💼", hue: 220 },
   financas: { emoji: "💰", hue: 85 }, relacionamentos: { emoji: "❤️", hue: 15 },
-  desenvolvimento: { emoji: "🧠", hue: 270 }, familia: { emoji: "🏡", hue: 40 },
+  desenvolvimento: { emoji: "🧠", hue: 270, label: "Mente" }, familia: { emoji: "🏡", hue: 40 },
   lazer: { emoji: "🌊", hue: 185 }, espiritualidade: { emoji: "✨", hue: 300 },
 };
 
