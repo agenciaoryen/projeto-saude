@@ -13,6 +13,12 @@ const AREA_CONFIG: Record<string, { emoji: string; hue: number }> = {
 };
 
 const ALL_AREAS = Object.keys(AREA_CONFIG);
+
+const AREAS_LABELS: Record<string, string> = {
+  saude: "Saúde", carreira: "Carreira", financas: "Finanças",
+  relacionamentos: "Relac.", desenvolvimento: "Desenv.", familia: "Família",
+  lazer: "Lazer", espiritualidade: "Espirit.", outros: "Outros",
+};
 const DAY_NAMES = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
 const DAY_FULL = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"];
 
@@ -38,7 +44,7 @@ function MiniRadar({ counts }: { counts: Record<string, number> }) {
     { key: "espiritualidade", label: "Espirit.", emoji: "✨", hue: 300 },
     { key: "outros", label: "Outros", emoji: "⚪", hue: 200 },
   ];
-  const N = RADAR.length, MAX = 5, cx = 120, cy = 120, R = 72;
+  const N = RADAR.length, MAX = 5, cx = 140, cy = 140, R = 80;
   const pt = (i: number, v: number) => {
     const a = -Math.PI / 2 + (i * 2 * Math.PI) / N;
     return [cx + R * (Math.min(v, MAX) / MAX) * Math.cos(a), cy + R * (Math.min(v, MAX) / MAX) * Math.sin(a)];
@@ -52,7 +58,7 @@ function MiniRadar({ counts }: { counts: Record<string, number> }) {
         <p style={{ margin: 0, fontSize: 10, fontWeight: 700, letterSpacing: ".1em", textTransform: "uppercase", color: "#A78BFA" }}>Roda das áreas</p>
         <span style={{ fontSize: 10, color: "#9e96b5" }}>{covered}/{N} cobertas</span>
       </div>
-      <svg viewBox="0 0 260 260" style={{ width: "100%", maxWidth: 260, display: "block", margin: "0 auto" }}>
+      <svg viewBox="0 0 300 310" style={{ width: "100%", maxWidth: 300, display: "block", margin: "0 auto" }}>
         {[0.25, 0.5, 0.75, 1].map(r => (
           <polygon key={r} points={RADAR.map((_, i) => {
             const a = -Math.PI / 2 + (i * 2 * Math.PI) / N;
@@ -68,11 +74,11 @@ function MiniRadar({ counts }: { counts: Record<string, number> }) {
         })}
         {RADAR.map((a, i) => {
           const angle = -Math.PI / 2 + (i * 2 * Math.PI) / N;
-          const lx = cx + (R + 38) * Math.cos(angle), ly = cy + (R + 38) * Math.sin(angle);
+          const lx = cx + (R + 50) * Math.cos(angle), ly = cy + (R + 50) * Math.sin(angle);
           return (
             <g key={a.key}>
-              <text x={lx} y={ly - 7} textAnchor="middle" dominantBaseline="middle" fontSize="13">{a.emoji}</text>
-              <text x={lx} y={ly + 8} textAnchor="middle" dominantBaseline="middle" fontSize="9" fill="#9e96b5" fontWeight={600}>{a.label}</text>
+              <text x={lx} y={ly - 8} textAnchor="middle" dominantBaseline="middle" fontSize="14">{a.emoji}</text>
+              <text x={lx} y={ly + 9} textAnchor="middle" dominantBaseline="middle" fontSize="9" fill="#9e96b5" fontWeight={600}>{a.label}</text>
             </g>
           );
         })}
@@ -227,10 +233,6 @@ export function PlanejamentoPanel() {
       <div style={{ background: "#1a1530", borderRadius: 16, border: "1px solid rgba(167,139,250,0.1)", padding: "10px 14px", marginBottom: 8 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
           <p style={{ margin: 0, fontSize: 11, fontWeight: 600, color: "#9e96b5" }}>{DAY_FULL[selectedDay]}</p>
-          <button type="button" onClick={() => { setNewTaskDay(selectedDay); setShowAddTask(true); }}
-            style={{ background: "none", border: 0, color: "#A78BFA", cursor: "pointer", padding: 2, display: "flex", alignItems: "center", gap: 3, fontFamily: "inherit", fontSize: 11, fontWeight: 600 }}>
-            <Plus size={12} /> Adicionar
-          </button>
         </div>
         {selectedDayTasks.length === 0 ? (
           <p style={{ color: "#9e96b5", fontSize: 12, textAlign: "center", padding: 8, margin: 0 }}>Nenhuma tarefa</p>
@@ -273,6 +275,18 @@ export function PlanejamentoPanel() {
         {avancado ? "Recolher" : "Avançado"} <ChevronDown size={12} style={{ transform: avancado ? "rotate(180deg)" : "none", transition: "transform .2s" }} />
       </button>
 
+      {/* FAB */}
+      <button type="button" onClick={() => { setNewTaskDay(selectedDay); setShowAddTask(true); }}
+        style={{
+          position: "fixed", bottom: 84, right: 20, zIndex: 40,
+          width: 56, height: 56, borderRadius: "50%",
+          background: "#7C5CFF", border: 0, cursor: "pointer",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          boxShadow: "0 4px 20px rgba(124,92,255,0.4)",
+        }}>
+        <Plus size={24} color="#fff" />
+      </button>
+
       {avancado && (
         <div style={{ marginTop: 8 }}>
           {/* History */}
@@ -300,7 +314,7 @@ export function PlanejamentoPanel() {
       {showAddTask && (
         <div style={{ position: "fixed", inset: 0, zIndex: 100, background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
           <div style={{ width: "100%", maxWidth: 400, maxHeight: "80dvh", overflowY: "auto", background: "#151520", borderRadius: 24, padding: 24, border: "1px solid rgba(167,139,250,0.15)" }}>
-            <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 700, color: "#e0d6ff" }}>Nova tarefa</h3>
+            <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 700, color: "#e0d6ff" }}>Nova atividade</h3>
             <input value={newTaskTitle} onChange={e => setNewTaskTitle(e.target.value)} placeholder="Título" autoFocus style={inputS} />
             <p style={{ fontSize: 10, color: "#A78BFA", margin: "12px 0 6px", fontWeight: 600, textTransform: "uppercase", letterSpacing: ".08em" }}>Área</p>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 4 }}>
@@ -310,7 +324,9 @@ export function PlanejamentoPanel() {
                 <button key={a} type="button" onClick={() => setNewTaskArea(a)}
                   style={{ padding: "8px 4px", borderRadius: 10, border: newTaskArea === a ? "2px solid #7C5CFF" : "1px solid rgba(167,139,250,0.15)", background: newTaskArea === a ? "rgba(124,92,255,0.1)" : "#0B0B10", cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6 }}>
                   <span style={{ fontSize: 16 }}>{area?.emoji}</span>
-                  <span style={{ fontSize: 10, fontWeight: 600, color: newTaskArea === a ? "#A78BFA" : "#9e96b5" }}>{a === "desenvolvimento" ? "Desenv." : a === "relacionamentos" ? "Relac." : a === "espiritualidade" ? "Espirit." : a.charAt(0).toUpperCase() + a.slice(1)}</span>
+                  <span style={{ fontSize: 10, fontWeight: 600, color: newTaskArea === a ? "#A78BFA" : "#9e96b5" }}>{
+                    (AREAS_LABELS as any)[a] || a
+                  }</span>
                 </button>
                 );
               })}
