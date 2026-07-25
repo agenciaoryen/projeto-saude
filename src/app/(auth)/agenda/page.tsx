@@ -83,6 +83,13 @@ export default function AgendaPage() {
   const [newItemType, setNewItemType] = useState<"compromisso" | "tarefa">("tarefa");
   const [allWeekTasks, setAllWeekTasks] = useState<any[]>([]);
   const [priorityFilter, setPriorityFilter] = useState<EisenhowerPriority | null>(null);
+  const [editingItem, setEditingItem] = useState<AgendaItem | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editDone, setEditDone] = useState(false);
+  const [editStartTime, setEditStartTime] = useState("");
+  const [editEndTime, setEditEndTime] = useState("");
+  const [editEmoji, setEditEmoji] = useState("");
+  const [editPriority, setEditPriority] = useState<EisenhowerPriority>("importante_nao_urgente");
   const [newTitle, setNewTitle] = useState("");
   const [newEmoji, setNewEmoji] = useState("");
   const [newPriority, setNewPriority] = useState<EisenhowerPriority>("importante_nao_urgente");
@@ -279,7 +286,7 @@ export default function AgendaPage() {
         {activeModule === "planejamento" && <PlanejamentoPanel selectedDate={selectedDate} />}
 
         {/* ── TIMELINE (só agenda, view dia) ──────────────────── */}
-        {activeModule === "agenda" && viewMode === "dia" && filteredCompromissos.length > 0 && (
+        {activeModule === "agenda" && viewMode === "dia" && (
           <div style={{
             background: "#1a1530", borderRadius: 18,
             border: "1px solid rgba(167,139,250,0.12)",
@@ -288,13 +295,22 @@ export default function AgendaPage() {
             <div style={{ display: "flex", minHeight: 400, position: "relative" }}>
               {/* Hour labels */}
               <div style={{ width: 48, flexShrink: 0, display: "flex", flexDirection: "column", paddingTop: 4 }}>
-                {HOUR_LABELS.map((label) => (
-                  <div key={label} style={{
-                    flex: 1, display: "flex", alignItems: "flex-start", justifyContent: "flex-end",
-                    paddingRight: 8,
-                  }}>
+                {HOUR_LABELS.map((label, idx) => (
+                  <button key={label} type="button"
+                    onClick={() => {
+                      const h = TIMELINE_START + idx;
+                      setNewItemType("compromisso");
+                      setNewStartTime(`${String(h).padStart(2, "0")}:00`);
+                      setNewEndTime(`${String(h + 1).padStart(2, "0")}:00`);
+                      setShowNewItem(true);
+                    }}
+                    style={{
+                      flex: 1, display: "flex", alignItems: "flex-start", justifyContent: "flex-end",
+                      paddingRight: 8, background: "none", border: 0, cursor: "pointer",
+                      fontFamily: "inherit",
+                    }}>
                     <span style={{ fontSize: 10, color: "#9e96b5", lineHeight: 1 }}>{label}</span>
-                  </div>
+                  </button>
                 ))}
               </div>
 
@@ -307,6 +323,25 @@ export default function AgendaPage() {
                   borderRadius: 1,
                 }} />
 
+                {/* Clickable hour slots */}
+                {HOUR_LABELS.map((_, idx) => (
+                  <button key={idx} type="button"
+                    onClick={() => {
+                      const h = TIMELINE_START + idx;
+                      setNewItemType("compromisso");
+                      setNewStartTime(`${String(h).padStart(2, "0")}:00`);
+                      setNewEndTime(`${String(h + 1).padStart(2, "0")}:00`);
+                      setShowNewItem(true);
+                    }}
+                    style={{
+                      position: "absolute", left: 12, right: 8,
+                      top: `${(idx / HOUR_LABELS.length) * 100}%`,
+                      height: `${(1 / HOUR_LABELS.length) * 100}%`,
+                      background: "transparent", border: 0, cursor: "pointer",
+                    }}
+                  />
+                ))}
+
                 {/* Event cards */}
                 {filteredCompromissos.map((item) => {
                   const top = getTopPct(item.start_time || "07:00");
@@ -317,15 +352,17 @@ export default function AgendaPage() {
                   const PriorityIcon = priorityCfg.icon;
 
                   return (
-                    <div key={item.id}
+                    <button key={item.id} type="button"
+                      onClick={(e) => { e.stopPropagation(); setEditingItem(item); setEditTitle(item.title || ""); setEditDone(item.status === "concluida"); }}
                       style={{
-                        position: "absolute", left: 12, right: 8,
+                        position: "absolute", left: 12, right: 8, zIndex: 2,
                         top: `${top}%`, height: `${height}%`, minHeight: 50,
-                        background: "rgba(124,92,255,0.12)",
-                        border: "1px solid rgba(167,139,250,0.2)",
+                        background: "rgba(124,92,255,0.15)",
+                        border: "1px solid rgba(167,139,250,0.3)",
                         borderRadius: 12, padding: "10px 12px",
                         display: "flex", flexDirection: "column",
-                        justifyContent: "center",
+                        justifyContent: "center", cursor: "pointer",
+                        textAlign: "left", fontFamily: "inherit",
                       }}>
                       <span style={{ fontSize: 9, color: "#A78BFA", marginBottom: 2 }}>
                         {item.start_time?.slice(0, 5)} – {item.end_time?.slice(0, 5)}
@@ -339,23 +376,11 @@ export default function AgendaPage() {
                           <PriorityIcon size={9} /> {priorityCfg.shortLabel}
                         </span>
                       </div>
-                    </div>
+                    </button>
                   );
                 })}
               </div>
             </div>
-          </div>
-        )}
-
-        {/* Empty timeline state (só agenda, view dia) */}
-        {activeModule === "agenda" && viewMode === "dia" && filteredCompromissos.length === 0 && (
-          <div style={{
-            textAlign: "center", padding: "32px 16px", marginBottom: 20,
-            background: "#1a1530", borderRadius: 18,
-            border: "1px dashed rgba(167,139,250,0.15)",
-          }}>
-            <p style={{ color: "#9e96b5", fontSize: 13 }}>Nenhum compromisso hoje</p>
-            <p style={{ color: "#9e96b5", fontSize: 11, marginTop: 4 }}>Toque no + para adicionar</p>
           </div>
         )}
 
@@ -438,6 +463,66 @@ export default function AgendaPage() {
             }
           } catch {}
         }} />
+      )}
+
+      {/* ── Detail popup for compromisso ────────────────────── */}
+      {editingItem && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 100, background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          <div style={{ width: "100%", maxWidth: 400, background: "#151520", borderRadius: 24, padding: 24, border: "1px solid rgba(167,139,250,0.15)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#e0d6ff" }}>
+                  {editingItem.emoji && <span style={{ marginRight: 6 }}>{editingItem.emoji}</span>}
+                  {editingItem.title}
+                </h3>
+                {editingItem.start_time && (
+                  <p style={{ margin: "4px 0 0", fontSize: 12, color: "#A78BFA" }}>
+                    {editingItem.start_time.slice(0, 5)} – {editingItem.end_time?.slice(0, 5)}
+                  </p>
+                )}
+              </div>
+              <button type="button" onClick={() => setEditingItem(null)} style={{ background: "none", border: 0, color: "#9e96b5", fontSize: 18, cursor: "pointer" }}>✕</button>
+            </div>
+
+            <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+              <button type="button" onClick={() => {
+                setEditTitle(editingItem.title);
+                setEditStartTime(editingItem.start_time?.slice(0,5) || "09:00");
+                setEditEndTime(editingItem.end_time?.slice(0,5) || "10:00");
+                setEditEmoji(editingItem.emoji || "");
+                setEditPriority(editingItem.priority as EisenhowerPriority);
+                setEditDone(editingItem.status === "concluida");
+                setEditingItem(null);
+                setNewItemType(editingItem.item_type as "compromisso" | "tarefa");
+                setShowEditExisting(editingItem);
+              }}
+                style={{ flex: 1, padding: 10, borderRadius: 12, border: "1px solid rgba(167,139,250,0.2)", background: "transparent", color: "#A78BFA", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                ✏️ Editar
+              </button>
+              <button type="button" onClick={async () => {
+                if (!confirm("Excluir este compromisso?")) return;
+                await fetch(`/api/agenda?id=${editingItem.id}`, { method: "DELETE" });
+                setEditingItem(null); fetchItems(selectedDate);
+              }}
+                style={{ flex: 1, padding: 10, borderRadius: 12, border: 0, background: "rgba(255,92,92,0.1)", color: "#FF5C5C", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                🗑 Excluir
+              </button>
+            </div>
+            <button type="button" onClick={() => {
+              setNewItemType("compromisso");
+              setNewStartTime(editingItem.start_time?.slice(0,5) || "09:00");
+              setNewEndTime(editingItem.end_time?.slice(0,5) || "10:00");
+              setNewEmoji(editingItem.emoji || "");
+              setNewPriority(editingItem.priority as EisenhowerPriority);
+              setNewTitle(editingItem.title);
+              setShowNewItem(true);
+              setEditingItem(null);
+            }}
+              style={{ width: "100%", marginTop: 8, padding: 10, borderRadius: 12, border: "1px solid rgba(167,139,250,0.15)", background: "rgba(167,139,250,0.05)", color: "#9e96b5", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+              📋 Duplicar
+            </button>
+          </div>
+        </div>
       )}
 
       {/* ── FAB (Dia e Metas) ────────────────────────────────── */}
