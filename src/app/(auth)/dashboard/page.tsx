@@ -231,9 +231,8 @@ export default function DashboardPage() {
       }>("/api/preferences"),
       fetch("/api/profile").then((r) => r.json()).catch(() => ({})),
       fetch("/api/weekly-plans").then((r) => r.json()).catch(() => null),
-      fetch("/api/sleep?limit=7").then((r) => r.json()).catch(() => []),
     ])
-      .then(([checkInsData, prefsData, profileData, weeklyPlanData, sleepLogsData]) => {
+      .then(([checkInsData, prefsData, profileData, weeklyPlanData]) => {
         if (!prefsData.onboarding_completed) {
           router.push("/onboarding");
           return;
@@ -263,15 +262,6 @@ export default function DashboardPage() {
         if (profileData.name) setUserName(profileData.name);
         if (profileData.gender) setUserGender(profileData.gender);
         else if (prefsData.context?.gender) setUserGender(prefsData.context.gender as string);
-        // Build sleep log map: date -> quality
-        const sleepMap: Record<string, { quality: number | null }> = {};
-        if (Array.isArray(sleepLogsData)) {
-          for (const log of sleepLogsData) {
-            if (log.date) sleepMap[log.date] = { quality: log.quality ?? null };
-          }
-        }
-        setSleepLogs(sleepMap);
-
         if (profileData.porques?.length > 0) {
           setPorques(profileData.porques);
           const pq = profileData.porques[0];
@@ -283,6 +273,19 @@ export default function DashboardPage() {
         setTodayTasks(allTasks.filter((t: WeeklyTask) => t.day_of_week === todayDow));
 
         setLoading(false);
+
+        // Fetch sleep logs separately (don't block dashboard load)
+        fetch("/api/sleep?limit=7").then(r => r.json()).then(data => {
+          if (Array.isArray(data)) {
+            const map: Record<string, { quality: number | null }> = {};
+            for (const log of data) { if (log.date) map[log.date] = { quality: log.quality ?? null }; }
+            setSleepLogs(map);
+            const recent = Object.entries(map).sort((a, b) => b[0].localeCompare(a[0]));
+            if (recent.length > 0 && recent[0][1].quality != null) {
+              setYesterdaySleep(recent[0][1].quality >= 3);
+            }
+          }
+        }).catch(() => {});
       })
       .catch(() => setLoading(false));
 
@@ -308,27 +311,6 @@ export default function DashboardPage() {
       })
       .catch(() => {});
   }, [router]);
-
-  // Re-fetch sleep data when user returns to this tab
-  useEffect(() => {
-    const onFocus = () => {
-      fetch("/api/sleep?limit=7").then(r => r.json()).then(data => {
-        if (Array.isArray(data)) {
-          const map: Record<string, { quality: number | null }> = {};
-          for (const log of data) { if (log.date) map[log.date] = { quality: log.quality ?? null }; }
-          setSleepLogs(map);
-          // Update yesterdaySleep
-          const today = getLocalDate();
-          const recent = Object.entries(map).sort((a, b) => b[0].localeCompare(a[0]));
-          if (recent.length > 0 && recent[0][1].quality != null) {
-            setYesterdaySleep(recent[0][1].quality >= 3);
-          }
-        }
-      }).catch(() => {});
-    };
-    window.addEventListener("focus", onFocus);
-    return () => window.removeEventListener("focus", onFocus);
-  }, []);
 
   // Auto-rotate porquê every 30s
   useEffect(() => {
