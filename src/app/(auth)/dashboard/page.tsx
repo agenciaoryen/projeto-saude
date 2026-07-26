@@ -309,6 +309,27 @@ export default function DashboardPage() {
       .catch(() => {});
   }, [router]);
 
+  // Re-fetch sleep data when user returns to this tab
+  useEffect(() => {
+    const onFocus = () => {
+      fetch("/api/sleep?limit=7").then(r => r.json()).then(data => {
+        if (Array.isArray(data)) {
+          const map: Record<string, { quality: number | null }> = {};
+          for (const log of data) { if (log.date) map[log.date] = { quality: log.quality ?? null }; }
+          setSleepLogs(map);
+          // Update yesterdaySleep
+          const today = getLocalDate();
+          const recent = Object.entries(map).sort((a, b) => b[0].localeCompare(a[0]));
+          if (recent.length > 0 && recent[0][1].quality != null) {
+            setYesterdaySleep(recent[0][1].quality >= 3);
+          }
+        }
+      }).catch(() => {});
+    };
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, []);
+
   // Auto-rotate porquê every 30s
   useEffect(() => {
     if (porques.length <= 1) return;
