@@ -8,47 +8,60 @@ import { getLocalDate } from "@/lib/utils";
 interface NudgeResult {
   id: string;
   message: string;
-  priority: number; // 1 = highest
+  priority: number;
 }
 
-async function detectTriggers(userId: string, today: string, userName: string): Promise<NudgeResult | null> {
+function saludo(firstName: string): string {
+  return `Oii, ${firstName || ""}`.trim().replace(/\s+$/, "") + "!";
+}
+
+function pick<T>(arr: T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+async function detectTriggers(userId: string, today: string, firstName: string, gender: string): Promise<NudgeResult | null> {
   const admin = getSupabaseAdmin();
+
+  const soloSolo = gender === "feminino" ? "sozinha" : "sozinho";
+  const oo = gender === "feminino" ? "a" : "o";
 
   // Fetch recent data
   const [
     { data: recentCheckIns },
     { data: activeGoals },
     { data: todayTx },
-    { data: weekPlan },
+    { data: lastDiary },
   ] = await Promise.all([
     admin.from("check_ins").select("*").eq("user_id", userId).order("date", { ascending: false }).limit(10),
     admin.from("goals").select("*, goal_stages(*)").eq("user_id", userId).eq("status", "ativa").order("created_at", { ascending: true }),
     admin.from("financial_transactions").select("amount, type").eq("user_id", userId).gte("date", `${today.slice(0, 7)}-01`).lte("date", `${today.slice(0, 7)}-31`),
-    admin.from("weekly_plans").select("main_focus").eq("user_id", userId).order("week_start", { ascending: false }).limit(1).maybeSingle(),
+    admin.from("diary_entries").select("date").eq("user_id", userId).order("date", { ascending: false }).limit(1),
   ]);
 
-  const firstName = userName.split(" ")[0] || "";
   const checks = recentCheckIns || [];
 
+  const greet = saludo(firstName);
+  const hasTodayCheckIn = checks.length > 0 && checks[0]?.date === today;
+
   // ── STREAK IN RISK ──
-  if (checks.length >= 3) {
+  if (checks.length >= 3 && !hasTodayCheckIn) {
     let streak = 0;
     const todayDate = new Date(today + "T12:00:00");
     for (let i = 0; i < checks.length; i++) {
       const checkDate = new Date(checks[i].date + "T12:00:00");
       const expected = new Date(todayDate);
       expected.setDate(expected.getDate() - i);
-      if (checkDate.getTime() === expected.getTime()) {
-        streak++;
-      } else {
-        break;
-      }
+      if (checkDate.getTime() === expected.getTime()) streak++;
+      else break;
     }
-    const hasToday = checks[0]?.date === today;
-    if (streak >= 5 && !hasToday) {
+    if (streak >= 5) {
       return {
         id: "streak_risk",
-        message: `${firstName}, você está há ${streak} dias seguidos fazendo check-in. Hoje ainda não fez. Não quebra essa corrente! 🥺 Vai, 2 minutinhos.`,
+        message: pick([
+          `${greet} vi que você está há ${streak} dias sem falhar no check-in. Hoje ainda não rolou... tá tudo bem?`,
+          `${greet} ${streak} dias seguidos! 🥺 Vi que hoje ainda não fez seu check-in. Aconteceu alguma coisa?`,
+          `${greet} sua corrente de ${streak} dias tá correndo perigo! Tá tudo bem? Não precisa escrever muito, só uns toques.`,
+        ]),
         priority: 1,
       };
     }
@@ -61,7 +74,11 @@ async function detectTriggers(userId: string, today: string, userName: string): 
     if (badSleepCount >= 3) {
       return {
         id: "sleep_bad",
-        message: `${firstName}, você dormiu mal nos últimos 3 dias. Isso afeta seu humor, energia e foco. Quer conversar sobre o que pode estar atrapalhando?`,
+        message: pick([
+          `${greet} vi que você dormiu mal nos últimos 3 dias. Isso mexe com tudo: humor, energia, foco. Quer conversar sobre o que pode estar atrapalhando?`,
+          `${greet} notei que seu sono não tá legal faz 3 dias. Às vezes a gente nem percebe o que tá roubando nosso descanso. Bora tentar entender juntos?`,
+          `${greet} olhei aqui e vi que você não dormiu bem nos últimos dias. Seu corpo tá pedindo atenção. O que será que tá roubando seu sono?`,
+        ]),
         priority: 2,
       };
     }
@@ -77,27 +94,59 @@ async function detectTriggers(userId: string, today: string, userName: string): 
     if (negativeMoods.length >= 2 && moods.length >= 2) {
       return {
         id: "mood_drop",
-        message: `${firstName}, seu humor caiu nos últimos dias. Não tem que enfrentar isso sozinho(a). Me conta o que está pesando?`,
+        message: pick([
+          `${greet} vi que seu humor caiu nos últimos dias. Não precisa enfrentar isso ${soloSolo}. Me conta o que tá pesando?`,
+          `${greet} tá tudo bem não estar bem. Vi que você não está nos seus melhores dias. Quer desabafar um pouco?`,
+          `${greet} senti que você tá mais pra baixo esses dias. Se quiser conversar, tô aqui. Sem pressa, sem cobrança.`,
+        ]),
         priority: 2,
+      };
+    }
+  }
+
+  // ── DIARY ABANDONED ──
+  if (lastDiary && lastDiary.length > 0) {
+    const lastDiaryDate = new Date(lastDiary[0].date + "T12:00:00");
+    const now = new Date(today + "T12:00:00");
+    const daysSince = Math.floor((now.getTime() - lastDiaryDate.getTime()) / 86_400_000);
+    if (daysSince >= 5) {
+      return {
+        id: "diary_abandoned",
+        message: pick([
+          `${greet} faz ${daysSince} dias que você não escreve no diário. Escrever ajuda a clarear a mente... quando quiser, tô aqui pra ler.`,
+          `${greet} vi que seu diário tá paradinho faz ${daysSince} dias. Não precisa escrever um texto, uma frase já vale. Tá afim?`,
+          `${greet} lembrei do seu diário... já faz ${daysSince} dias. Às vezes a gente só precisa despejar os pensamentos em algum lugar.`,
+        ]),
+        priority: 3,
       };
     }
   }
 
   // ── GOAL STAGNATION ──
   if (activeGoals && activeGoals.length > 0) {
-    const now = new Date();
+    const nowDate = new Date();
     for (const g of activeGoals) {
       const stages = (g.goal_stages as any[]) || [];
       const timestamps = [new Date(g.updated_at).getTime()];
-      for (const s of stages) {
-        timestamps.push(new Date(s.updated_at).getTime());
-      }
+      for (const s of stages) timestamps.push(new Date(s.updated_at).getTime());
       const lastActive = Math.max(...timestamps);
-      const daysInactive = Math.floor((now.getTime() - lastActive) / 86_400_000);
+      const daysInactive = Math.floor((nowDate.getTime() - lastActive) / 86_400_000);
       if (daysInactive >= 7) {
+        // Humanize goal title: remove numbers, simplify
+        const rawTitle: string = g.title || "";
+        const summary = rawTitle
+          .replace(/\d+\s*(kg|kilos|quilos|meses|dias|semanas)/gi, "")
+          .replace(/em\s+\d+\s+\w+/gi, "")
+          .replace(/[\(\)]/g, "")
+          .trim()
+          .slice(0, 40) || "melhorar";
         return {
           id: "goal_stale",
-          message: `${firstName}, sua meta "${g.title}" está parada há ${daysInactive} dias. Quer destravar? Posso te ajudar a pensar no primeiro passo.`,
+          message: pick([
+            `${greet} vi que sua meta de ${summary} tá paradinha há ${daysInactive} dias. Quer destravar? Posso te ajudar a pensar no primeiro passo.`,
+            `${greet} estava olhando aqui e vi que você não mexeu na sua meta de ${summary} faz um tempinho. Tá difícil? Me conta.`,
+            `${greet} sabe aquela meta de ${summary}? Tá parada há ${daysInactive} dias. Mas ei, isso é normal. Bora dar um passo pequeno hoje?`,
+          ]),
           priority: 3,
         };
       }
@@ -106,20 +155,27 @@ async function detectTriggers(userId: string, today: string, userName: string): 
 
   // ── SPENDING ALERT ──
   const totalSpent = (todayTx || []).filter((t: any) => t.type === "despesa").reduce((s: number, t: any) => s + (t.amount || 0), 0);
-  if (totalSpent > 0) {
+  if (totalSpent > 80) {
     return {
       id: "spending",
-      message: `${firstName}, você já gastou R$ ${totalSpent.toFixed(2).replace(".", ",")} este mês. Quer revisar seu orçamento comigo?`,
+      message: pick([
+        `${greet} vi que já gastou R$ ${totalSpent.toFixed(0).replace(".", ",")} este mês. Tá conseguindo se organizar? Posso te ajudar a revisar.`,
+        `${greet} dei uma olhada nos seus gastos e bateu R$ ${totalSpent.toFixed(0).replace(".", ",")} em compras. Quer dar uma revisada comigo?`,
+        `${greet} notei que seus gastos tão em R$ ${totalSpent.toFixed(0).replace(".", ",")}. Tudo sob controle ou quer uma ajudinha pra revisar?`,
+      ]),
       priority: 4,
     };
   }
 
   // ── NO CHECK-IN TODAY ──
-  const hasTodayCheckIn = checks[0]?.date === today;
   if (!hasTodayCheckIn) {
     return {
       id: "checkin_miss",
-      message: `${firstName}, ainda não fez seu check-in hoje. São só 2 minutos. Como você está?`,
+      message: pick([
+        `${greet} como você está hoje? Ainda não fez seu check-in. São 2 minutinhos e me ajuda a te conhecer melhor.`,
+        `${greet} passando aqui pra saber de você. Não fez o check-in ainda... como tá seu dia?`,
+        `${greet} tava por aqui e vi que você ainda não passou no check-in hoje. Como você está?`,
+      ]),
       priority: 1,
     };
   }
@@ -151,6 +207,7 @@ export async function GET() {
     const context = (prefs?.context ?? {}) as Record<string, unknown>;
     const userName = (user.user_metadata?.name as string) || "";
     const firstName = userName.split(" ")[0];
+    const gender = (context.gender as string) || "nao_dizer";
 
     // ── Cache check ──
     const cachedNudge = context.maya_nudge as { id: string; message: string; date: string; saved: boolean; releaseHour: number } | undefined;
@@ -187,7 +244,7 @@ export async function GET() {
     }
 
     // Detect triggers
-    const nudge = await detectTriggers(user.id, today, userName);
+    const nudge = await detectTriggers(user.id, today, firstName, gender);
 
     if (nudge) {
       // Cache the nudge for today
