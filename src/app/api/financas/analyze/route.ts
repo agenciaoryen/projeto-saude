@@ -51,9 +51,11 @@ NUNCA use markdown, apenas o JSON puro.`;
 
   try {
     const imageDataUrl = `data:${safeMediaType};base64,${cleanBase64}`;
-    const userMessage = `[Imagem do recibo em anexo: ${imageDataUrl.slice(0, 100)}...]\n\nAnalise este recibo e retorne o JSON.`;
 
-    const text = await callLLM(systemPrompt, userMessage, { maxTokens: 256, temperature: 0.1 });
+    const text = await callLLM(systemPrompt, [
+      { type: "text", text: "Analise este recibo e retorne o JSON." },
+      { type: "image_url", image_url: { url: imageDataUrl } },
+    ], { maxTokens: 256, temperature: 0.1 });
 
     try {
       const parsed = JSON.parse(extractJson(text));

@@ -1,16 +1,24 @@
 /**
  * Shared LLM call — currently DeepSeek, with fallback-ready structure.
- * To add fallback: add try/catch and switch provider on failure.
+ * Supports text-only and multimodal (image) messages.
  */
+
+type ContentBlock =
+  | { type: "text"; text: string }
+  | { type: "image_url"; image_url: { url: string } };
 
 export async function callLLM(
   systemPrompt: string,
-  userMessage: string,
-  options?: { maxTokens?: number; temperature?: number; jsonOnly?: boolean }
+  userMessage: string | ContentBlock[],
+  options?: { maxTokens?: number; temperature?: number }
 ): Promise<string> {
   const apiKey = process.env.DEEPSEEK_API_KEY || process.env.ANTHROPIC_API_KEY || "";
   const maxTokens = options?.maxTokens ?? 500;
   const temperature = options?.temperature ?? 0.7;
+
+  const userContent = typeof userMessage === "string"
+    ? userMessage
+    : userMessage;
 
   const response = await fetch("https://api.deepseek.com/v1/chat/completions", {
     method: "POST",
@@ -24,7 +32,7 @@ export async function callLLM(
       temperature,
       messages: [
         { role: "system", content: systemPrompt },
-        { role: "user", content: userMessage },
+        { role: "user", content: userContent },
       ],
     }),
   });

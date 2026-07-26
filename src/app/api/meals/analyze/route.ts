@@ -35,12 +35,17 @@ async function callVision(photos: string[], description: string): Promise<string
   const system = `${SYSTEM_JSON}
 ${hasMultiple ? `ATENÇÃO: Você receberá ${photos.length} fotos da MESMA refeição. Se mostrarem ITENS DIFERENTES, some todos. Se forem ângulos do MESMO item, NÃO duplique.` : ""}`;
 
-  const imageRefs = photos.map((_, i) => `[Foto ${i + 1} anexada]`).join(" ");
-  const prompt = description
-    ? `Analise ${hasMultiple ? `estas ${photos.length} fotos da refeição` : "esta refeição"}. Descrição do usuário: "${description}". ${hasMultiple ? "Fotos de itens DIFERENTES = somar tudo. Fotos do MESMO item = contar uma vez." : ""} ${imageRefs} Retorne APENAS o JSON.`
-    : `Analise ${hasMultiple ? `estas ${photos.length} fotos da refeição` : "esta refeição"}. ${hasMultiple ? "Fotos de itens DIFERENTES = somar tudo. Fotos do MESMO item = contar uma vez." : ""} ${imageRefs} Retorne APENAS o JSON.`;
+  const textPrompt = description
+    ? `Analise ${hasMultiple ? `estas ${photos.length} fotos da refeição` : "esta refeição"}. Descrição do usuário: "${description}". ${hasMultiple ? "Fotos de itens DIFERENTES = somar tudo. Fotos do MESMO item = contar uma vez." : ""} Retorne APENAS o JSON.`
+    : `Analise ${hasMultiple ? `estas ${photos.length} fotos da refeição` : "esta refeição"}. ${hasMultiple ? "Fotos de itens DIFERENTES = somar tudo. Fotos do MESMO item = contar uma vez." : ""} Retorne APENAS o JSON.`;
 
-  return callLLM(system, prompt, { maxTokens: 400, temperature: 0.3 });
+  // Send images as multimodal content blocks
+  const imageBlocks: Array<{ type: "image_url"; image_url: { url: string } }> = photos.map(p => ({
+    type: "image_url" as const,
+    image_url: { url: p.startsWith("data:") ? p : `data:image/jpeg;base64,${p}` },
+  }));
+
+  return callLLM(system, [{ type: "text", text: textPrompt }, ...imageBlocks], { maxTokens: 400, temperature: 0.3 });
 }
 
 async function callTextOnly(description: string, items: string[]): Promise<string> {
