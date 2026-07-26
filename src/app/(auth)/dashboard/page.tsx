@@ -206,6 +206,7 @@ export default function DashboardPage() {
   const [userGender, setUserGender] = useState("");
   const [carouselIdx, setCarouselIdx] = useState(0);
   const [todayTasks, setTodayTasks] = useState<WeeklyTask[]>([]);
+  const [sleepLogs, setSleepLogs] = useState<Record<string, { quality: number | null }>>({});
   const [yesterdaySleep, setYesterdaySleep] = useState<boolean | null>(null);
   const [lastMood, setLastMood] = useState<string>("");
   const [todaySpending, setTodaySpending] = useState<number | null>(null);
@@ -230,8 +231,9 @@ export default function DashboardPage() {
       }>("/api/preferences"),
       fetch("/api/profile").then((r) => r.json()).catch(() => ({})),
       fetch("/api/weekly-plans").then((r) => r.json()).catch(() => null),
+      fetch("/api/sleep?limit=7").then((r) => r.json()).catch(() => []),
     ])
-      .then(([checkInsData, prefsData, profileData, weeklyPlanData]) => {
+      .then(([checkInsData, prefsData, profileData, weeklyPlanData, sleepLogsData]) => {
         if (!prefsData.onboarding_completed) {
           router.push("/onboarding");
           return;
@@ -247,7 +249,9 @@ export default function DashboardPage() {
           yesterday.setDate(yesterday.getDate() - 1);
           const yd = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, "0")}-${String(yesterday.getDate()).padStart(2, "0")}`;
           const yci = checkInsData.find((c: CheckIn) => c.date === yd);
-          if (yci) setYesterdaySleep(yci.slept_well);
+          // Prefer sleep log over check-in for yesterday's sleep
+          const ySleepLog = sleepMap[yd];
+          setYesterdaySleep(ySleepLog?.quality ? ySleepLog.quality >= 3 : (yci?.slept_well ?? null));
 
           // Last mood
           const lastCi = checkInsData.find((c: CheckIn) => c.mood_tags?.length > 0);
@@ -257,6 +261,15 @@ export default function DashboardPage() {
         if (profileData.name) setUserName(profileData.name);
         if (profileData.gender) setUserGender(profileData.gender);
         else if (prefsData.context?.gender) setUserGender(prefsData.context.gender as string);
+        // Build sleep log map: date -> quality
+        const sleepMap: Record<string, { quality: number | null }> = {};
+        if (Array.isArray(sleepLogsData)) {
+          for (const log of sleepLogsData) {
+            if (log.date) sleepMap[log.date] = { quality: log.quality ?? null };
+          }
+        }
+        setSleepLogs(sleepMap);
+
         if (profileData.porques?.length > 0) {
           setPorques(profileData.porques);
           const pq = profileData.porques[0];
@@ -401,7 +414,7 @@ export default function DashboardPage() {
       days.push({
         date: ds,
         label: d.toLocaleDateString("pt-BR", { weekday: "short" }).replace(".", ""),
-        sleep: ci?.slept_well ?? null,
+        sleep: sleepMap[ds]?.quality ? sleepMap[ds].quality! >= 3 : (ci?.slept_well ?? null),
         cuidados: ci
           ? habitKeys.filter((k) => (ci as unknown as Record<string, unknown>)[k] === true).length
           : null,
