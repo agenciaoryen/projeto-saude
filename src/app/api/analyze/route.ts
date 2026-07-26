@@ -3,32 +3,7 @@ import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { buildAnalysisPrompt, buildFactExtractionPrompt } from "@/lib/analyzer";
 import { calculateStreak } from "@/lib/utils";
 import { NextResponse } from "next/server";
-
-async function callAnthropic(prompt: string, system: string, maxTokens = 500): Promise<string> {
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": process.env.ANTHROPIC_API_KEY!,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: maxTokens,
-      temperature: 0.7,
-      system,
-      messages: [{ role: "user", content: prompt }],
-    }),
-  });
-
-  if (!response.ok) {
-    const err = await response.text();
-    throw new Error(`Anthropic API error: ${err}`);
-  }
-
-  const data = await response.json();
-  return data.content?.[0]?.text || "";
-}
+import { callLLM } from "@/lib/llm";
 
 export async function POST() {
   const supabase = await createServerSupabaseClient();
@@ -86,17 +61,17 @@ export async function POST() {
       positiveRate,
     });
 
-    const analysis = await callAnthropic(
-      analysisPrompt,
+    const analysis = await callLLM(
       "Você é Maya, uma companheira gentil que ajuda pessoas a se conhecerem melhor através de check-ins diários, diário e hábitos. Você fala português brasileiro com naturalidade e afeto.",
-      500
+      analysisPrompt,
+      { maxTokens: 500, temperature: 0.7 }
     );
 
     // Extract new facts from the analysis (fire and forget)
     const userName = (user.user_metadata?.name as string) || "";
     const factPrompt = buildFactExtractionPrompt(analysis, { name: userName });
 
-    callAnthropic(factPrompt, "Extraia fatos pessoais como JSON array. Responda APENAS com o array JSON.", 150)
+    callLLM("Extraia fatos pessoais como JSON array. Responda APENAS com o array JSON.", factPrompt, { maxTokens: 150, temperature: 0.7 })
       .then((raw) => {
         try {
           const jsonStart = raw.indexOf("[");

@@ -2,8 +2,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 import { buildNutritionContext, buildNutritionSystemPrompt } from "@/lib/nutrition-assistant";
-
-const CLAUDE_MODEL = "claude-haiku-4-5-20251001";
+import { callLLM } from "@/lib/llm";
 
 export async function POST(request: Request) {
   const supabase = await createServerSupabaseClient();
@@ -58,33 +57,10 @@ export async function POST(request: Request) {
 
     const systemPrompt = buildNutritionSystemPrompt(ctx);
 
-    // Chamar Claude
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": process.env.ANTHROPIC_API_KEY!,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: CLAUDE_MODEL,
-        max_tokens: 500,
-        temperature: 0.5,
-        system: systemPrompt,
-        messages: messages.map((m) => ({
-          role: m.role,
-          content: m.content,
-        })),
-      }),
-    });
+    // Concatena o historico no userMessage
+    const userMessage = messages.map((m) => `${m.role}: ${m.content}`).join("\n\n");
 
-    if (!response.ok) {
-      const err = await response.text();
-      throw new Error(`Claude API error: ${err}`);
-    }
-
-    const data = await response.json();
-    const reply = data.content?.[0]?.text || "";
+    const reply = await callLLM(systemPrompt, userMessage, { maxTokens: 500, temperature: 0.5 });
 
     return NextResponse.json({ reply });
   } catch (error) {

@@ -2,6 +2,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 import { getWeekMondayDate } from "@/lib/utils";
+import { callLLM } from "@/lib/llm";
 import type { Goal, GoalStage, GoalAction } from "@/types";
 
 const AREA_LABELS: Record<string, string> = {
@@ -100,28 +101,13 @@ ${alerts.length ? `## ⚠️ ALERTAS\n${alerts.join("\n")}` : ""}
 - Não repita informações que o usuário já sabe sobre si mesmo`;
 }
 
-async function callAnthropic(
+async function callLLMWithHistory(
   system: string,
   messages: { role: string; content: string }[]
 ): Promise<string> {
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": process.env.ANTHROPIC_API_KEY!,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 600,
-      temperature: 0.7,
-      system,
-      messages,
-    }),
-  });
-  if (!res.ok) throw new Error(await res.text());
-  const data = await res.json();
-  return data.content?.[0]?.text || "";
+  // Concatena o historico de mensagens no userMessage
+  const userMessage = messages.map((m) => `${m.role}: ${m.content}`).join("\n\n");
+  return callLLM(system, userMessage, { maxTokens: 600, temperature: 0.7 });
 }
 
 export async function POST(req: Request) {
@@ -168,7 +154,7 @@ export async function POST(req: Request) {
   const systemPrompt = buildGoalsCoachPrompt(userName, goals, weekPlan, weekReview, brHour);
 
   try {
-    const reply = await callAnthropic(systemPrompt, messages.slice(-20));
+    const reply = await callLLMWithHistory(systemPrompt, messages.slice(-20));
     return NextResponse.json({ reply });
   } catch (err) {
     console.error("Goals chat error:", err);

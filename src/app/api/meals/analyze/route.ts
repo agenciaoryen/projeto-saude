@@ -1,13 +1,7 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
-
-const CLAUDE_MODEL = "claude-haiku-4-5-20251001";
-const CLAUDE_HEADERS = {
-  "Content-Type": "application/json",
-  "x-api-key": process.env.ANTHROPIC_API_KEY!,
-  "anthropic-version": "2023-06-01",
-};
+import { callLLM } from "@/lib/llm";
 
 const SYSTEM_JSON = `Você é um analisador nutricional. Retorne APENAS um JSON válido, sem texto adicional.
 
@@ -35,47 +29,21 @@ Se não conseguir identificar com confiança, use "nao_identificada".
 Observação em português, 1-2 frases, tom POSITIVO e encorajador — celebre algo bom da refeição (proteína presente, variedade, escolha consciente, etc.). Não critique nem liste o que faltou.
 NUNCA use markdown (**), travessão (—) ou caracteres especiais na observação — apenas texto plano com vírgula e ponto final.`;
 
-async function callClaudeVision(photos: string[], description: string): Promise<string> {
-  const imageBlocks = photos.map((b64) => ({
-    type: "image" as const,
-    source: {
-      type: "base64" as const,
-      media_type: "image/jpeg" as const,
-      data: b64.replace(/^data:image\/\w+;base64,/, ""),
-    },
-  }));
-
+async function callVision(photos: string[], description: string): Promise<string> {
   const hasMultiple = photos.length > 1;
 
   const system = `${SYSTEM_JSON}
 ${hasMultiple ? `ATENÇÃO: Você receberá ${photos.length} fotos da MESMA refeição. Se mostrarem ITENS DIFERENTES, some todos. Se forem ângulos do MESMO item, NÃO duplique.` : ""}`;
 
+  const imageRefs = photos.map((_, i) => `[Foto ${i + 1} anexada]`).join(" ");
   const prompt = description
-    ? `Analise ${hasMultiple ? `estas ${photos.length} fotos da refeição` : "esta refeição"}. Descrição do usuário: "${description}". ${hasMultiple ? "Fotos de itens DIFERENTES = somar tudo. Fotos do MESMO item = contar uma vez." : ""} Retorne APENAS o JSON.`
-    : `Analise ${hasMultiple ? `estas ${photos.length} fotos da refeição` : "esta refeição"}. ${hasMultiple ? "Fotos de itens DIFERENTES = somar tudo. Fotos do MESMO item = contar uma vez." : ""} Retorne APENAS o JSON.`;
+    ? `Analise ${hasMultiple ? `estas ${photos.length} fotos da refeição` : "esta refeição"}. Descrição do usuário: "${description}". ${hasMultiple ? "Fotos de itens DIFERENTES = somar tudo. Fotos do MESMO item = contar uma vez." : ""} ${imageRefs} Retorne APENAS o JSON.`
+    : `Analise ${hasMultiple ? `estas ${photos.length} fotos da refeição` : "esta refeição"}. ${hasMultiple ? "Fotos de itens DIFERENTES = somar tudo. Fotos do MESMO item = contar uma vez." : ""} ${imageRefs} Retorne APENAS o JSON.`;
 
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: CLAUDE_HEADERS,
-    body: JSON.stringify({
-      model: CLAUDE_MODEL,
-      max_tokens: 400,
-      temperature: 0.3,
-      system,
-      messages: [{ role: "user", content: [...imageBlocks, { type: "text", text: prompt }] }],
-    }),
-  });
-
-  if (!response.ok) {
-    const err = await response.text();
-    throw new Error(`Claude API error: ${err}`);
-  }
-
-  const data = await response.json();
-  return data.content?.[0]?.text || "";
+  return callLLM(system, prompt, { maxTokens: 400, temperature: 0.3 });
 }
 
-async function callClaudeText(description: string, items: string[]): Promise<string> {
+async function callTextOnly(description: string, items: string[]): Promise<string> {
   const itemsStr = items.length > 0
     ? `Itens informados: ${items.join(", ")}. `
     : "";
@@ -86,25 +54,7 @@ async function callClaudeText(description: string, items: string[]): Promise<str
       ? `Analise esta refeição baseado na descrição: "${description}". Estime os macros e calorias. Retorne APENAS o JSON.`
       : `Analise esta refeição. Sem detalhes específicos, faça a melhor estimativa possível. Retorne APENAS o JSON.`;
 
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: CLAUDE_HEADERS,
-    body: JSON.stringify({
-      model: CLAUDE_MODEL,
-      max_tokens: 400,
-      temperature: 0.3,
-      system: SYSTEM_JSON,
-      messages: [{ role: "user", content: prompt }],
-    }),
-  });
-
-  if (!response.ok) {
-    const err = await response.text();
-    throw new Error(`Claude API error: ${err}`);
-  }
-
-  const data = await response.json();
-  return data.content?.[0]?.text || "";
+  return callLLM(SYSTEM_JSON, prompt, { maxTokens: 400, temperature: 0.3 });
 }
 
 function extractJson(text: string): string {
@@ -169,10 +119,10 @@ export async function POST(request: Request) {
 
     let raw: string;
     if (hasPhotos) {
-      raw = await callClaudeVision(photosBase64, description || "");
+      raw = await callVision(photosBase64, description || "");
     } else {
       const itemNames = items || [];
-      raw = await callClaudeText(description || "", itemNames);
+      raw = await callTextOnly(description || "", itemNames);
     }
 
     const analysis = parseAnalysis(raw);

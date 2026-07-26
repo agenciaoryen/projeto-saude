@@ -3,6 +3,7 @@ import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 import { getWeekMondayDate, getWeekSundayDate } from "@/lib/utils";
 import { sumMacros } from "@/lib/meal-utils";
+import { callLLM } from "@/lib/llm";
 
 type Lang = "pt" | "es" | "en";
 
@@ -155,26 +156,11 @@ export async function POST(request: Request) {
       lang,
     });
 
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": process.env.ANTHROPIC_API_KEY!,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: "claude-haiku-4-5-20251001",
-        max_tokens: 600,
-        temperature: 0.7,
-        system: prompt,
-        messages: [{ role: "user", content: lang === "pt" ? "Gere o espelho da semana." : lang === "es" ? "Genera el espejo de la semana." : "Generate the weekly mirror." }],
-      }),
-    });
+    const userMessage = lang === "pt" ? "Gere o espelho da semana." : lang === "es" ? "Genera el espejo de la semana." : "Generate the weekly mirror.";
 
-    if (!response.ok) throw new Error(await response.text());
+    const text = await callLLM(prompt, userMessage, { maxTokens: 600, temperature: 0.7 });
 
-    const apiData = await response.json();
-    return NextResponse.json({ narrative: apiData.content?.[0]?.text || "" });
+    return NextResponse.json({ narrative: text });
   } catch (error) {
     console.error("POST /api/reflect/weekly error:", error);
     return NextResponse.json({ error: "Erro ao gerar espelho" }, { status: 500 });

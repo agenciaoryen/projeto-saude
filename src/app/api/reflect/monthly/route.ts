@@ -2,6 +2,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 import { getLocalDate } from "@/lib/utils";
+import { callLLM } from "@/lib/llm";
 
 type Lang = "pt" | "es" | "en";
 
@@ -375,30 +376,13 @@ export async function POST(request: Request) {
 
     const userMessage = lang === "pt" ? "Compartilhe suas observações honestas." : lang === "es" ? "Comparte tus observaciones honestas." : "Share your honest observations.";
 
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": process.env.ANTHROPIC_API_KEY || "",
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: "claude-haiku-4-5-20251001",
-        max_tokens: 500,
-        temperature: 0.7,
-        system: systemPrompt,
-        messages: [{ role: "user", content: userMessage }],
-      }),
-    });
-
-    if (!response.ok) {
-      const errText = await response.text();
-      console.error("Monthly portrait AI error:", errText);
+    let text = "";
+    try {
+      text = (await callLLM(systemPrompt, userMessage, { maxTokens: 500, temperature: 0.7 })).trim();
+    } catch (err) {
+      console.error("Monthly portrait AI error:", err);
       return NextResponse.json({ narrative: null });
     }
-
-    const aiData = await response.json();
-    const text = aiData?.content?.[0]?.text?.trim() || "";
 
     if (text) {
       // Salva no context para cache mensal
