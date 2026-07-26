@@ -177,7 +177,6 @@ export default function MayaChatPage() {
         setHydrated(true);
       })
       .catch(() => {
-        // Network error — use localStorage
         try {
           const cached = localStorage.getItem(CHAT_CACHE_KEY);
           if (cached) {
@@ -187,6 +186,29 @@ export default function MayaChatPage() {
         } catch { /* noop */ }
         setHydrated(true);
       });
+
+    // Load proactive nudge
+    fetch("/api/maya/nudge")
+      .then(r => r.json())
+      .then(data => {
+        if (data.nudges?.length > 0) {
+          const nudge = data.nudges[0];
+          // Save nudge as chat message and mark as read
+          fetch("/api/maya/nudge", { method: "POST" })
+            .then(() => {
+              // Add nudge as a message in the chat
+              const now = formatTime();
+              const todayDate = formatDate();
+              setMessages(prev => {
+                // Don't add if already present
+                if (prev.some(m => m.content === nudge.message)) return prev;
+                return [...prev, { role: "assistant", content: nudge.message, time: now, date: todayDate }];
+              });
+            })
+            .catch(() => {});
+        }
+      })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {

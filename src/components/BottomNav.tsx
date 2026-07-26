@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState, useEffect } from "react";
 import { Home, BarChart3, CalendarDays, User } from "lucide-react";
 import { MayaAvatar } from "@/components/MayaAvatar";
 
@@ -25,6 +26,15 @@ const HIDE_ON = [
 
 export function BottomNav() {
   const pathname = usePathname();
+  const [hasNudge, setHasNudge] = useState(false);
+
+  // Check for unread Maya nudge
+  useEffect(() => {
+    fetch("/api/maya/nudge")
+      .then(r => r.json())
+      .then(data => { setHasNudge(data.nudges?.length > 0); })
+      .catch(() => {});
+  }, []);
 
   // Hide on full-screen experiences
   if (HIDE_ON.includes(pathname)) return null;
@@ -89,7 +99,16 @@ export function BottomNav() {
               }}
             >
               {slug === "insights" ? (
-                <MayaAvatar state="mini" size={24} />
+                <div style={{ position: "relative" }}>
+                  <MayaAvatar state="mini" size={24} />
+                  {hasNudge && (
+                    <span style={{
+                      position: "absolute", top: -2, right: -2,
+                      width: 10, height: 10, borderRadius: "50%",
+                      background: "#FF4D4D", border: "1.5px solid #0F0F14",
+                    }} />
+                  )}
+                </div>
               ) : Icon ? (
                 <Icon size={22} />
               ) : null}
