@@ -249,9 +249,9 @@ export default function DashboardPage() {
           yesterday.setDate(yesterday.getDate() - 1);
           const yd = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, "0")}-${String(yesterday.getDate()).padStart(2, "0")}`;
           const yci = checkInsData.find((c: CheckIn) => c.date === yd);
-          // Prefer sleep log over check-in for yesterday's sleep
-          const ySleepLog = sleepMap[yd];
-          setYesterdaySleep(ySleepLog?.quality ? ySleepLog.quality >= 3 : (yci?.slept_well ?? null));
+          // Sleep logs use wake date (today = last night's sleep)
+          const todaySleepLog = sleepMap[today];
+          setYesterdaySleep(todaySleepLog?.quality ? todaySleepLog.quality >= 3 : (yci?.slept_well ?? null));
 
           // Last mood
           const lastCi = checkInsData.find((c: CheckIn) => c.mood_tags?.length > 0);
