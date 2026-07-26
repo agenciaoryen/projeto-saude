@@ -153,15 +153,25 @@ export async function GET() {
     const firstName = userName.split(" ")[0];
 
     // ── Cache check ──
-    const cachedNudge = context.maya_nudge as { id: string; message: string; date: string; saved: boolean } | undefined;
+    const cachedNudge = context.maya_nudge as { id: string; message: string; date: string; saved: boolean; releaseHour: number } | undefined;
     if (cachedNudge?.date === today && cachedNudge.message) {
-      // If already saved to chat, return empty (don't repeat)
-      if (cachedNudge.saved) {
-        return NextResponse.json({ nudges: [] });
-      }
-      return NextResponse.json({
-        nudges: [{ id: cachedNudge.id, message: cachedNudge.message }],
-      });
+      if (cachedNudge.saved) return NextResponse.json({ nudges: [] });
+      // Respect timed release
+      const now = new Date();
+      const brH = parseInt(now.toLocaleString("en-US", { timeZone: "America/Sao_Paulo", hour: "numeric", hour12: false }), 10);
+      if (brH < cachedNudge.releaseHour) return NextResponse.json({ nudges: [] });
+      return NextResponse.json({ nudges: [{ id: cachedNudge.id, message: cachedNudge.message }] });
+    }
+
+    // ── Don't nudge if user already chatted today ──
+    const { count: todayMsgCount } = await admin
+      .from("chat_messages")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .gte("created_at", today + "T00:00:00Z")
+      .lte("created_at", today + "T23:59:59Z");
+    if (todayMsgCount && todayMsgCount > 0) {
+      return NextResponse.json({ nudges: [] });
     }
 
     // Get or create check-in count
@@ -193,9 +203,11 @@ export async function GET() {
 }
 
 async function cacheNudge(admin: any, userId: string, context: Record<string, unknown>, id: string, message: string, date: string) {
+  // Random release hour between 9-17 (different each day, feels human)
+  const releaseHour = 9 + Math.floor(Math.random() * 9); // 9 to 17
   admin
     .from("user_preferences")
-    .update({ context: { ...context, maya_nudge: { id, message, date, saved: false } } })
+    .update({ context: { ...context, maya_nudge: { id, message, date, saved: false, releaseHour } } })
     .eq("user_id", userId)
     .then(() => {})
     .catch(() => {});
