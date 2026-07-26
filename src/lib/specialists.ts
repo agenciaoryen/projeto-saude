@@ -1,5 +1,6 @@
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getLocalDate } from "@/lib/utils";
+import { callLLM } from "@/lib/llm";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -22,32 +23,11 @@ export interface SpecialistResult {
 
 export type SpecialistInsights = Partial<Record<SpecialistName, SpecialistResult>>;
 
-// ── Claude helper ─────────────────────────────────────────────────────────────
-
-async function callClaude(userMessage: string): Promise<string> {
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": process.env.ANTHROPIC_API_KEY!,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 350,
-      temperature: 0.3,
-      system: `Você é um especialista analisando dados de bem-estar de um usuário.
+const SPECIALIST_SYSTEM = `Você é um especialista analisando dados de bem-estar de um usuário.
 Analise apenas os dados fornecidos. Seja objetivo e conciso.
 Responda APENAS em JSON válido com este formato exato — sem texto fora do JSON:
 {"patterns":["padrão 1"],"concerns":["preocupação 1"],"strengths":["ponto forte 1"],"summary":"resumo em 1-2 frases"}
-Máximo 3 itens por campo. Escreva em português brasileiro.`,
-      messages: [{ role: "user", content: userMessage }],
-    }),
-  });
-  if (!res.ok) throw new Error(`Anthropic ${res.status}`);
-  const body = await res.json();
-  return body.content[0].text as string;
-}
+Máximo 3 itens por campo. Escreva em português brasileiro.`;
 
 function parseResult(text: string): SpecialistResult {
   try {
@@ -299,14 +279,14 @@ export async function analyzeAllSpecialists(userId: string): Promise<SpecialistI
   // Run all 8 specialists in parallel
   const names: SpecialistName[] = ["psychology", "sleep", "nutrition", "physical", "goals", "finance", "spirituality", "philosophy"];
   const calls = [
-    callClaude(promptPsychology(ci)),
-    callClaude(promptSleep(sl, ci)),
-    callClaude(promptNutrition(ml)),
-    callClaude(promptPhysical(ci)),
-    callClaude(promptGoals(goalsWithStages, ci, wp)),
-    callClaude(promptFinance(tx, bu)),
-    callClaude(promptSpirituality(ci)),
-    callClaude(promptPhilosophy(goalsWithStages, di, mem)),
+    callLLM(SPECIALIST_SYSTEM, promptPsychology(ci), { maxTokens: 350, temperature: 0.3 }),
+    callLLM(SPECIALIST_SYSTEM, promptSleep(sl, ci), { maxTokens: 350, temperature: 0.3 }),
+    callLLM(SPECIALIST_SYSTEM, promptNutrition(ml), { maxTokens: 350, temperature: 0.3 }),
+    callLLM(SPECIALIST_SYSTEM, promptPhysical(ci), { maxTokens: 350, temperature: 0.3 }),
+    callLLM(SPECIALIST_SYSTEM, promptGoals(goalsWithStages, ci, wp), { maxTokens: 350, temperature: 0.3 }),
+    callLLM(SPECIALIST_SYSTEM, promptFinance(tx, bu), { maxTokens: 350, temperature: 0.3 }),
+    callLLM(SPECIALIST_SYSTEM, promptSpirituality(ci), { maxTokens: 350, temperature: 0.3 }),
+    callLLM(SPECIALIST_SYSTEM, promptPhilosophy(goalsWithStages, di, mem), { maxTokens: 350, temperature: 0.3 }),
   ];
 
   const settled = await Promise.allSettled(calls);

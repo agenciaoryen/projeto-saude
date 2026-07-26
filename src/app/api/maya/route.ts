@@ -3,36 +3,27 @@ import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { buildMayaSystemPrompt, GoalSummary, WeekPlanSummary, SpecialistSummaries } from "@/lib/maya";
 import { getLatestInsights } from "@/lib/specialists";
 import { calculateStreak, getWeekMondayDate } from "@/lib/utils";
+import { callLLM } from "@/lib/llm";
 import { NextResponse } from "next/server";
 
-async function callAnthropicChat(
+// Chat-style call with message history
+async function chatLLM(
   system: string,
   messages: { role: string; content: string }[],
   maxTokens = 500
 ): Promise<string> {
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
+  const apiKey = process.env.DEEPSEEK_API_KEY || "";
+  const response = await fetch("https://api.deepseek.com/v1/chat/completions", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": process.env.ANTHROPIC_API_KEY!,
-      "anthropic-version": "2023-06-01",
-    },
+    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
     body: JSON.stringify({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: maxTokens,
-      temperature: 0.7,
-      system,
-      messages,
+      model: "deepseek-chat", max_tokens: maxTokens, temperature: 0.7,
+      messages: [{ role: "system", content: system }, ...messages],
     }),
   });
-
-  if (!response.ok) {
-    const err = await response.text();
-    throw new Error(`Anthropic API error: ${err}`);
-  }
-
+  if (!response.ok) { const err = await response.text(); throw new Error(`LLM error: ${err.slice(0,200)}`); }
   const data = await response.json();
-  return data.content?.[0]?.text || "";
+  return data.choices?.[0]?.message?.content || "";
 }
 
 export async function POST(request: Request) {
@@ -207,14 +198,14 @@ export async function POST(request: Request) {
         : undefined,
     });
 
-    const reply = await callAnthropicChat(systemPrompt, anthropicMessages, 400);
+    const reply = await chatLLM(systemPrompt, anthropicMessages, 400);
 
     // Extract new facts from the conversation (fire and forget)
     const lastUserMsg = [...messages].reverse().find(m => m.role === "user");
     if (lastUserMsg) {
       const factPrompt = buildFactExtractionPrompt(reply, lastUserMsg.content, { name: (user.user_metadata?.name as string) || "" });
 
-      callAnthropicChat(
+      chatLLM(
         "Extraia fatos pessoais como JSON array. Responda APENAS com o array JSON.",
         [{ role: "user", content: factPrompt }],
         150
