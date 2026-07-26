@@ -224,7 +224,7 @@ export async function GET() {
       if (cachedNudge.saved) return NextResponse.json({ nudges: [] });
       // Respect timed release
       const now = new Date();
-      const brH = parseInt(now.toLocaleString("en-US", { timeZone: "America/Sao_Paulo", hour: "numeric", hour12: false }), 10);
+      const brH = now.getHours();
       if (brH < cachedNudge.releaseHour) return NextResponse.json({ nudges: [] });
       return NextResponse.json({ nudges: [{ id: cachedNudge.id, message: cachedNudge.message, action: (cachedNudge as any).action }] });
     }
@@ -262,7 +262,7 @@ export async function GET() {
 
       // Respect random release hour — don't show if too early
       const now = new Date();
-      const brH = parseInt(now.toLocaleString("en-US", { timeZone: "America/Sao_Paulo", hour: "numeric", hour12: false }), 10);
+      const brH = now.getHours();
       const savedNudge = (context.maya_nudge as any);
       if (savedNudge?.releaseHour && brH < savedNudge.releaseHour) {
         return NextResponse.json({ nudges: [] });

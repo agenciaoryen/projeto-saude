@@ -124,8 +124,8 @@ const timeInputStyle: React.CSSProperties = {
 function ManualLogModal({ onClose, onSaved, lang }: { onClose: () => void; onSaved: () => void; lang: Lang }) {
   const [quality, setQuality] = useState<number | null>(null);
   const [interruptions, setInterruptions] = useState<number>(0);
-  const [startTime, setStartTime] = useState("");
-  const [endTime, setEndTime] = useState("");
+  const [startTime, setStartTime] = useState("22:00");
+  const [endTime, setEndTime] = useState("07:00");
   const [saving, setSaving] = useState(false);
 
   const save = async () => {

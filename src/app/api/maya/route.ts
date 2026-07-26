@@ -38,6 +38,9 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const messages: { role: string; content: string; date?: string; time?: string }[] = body.messages || [];
+    const clientTz = body.timezone || "America/Sao_Paulo";
+    const clientHour = body.localHour;
+    const clientDate = body.localDate;
 
     if (!messages.length) {
       return NextResponse.json({ error: "Mensagens vazias" }, { status: 400 });
@@ -133,11 +136,18 @@ export async function POST(request: Request) {
 
     const streak = calculateStreak(checkIns.map((c: Record<string, unknown>) => c.date as string));
 
-    // Hora e data atuais no fuso brasileiro (America/Sao_Paulo)
-    const brNow = new Date();
-    const brHour = brNow.toLocaleString("en-US", { timeZone: "America/Sao_Paulo", hour: "numeric", hour12: false });
-    const currentHour = parseInt(brHour, 10);
-    const currentDate = brNow.toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" }); // YYYY-MM-DD
+	    // Hora e data no fuso do usuario (do browser, fallback SP)
+	    let currentHour: number;
+	    let currentDate: string;
+	    if (clientHour !== undefined && clientDate) {
+	      currentHour = clientHour;
+	      currentDate = clientDate;
+	    } else {
+	      const now = new Date();
+	      const h = now.toLocaleString("en-US", { timeZone: clientTz, hour: "numeric", hour12: false });
+	      currentHour = parseInt(h, 10);
+	      currentDate = now.toLocaleDateString("en-CA", { timeZone: clientTz });
+	    }
 
     // Annotate messages from past sessions so Maya understands the timeline
     const anthropicMessages = messages.map((m) => ({

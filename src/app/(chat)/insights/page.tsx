@@ -301,10 +301,13 @@ export default function MayaChatPage() {
 
     try {
       const contextMsgs = updated.slice(-20).map(({ role, content, date, time }) => ({ role, content, date, time }));
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const localHour = new Date().getHours();
+      const localDate = formatDate();
       const res = await fetch("/api/maya", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: contextMsgs }),
+        body: JSON.stringify({ messages: contextMsgs, timezone: tz, localHour, localDate }),
       });
       if (!res.ok) throw new Error();
       const data = await res.json();
