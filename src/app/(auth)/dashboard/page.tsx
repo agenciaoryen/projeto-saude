@@ -414,7 +414,7 @@ export default function DashboardPage() {
       days.push({
         date: ds,
         label: d.toLocaleDateString("pt-BR", { weekday: "short" }).replace(".", ""),
-        sleep: sleepMap[ds]?.quality ? sleepMap[ds].quality! >= 3 : (ci?.slept_well ?? null),
+        sleep: sleepLogs[ds]?.quality ? sleepLogs[ds].quality! >= 3 : (ci?.slept_well ?? null),
         cuidados: ci
           ? habitKeys.filter((k) => (ci as unknown as Record<string, unknown>)[k] === true).length
           : null,
@@ -424,7 +424,7 @@ export default function DashboardPage() {
       });
     }
     return days;
-  }, [checkIns, enabledKeys]);
+  }, [checkIns, enabledKeys, sleepLogs]);
 
   const avgEnergy = useMemo(() => {
     const withData = weekDays.filter((d) => d.cuidados !== null);
