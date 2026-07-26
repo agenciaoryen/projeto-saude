@@ -100,5 +100,5 @@ export async function POST(req: NextRequest) {
 	    }
 	  }
 
-	  return NextResponse.json(result, existing ? 200 : 201);
+	  return NextResponse.json(result, { status: existing ? 200 : 201 });
 	}
