@@ -8,7 +8,8 @@ import { getLocalDate } from "@/lib/utils";
 interface NudgeResult {
   id: string;
   message: string;
-  priority: number;
+  priority: number; // 1 = highest
+  action?: { label: string; href: string };
 }
 
 function saludo(firstName: string): string {
@@ -64,6 +65,7 @@ async function detectAllTriggers(userId: string, today: string, firstName: strin
           `${greet} sua corrente de ${streak} dias tá correndo perigo! Tá tudo bem? Não precisa escrever muito, só uns toques.`,
         ]),
         priority: 1,
+        action: { label: "Fazer check-in agora", href: "/check-in" },
       });
     }
   }
@@ -81,6 +83,7 @@ async function detectAllTriggers(userId: string, today: string, firstName: strin
           `${greet} olhei aqui e vi que você não dormiu bem nos últimos dias. Seu corpo tá pedindo atenção. O que será que tá roubando seu sono?`,
         ]),
         priority: 2,
+        action: { label: "Conversar com Maya", href: "/insights" },
       });
     }
   }
@@ -101,6 +104,7 @@ async function detectAllTriggers(userId: string, today: string, firstName: strin
           `${greet} senti que você tá mais pra baixo esses dias. Se quiser conversar, tô aqui. Sem pressa, sem cobrança.`,
         ]),
         priority: 2,
+        action: { label: "Conversar com Maya", href: "/insights" },
       });
     }
   }
@@ -119,6 +123,7 @@ async function detectAllTriggers(userId: string, today: string, firstName: strin
           `${greet} lembrei do seu diário... já faz ${daysSince} dias. Às vezes a gente só precisa despejar os pensamentos em algum lugar.`,
         ]),
         priority: 3,
+        action: { label: "Escrever no diário", href: "/diario/novo" },
       });
     }
   }
@@ -149,6 +154,7 @@ async function detectAllTriggers(userId: string, today: string, firstName: strin
             `${greet} sabe aquela meta de ${summary}? Tá parada há ${daysInactive} dias. Mas ei, isso é normal. Bora dar um passo pequeno hoje?`,
           ]),
           priority: 3,
+        action: { label: "Ver minhas metas", href: "/agenda" },
         });
       }
     }
@@ -165,6 +171,7 @@ async function detectAllTriggers(userId: string, today: string, firstName: strin
         `${greet} notei que seus gastos tão em R$ ${totalSpent.toFixed(0).replace(".", ",")}. Tudo sob controle ou quer uma ajudinha pra revisar?`,
       ]),
       priority: 4,
+    action: { label: "Ver finanças", href: "/financas" },
     });
   }
 
@@ -178,6 +185,7 @@ async function detectAllTriggers(userId: string, today: string, firstName: strin
         `${greet} tava por aqui e vi que você ainda não passou no check-in hoje. Como você está?`,
       ]),
       priority: 1,
+    action: { label: "Fazer check-in agora", href: "/check-in" },
     });
   }
 
@@ -218,7 +226,7 @@ export async function GET() {
       const now = new Date();
       const brH = parseInt(now.toLocaleString("en-US", { timeZone: "America/Sao_Paulo", hour: "numeric", hour12: false }), 10);
       if (brH < cachedNudge.releaseHour) return NextResponse.json({ nudges: [] });
-      return NextResponse.json({ nudges: [{ id: cachedNudge.id, message: cachedNudge.message }] });
+      return NextResponse.json({ nudges: [{ id: cachedNudge.id, message: cachedNudge.message, action: (cachedNudge as any).action }] });
     }
 
     // ── Don't nudge if user already chatted today ──
@@ -250,7 +258,7 @@ export async function GET() {
 
     if (bestNudge) {
       // Cache for today
-      await cacheNudge(admin, user.id, context, bestNudge.id, bestNudge.message, today);
+      await cacheNudge(admin, user.id, context, bestNudge.id, bestNudge.message, today, bestNudge.action);
 
       // Respect random release hour — don't show if too early
       const now = new Date();
@@ -260,7 +268,7 @@ export async function GET() {
         return NextResponse.json({ nudges: [] });
       }
 
-      return NextResponse.json({ nudges: [bestNudge] });
+      return NextResponse.json({ nudges: [{ id: bestNudge.id, message: bestNudge.message, action: bestNudge.action }] });
     }
 
     return NextResponse.json({ nudges: [] });
@@ -270,12 +278,11 @@ export async function GET() {
   }
 }
 
-async function cacheNudge(admin: any, userId: string, context: Record<string, unknown>, id: string, message: string, date: string) {
-  // Random release hour between 9-17 (different each day, feels human)
-  const releaseHour = 9 + Math.floor(Math.random() * 9); // 9 to 17
+async function cacheNudge(admin: any, userId: string, context: Record<string, unknown>, id: string, message: string, date: string, action?: { label: string; href: string }) {
+  const releaseHour = 9 + Math.floor(Math.random() * 9);
   admin
     .from("user_preferences")
-    .update({ context: { ...context, maya_nudge: { id, message, date, saved: false, releaseHour } } })
+    .update({ context: { ...context, maya_nudge: { id, message, date, saved: false, releaseHour, action } } })
     .eq("user_id", userId)
     .then(() => {})
     .catch(() => {});

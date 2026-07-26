@@ -13,6 +13,7 @@ interface Message {
   time: string;
   date: string;
   seen?: boolean;
+  action?: { label: string; href: string };
 }
 
 const CHAT_CACHE_KEY = "maya_chat";
@@ -188,21 +189,21 @@ export default function MayaChatPage() {
       });
 
     // Load proactive nudge
+    const nudgeActionRef = useRef<{ label: string; href: string } | null>(null);
     fetch("/api/maya/nudge")
       .then(r => r.json())
       .then(data => {
         if (data.nudges?.length > 0) {
           const nudge = data.nudges[0];
+          if (nudge.action) nudgeActionRef.current = nudge.action;
           // Save nudge as chat message and mark as read
           fetch("/api/maya/nudge", { method: "POST" })
             .then(() => {
-              // Add nudge as a message in the chat
               const now = formatTime();
               const todayDate = formatDate();
               setMessages(prev => {
-                // Don't add if already present
                 if (prev.some(m => m.content === nudge.message)) return prev;
-                return [...prev, { role: "assistant", content: nudge.message, time: now, date: todayDate }];
+                return [...prev, { role: "assistant", content: nudge.message, time: now, date: todayDate, action: nudge.action }];
               });
             })
             .catch(() => {});
@@ -408,6 +409,19 @@ export default function MayaChatPage() {
                 }}
               >
                 {msg.content}
+                {msg.action && (
+                  <a
+                    href={msg.action.href}
+                    onClick={(e) => { e.preventDefault(); router.push(msg.action!.href); }}
+                    style={{
+                      display: "inline-flex", alignItems: "center", gap: 4,
+                      marginTop: 8, padding: "6px 12px", borderRadius: 8,
+                      background: "#7C5CFF", color: "#fff",
+                      fontSize: 12, fontWeight: 600, textDecoration: "none",
+                    }}>
+                    {msg.action.label} →
+                  </a>
+                )}
                 <span
                   className="text-[11px] leading-none whitespace-nowrap"
                   style={{
