@@ -19,7 +19,7 @@ function pick<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-async function detectTriggers(userId: string, today: string, firstName: string, gender: string): Promise<NudgeResult | null> {
+async function detectAllTriggers(userId: string, today: string, firstName: string, gender: string): Promise<NudgeResult[]> {
   const admin = getSupabaseAdmin();
 
   const soloSolo = gender === "feminino" ? "sozinha" : "sozinho";
@@ -42,6 +42,7 @@ async function detectTriggers(userId: string, today: string, firstName: string, 
 
   const greet = saludo(firstName);
   const hasTodayCheckIn = checks.length > 0 && checks[0]?.date === today;
+  const results: NudgeResult[] = [];
 
   // ── STREAK IN RISK ──
   if (checks.length >= 3 && !hasTodayCheckIn) {
@@ -55,7 +56,7 @@ async function detectTriggers(userId: string, today: string, firstName: string, 
       else break;
     }
     if (streak >= 5) {
-      return {
+      results.push({
         id: "streak_risk",
         message: pick([
           `${greet} vi que você está há ${streak} dias sem falhar no check-in. Hoje ainda não rolou... tá tudo bem?`,
@@ -63,7 +64,7 @@ async function detectTriggers(userId: string, today: string, firstName: string, 
           `${greet} sua corrente de ${streak} dias tá correndo perigo! Tá tudo bem? Não precisa escrever muito, só uns toques.`,
         ]),
         priority: 1,
-      };
+      });
     }
   }
 
@@ -72,7 +73,7 @@ async function detectTriggers(userId: string, today: string, firstName: string, 
     const last4 = checks.slice(0, 4);
     const badSleepCount = last4.filter((c: any) => c.slept_well === false).length;
     if (badSleepCount >= 3) {
-      return {
+      results.push({
         id: "sleep_bad",
         message: pick([
           `${greet} vi que você dormiu mal nos últimos 3 dias. Isso mexe com tudo: humor, energia, foco. Quer conversar sobre o que pode estar atrapalhando?`,
@@ -80,7 +81,7 @@ async function detectTriggers(userId: string, today: string, firstName: string, 
           `${greet} olhei aqui e vi que você não dormiu bem nos últimos dias. Seu corpo tá pedindo atenção. O que será que tá roubando seu sono?`,
         ]),
         priority: 2,
-      };
+      });
     }
   }
 
@@ -92,7 +93,7 @@ async function detectTriggers(userId: string, today: string, firstName: string, 
       ["ansiosa", "triste", "cansada", "sobrecarregada", "irritada"].includes(m)
     );
     if (negativeMoods.length >= 2 && moods.length >= 2) {
-      return {
+      results.push({
         id: "mood_drop",
         message: pick([
           `${greet} vi que seu humor caiu nos últimos dias. Não precisa enfrentar isso ${soloSolo}. Me conta o que tá pesando?`,
@@ -100,7 +101,7 @@ async function detectTriggers(userId: string, today: string, firstName: string, 
           `${greet} senti que você tá mais pra baixo esses dias. Se quiser conversar, tô aqui. Sem pressa, sem cobrança.`,
         ]),
         priority: 2,
-      };
+      });
     }
   }
 
@@ -110,7 +111,7 @@ async function detectTriggers(userId: string, today: string, firstName: string, 
     const now = new Date(today + "T12:00:00");
     const daysSince = Math.floor((now.getTime() - lastDiaryDate.getTime()) / 86_400_000);
     if (daysSince >= 5) {
-      return {
+      results.push({
         id: "diary_abandoned",
         message: pick([
           `${greet} faz ${daysSince} dias que você não escreve no diário. Escrever ajuda a clarear a mente... quando quiser, tô aqui pra ler.`,
@@ -118,7 +119,7 @@ async function detectTriggers(userId: string, today: string, firstName: string, 
           `${greet} lembrei do seu diário... já faz ${daysSince} dias. Às vezes a gente só precisa despejar os pensamentos em algum lugar.`,
         ]),
         priority: 3,
-      };
+      });
     }
   }
 
@@ -140,7 +141,7 @@ async function detectTriggers(userId: string, today: string, firstName: string, 
           .replace(/[\(\)]/g, "")
           .trim()
           .slice(0, 40) || "melhorar";
-        return {
+        results.push({
           id: "goal_stale",
           message: pick([
             `${greet} vi que sua meta de ${summary} tá paradinha há ${daysInactive} dias. Quer destravar? Posso te ajudar a pensar no primeiro passo.`,
@@ -148,7 +149,7 @@ async function detectTriggers(userId: string, today: string, firstName: string, 
             `${greet} sabe aquela meta de ${summary}? Tá parada há ${daysInactive} dias. Mas ei, isso é normal. Bora dar um passo pequeno hoje?`,
           ]),
           priority: 3,
-        };
+        });
       }
     }
   }
@@ -156,7 +157,7 @@ async function detectTriggers(userId: string, today: string, firstName: string, 
   // ── SPENDING ALERT ──
   const totalSpent = (todayTx || []).filter((t: any) => t.type === "despesa").reduce((s: number, t: any) => s + (t.amount || 0), 0);
   if (totalSpent > 80) {
-    return {
+    results.push({
       id: "spending",
       message: pick([
         `${greet} vi que já gastou R$ ${totalSpent.toFixed(0).replace(".", ",")} este mês. Tá conseguindo se organizar? Posso te ajudar a revisar.`,
@@ -164,12 +165,12 @@ async function detectTriggers(userId: string, today: string, firstName: string, 
         `${greet} notei que seus gastos tão em R$ ${totalSpent.toFixed(0).replace(".", ",")}. Tudo sob controle ou quer uma ajudinha pra revisar?`,
       ]),
       priority: 4,
-    };
+    });
   }
 
   // ── NO CHECK-IN TODAY ──
   if (!hasTodayCheckIn) {
-    return {
+    results.push({
       id: "checkin_miss",
       message: pick([
         `${greet} como você está hoje? Ainda não fez seu check-in. São 2 minutinhos e me ajuda a te conhecer melhor.`,
@@ -177,10 +178,10 @@ async function detectTriggers(userId: string, today: string, firstName: string, 
         `${greet} tava por aqui e vi que você ainda não passou no check-in hoje. Como você está?`,
       ]),
       priority: 1,
-    };
+    });
   }
 
-  return null;
+  return results;
 }
 
 // ── GET ────────────────────────────────────────────────────────────────────────
@@ -243,13 +244,23 @@ export async function GET() {
       return NextResponse.json({ nudges: [{ id: "welcome", message: welcomeMsg }] });
     }
 
-    // Detect triggers
-    const nudge = await detectTriggers(user.id, today, firstName, gender);
+    // Detect ALL triggers, pick highest priority
+    const nudges = await detectAllTriggers(user.id, today, firstName, gender);
+    const bestNudge = nudges.sort((a, b) => a.priority - b.priority)[0];
 
-    if (nudge) {
-      // Cache the nudge for today
-      await cacheNudge(admin, user.id, context, nudge.id, nudge.message, today);
-      return NextResponse.json({ nudges: [nudge] });
+    if (bestNudge) {
+      // Cache for today
+      await cacheNudge(admin, user.id, context, bestNudge.id, bestNudge.message, today);
+
+      // Respect random release hour — don't show if too early
+      const now = new Date();
+      const brH = parseInt(now.toLocaleString("en-US", { timeZone: "America/Sao_Paulo", hour: "numeric", hour12: false }), 10);
+      const savedNudge = (context.maya_nudge as any);
+      if (savedNudge?.releaseHour && brH < savedNudge.releaseHour) {
+        return NextResponse.json({ nudges: [] });
+      }
+
+      return NextResponse.json({ nudges: [bestNudge] });
     }
 
     return NextResponse.json({ nudges: [] });
