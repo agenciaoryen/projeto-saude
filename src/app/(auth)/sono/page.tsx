@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Moon, Zap, Clock, TrendingUp, BellRing, BellOff } from "lucide-react";
+import { Moon, Zap, Clock, TrendingUp, BellRing, BellOff, Plus } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   computeSleepStats,
@@ -119,7 +119,7 @@ const timeInputStyle: React.CSSProperties = {
   fontSize: 14,
   fontWeight: 600,
   background: "transparent",
-  color: "var(--foreground)",
+  color: "#e0d6ff",
   outline: "none",
 };
 
@@ -174,7 +174,7 @@ function ManualLogModal({ onClose, onSaved, lang }: { onClose: () => void; onSav
   };
 
   const label11 = (text: string) => (
-    <p style={{ margin: "0 0 10px", fontSize: 11, fontWeight: 700, letterSpacing: ".1em", textTransform: "uppercase", color: "var(--muted-foreground)" }}>
+    <p style={{ margin: "0 0 10px", fontSize: 11, fontWeight: 700, letterSpacing: ".1em", textTransform: "uppercase", color: "#9e96b5" }}>
       {text}
     </p>
   );
@@ -184,19 +184,19 @@ function ManualLogModal({ onClose, onSaved, lang }: { onClose: () => void; onSav
       onClick={onClose}
       style={{
         position: "fixed", inset: 0, zIndex: 100,
-        background: "oklch(.1 .02 160 / .45)", backdropFilter: "blur(6px)",
+        background: "rgba(0,0,0,0.7)", backdropFilter: "blur(6px)",
         display: "flex", alignItems: "flex-end",
       }}
     >
       <div onClick={(e) => e.stopPropagation()} style={{
         width: "100%", boxSizing: "border-box",
         borderRadius: "24px 24px 0 0",
-        background: "oklch(.99 .003 160)",
+        background: "#151520",
         padding: "24px 20px calc(env(safe-area-inset-bottom) + 28px)",
-        boxShadow: "0 -8px 32px oklch(.2 .04 160 / .1)",
+        boxShadow: "0 -8px 32px rgba(0,0,0,0.3)",
         overflow: "hidden",
       }}>
-        <div style={{ width: 36, height: 4, borderRadius: 9999, background: "oklch(.85 .02 160)", margin: "0 auto 20px" }} />
+        <div style={{ width: 36, height: 4, borderRadius: 9999, background: "rgba(167,139,250,0.2)", margin: "0 auto 20px" }} />
         <h2 style={{ margin: "0 0 20px", fontSize: 19, fontWeight: 700 }}>{tFn(lang, "sono_registrar_btn")}</h2>
 
         {/* Times */}
@@ -326,7 +326,7 @@ function EditSleepModal({ log, onClose, onSaved, lang }: {
   });
 
   const label11 = (text: string) => (
-    <p style={{ margin: "0 0 6px", fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--muted-foreground)" }}>
+    <p style={{ margin: "0 0 6px", fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "#9e96b5" }}>
       {text}
     </p>
   );
@@ -334,20 +334,20 @@ function EditSleepModal({ log, onClose, onSaved, lang }: {
   return (
     <div onClick={onClose} style={{
       position: "fixed", inset: 0, zIndex: 100,
-      background: "oklch(.1 .02 160 / .45)", backdropFilter: "blur(6px)",
+      background: "rgba(0,0,0,0.7)", backdropFilter: "blur(6px)",
       display: "flex", alignItems: "flex-end",
     }}>
       <div onClick={(e) => e.stopPropagation()} style={{
         width: "100%", boxSizing: "border-box",
         borderRadius: "24px 24px 0 0",
-        background: "oklch(.99 .003 160)",
+        background: "#151520",
         padding: "24px 20px calc(env(safe-area-inset-bottom) + 28px)",
-        boxShadow: "0 -8px 32px oklch(.2 .04 160 / .1)",
+        boxShadow: "0 -8px 32px rgba(0,0,0,0.3)",
         overflow: "hidden",
       }}>
-        <div style={{ width: 36, height: 4, borderRadius: 9999, background: "oklch(.85 .02 160)", margin: "0 auto 16px" }} />
+        <div style={{ width: 36, height: 4, borderRadius: 9999, background: "rgba(167,139,250,0.2)", margin: "0 auto 16px" }} />
         <h2 style={{ margin: "0 0 4px", fontSize: 17, fontWeight: 700 }}>{tFn(lang, "sono_editar_title")}</h2>
-        <p style={{ margin: "0 0 20px", fontSize: 12, color: "var(--muted-foreground)", textTransform: "capitalize" }}>{dayLabel}</p>
+        <p style={{ margin: "0 0 20px", fontSize: 12, color: "#9e96b5", textTransform: "capitalize" }}>{dayLabel}</p>
 
         {/* Times */}
         <div style={{ display: "flex", flexDirection: "column", gap: 14, marginBottom: 20 }}>
@@ -434,7 +434,7 @@ function SleepHistoryRow({ log, onEdit, lang }: { log: SleepLog; onEdit: (log: S
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <p style={{ margin: 0, fontSize: 13, fontWeight: 600 }}>{dayLabel}</p>
-        <p style={{ margin: "2px 0 0", fontSize: 11, color: "var(--muted-foreground)" }}>
+        <p style={{ margin: "2px 0 0", fontSize: 11, color: "#9e96b5" }}>
           {log.duration_min ? formatDuration(log.duration_min) : "--"}
           {log.sleep_start && log.sleep_end ? ` · ${fmt12(log.sleep_start, lang)}–${fmt12(log.sleep_end, lang)}` : ""}
         </p>
@@ -468,7 +468,7 @@ function SleepConfigCard({ config, onChange, onSave, saving, lang }: {
         {/* Bedtime + Wake — stacked */}
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <div>
-            <p style={{ margin: "0 0 6px", fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--muted-foreground)" }}>
+            <p style={{ margin: "0 0 6px", fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "#9e96b5" }}>
               {tFn(lang, "sono_horario_dormir")}
             </p>
             <div style={timeInputWrap}>
@@ -481,7 +481,7 @@ function SleepConfigCard({ config, onChange, onSave, saving, lang }: {
             </div>
           </div>
           <div>
-            <p style={{ margin: "0 0 6px", fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--muted-foreground)" }}>
+            <p style={{ margin: "0 0 6px", fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "#9e96b5" }}>
               {tFn(lang, "sono_horario_acordar")}
             </p>
             <div style={timeInputWrap}>
@@ -497,7 +497,7 @@ function SleepConfigCard({ config, onChange, onSave, saving, lang }: {
 
         {/* Target hours */}
         <div>
-          <p style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--muted-foreground)" }}>
+          <p style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "#9e96b5" }}>
             {tFn(lang, "sono_meta")}
           </p>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
@@ -518,10 +518,10 @@ function SleepConfigCard({ config, onChange, onSave, saving, lang }: {
 
         {/* Reminder time */}
         <div>
-          <p style={{ margin: "0 0 6px", fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--muted-foreground)" }}>
+          <p style={{ margin: "0 0 6px", fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "#9e96b5" }}>
             {tFn(lang, "sono_lembrete_noturno")}
           </p>
-          <p style={{ margin: "0 0 8px", fontSize: 12, color: "var(--muted-foreground)" }}>
+          <p style={{ margin: "0 0 8px", fontSize: 12, color: "#9e96b5" }}>
             {tFn(lang, "sono_lembrete_push_desc")}
           </p>
           <div style={timeInputWrap}>
@@ -577,7 +577,7 @@ function CycleCalculator({ defaultBedtime = "23:00", lang = "pt" }: { defaultBed
           {tFn(lang, "sono_calc_desc")}
         </p>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <label style={{ fontSize: 13, color: "var(--muted-foreground)", flexShrink: 0 }}>{tFn(lang, "sono_dormir_as")}</label>
+          <label style={{ fontSize: 13, color: "#9e96b5", flexShrink: 0 }}>{tFn(lang, "sono_dormir_as")}</label>
           <div style={{ ...timeInputWrap, flex: 1 }}>
             <input
               type="time"
@@ -588,7 +588,7 @@ function CycleCalculator({ defaultBedtime = "23:00", lang = "pt" }: { defaultBed
           </div>
         </div>
         <div>
-          <p style={{ margin: "0 0 10px", fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--muted-foreground)" }}>
+          <p style={{ margin: "0 0 10px", fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "#9e96b5" }}>
             {tFn(lang, "sono_horarios_ideais")}
           </p>
           <div style={{ display: "flex", gap: 10 }}>
@@ -601,7 +601,7 @@ function CycleCalculator({ defaultBedtime = "23:00", lang = "pt" }: { defaultBed
                 <p style={{ margin: 0, fontSize: 20, fontWeight: 700, color: i === 1 ? "#e0d6ff" : "var(--foreground)" }}>
                   {w.toLocaleTimeString(dateLocale(lang), { hour: "2-digit", minute: "2-digit" })}
                 </p>
-                <p style={{ margin: "3px 0 0", fontSize: 11, color: "var(--muted-foreground)" }}>
+                <p style={{ margin: "3px 0 0", fontSize: 11, color: "#9e96b5" }}>
                   {i === 0 ? tFn(lang, "sono_ciclo_5") : tFn(lang, "sono_ciclo_6")}
                 </p>
               </div>
@@ -700,7 +700,7 @@ export default function SonoPage() {
         background: `radial-gradient(ellipse 80% 50% at 50% 0%, oklch(.58 .18 270 / .15) 0%, transparent 60%),
                      linear-gradient(180deg, oklch(.12 .012 270) 0%, oklch(.15 .015 270) 100%)`,
       }}>
-        <p style={{ color: "var(--muted-foreground)", fontSize: 13 }}>{tFn(lang, "carregando")}</p>
+        <p style={{ color: "#9e96b5", fontSize: 13 }}>{tFn(lang, "carregando")}</p>
       </div>
     );
   }
@@ -719,17 +719,8 @@ export default function SonoPage() {
             <Moon className="size-5" style={{ color: P }} />
             <h1 style={{ margin: 0, fontSize: 24, fontWeight: 700, letterSpacing: "-0.02em" }}>Sono</h1>
           </div>
-          <button type="button" onClick={() => setShowModal(true)} style={{
-            height: 36, padding: "0 16px", borderRadius: 9999,
-            background: P, color: "#fff",
-            border: 0, cursor: "pointer", fontFamily: "inherit",
-            fontSize: 13, fontWeight: 600,
-            boxShadow: "0 2px 10px -2px oklch(.58 .18 270 / .35)",
-          }}>
-            + {tFn(lang, "sono_registrar_btn")}
-          </button>
         </div>
-        <p style={{ margin: "4px 0 0 35px", fontSize: 13, color: "var(--muted-foreground)" }}>
+        <p style={{ margin: "4px 0 0 35px", fontSize: 13, color: "#9e96b5" }}>
           {tFn(lang, "sono_esta_semana")}
         </p>
       </div>
@@ -783,7 +774,7 @@ export default function SonoPage() {
                   </div>
                   <p style={{ margin: 0, fontSize: 22, fontWeight: 700, color: scoreColor(stats!.consistencyScore) }}>
                     {stats!.consistencyScore}
-                    <span style={{ fontSize: 13, fontWeight: 500, color: "var(--muted-foreground)" }}> /100</span>
+                    <span style={{ fontSize: 13, fontWeight: 500, color: "#9e96b5" }}> /100</span>
                   </p>
                 </CardContent>
               </Card>
@@ -953,6 +944,18 @@ export default function SonoPage() {
       {editingLog && (
         <EditSleepModal log={editingLog} onClose={() => setEditingLog(null)} onSaved={loadLogs} lang={lang} />
       )}
+
+      {/* FAB */}
+      <button type="button" onClick={() => setShowModal(true)}
+        style={{
+          position: "fixed", bottom: 84, right: 20, zIndex: 40,
+          width: 56, height: 56, borderRadius: "50%",
+          background: "#7C5CFF", border: 0, cursor: "pointer",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          boxShadow: "0 4px 20px rgba(124,92,255,0.4)",
+        }}>
+        <Plus size={24} color="#fff" />
+      </button>
     </div>
   );
 }
