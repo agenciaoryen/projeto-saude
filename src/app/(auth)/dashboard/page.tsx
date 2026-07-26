@@ -249,13 +249,11 @@ export default function DashboardPage() {
           yesterday.setDate(yesterday.getDate() - 1);
           const yd = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, "0")}-${String(yesterday.getDate()).padStart(2, "0")}`;
           const yci = checkInsData.find((c: CheckIn) => c.date === yd);
-          // Sleep logs use wake date (today = last night's sleep)
-          const todaySleepLog = sleepMap[today];
-          const yesterdaySleepLog = sleepMap[yd];
-          const sleepQuality: number | null = todaySleepLog?.quality ?? yesterdaySleepLog?.quality ?? null;
-          const hasSleepData = sleepQuality !== null;
-          console.log("[DASHBOARD] Sleep debug:", { today, yd, todayLog: !!todaySleepLog, yesterdayLog: !!yesterdaySleepLog, quality: sleepQuality, checkinSlept: yci?.slept_well, sleepMapKeys: Object.keys(sleepMap) });
-          setYesterdaySleep(hasSleepData ? sleepQuality! >= 3 : (yci?.slept_well ?? null));
+          // Sleep: use most recent data (sleep log quality + check-in slept_well)
+          const recentSleepLogs = Object.entries(sleepMap).sort((a, b) => b[0].localeCompare(a[0]));
+          const lastSleepLog = recentSleepLogs.length > 0 ? recentSleepLogs[0][1] : null;
+          const hasQuality = lastSleepLog?.quality != null;
+          setYesterdaySleep(hasQuality ? lastSleepLog!.quality! >= 3 : (yci?.slept_well ?? null));
 
           // Last mood
           const lastCi = checkInsData.find((c: CheckIn) => c.mood_tags?.length > 0);
