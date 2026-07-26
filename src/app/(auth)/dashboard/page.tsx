@@ -251,7 +251,11 @@ export default function DashboardPage() {
           const yci = checkInsData.find((c: CheckIn) => c.date === yd);
           // Sleep logs use wake date (today = last night's sleep)
           const todaySleepLog = sleepMap[today];
-          setYesterdaySleep(todaySleepLog?.quality ? todaySleepLog.quality >= 3 : (yci?.slept_well ?? null));
+          const yesterdaySleepLog = sleepMap[yd];
+          const sleepQuality: number | null = todaySleepLog?.quality ?? yesterdaySleepLog?.quality ?? null;
+          const hasSleepData = sleepQuality !== null;
+          console.log("[DASHBOARD] Sleep debug:", { today, yd, todayLog: !!todaySleepLog, yesterdayLog: !!yesterdaySleepLog, quality: sleepQuality, checkinSlept: yci?.slept_well, sleepMapKeys: Object.keys(sleepMap) });
+          setYesterdaySleep(hasSleepData ? sleepQuality! >= 3 : (yci?.slept_well ?? null));
 
           // Last mood
           const lastCi = checkInsData.find((c: CheckIn) => c.mood_tags?.length > 0);
