@@ -118,6 +118,7 @@ export default function MayaChatPage() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const sendingRef = useRef(false);
   const fullHeightRef = useRef(0);
+  const nudgeActionRef = useRef<{ label: string; href: string } | null>(null);
 
   useEffect(() => {
     fullHeightRef.current = window.innerHeight;
@@ -189,7 +190,6 @@ export default function MayaChatPage() {
       });
 
     // Load proactive nudge
-    const nudgeActionRef = useRef<{ label: string; href: string } | null>(null);
     fetch("/api/maya/nudge")
       .then(r => r.json())
       .then(data => {
