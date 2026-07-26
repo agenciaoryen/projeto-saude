@@ -206,7 +206,6 @@ export default function DashboardPage() {
   const [userGender, setUserGender] = useState("");
   const [carouselIdx, setCarouselIdx] = useState(0);
   const [todayTasks, setTodayTasks] = useState<WeeklyTask[]>([]);
-  const [sleepLogs, setSleepLogs] = useState<Record<string, { quality: number | null }>>({});
   const [yesterdaySleep, setYesterdaySleep] = useState<boolean | null>(null);
   const [lastMood, setLastMood] = useState<string>("");
   const [todaySpending, setTodaySpending] = useState<number | null>(null);
@@ -248,11 +247,7 @@ export default function DashboardPage() {
           yesterday.setDate(yesterday.getDate() - 1);
           const yd = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, "0")}-${String(yesterday.getDate()).padStart(2, "0")}`;
           const yci = checkInsData.find((c: CheckIn) => c.date === yd);
-          // Sleep: use most recent data (sleep log quality + check-in slept_well)
-          const recentSleepLogs = Object.entries(sleepMap).sort((a, b) => b[0].localeCompare(a[0]));
-          const lastSleepLog = recentSleepLogs.length > 0 ? recentSleepLogs[0][1] : null;
-          const hasQuality = lastSleepLog?.quality != null;
-          setYesterdaySleep(hasQuality ? lastSleepLog!.quality! >= 3 : (yci?.slept_well ?? null));
+          if (yci) setYesterdaySleep(yci.slept_well);
 
           // Last mood
           const lastCi = checkInsData.find((c: CheckIn) => c.mood_tags?.length > 0);
@@ -273,19 +268,6 @@ export default function DashboardPage() {
         setTodayTasks(allTasks.filter((t: WeeklyTask) => t.day_of_week === todayDow));
 
         setLoading(false);
-
-        // Fetch sleep logs separately (don't block dashboard load)
-        fetch("/api/sleep?limit=7").then(r => r.json()).then(data => {
-          if (Array.isArray(data)) {
-            const map: Record<string, { quality: number | null }> = {};
-            for (const log of data) { if (log.date) map[log.date] = { quality: log.quality ?? null }; }
-            setSleepLogs(map);
-            const recent = Object.entries(map).sort((a, b) => b[0].localeCompare(a[0]));
-            if (recent.length > 0 && recent[0][1].quality != null) {
-              setYesterdaySleep(recent[0][1].quality >= 3);
-            }
-          }
-        }).catch(() => {});
       })
       .catch(() => setLoading(false));
 
@@ -419,7 +401,7 @@ export default function DashboardPage() {
       days.push({
         date: ds,
         label: d.toLocaleDateString("pt-BR", { weekday: "short" }).replace(".", ""),
-        sleep: sleepLogs[ds]?.quality ? sleepLogs[ds].quality! >= 3 : (ci?.slept_well ?? null),
+        sleep: ci?.slept_well ?? null,
         cuidados: ci
           ? habitKeys.filter((k) => (ci as unknown as Record<string, unknown>)[k] === true).length
           : null,
@@ -429,7 +411,7 @@ export default function DashboardPage() {
       });
     }
     return days;
-  }, [checkIns, enabledKeys, sleepLogs]);
+  }, [checkIns, enabledKeys]);
 
   const avgEnergy = useMemo(() => {
     const withData = weekDays.filter((d) => d.cuidados !== null);

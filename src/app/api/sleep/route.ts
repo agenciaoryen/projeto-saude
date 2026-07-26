@@ -66,23 +66,38 @@ export async function POST(req: NextRequest) {
     .limit(1)
     .single();
 
-  if (existing) {
-    const { data, error } = await admin
-      .from("sleep_logs")
-      .update(row)
-      .eq("id", existing.id)
-      .select()
-      .single();
-    if (error) return NextResponse.json({ error: String(error) }, { status: 500 });
-    return NextResponse.json(data);
-  }
+	  let result;
+	  if (existing) {
+	    const { data, error } = await admin
+	      .from("sleep_logs")
+	      .update(row)
+	      .eq("id", existing.id)
+	      .select()
+	      .single();
+	    if (error) return NextResponse.json({ error: String(error) }, { status: 500 });
+	    result = data;
+	  } else {
+	    const { data, error } = await admin
+	      .from("sleep_logs")
+	      .insert(row)
+	      .select()
+	      .single();
+	    if (error) return NextResponse.json({ error: String(error) }, { status: 500 });
+	    result = data;
+	  }
 
-  const { data, error } = await admin
-    .from("sleep_logs")
-    .insert(row)
-    .select()
-    .single();
-  if (error) return NextResponse.json({ error: String(error) }, { status: 500 });
+	  // Sync check-in slept_well from sleep quality
+	  if (body.quality != null) {
+	    const sleptWell = body.quality >= 3;
+	    const { data: existingCi } = await admin
+	      .from("check_ins")
+	      .select("id")
+	      .eq("user_id", session.user.id)
+	      .eq("date", date)
+	      .maybeSingle();
+	    if (existingCi) {
+	      await admin.from("check_ins").update({ slept_well: sleptWell, updated_at: new Date().toISOString() }).eq("id", existingCi.id);
+	    }
+	  }
 
-  return NextResponse.json(data, { status: 201 });
-}
+	  return NextResponse.json(result, existing ? 200 : 201);
