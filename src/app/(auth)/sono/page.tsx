@@ -95,8 +95,8 @@ const timeInputWrap: React.CSSProperties = {
   overflow: "hidden",
   minWidth: 0,
   borderRadius: 10,
-  border: "1px solid oklch(.7 .04 160 / .3)",
-  background: "oklch(.97 .005 160)",
+  border: "1px solid rgba(167,139,250,0.25)",
+  background: "#0F0F14",
   height: 42,
   display: "flex",
   alignItems: "center",
@@ -111,6 +111,10 @@ const timeInputStyle: React.CSSProperties = {
   padding: "0 10px",
   border: "none",
   borderRadius: 0,
+  color: "#e0d6ff",
+  background: "transparent",
+  fontFamily: "inherit",
+  fontSize: 14,
   fontFamily: "inherit",
   fontSize: 14,
   fontWeight: 600,
@@ -132,7 +136,9 @@ function ManualLogModal({ onClose, onSaved, lang }: { onClose: () => void; onSav
     if (!quality) return;
     setSaving(true);
     const today = getLocalDate();
-    const sleepStart = startTime ? `${today}T${startTime}:00-03:00` : null;
+    const offset = -(new Date().getTimezoneOffset());
+    const tzStr = `${offset >= 0 ? "+" : "-"}${String(Math.floor(Math.abs(offset) / 60)).padStart(2, "0")}:${String(Math.abs(offset) % 60).padStart(2, "0")}`;
+    const sleepStart = startTime ? `${today}T${startTime}:00${tzStr}` : null;
     let sleepEnd: string | null = null;
     let computedDuration: number | null = null;
 
@@ -145,7 +151,7 @@ function ManualLogModal({ onClose, onSaved, lang }: { onClose: () => void; onSav
       const endDate = crossMidnight
         ? new Date(new Date(today + "T12:00:00").getTime() + 86400000).toISOString().split("T")[0]
         : today;
-      sleepEnd = `${endDate}T${endTime}:00-03:00`;
+      sleepEnd = `${endDate}T${endTime}:00${tzStr}`;
       computedDuration = crossMidnight ? (24 * 60 - startMin) + endMin : endMin - startMin;
     }
 
@@ -278,7 +284,9 @@ function EditSleepModal({ log, onClose, onSaved, lang }: {
 
   const save = async () => {
     setSaving(true);
-    const sleepStart = startTime ? `${log.date}T${startTime}:00-03:00` : null;
+    const offset = -(new Date().getTimezoneOffset());
+    const tzStr = `${offset >= 0 ? "+" : "-"}${String(Math.floor(Math.abs(offset) / 60)).padStart(2, "0")}:${String(Math.abs(offset) % 60).padStart(2, "0")}`;
+    const sleepStart = startTime ? `${log.date}T${startTime}:00${tzStr}` : null;
     let sleepEnd: string | null = null;
     let durationMin: number | null = null;
 
@@ -291,7 +299,7 @@ function EditSleepModal({ log, onClose, onSaved, lang }: {
       const endDate = crossMidnight
         ? new Date(new Date(log.date + "T12:00:00").getTime() + 86400000).toISOString().split("T")[0]
         : log.date;
-      sleepEnd = `${endDate}T${endTime}:00-03:00`;
+      sleepEnd = `${endDate}T${endTime}:00${tzStr}`;
       durationMin = crossMidnight ? (24 * 60 - startMin) + endMin : endMin - startMin;
     }
 
