@@ -229,7 +229,8 @@ export default function AgendaPage() {
   const TOTAL_MINUTES = (TIMELINE_END - TIMELINE_START) * 60;
   const SLOT_MINUTES = 30; // 30-min slots
   const TOTAL_SLOTS = TOTAL_MINUTES / SLOT_MINUTES; // 48 slots
-  const SLOT_PX = 20; // pixel height per 30-min slot
+  const SLOT_PX = 24; // pixel height per 30-min slot
+  const TRACK_HEIGHT = TOTAL_SLOTS * SLOT_PX; // 1152px
 
   // ── Smart scroll: snap to 2h before current time ────────────
   const timelineScrollRef = useRef<HTMLDivElement>(null);
@@ -239,23 +240,24 @@ export default function AgendaPage() {
     const currentMins = now.getHours() * 60 + now.getMinutes();
     // Scroll to 2 hours before current time, but never before 06:00
     const targetMins = Math.max(6 * 60, currentMins - 120);
-    const slotIdx = targetMins / SLOT_MINUTES;
-    const scrollTop = Math.max(0, slotIdx * SLOT_PX - 40); // 40px offset for a bit of context above
-    timelineScrollRef.current.scrollTop = scrollTop;
+    const px = (targetMins / SLOT_MINUTES) * SLOT_PX;
+    timelineScrollRef.current.scrollTop = Math.max(0, px - 60);
   }, []);
 
-  const getTopPct = (time: string) => {
+  /** Convert HH:MM to pixel offset from top of track */
+  const timeToPx = (time: string): number => {
     const [h, m] = time.split(":").map(Number);
-    const mins = (h - TIMELINE_START) * 60 + m;
-    return Math.max(0, (mins / TOTAL_MINUTES) * 100);
+    return ((h * 60 + m) / SLOT_MINUTES) * SLOT_PX;
   };
 
-  const getHeightPct = (start: string, end: string) => {
-    const [sh, sm] = start.split(":").map(Number);
-    const [eh, em] = end.split(":").map(Number);
-    let mins = (eh - sh) * 60 + (em - sm);
-    if (mins <= 0) mins = SLOT_MINUTES; // minimum 30 min
-    return (mins / TOTAL_MINUTES) * 100;
+  /** Calculate event height in px. Handles midnight-crossing (clamped to end of day). */
+  const eventHeightPx = (start: string, end: string): number => {
+    const startPx = timeToPx(start);
+    let endPx = timeToPx(end);
+    // Crosses midnight? Clamp to end of day
+    if (endPx <= startPx) endPx = TRACK_HEIGHT;
+    const h = endPx - startPx;
+    return Math.max(SLOT_PX, h); // minimum 1 slot
   };
 
   const HALF_HOUR_LABELS = Array.from({ length: TOTAL_SLOTS + 1 }, (_, i) => {
@@ -375,14 +377,14 @@ export default function AgendaPage() {
           }}>
             <div ref={timelineScrollRef} style={{
               display: "flex",
-              maxHeight: 480, overflowY: "auto", overflowX: "hidden",
+              maxHeight: 500, overflowY: "auto", overflowX: "hidden",
               scrollBehavior: "smooth",
               WebkitOverflowScrolling: "touch",
             }}>
               {/* Time labels */}
-              <div style={{ width: 48, flexShrink: 0, display: "flex", flexDirection: "column" }}>
+              <div style={{ width: 48, flexShrink: 0 }}>
                 {HALF_HOUR_LABELS.filter((_, i) => i % 2 === 0).map((label, idx) => {
-                  const h = idx; // idx 0 = 00:00, idx 1 = 01:00, etc.
+                  const h = idx;
                   return (
                     <button key={label} type="button"
                       onClick={() => {
@@ -396,14 +398,14 @@ export default function AgendaPage() {
                         paddingRight: 8, background: "none", border: 0, cursor: "pointer",
                         fontFamily: "inherit",
                       }}>
-                      <span style={{ fontSize: 10, color: "#9e96b5", lineHeight: 1 }}>{label}</span>
+                      <span style={{ fontSize: 11, color: "#9e96b5", lineHeight: 1 }}>{label}</span>
                     </button>
                   );
                 })}
               </div>
 
               {/* Timeline track */}
-              <div style={{ flex: 1, position: "relative", minHeight: TOTAL_SLOTS * SLOT_PX }}>
+              <div style={{ flex: 1, position: "relative", height: TRACK_HEIGHT }}>
                 {/* Vertical line */}
                 <div style={{
                   position: "absolute", left: 0, top: 6, bottom: 6, width: 2,
@@ -412,42 +414,42 @@ export default function AgendaPage() {
                 }} />
 
                 {/* Clickable half-hour slots */}
-                {HALF_HOUR_LABELS.slice(0, -1).map((_, idx) => {
-                  const totalMins = idx * SLOT_MINUTES;
-                  const h = Math.floor(totalMins / 60);
-                  const m = totalMins % 60;
-                  const start = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-                  return (
-                    <button key={idx} type="button"
-                      onClick={() => {
-                        const endTotal = totalMins + SLOT_MINUTES;
-                        const eh = Math.floor(endTotal / 60);
-                        const em = endTotal % 60;
-                        const end = `${String(eh).padStart(2, "0")}:${String(em).padStart(2, "0")}`;
-                        setNewItemType("compromisso");
-                        setNewStartTime(start);
-                        setNewEndTime(end);
-                        setShowNewItem(true);
-                      }}
-                      style={{
-                        position: "absolute", left: 12, right: 8,
-                        top: `${(idx / TOTAL_SLOTS) * 100}%`,
-                        height: `${(1 / TOTAL_SLOTS) * 100}%`,
-                        background: "transparent", border: 0, cursor: "pointer",
-                      }}
-                    />
-                  );
-                })}
+                {HALF_HOUR_LABELS.slice(0, -1).map((label, idx) => (
+                  <button key={idx} type="button"
+                    onClick={() => {
+                      const totalMins = idx * SLOT_MINUTES;
+                      const h = Math.floor(totalMins / 60);
+                      const m = totalMins % 60;
+                      const start = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+                      const endTotal = totalMins + SLOT_MINUTES;
+                      const eh = Math.floor(endTotal / 60);
+                      const em = endTotal % 60;
+                      const end = `${String(eh).padStart(2, "0")}:${String(em).padStart(2, "0")}`;
+                      setNewItemType("compromisso");
+                      setNewStartTime(start);
+                      setNewEndTime(end);
+                      setShowNewItem(true);
+                    }}
+                    style={{
+                      position: "absolute", left: 12, right: 8,
+                      top: idx * SLOT_PX, height: SLOT_PX,
+                      background: "transparent", border: 0, cursor: "pointer",
+                    }}
+                  />
+                ))}
 
-                {/* Event cards */}
+                {/* Event cards (pixel-perfect positioning) */}
                 {filteredCompromissos.map((item) => {
-                  const top = getTopPct(item.start_time || "07:00");
-                  const height = item.end_time
-                    ? getHeightPct(item.start_time || "07:00", item.end_time)
-                    : (SLOT_MINUTES / TOTAL_MINUTES) * 100;
+                  const topPx = timeToPx(item.start_time || "07:00");
+                  const heightPx = item.end_time
+                    ? eventHeightPx(item.start_time || "07:00", item.end_time)
+                    : SLOT_PX;
+                  const crossesMidnight = item.end_time
+                    ? timeToPx(item.end_time) <= timeToPx(item.start_time || "07:00")
+                    : false;
                   const priorityCfg = PRIORITY_CONFIG[item.priority as EisenhowerPriority] || PRIORITY_CONFIG.importante_nao_urgente;
                   const PriorityIcon = priorityCfg.icon;
-                  const short = height < 2.5; // compact mode for very short events
+                  const short = heightPx < SLOT_PX * 1.5; // compact for events < 45min
 
                   return (
                     <button key={item.id} type="button"
@@ -463,28 +465,33 @@ export default function AgendaPage() {
                       }}
                       style={{
                         position: "absolute", left: 12, right: 8, zIndex: 2,
-                        top: `calc(${top}% + 1px)`,
-                        height: `calc(${height}% - 2px)`,
+                        top: topPx + 1,
+                        height: heightPx - 2,
                         background: item.color ? `${item.color}22` : "rgba(124,92,255,0.15)",
-                        border: item.color
-                          ? `1px solid ${item.color}44`
-                          : "1px solid rgba(167,139,250,0.3)",
-                        borderRadius: 6, padding: short ? "3px 6px" : "5px 8px",
+                        borderLeft: item.color
+                          ? `2px solid ${item.color}`
+                          : "2px solid rgba(167,139,250,0.5)",
+                        borderTop: "1px solid rgba(167,139,250,0.15)",
+                        borderRight: "1px solid rgba(167,139,250,0.15)",
+                        borderBottom: crossesMidnight ? "2px dashed rgba(167,139,250,0.4)" : "1px solid rgba(167,139,250,0.15)",
+                        borderRadius: 4, padding: short ? "2px 6px" : "4px 8px",
                         display: "flex", flexDirection: short ? "row" : "column",
                         alignItems: short ? "center" : "stretch",
                         gap: short ? 4 : 1,
                         justifyContent: "center", cursor: "pointer",
                         textAlign: "left", fontFamily: "inherit",
                         overflow: "hidden",
+                        boxSizing: "border-box",
                       }}>
                       <span style={{
                         fontSize: short ? 8 : 9, color: item.color || "#A78BFA",
-                        flexShrink: 0, lineHeight: 1,
+                        flexShrink: 0, lineHeight: 1, opacity: 0.8,
                       }}>
                         {item.start_time?.slice(0, 5)}{item.end_time ? ` – ${item.end_time.slice(0, 5)}` : ""}
+                        {crossesMidnight && " ↗"}
                       </span>
                       <span style={{
-                        fontSize: short ? 9 : 11, fontWeight: 600, color: "#e0d6ff",
+                        fontSize: short ? 10 : 11, fontWeight: 600, color: "#e0d6ff",
                         overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                       }}>
                         {item.emoji && <span style={{ marginRight: 3 }}>{item.emoji}</span>}
