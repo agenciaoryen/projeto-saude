@@ -2,7 +2,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { NextRequest, NextResponse } from "next/server";
 
-// GET /api/agenda?date=YYYY-MM-DD
+// GET /api/agenda?date=YYYY-MM-DD  OR  /api/agenda?from=YYYY-MM-DD&to=YYYY-MM-DD
 export async function GET(req: NextRequest) {
   const supabase = await createServerSupabaseClient();
   const { data: { session } } = await supabase.auth.getSession();
@@ -11,16 +11,30 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url);
   const date = searchParams.get("date");
-  if (!date) return NextResponse.json({ error: "date obrigatório" }, { status: 400 });
+  const from = searchParams.get("from");
+  const to = searchParams.get("to");
+
+  if (!date && !(from && to)) {
+    return NextResponse.json({ error: "date ou from+to obrigatório" }, { status: 400 });
+  }
 
   const admin = getSupabaseAdmin();
-  const { data, error } = await admin
+  let query = admin
     .from("agenda_items")
     .select("*")
-    .eq("user_id", user.id)
-    .eq("date", date)
+    .eq("user_id", user.id);
+
+  if (from && to) {
+    query = query.gte("date", from).lte("date", to);
+  } else if (date) {
+    query = query.eq("date", date);
+  }
+
+  query = query.order("date", { ascending: true })
     .order("start_time", { ascending: true, nullsFirst: false })
     .order("position", { ascending: true });
+
+  const { data, error } = await query;
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });

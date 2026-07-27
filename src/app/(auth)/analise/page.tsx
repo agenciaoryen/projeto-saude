@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { cachedFetch } from "@/lib/fetch-cache";
 import { MOOD_CHIPS } from "@/lib/checkin-moods";
-import type { CheckIn, SleepLog, FinancialTransaction } from "@/types";
+import type { CheckIn, SleepLog, FinancialTransaction, AgendaItem } from "@/types";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -66,6 +66,7 @@ export default function AnalisePage() {
   const [checkIns, setCheckIns] = useState<CheckIn[]>([]);
   const [sleepLogs, setSleepLogs] = useState<SleepLog[]>([]);
   const [transactions, setTransactions] = useState<FinancialTransaction[]>([]);
+  const [agendaItems, setAgendaItems] = useState<AgendaItem[]>([]);
   const [enabledKeys, setEnabledKeys] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<"semana" | "mes" | "trimestre">("semana");
@@ -88,6 +89,17 @@ export default function AnalisePage() {
       })
       .catch(() => setLoading(false));
   }, []);
+
+  // Fetch agenda items for the period (re-fetches on tab change)
+  useEffect(() => {
+    const from = daysAgo(periodDays - 1);
+    const to = daysAgo(0);
+    cachedFetch<AgendaItem[]>(`/api/agenda?from=${from}&to=${to}`)
+      .then((data) => {
+        if (Array.isArray(data)) setAgendaItems(data);
+      })
+      .catch(() => {});
+  }, [periodDays]);
 
   // ── filtered data ────────────────────────────────────────────────────────
 
@@ -170,13 +182,29 @@ export default function AnalisePage() {
     const prevHumorPct = Math.round(avg(prevHumorScores) ?? 50);
     const humorTrend = prevHumorPct > 0 ? Math.round(((humorPct - prevHumorPct) / prevHumorPct) * 100) : 0;
 
-    // ── foco ──
-    const focoPct = periodCI.length > 0
+    // ── foco (execução real da agenda + autoavaliação de metas) ──
+    const totalAgenda = agendaItems.length;
+    const doneAgenda = agendaItems.filter((a) => a.status === "concluida").length;
+    const execPct = totalAgenda > 0 ? Math.round((doneAgenda / totalAgenda) * 100) : null;
+    const metasPct = periodCI.length > 0
       ? Math.round((periodCI.filter((c) => c.worked_on_goals === true).length / periodCI.length) * 100)
       : 0;
-    const prevFocoPct = prevCI.length > 0
+    // Combina execução objetiva (agenda) + percepção subjetiva (check-in)
+    const focoPct = execPct != null ? Math.round((execPct + metasPct) / 2) : metasPct;
+
+    // prev period foco
+    const prevAgenda = agendaItems.filter((a) => {
+      const from = daysAgo(periodDays * 2 - 1);
+      const to = daysAgo(periodDays);
+      return a.date >= from && a.date <= to;
+    });
+    const prevTotalAgenda = prevAgenda.length;
+    const prevDoneAgenda = prevAgenda.filter((a) => a.status === "concluida").length;
+    const prevExecPct = prevTotalAgenda > 0 ? Math.round((prevDoneAgenda / prevTotalAgenda) * 100) : null;
+    const prevMetasPct = prevCI.length > 0
       ? Math.round((prevCI.filter((c) => c.worked_on_goals === true).length / prevCI.length) * 100)
       : 0;
+    const prevFocoPct = prevExecPct != null ? Math.round((prevExecPct + prevMetasPct) / 2) : prevMetasPct;
     const focoTrend = prevFocoPct > 0 ? Math.round(((focoPct - prevFocoPct) / prevFocoPct) * 100) : 0;
 
     // ── gastos ──
