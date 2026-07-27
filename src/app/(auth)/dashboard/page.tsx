@@ -755,8 +755,29 @@ export default function DashboardPage() {
                   background: "linear-gradient(90deg, #7C5CFF, #A78BFA)",
                   boxShadow: "0 0 8px rgba(124,92,255,0.4)",
                   transition: "width 0.7s ease",
+                  position: "relative",
+                  overflow: "hidden",
                 }}
-              />
+              >
+                {/* Nitro shimmer */}
+                <div
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    borderRadius: "inherit",
+                    background:
+                      "linear-gradient(90deg, transparent 40%, rgba(255,255,255,0.15) 50%, transparent 60%)",
+                    backgroundSize: "200% 100%",
+                    animation: "nitroShimmer 2.5s ease-in-out infinite",
+                  }}
+                />
+                <style>{`
+                  @keyframes nitroShimmer {
+                    0% { background-position: 200% 0; }
+                    100% { background-position: -200% 0; }
+                  }
+                `}</style>
+              </div>
             </div>
             <p className="m-0 mt-1 text-[10px]" style={{ color: "oklch(.55 .03 270)" }}>
               {positiveCount} cuidados feitos · {totalHabits - positiveCount} pendentes
