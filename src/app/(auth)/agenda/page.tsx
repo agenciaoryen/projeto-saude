@@ -180,6 +180,23 @@ export default function AgendaPage() {
 
   useEffect(() => { fetchItems(selectedDate); }, [selectedDate, fetchItems]);
 
+  // Fetch weekly plan tasks for the current week
+  useEffect(() => {
+    fetch("/api/weekly-plans").then(r => r.json()).then(data => {
+      if (data?.current?.weekly_tasks) setAllWeekTasks(data.current.weekly_tasks);
+    }).catch(() => {});
+  }, [selectedDate]);
+
+  // Weekly plan tasks filtered for the selected day
+  const selectedDayOfWeek = useMemo(() => {
+    const d = new Date(selectedDate + "T12:00:00");
+    return d.getDay() === 0 ? 6 : d.getDay() - 1; // 0=Mon ... 6=Sun
+  }, [selectedDate]);
+
+  const dayPlanTasks = useMemo(() =>
+    allWeekTasks.filter((t: any) => t.day_of_week === selectedDayOfWeek),
+  [allWeekTasks, selectedDayOfWeek]);
+
   // Lock body scroll when popup is open
   useEffect(() => {
     if (showNewItem || editingItem) {
@@ -511,7 +528,7 @@ export default function AgendaPage() {
         )}
 
         {/* ── TAREFAS DO DIA (só agenda, view dia, só aparece se houver tarefas) ── */}
-        {activeModule === "agenda" && viewMode === "dia" && tarefas.length > 0 && (
+        {activeModule === "agenda" && viewMode === "dia" && (tarefas.length > 0 || dayPlanTasks.length > 0) && (
         <div style={{
           background: "#151520", borderRadius: 18,
           border: "1px solid rgba(167,139,250,0.1)",
@@ -520,14 +537,19 @@ export default function AgendaPage() {
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#e0d6ff" }}>Tarefas do dia</h2>
-              {pendingTarefas.length > 0 && (
-                <span style={{
-                  padding: "2px 8px", borderRadius: 9999, fontSize: 10, fontWeight: 600,
-                  background: "rgba(167,139,250,0.15)", color: "#A78BFA",
-                }}>
-                  {pendingTarefas.length} restante{pendingTarefas.length !== 1 ? "s" : ""}
-                </span>
-              )}
+              {(() => {
+                const planPending = dayPlanTasks.filter((t: any) => t.status !== "concluida").length;
+                const total = pendingTarefas.length + planPending;
+                if (total === 0) return null;
+                return (
+                  <span style={{
+                    padding: "2px 8px", borderRadius: 9999, fontSize: 10, fontWeight: 600,
+                    background: "rgba(167,139,250,0.15)", color: "#A78BFA",
+                  }}>
+                    {total} restante{total !== 1 ? "s" : ""}
+                  </span>
+                );
+              })()}
             </div>
           </div>
 
@@ -575,6 +597,56 @@ export default function AgendaPage() {
                       <PriorityIcon size={9} /> {priorityCfg.shortLabel}
                     </span>
                     <GripVertical size={14} color="#5a5470" style={{ cursor: "grab", flexShrink: 0 }} />
+                  </div>
+                );
+              })}
+
+              {/* Weekly plan tasks for this day */}
+              {dayPlanTasks.map((t: any) => {
+                const done = t.status === "concluida";
+                const areaEmoji = (AREA_CONFIG_PT as any)[t.area]?.emoji || "⚪";
+                return (
+                  <div key={`plan-${t.id}`}
+                    onClick={() => {
+                      setEditingItem({ ...t, item_type: "tarefa", start_time: t.scheduled_time, end_time: null, priority: "importante_nao_urgente", emoji: areaEmoji, color: null, description: null, repeat_type: "none", notify_minutes: null, due_date: null });
+                      setEditTitle(t.title || "");
+                      setEditDone(done);
+                    }}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 10,
+                      padding: "10px 12px", borderRadius: 12,
+                      background: done ? "transparent" : "rgba(167,139,250,0.04)",
+                      border: done ? "1px solid transparent" : "1px solid rgba(167,139,250,0.08)",
+                      cursor: "pointer",
+                    }}>
+                    <button type="button" onClick={async (e) => {
+                      e.stopPropagation();
+                      const newStatus = done ? "pendente" : "concluida";
+                      setAllWeekTasks((prev: any[]) => prev.map((wt: any) => wt.id === t.id ? { ...wt, status: newStatus } : wt));
+                      await fetch(`/api/weekly-plans/tasks/${t.id}`, {
+                        method: "PATCH",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ status: newStatus }),
+                      });
+                    }}
+                      style={{
+                        width: 22, height: 22, borderRadius: "50%", flexShrink: 0,
+                        border: done ? "none" : "1.5px solid rgba(167,139,250,0.3)",
+                        background: done ? "#7C5CFF" : "transparent",
+                        cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+                      }}>
+                      {done && <CheckCircle2 size={14} color="#fff" />}
+                    </button>
+                    <span style={{
+                      flex: 1, fontSize: 13, fontWeight: done ? 400 : 500,
+                      color: done ? "#5a5470" : "#e0d6ff",
+                      textDecoration: done ? "line-through" : "none",
+                    }}>
+                      {areaEmoji} {t.title}
+                    </span>
+                    {t.scheduled_time && (
+                      <span style={{ fontSize: 9, color: "#9e96b5", fontFamily: "monospace" }}>{t.scheduled_time.slice(0, 5)}</span>
+                    )}
                   </div>
                 );
               })}
@@ -730,16 +802,16 @@ export default function AgendaPage() {
 
             {/* Time (only for compromisso) */}
             {newItemType === "compromisso" && (
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 10 }}>
-                <div>
+              <div style={{ display: "flex", gap: 12, marginTop: 10 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
                   <label style={{ fontSize: 10, color: "#9e96b5", marginBottom: 4, display: "block" }}>Início</label>
                   <input type="time" value={newStartTime} onChange={(e) => setNewStartTime(e.target.value)}
-                    style={{ ...modalInput, width: "100%", boxSizing: "border-box" }} />
+                    style={{ ...modalInput, padding: "10px 8px", width: "100%", boxSizing: "border-box" }} />
                 </div>
-                <div>
+                <div style={{ flex: 1, minWidth: 0 }}>
                   <label style={{ fontSize: 10, color: "#9e96b5", marginBottom: 4, display: "block" }}>Fim</label>
                   <input type="time" value={newEndTime} onChange={(e) => setNewEndTime(e.target.value)}
-                    style={{ ...modalInput, width: "100%", boxSizing: "border-box" }} />
+                    style={{ ...modalInput, padding: "10px 8px", width: "100%", boxSizing: "border-box" }} />
                 </div>
               </div>
             )}
