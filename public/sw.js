@@ -40,7 +40,7 @@ self.addEventListener("notificationclick", (event) => {
   const action = event.action;
   const data = event.notification.data ?? {};
 
-  let url = "/sono";
+  let url = "/dashboard";
 
   if (action === "quality_good") {
     url = `/api/sleep/quick?quality=4&date=${data.date ?? ""}`;
@@ -52,17 +52,21 @@ self.addEventListener("notificationclick", (event) => {
     url = data.url;
   }
 
+  const fullUrl = new URL(url, self.location.origin).href;
+
   event.waitUntil(
     clients.matchAll({ type: "window", includeUncontrolled: true }).then((windowClients) => {
-      // If app is open, focus it
+      // Find an open app window and focus + navigate it
       for (const client of windowClients) {
-        if (client.url.includes(self.location.origin) && "focus" in client) {
+        if (client.url.startsWith(self.location.origin)) {
           client.focus();
+          // Tell the app to navigate to the target URL
+          client.postMessage({ type: "MAYA_NAVIGATE", url });
           return;
         }
       }
-      // Otherwise open new window
-      if (clients.openWindow) return clients.openWindow(url);
+      // No open window — open a new one at the target URL
+      if (clients.openWindow) return clients.openWindow(fullUrl);
     })
   );
 });
