@@ -7,16 +7,23 @@ export interface MoodChip {
 }
 
 export const MOOD_CHIPS: MoodChip[] = [
-  { id: "bem",           label: "Bem",            labelF: "Bem",            emoji: "😊", valence: "positive" },
+  // positivos
+  { id: "feliz",         label: "Feliz",          labelF: "Feliz",          emoji: "😄", valence: "positive" },
+  { id: "animada",       label: "Animado",        labelF: "Animada",        emoji: "✨", valence: "positive" },
+  { id: "grata",         label: "Grato",          labelF: "Grata",          emoji: "🙏", valence: "positive" },
   { id: "tranquila",     label: "Tranquilo",      labelF: "Tranquila",      emoji: "😌", valence: "positive" },
-  { id: "animada",       label: "Animado",         labelF: "Animada",        emoji: "✨", valence: "positive" },
-  { id: "grata",         label: "Grato",           labelF: "Grata",          emoji: "🙏", valence: "positive" },
-  { id: "esperancosa",   label: "Esperançoso",     labelF: "Esperançosa",    emoji: "🌱", valence: "positive" },
-  { id: "cansada",       label: "Cansado",         labelF: "Cansada",        emoji: "😴", valence: "negative" },
-  { id: "ansiosa",       label: "Ansioso",         labelF: "Ansiosa",        emoji: "😰", valence: "negative" },
-  { id: "triste",        label: "Triste",          labelF: "Triste",         emoji: "😢", valence: "negative" },
-  { id: "irritada",      label: "Irritado",        labelF: "Irritada",       emoji: "😤", valence: "negative" },
-  { id: "sobrecarregada",label: "Sobrecarregado",  labelF: "Sobrecarregada", emoji: "🌊", valence: "negative" },
+  { id: "esperancosa",   label: "Esperançoso",    labelF: "Esperançosa",    emoji: "🌱", valence: "positive" },
+  { id: "disposta",      label: "Disposto",       labelF: "Disposta",       emoji: "⚡", valence: "positive" },
+  // negativos
+  { id: "cansada",       label: "Cansado",        labelF: "Cansada",        emoji: "😴", valence: "negative" },
+  { id: "ansiosa",       label: "Ansioso",        labelF: "Ansiosa",        emoji: "😰", valence: "negative" },
+  { id: "estressada",    label: "Estressado",     labelF: "Estressada",     emoji: "😫", valence: "negative" },
+  { id: "triste",        label: "Triste",         labelF: "Triste",         emoji: "😢", valence: "negative" },
+  { id: "irritada",      label: "Irritado",       labelF: "Irritada",       emoji: "😤", valence: "negative" },
+  { id: "desanimada",    label: "Desanimado",     labelF: "Desanimada",     emoji: "😞", valence: "negative" },
+  { id: "sobrecarregada",label: "Sobrecarregado", labelF: "Sobrecarregada", emoji: "🌊", valence: "negative" },
+  { id: "raiva",         label: "Com raiva",      labelF: "Com raiva",      emoji: "😡", valence: "negative" },
+  { id: "culpada",       label: "Culpado",        labelF: "Culpada",        emoji: "😔", valence: "negative" },
 ];
 
 export function getMoodLabel(chip: MoodChip, gender: string): string {

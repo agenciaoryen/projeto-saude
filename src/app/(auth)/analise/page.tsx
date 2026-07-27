@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { cachedFetch } from "@/lib/fetch-cache";
+import { MOOD_CHIPS } from "@/lib/checkin-moods";
 import type { CheckIn, SleepLog, FinancialTransaction } from "@/types";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -53,20 +54,11 @@ function wellnessScore(ci: CheckIn, habitKeys: string[]): number {
   return count > 0 ? Math.round(sum / count) : 50;
 }
 
-/** Positive mood tags (lowercase) */
-const POSITIVE_TAGS = new Set([
-  "feliz", "animado", "grato", "calmo", "confiante", "motivado",
-  "tranquilo", "leve", "bem", "otimo", "alegre", "esperancoso",
-  "produtivo", "focado", "energetico", "entusiasmado", "realizado",
-  "satisfeito", "bem-humorado", "ok",
-]);
-
-const NEGATIVE_TAGS = new Set([
-  "triste", "ansioso", "estressado", "irritado", "cansado",
-  "desanimado", "preocupado", "sobrecarregado", "frustrado",
-  "mal", "pessimo", "exausto", "desmotivado", "entediado",
-  "sozinho", "inseguro", "confuso", "deprimido",
-]);
+/** Get mood valence from chip ID — works for both gender forms */
+function getMoodValence(chipId: string): "positive" | "negative" | null {
+  const chip = MOOD_CHIPS.find((c) => c.id === chipId);
+  return chip?.valence ?? null;
+}
 
 // ── component ────────────────────────────────────────────────────────────────
 
@@ -159,24 +151,22 @@ export default function AnalisePage() {
     const prevSonoPct = prevSleepHrs != null ? Math.round(prevSleepHrs / 8 * 100) : 0;
     const sonoTrend = prevSonoPct > 0 ? Math.round(((sonoPct - prevSonoPct) / prevSonoPct) * 100) : 0;
 
-    // ── humor ──
-    const humorScores = periodCI.map((ci) => {
-      const tags = ci.mood_tags ?? [];
-      if (tags.length === 0) return 50; // neutral if no tags
-      const pos = tags.filter((t) => POSITIVE_TAGS.has(t.toLowerCase())).length;
-      const neg = tags.filter((t) => NEGATIVE_TAGS.has(t.toLowerCase())).length;
-      if (pos + neg === 0) return 50;
-      return Math.round((pos / (pos + neg)) * 100);
-    });
-    const humorPct = avg(humorScores) ?? 50;
-    const prevHumorScores = prevCI.map((ci) => {
+    // ── humor (uses chip valence, works for both gender forms) ──
+    const calcHumor = (ci: CheckIn) => {
       const tags = ci.mood_tags ?? [];
       if (tags.length === 0) return 50;
-      const pos = tags.filter((t) => POSITIVE_TAGS.has(t.toLowerCase())).length;
-      const neg = tags.filter((t) => NEGATIVE_TAGS.has(t.toLowerCase())).length;
+      let pos = 0, neg = 0;
+      for (const t of tags) {
+        const v = getMoodValence(t);
+        if (v === "positive") pos++;
+        else if (v === "negative") neg++;
+      }
       if (pos + neg === 0) return 50;
       return Math.round((pos / (pos + neg)) * 100);
-    });
+    };
+    const humorScores = periodCI.map(calcHumor);
+    const humorPct = avg(humorScores) ?? 50;
+    const prevHumorScores = prevCI.map(calcHumor);
     const prevHumorPct = avg(prevHumorScores) ?? 50;
     const humorTrend = prevHumorPct > 0 ? Math.round(((humorPct - prevHumorPct) / prevHumorPct) * 100) : 0;
 
@@ -372,8 +362,12 @@ export default function AnalisePage() {
       if (!ci) return { ...p, dominant: null as string | null };
       const tags = ci.mood_tags ?? [];
       if (tags.length === 0) return { ...p, dominant: null };
-      const pos = tags.filter((t) => POSITIVE_TAGS.has(t.toLowerCase())).length;
-      const neg = tags.filter((t) => NEGATIVE_TAGS.has(t.toLowerCase())).length;
+      let pos = 0, neg = 0;
+      for (const t of tags) {
+        const v = getMoodValence(t);
+        if (v === "positive") pos++;
+        else if (v === "negative") neg++;
+      }
       if (pos > neg) return { ...p, dominant: "positive" };
       if (neg > pos) return { ...p, dominant: "negative" };
       return { ...p, dominant: "neutral" };
