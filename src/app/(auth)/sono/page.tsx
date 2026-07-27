@@ -136,9 +136,7 @@ function ManualLogModal({ onClose, onSaved, lang }: { onClose: () => void; onSav
     if (!quality) return;
     setSaving(true);
     const today = getLocalDate();
-    const offset = -(new Date().getTimezoneOffset());
-    const tzStr = `${offset >= 0 ? "+" : "-"}${String(Math.floor(Math.abs(offset) / 60)).padStart(2, "0")}:${String(Math.abs(offset) % 60).padStart(2, "0")}`;
-    const sleepStart = startTime ? `${today}T${startTime}:00${tzStr}` : null;
+    const sleepStart = startTime ? `${today}T${startTime}:00` : null;
     let sleepEnd: string | null = null;
     let computedDuration: number | null = null;
 
@@ -151,7 +149,7 @@ function ManualLogModal({ onClose, onSaved, lang }: { onClose: () => void; onSav
       const endDate = crossMidnight
         ? new Date(new Date(today + "T12:00:00").getTime() + 86400000).toISOString().split("T")[0]
         : today;
-      sleepEnd = `${endDate}T${endTime}:00${tzStr}`;
+      sleepEnd = `${endDate}T${endTime}:00`;
       computedDuration = crossMidnight ? (24 * 60 - startMin) + endMin : endMin - startMin;
     }
 
@@ -284,9 +282,7 @@ function EditSleepModal({ log, onClose, onSaved, lang }: {
 
   const save = async () => {
     setSaving(true);
-    const offset = -(new Date().getTimezoneOffset());
-    const tzStr = `${offset >= 0 ? "+" : "-"}${String(Math.floor(Math.abs(offset) / 60)).padStart(2, "0")}:${String(Math.abs(offset) % 60).padStart(2, "0")}`;
-    const sleepStart = startTime ? `${log.date}T${startTime}:00${tzStr}` : null;
+    const sleepStart = startTime ? `${log.date}T${startTime}:00` : null;
     let sleepEnd: string | null = null;
     let durationMin: number | null = null;
 
@@ -299,7 +295,7 @@ function EditSleepModal({ log, onClose, onSaved, lang }: {
       const endDate = crossMidnight
         ? new Date(new Date(log.date + "T12:00:00").getTime() + 86400000).toISOString().split("T")[0]
         : log.date;
-      sleepEnd = `${endDate}T${endTime}:00${tzStr}`;
+      sleepEnd = `${endDate}T${endTime}:00`;
       durationMin = crossMidnight ? (24 * 60 - startMin) + endMin : endMin - startMin;
     }
 
