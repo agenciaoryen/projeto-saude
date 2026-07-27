@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   ChevronLeft, ChevronRight, Calendar, Sun, List,
@@ -224,11 +224,24 @@ export default function AgendaPage() {
   };
 
   // ── Timeline calculations ──────────────────────────────────────
-  const TIMELINE_START = 7;  // 07:00
-  const TIMELINE_END = 22;   // 22:00
+  const TIMELINE_START = 0;  // 00:00
+  const TIMELINE_END = 24;   // 00:00 (midnight)
   const TOTAL_MINUTES = (TIMELINE_END - TIMELINE_START) * 60;
   const SLOT_MINUTES = 30; // 30-min slots
-  const TOTAL_SLOTS = TOTAL_MINUTES / SLOT_MINUTES; // 30 slots
+  const TOTAL_SLOTS = TOTAL_MINUTES / SLOT_MINUTES; // 48 slots
+
+  // ── Smart scroll: snap to 2h before current time ────────────
+  const timelineScrollRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!timelineScrollRef.current) return;
+    const now = new Date();
+    const currentMins = now.getHours() * 60 + now.getMinutes();
+    // Scroll to 2 hours before current time, but not before 07:00
+    const targetMins = Math.max(7 * 60, currentMins - 120);
+    const slotIdx = (targetMins - TIMELINE_START * 60) / SLOT_MINUTES;
+    const scrollTop = Math.max(0, slotIdx * 16 - 60); // 16px per slot, 60px offset for context
+    timelineScrollRef.current.scrollTop = scrollTop;
+  }, []);
 
   const getTopPct = (time: string) => {
     const [h, m] = time.split(":").map(Number);
@@ -359,26 +372,33 @@ export default function AgendaPage() {
             border: "1px solid rgba(167,139,250,0.12)",
             padding: "12px 0", marginBottom: 20, position: "relative",
           }}>
-            <div style={{ display: "flex", minHeight: TOTAL_SLOTS * 16, position: "relative" }}>
+            <div ref={timelineScrollRef} style={{
+              display: "flex",
+              maxHeight: 480, overflowY: "auto", overflowX: "hidden",
+              scrollBehavior: "smooth",
+              WebkitOverflowScrolling: "touch",
+            }}>
               {/* Time labels */}
               <div style={{ width: 48, flexShrink: 0, display: "flex", flexDirection: "column" }}>
-                {HALF_HOUR_LABELS.filter((_, i) => i % 2 === 0).map((label, idx) => (
-                  <button key={label} type="button"
-                    onClick={() => {
-                      const h = TIMELINE_START + idx;
-                      setNewItemType("compromisso");
-                      setNewStartTime(`${String(h).padStart(2, "0")}:00`);
-                      setNewEndTime(`${String(h + 1).padStart(2, "0")}:00`);
-                      setShowNewItem(true);
-                    }}
-                    style={{
-                      height: 32, display: "flex", alignItems: "flex-start", justifyContent: "flex-end",
-                      paddingRight: 8, background: "none", border: 0, cursor: "pointer",
-                      fontFamily: "inherit",
-                    }}>
-                    <span style={{ fontSize: 10, color: "#9e96b5", lineHeight: 1 }}>{label}</span>
-                  </button>
-                ))}
+                {HALF_HOUR_LABELS.filter((_, i) => i % 2 === 0).map((label, idx) => {
+                  const h = idx; // idx 0 = 00:00, idx 1 = 01:00, etc.
+                  return (
+                    <button key={label} type="button"
+                      onClick={() => {
+                        setNewItemType("compromisso");
+                        setNewStartTime(`${String(h).padStart(2, "0")}:00`);
+                        setNewEndTime(`${String(h + 1).padStart(2, "0")}:00`);
+                        setShowNewItem(true);
+                      }}
+                      style={{
+                        height: 32, display: "flex", alignItems: "flex-start", justifyContent: "flex-end",
+                        paddingRight: 8, background: "none", border: 0, cursor: "pointer",
+                        fontFamily: "inherit",
+                      }}>
+                      <span style={{ fontSize: 10, color: "#9e96b5", lineHeight: 1 }}>{label}</span>
+                    </button>
+                  );
+                })}
               </div>
 
               {/* Timeline track */}
@@ -391,30 +411,32 @@ export default function AgendaPage() {
                 }} />
 
                 {/* Clickable half-hour slots */}
-                {HALF_HOUR_LABELS.slice(0, -1).map((_, idx) => (
-                  <button key={idx} type="button"
-                    onClick={() => {
-                      const totalMins = TIMELINE_START * 60 + idx * SLOT_MINUTES;
-                      const h = Math.floor(totalMins / 60);
-                      const m = totalMins % 60;
-                      const start = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-                      const endTotal = totalMins + SLOT_MINUTES;
-                      const eh = Math.floor(endTotal / 60);
-                      const em = endTotal % 60;
-                      const end = `${String(eh).padStart(2, "0")}:${String(em).padStart(2, "0")}`;
-                      setNewItemType("compromisso");
-                      setNewStartTime(start);
-                      setNewEndTime(end);
-                      setShowNewItem(true);
-                    }}
-                    style={{
-                      position: "absolute", left: 12, right: 8,
-                      top: `${(idx / TOTAL_SLOTS) * 100}%`,
-                      height: `${(1 / TOTAL_SLOTS) * 100}%`,
-                      background: "transparent", border: 0, cursor: "pointer",
-                    }}
-                  />
-                ))}
+                {HALF_HOUR_LABELS.slice(0, -1).map((_, idx) => {
+                  const totalMins = idx * SLOT_MINUTES;
+                  const h = Math.floor(totalMins / 60);
+                  const m = totalMins % 60;
+                  const start = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+                  return (
+                    <button key={idx} type="button"
+                      onClick={() => {
+                        const endTotal = totalMins + SLOT_MINUTES;
+                        const eh = Math.floor(endTotal / 60);
+                        const em = endTotal % 60;
+                        const end = `${String(eh).padStart(2, "0")}:${String(em).padStart(2, "0")}`;
+                        setNewItemType("compromisso");
+                        setNewStartTime(start);
+                        setNewEndTime(end);
+                        setShowNewItem(true);
+                      }}
+                      style={{
+                        position: "absolute", left: 12, right: 8,
+                        top: `${(idx / TOTAL_SLOTS) * 100}%`,
+                        height: `${(1 / TOTAL_SLOTS) * 100}%`,
+                        background: "transparent", border: 0, cursor: "pointer",
+                      }}
+                    />
+                  );
+                })}
 
                 {/* Event cards */}
                 {filteredCompromissos.map((item) => {
@@ -424,7 +446,7 @@ export default function AgendaPage() {
                     : (SLOT_MINUTES / TOTAL_MINUTES) * 100;
                   const priorityCfg = PRIORITY_CONFIG[item.priority as EisenhowerPriority] || PRIORITY_CONFIG.importante_nao_urgente;
                   const PriorityIcon = priorityCfg.icon;
-                  const short = height < 4; // compact mode for short events
+                  const short = height < 2.5; // compact mode for very short events
 
                   return (
                     <button key={item.id} type="button"
@@ -440,27 +462,28 @@ export default function AgendaPage() {
                       }}
                       style={{
                         position: "absolute", left: 12, right: 8, zIndex: 2,
-                        top: `${top}%`, height: `${height}%`,
+                        top: `calc(${top}% + 1px)`,
+                        height: `calc(${height}% - 2px)`,
                         background: item.color ? `${item.color}22` : "rgba(124,92,255,0.15)",
                         border: item.color
                           ? `1px solid ${item.color}44`
                           : "1px solid rgba(167,139,250,0.3)",
-                        borderRadius: 10, padding: short ? "4px 8px" : "8px 10px",
+                        borderRadius: 6, padding: short ? "3px 6px" : "5px 8px",
                         display: "flex", flexDirection: short ? "row" : "column",
                         alignItems: short ? "center" : "stretch",
-                        gap: short ? 6 : 2,
+                        gap: short ? 4 : 1,
                         justifyContent: "center", cursor: "pointer",
                         textAlign: "left", fontFamily: "inherit",
                         overflow: "hidden",
                       }}>
                       <span style={{
-                        fontSize: short ? 9 : 9, color: item.color || "#A78BFA",
+                        fontSize: short ? 8 : 9, color: item.color || "#A78BFA",
                         flexShrink: 0, lineHeight: 1,
                       }}>
                         {item.start_time?.slice(0, 5)}{item.end_time ? ` – ${item.end_time.slice(0, 5)}` : ""}
                       </span>
                       <span style={{
-                        fontSize: short ? 10 : 12, fontWeight: 600, color: "#e0d6ff",
+                        fontSize: short ? 9 : 11, fontWeight: 600, color: "#e0d6ff",
                         overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                       }}>
                         {item.emoji && <span style={{ marginRight: 3 }}>{item.emoji}</span>}
