@@ -382,7 +382,7 @@ export default function AgendaPage() {
               WebkitOverflowScrolling: "touch",
             }}>
               {/* Time labels */}
-              <div style={{ width: 48, flexShrink: 0 }}>
+              <div style={{ width: 52, flexShrink: 0, paddingLeft: 6 }}>
                 {HALF_HOUR_LABELS.filter((_, i) => i % 2 === 0).map((label, idx) => {
                   const h = idx;
                   return (
