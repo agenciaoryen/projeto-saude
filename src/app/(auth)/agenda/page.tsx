@@ -565,7 +565,6 @@ export default function AgendaPage() {
                         gap: short ? 4 : 1,
                         justifyContent: "flex-start", cursor: "pointer",
                         textAlign: "left", fontFamily: "inherit",
-                        overflow: "hidden",
                         boxSizing: "border-box",
                         opacity: done ? 0.5 : 1,
                       }}>
