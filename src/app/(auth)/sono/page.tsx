@@ -115,11 +115,7 @@ const timeInputStyle: React.CSSProperties = {
   background: "transparent",
   fontFamily: "inherit",
   fontSize: 14,
-  fontFamily: "inherit",
-  fontSize: 14,
   fontWeight: 600,
-  background: "transparent",
-  color: "#e0d6ff",
   outline: "none",
 };
 
@@ -136,7 +132,7 @@ function ManualLogModal({ onClose, onSaved, lang }: { onClose: () => void; onSav
     if (!quality) return;
     setSaving(true);
     const today = getLocalDate();
-    const sleepStart = startTime ? `${today}T${startTime}:00` : null;
+    const sleepStart = startTime ? new Date(`${today}T${startTime}:00`).toISOString() : null;
     let sleepEnd: string | null = null;
     let computedDuration: number | null = null;
 
@@ -149,7 +145,7 @@ function ManualLogModal({ onClose, onSaved, lang }: { onClose: () => void; onSav
       const endDate = crossMidnight
         ? new Date(new Date(today + "T12:00:00").getTime() + 86400000).toISOString().split("T")[0]
         : today;
-      sleepEnd = `${endDate}T${endTime}:00`;
+      sleepEnd = new Date(`${endDate}T${endTime}:00`).toISOString();
       computedDuration = crossMidnight ? (24 * 60 - startMin) + endMin : endMin - startMin;
     }
 
@@ -264,8 +260,7 @@ function ManualLogModal({ onClose, onSaved, lang }: { onClose: () => void; onSav
 function toSPTime(ts: string | null): string {
   if (!ts) return "";
   const d = new Date(ts);
-  const sp = new Date(d.getTime() - 3 * 60 * 60 * 1000);
-  return `${String(sp.getUTCHours()).padStart(2, "0")}:${String(sp.getUTCMinutes()).padStart(2, "0")}`;
+  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 }
 
 function EditSleepModal({ log, onClose, onSaved, lang }: {
@@ -282,7 +277,7 @@ function EditSleepModal({ log, onClose, onSaved, lang }: {
 
   const save = async () => {
     setSaving(true);
-    const sleepStart = startTime ? `${log.date}T${startTime}:00` : null;
+    const sleepStart = startTime ? new Date(`${log.date}T${startTime}:00`).toISOString() : null;
     let sleepEnd: string | null = null;
     let durationMin: number | null = null;
 
@@ -295,7 +290,7 @@ function EditSleepModal({ log, onClose, onSaved, lang }: {
       const endDate = crossMidnight
         ? new Date(new Date(log.date + "T12:00:00").getTime() + 86400000).toISOString().split("T")[0]
         : log.date;
-      sleepEnd = `${endDate}T${endTime}:00`;
+      sleepEnd = new Date(`${endDate}T${endTime}:00`).toISOString();
       durationMin = crossMidnight ? (24 * 60 - startMin) + endMin : endMin - startMin;
     }
 
