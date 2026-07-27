@@ -426,7 +426,17 @@ export default function AgendaPage() {
                     const areaEmoji = (AREA_CONFIG_PT as any)[t.area]?.emoji || "⚪";
                     return (
                       <button key={`plan-${t.id}`} type="button"
-                        onClick={async () => {
+                        style={{
+                          display: "inline-flex", alignItems: "center", gap: 5,
+                          padding: "6px 10px", borderRadius: 8, border: "1px solid rgba(167,139,250,0.15)",
+                          background: done ? "transparent" : "rgba(167,139,250,0.04)",
+                          cursor: "default", fontFamily: "inherit", fontSize: 12,
+                          color: done ? "#5a5470" : "#9e96b5",
+                          textDecoration: done ? "line-through" : "none",
+                          whiteSpace: "nowrap",
+                        }}>
+                        <span onClick={async (e) => {
+                          e.stopPropagation();
                           const newStatus = done ? "pendente" : "concluida";
                           setAllWeekTasks((prev: any[]) => prev.map((wt: any) => wt.id === t.id ? { ...wt, status: newStatus } : wt));
                           await fetch(`/api/weekly-plans/tasks/${t.id}`, {
@@ -434,17 +444,7 @@ export default function AgendaPage() {
                             headers: { "Content-Type": "application/json" },
                             body: JSON.stringify({ status: newStatus }),
                           });
-                        }}
-                        style={{
-                          display: "inline-flex", alignItems: "center", gap: 5,
-                          padding: "6px 10px", borderRadius: 8, border: "1px solid rgba(167,139,250,0.15)",
-                          background: done ? "transparent" : "rgba(167,139,250,0.04)",
-                          cursor: "pointer", fontFamily: "inherit", fontSize: 12,
-                          color: done ? "#5a5470" : "#9e96b5",
-                          textDecoration: done ? "line-through" : "none",
-                          whiteSpace: "nowrap",
-                        }}>
-                        <span style={{ fontSize: 11 }}>
+                        }} style={{ fontSize: 11, cursor: "pointer", display: "flex" }}>
                           {done ? <CheckCircle2 size={13} color="#7C5CFF" /> : <div style={{ width: 13, height: 13, borderRadius: "50%", border: "1.5px solid rgba(167,139,250,0.2)" }} />}
                         </span>
                         {areaEmoji} {t.title}
