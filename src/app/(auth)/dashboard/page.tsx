@@ -10,7 +10,7 @@ import { photoUrl } from "@/lib/photo-storage";
 import { ArrowRight, Pencil } from "lucide-react";
 import { MayaAvatar } from "@/components/MayaAvatar";
 import { getMoodLabel, getMoodById } from "@/lib/checkin-moods";
-import type { CheckIn, WeeklyTask } from "@/types";
+import type { CheckIn, WeeklyTask, SleepLog } from "@/types";
 
 // ── Constants ───────────────────────────────────────────────────
 
@@ -206,7 +206,8 @@ export default function DashboardPage() {
   const [userGender, setUserGender] = useState("");
   const [carouselIdx, setCarouselIdx] = useState(0);
   const [todayTasks, setTodayTasks] = useState<WeeklyTask[]>([]);
-  const [yesterdaySleep, setYesterdaySleep] = useState<boolean | null>(null);
+  const [recentSleep, setRecentSleep] = useState<SleepLog | null>(null);
+  const [sleepLogs, setSleepLogs] = useState<SleepLog[]>([]);
   const [lastMood, setLastMood] = useState<string>("");
   const [todaySpending, setTodaySpending] = useState<number | null>(null);
   const [spendingLimit, setSpendingLimit] = useState<number>(80);
@@ -230,8 +231,9 @@ export default function DashboardPage() {
       }>("/api/preferences"),
       fetch("/api/profile").then((r) => r.json()).catch(() => ({})),
       fetch("/api/weekly-plans").then((r) => r.json()).catch(() => null),
+      cachedFetch<SleepLog[]>("/api/sleep?limit=7"),
     ])
-      .then(([checkInsData, prefsData, profileData, weeklyPlanData]) => {
+      .then(([checkInsData, prefsData, profileData, weeklyPlanData, sleepData]) => {
         if (!prefsData.onboarding_completed) {
           router.push("/onboarding");
           return;
@@ -242,12 +244,11 @@ export default function DashboardPage() {
           setCheckIns(checkInsData);
           setTodayCheckIn(checkInsData.find((c: CheckIn) => c.date === today) || null);
 
-          // Yesterday's sleep
-          const yesterday = new Date();
-          yesterday.setDate(yesterday.getDate() - 1);
-          const yd = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, "0")}-${String(yesterday.getDate()).padStart(2, "0")}`;
-          const yci = checkInsData.find((c: CheckIn) => c.date === yd);
-          if (yci) setYesterdaySleep(yci.slept_well);
+          // Sleep logs (same data source as sleep page)
+          if (Array.isArray(sleepData)) {
+            setSleepLogs(sleepData);
+            if (sleepData.length > 0) setRecentSleep(sleepData[0]);
+          }
 
           // Last mood
           const lastCi = checkInsData.find((c: CheckIn) => c.mood_tags?.length > 0);
@@ -349,14 +350,17 @@ export default function DashboardPage() {
 
   const mayaMessage = useMemo(() => {
     if (!firstName) return null;
-    const sleepHours = yesterdaySleep === true ? "dormiu bem" : yesterdaySleep === false ? "dormiu só 5h32" : null;
+    const sleepQuality = recentSleep?.quality ?? null;
+    const sleepDuration = recentSleep?.duration_min ?? null;
+    const sleepBad = sleepQuality != null && sleepQuality <= 2;
+    const sleepGood = sleepQuality != null && sleepQuality >= 4;
     const spendingPct = todaySpending !== null && spendingLimit > 0 ? Math.round((todaySpending / spendingLimit) * 100) : null;
 
     if (!todayCheckIn) {
       let msg = `Oi ${firstName}! `;
-      if (sleepHours === "dormiu só 5h32" && spendingPct && spendingPct > 60) {
-        msg += `Você dormiu pouco e já gastou ${spendingPct}% do orçamento. Como pretende virar esse jogo hoje?`;
-      } else if (sleepHours === "dormiu bem") {
+      if (sleepBad && spendingPct && spendingPct > 60) {
+        msg += `Você dormiu mal e já gastou ${spendingPct}% do orçamento. Como pretende virar esse jogo hoje?`;
+      } else if (sleepGood) {
         msg += `Que bom que descansou bem. Bora fazer hoje valer?`;
       } else {
         msg += `Registre como está hoje. Quanto mais você me conta, mais eu posso te ajudar.`;
@@ -372,7 +376,7 @@ export default function DashboardPage() {
     const saudacao = h < 12 ? "Bom dia" : h < 18 ? "Boa tarde" : "Boa noite";
     const pergunta = h >= 18 ? "Como foi seu dia?" : "Como está sendo seu dia?";
     return mayaNudgeText || `${saudacao}, ${firstName}. ${pergunta}`;
-  }, [firstName, todayCheckIn, yesterdaySleep, todaySpending, spendingLimit, lastMood, mayaNudgeText]);
+  }, [firstName, todayCheckIn, recentSleep, todaySpending, spendingLimit, lastMood, mayaNudgeText]);
 
   // ── Fio da Semana ─────────────────────────────────────────────
 
@@ -385,10 +389,17 @@ export default function DashboardPage() {
       (k) => k !== "suicidal_thoughts" && k !== "felt_judged",
     );
 
+    // Build sleep log map for the week
+    const sleepByDay = new Map<string, SleepLog>();
+    for (const sl of sleepLogs) {
+      if (!sleepByDay.has(sl.date)) sleepByDay.set(sl.date, sl);
+    }
+
     const days: {
       date: string;
       label: string;
-      sleep: boolean | null;
+      sleepQuality: number | null; // 1-5 from sleep log
+      sleepHrs: number | null;
       cuidados: number | null;
       mood_tags: string[];
       feeling: string;
@@ -400,11 +411,13 @@ export default function DashboardPage() {
       d.setDate(d.getDate() - i);
       const ds = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
       const ci = ciByDay.get(ds);
+      const sl = sleepByDay.get(ds);
 
       days.push({
         date: ds,
         label: d.toLocaleDateString("pt-BR", { weekday: "short" }).replace(".", ""),
-        sleep: ci?.slept_well ?? null,
+        sleepQuality: sl?.quality ?? null,
+        sleepHrs: sl?.duration_min ? Math.round(sl.duration_min / 60 * 10) / 10 : null,
         cuidados: ci
           ? habitKeys.filter((k) => (ci as unknown as Record<string, unknown>)[k] === true).length
           : null,
@@ -414,7 +427,7 @@ export default function DashboardPage() {
       });
     }
     return days;
-  }, [checkIns, enabledKeys]);
+  }, [checkIns, enabledKeys, sleepLogs]);
 
   const avgEnergy = useMemo(() => {
     const withData = weekDays.filter((d) => d.cuidados !== null);
@@ -592,8 +605,9 @@ export default function DashboardPage() {
                   ? Math.round((day.cuidados / Math.max(totalHabits, 1)) * 10)
                   : null;
 
-              const sleepLabel = day.sleep === true ? "🌙" : day.sleep === false ? "😵" : "—";
-              const sleepOpacity = day.sleep !== null ? 1 : 0.3;
+              const sq = day.sleepQuality;
+              const sleepLabel = sq != null ? (sq >= 4 ? "🌙" : sq >= 3 ? "😐" : "😵") : "—";
+              const sleepOpacity = sq != null ? 1 : 0.3;
 
               return (
                 <div
@@ -672,9 +686,17 @@ export default function DashboardPage() {
           <StatChip
             emoji="😴"
             label="Sono"
-            value={yesterdaySleep === true ? "Dormiu bem" : yesterdaySleep === false ? "Dormiu mal" : "—"}
-            sub={yesterdaySleep === true ? "Boa noite" : yesterdaySleep === false ? "Abaixo da média" : "Sem registro"}
-            subColor={yesterdaySleep === true ? "#22D18B" : yesterdaySleep === false ? "#FF5C5C" : undefined}
+            value={recentSleep?.duration_min
+              ? `${Math.round(recentSleep.duration_min / 60)}h${recentSleep.duration_min % 60 > 0 ? ` ${recentSleep.duration_min % 60}min` : ""}`
+              : recentSleep?.quality
+                ? `Qualidade ${recentSleep.quality}/5`
+                : "—"}
+            sub={recentSleep?.quality
+              ? recentSleep.quality >= 4 ? "Boa noite" : recentSleep.quality >= 3 ? "Noite ok" : "Noite ruim"
+              : "Sem registro"}
+            subColor={recentSleep?.quality
+              ? recentSleep.quality >= 3 ? "#22D18B" : "#FF5C5C"
+              : undefined}
             onClick={() => router.push("/sono")}
           />
           <StatChip
