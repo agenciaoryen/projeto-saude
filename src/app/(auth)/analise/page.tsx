@@ -165,9 +165,9 @@ export default function AnalisePage() {
       return Math.round((pos / (pos + neg)) * 100);
     };
     const humorScores = periodCI.map(calcHumor);
-    const humorPct = avg(humorScores) ?? 50;
+    const humorPct = Math.round(avg(humorScores) ?? 50);
     const prevHumorScores = prevCI.map(calcHumor);
-    const prevHumorPct = avg(prevHumorScores) ?? 50;
+    const prevHumorPct = Math.round(avg(prevHumorScores) ?? 50);
     const humorTrend = prevHumorPct > 0 ? Math.round(((humorPct - prevHumorPct) / prevHumorPct) * 100) : 0;
 
     // ── foco ──
