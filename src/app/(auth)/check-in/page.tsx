@@ -33,11 +33,11 @@ const HABIT_COPY: Record<string, HabitCopy> = {
   slept_well:                  { emoji: "😴", label: "Dormiu bem ontem?",             a: "Sim", b: "Não muito" },
   took_medication:             { emoji: "💊", label: "Tomou seus remédios?",          a: "Sim", b: "Esqueci"   },
   talked_to_someone:           { emoji: "🗣️", label: "Conversou pessoalmente com alguém?", a: "Sim", b: "Não hoje"  },
-  meditation_prayer_breathing: { emoji: "🧘", label: "Meditou, orou ou respirou?",    a: "Sim", b: "Não"       },
+  meditation_prayer_breathing: { emoji: "🧘", label: "Meditou, orou ou respirou de maneira intencional?", a: "Sim", b: "Não" },
   creative_activity:           { emoji: "🎨", label: "Fez algo criativo?",            a: "Sim", b: "Não"       },
   exercise_walk:               { emoji: "🏃", label: "Caminhou ou se exercitou?",     a: "Sim", b: "Não"       },
   did_something_enjoyable:     { emoji: "😊", label: "Fez algo que gosta?",           a: "Sim", b: "Não"       },
-  worked_on_goals:             { emoji: "🎯", label: "Avançou nas tarefas de hoje?",  a: "Sim", b: "Não"       },
+  worked_on_goals:             { emoji: "🎯", label: "Avançou nas suas metas hoje?",  a: "Sim", b: "Não"       },
   bowel_movement:              { emoji: "🚽", label: "Funcionamento intestinal OK?",  a: "Sim", b: "Não"       },
   felt_judged:                 { emoji: "⚖️", label: "Sentiu que foi julgada hoje?",  a: "Sim", b: "Não"       },
 };
@@ -182,8 +182,8 @@ function EditCheckInView({ answers, setAnswers, enabledKeys, context, gender, on
     ...(active
       ? warm
         ? { background: "oklch(.72 .1 30 / .35)", color: "oklch(.35 .08 30)" }
-        : { background: "var(--primary)", color: "#fff" }
-      : { background: "oklch(0.5 0.12 270 / .1)", color: "var(--muted-foreground)" }),
+        : { background: "#7C5CFF", color: "#fff" }
+      : { background: "rgba(124,92,255,0.12)", color: "#7C5CFF" }),
   });
 
   return (
@@ -918,10 +918,10 @@ function HabitStep({ habitKey, context, onAnswer, onSkip, onPrev }: {
         </button>
         <button type="button" onClick={() => onAnswer(habitKey, false)} style={{
           flex: 1, height: 56, borderRadius: 16,
-          background: "oklch(0.16 0.012 270 / 0.7)", backdropFilter: "blur(8px)",
-          border: "1px solid oklch(0.5 0.12 270 / .15)", cursor: "pointer",
+          background: "rgba(167,139,250,0.1)", backdropFilter: "blur(8px)",
+          border: "1px solid rgba(167,139,250,0.2)", cursor: "pointer",
           fontFamily: "inherit", fontSize: 16, fontWeight: 500,
-          color: "var(--foreground)", letterSpacing: "-0.005em",
+          color: "#e0d6ff", letterSpacing: "-0.005em",
         }}>{base.b}</button>
       </div>
       <button type="button" onClick={onSkip} style={{
