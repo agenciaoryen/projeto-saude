@@ -368,7 +368,10 @@ export default function DashboardPage() {
       return `Sei que "${formatMood(lastMood, userGender)}" não é fácil, ${firstName}. Quer conversar sobre o que está pesando?`;
     }
 
-    return mayaNudgeText || `Bom te ver, ${firstName}. Como está sendo seu dia?`;
+    const h = new Date().getHours();
+    const saudacao = h < 12 ? "Bom dia" : h < 18 ? "Boa tarde" : "Boa noite";
+    const pergunta = h >= 18 ? "Como foi seu dia?" : "Como está sendo seu dia?";
+    return mayaNudgeText || `${saudacao}, ${firstName}. ${pergunta}`;
   }, [firstName, todayCheckIn, yesterdaySleep, todaySpending, spendingLimit, lastMood, mayaNudgeText]);
 
   // ── Fio da Semana ─────────────────────────────────────────────
