@@ -181,7 +181,7 @@ function EditCheckInView({ answers, setAnswers, enabledKeys, context, gender, on
     transition: "background .15s ease, color .15s ease",
     ...(active
       ? warm
-        ? { background: "oklch(.72 .1 30 / .35)", color: "oklch(.35 .08 30)" }
+        ? { background: "rgba(255,77,77,0.25)", color: "#FF6B6B" }
         : { background: "#7C5CFF", color: "#fff" }
       : { background: "rgba(124,92,255,0.12)", color: "#7C5CFF" }),
   });
