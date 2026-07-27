@@ -563,19 +563,14 @@ export default function AgendaPage() {
                         display: "flex", flexDirection: short ? "row" : "column",
                         alignItems: short ? "center" : "stretch",
                         gap: short ? 4 : 1,
-                        justifyContent: "center", cursor: "pointer",
+                        justifyContent: "flex-start", cursor: "pointer",
                         textAlign: "left", fontFamily: "inherit",
                         overflow: "hidden",
                         boxSizing: "border-box",
                         opacity: done ? 0.5 : 1,
-                        textDecoration: done ? "line-through" : "none",
                       }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                        {isTask && (
-                          <span style={{ flexShrink: 0, fontSize: 11, lineHeight: 1 }}>
-                            {done ? <CheckCircle2 size={11} color="#7C5CFF" /> : <div style={{ width: 11, height: 11, borderRadius: "50%", border: "1.5px solid rgba(167,139,250,0.3)" }} />}
-                          </span>
-                        )}
+                      {/* Row 1: time + checkbox */}
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                         <span style={{
                           fontSize: short ? 8 : 9, color: isTask ? "#9e96b5" : (item.color || "#A78BFA"),
                           flexShrink: 0, lineHeight: 1,
@@ -583,15 +578,30 @@ export default function AgendaPage() {
                           {item.start_time?.slice(0, 5)}{item.end_time ? ` – ${item.end_time.slice(0, 5)}` : ""}
                           {crossesMidnight && " ↗"}
                         </span>
+                        {/* Check: always visible, both for tasks and compromissos */}
+                        <span
+                          onClick={(e) => { e.stopPropagation(); toggleTask(item); }}
+                          style={{ flexShrink: 0, fontSize: 11, lineHeight: 1, cursor: "pointer", display: "flex" }}>
+                          {done
+                            ? <CheckCircle2 size={short ? 10 : 12} color="#7C5CFF" />
+                            : <div style={{
+                                width: short ? 10 : 12, height: short ? 10 : 12, borderRadius: "50%",
+                                border: isTask ? "1.5px solid rgba(167,139,250,0.35)" : "1.5px solid rgba(167,139,250,0.2)",
+                              }} />
+                          }
+                        </span>
                       </div>
+                      {/* Row 2: title + emoji */}
                       <span style={{
                         fontSize: short ? 10 : 11, fontWeight: done ? 400 : 600,
                         color: done ? "#5a5470" : "#e0d6ff",
                         overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                        textDecoration: done ? "line-through" : "none",
                       }}>
                         {item.emoji && <span style={{ marginRight: 3 }}>{item.emoji}</span>}
                         {item.title}
                       </span>
+                      {/* Row 3: priority label (only for compromissos, not short) */}
                       {!short && !isTask && (
                         <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 8, color: priorityCfg.color, whiteSpace: "nowrap" }}>
                           <PriorityIcon size={8} /> {priorityCfg.shortLabel}
