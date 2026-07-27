@@ -101,35 +101,69 @@ export default function AgendaPage() {
   const [newNotify, setNewNotify] = useState<number | null>(null);
   const [newDueDate, setNewDueDate] = useState("");
   const [saving, setSaving] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null); // non-null = editing existing item
 
-  const handleCreate = async () => {
+  const handleSave = async () => {
     if (!newTitle.trim()) return;
     setSaving(true);
+    const method = editingId ? "PATCH" : "POST";
+    const body: Record<string, unknown> = {
+      title: newTitle.trim(),
+      item_type: newItemType,
+      date: selectedDate,
+      start_time: newItemType === "compromisso" ? newStartTime : null,
+      end_time: newItemType === "compromisso" ? newEndTime : null,
+      priority: newPriority,
+      emoji: newEmoji || null,
+      description: newDescription || null,
+      color: newColor,
+      repeat_type: newRepeat,
+      notify_minutes: newNotify,
+      due_date: newDueDate || null,
+    };
+    if (editingId) body.id = editingId;
+
     const res = await fetch("/api/agenda", {
-      method: "POST",
+      method,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title: newTitle.trim(),
-        item_type: newItemType,
-        date: selectedDate,
-        start_time: newItemType === "compromisso" ? newStartTime : null,
-        end_time: newItemType === "compromisso" ? newEndTime : null,
-        priority: newPriority,
-        emoji: newEmoji || null,
-        description: newDescription || null,
-        color: newColor,
-        repeat_type: newRepeat,
-        notify_minutes: newNotify,
-        due_date: newDueDate || null,
-      }),
+      body: JSON.stringify(body),
     });
     if (res.ok) {
-      const created = await res.json();
-      setItems(prev => [...prev, created]);
-      setShowNewItem(false);
-      setNewTitle(""); setNewEmoji(""); setNewPriority("importante_nao_urgente");
+      const saved = await res.json();
+      if (editingId) {
+        setItems(prev => prev.map(i => i.id === editingId ? saved : i));
+      } else {
+        setItems(prev => [...prev, saved]);
+      }
+      closeNewItemModal();
     }
     setSaving(false);
+  };
+
+  const closeNewItemModal = () => {
+    setShowNewItem(false);
+    setEditingId(null);
+    setNewTitle(""); setNewEmoji(""); setNewPriority("importante_nao_urgente");
+    setNewStartTime("09:00"); setNewEndTime("10:00");
+    setNewDescription(""); setNewColor("#7C5CFF");
+    setNewRepeat("none"); setNewNotify(null); setNewDueDate("");
+  };
+
+  const openEditor = (item: AgendaItem) => {
+    setNewItemType(item.item_type as "compromisso" | "tarefa");
+    setNewTitle(item.title);
+    setNewEmoji(item.emoji || "");
+    setNewPriority(item.priority as EisenhowerPriority);
+    setNewStartTime(item.start_time?.slice(0, 5) || "09:00");
+    setNewEndTime(item.end_time?.slice(0, 5) || "10:00");
+    setNewDescription(item.description || "");
+    setNewColor(item.color || "#7C5CFF");
+    setNewRepeat(item.repeat_type || "none");
+    setNewNotify(item.notify_minutes ?? null);
+    setNewDueDate(item.due_date || "");
+    setEditingId(item.id);
+    setEditingItem(null);
+    setShowNewItem(true);
   };
 
   const fetchItems = useCallback(async (date: string) => {
@@ -193,6 +227,8 @@ export default function AgendaPage() {
   const TIMELINE_START = 7;  // 07:00
   const TIMELINE_END = 22;   // 22:00
   const TOTAL_MINUTES = (TIMELINE_END - TIMELINE_START) * 60;
+  const SLOT_MINUTES = 30; // 30-min slots
+  const TOTAL_SLOTS = TOTAL_MINUTES / SLOT_MINUTES; // 30 slots
 
   const getTopPct = (time: string) => {
     const [h, m] = time.split(":").map(Number);
@@ -203,13 +239,16 @@ export default function AgendaPage() {
   const getHeightPct = (start: string, end: string) => {
     const [sh, sm] = start.split(":").map(Number);
     const [eh, em] = end.split(":").map(Number);
-    const mins = (eh - sh) * 60 + (em - sm);
-    return Math.max(2, (mins / TOTAL_MINUTES) * 100);
+    let mins = (eh - sh) * 60 + (em - sm);
+    if (mins <= 0) mins = SLOT_MINUTES; // minimum 30 min
+    return (mins / TOTAL_MINUTES) * 100;
   };
 
-  const HOUR_LABELS = Array.from({ length: TIMELINE_END - TIMELINE_START + 1 }, (_, i) => {
-    const h = TIMELINE_START + i;
-    return `${String(h).padStart(2, "0")}:00`;
+  const HALF_HOUR_LABELS = Array.from({ length: TOTAL_SLOTS + 1 }, (_, i) => {
+    const totalMins = (TIMELINE_START * 60) + i * SLOT_MINUTES;
+    const h = Math.floor(totalMins / 60);
+    const m = totalMins % 60;
+    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
   });
 
   return (
@@ -320,10 +359,10 @@ export default function AgendaPage() {
             border: "1px solid rgba(167,139,250,0.12)",
             padding: "12px 0", marginBottom: 20, position: "relative",
           }}>
-            <div style={{ display: "flex", minHeight: 400, position: "relative" }}>
-              {/* Hour labels */}
-              <div style={{ width: 48, flexShrink: 0, display: "flex", flexDirection: "column", paddingTop: 4 }}>
-                {HOUR_LABELS.map((label, idx) => (
+            <div style={{ display: "flex", minHeight: TOTAL_SLOTS * 16, position: "relative" }}>
+              {/* Time labels */}
+              <div style={{ width: 48, flexShrink: 0, display: "flex", flexDirection: "column" }}>
+                {HALF_HOUR_LABELS.filter((_, i) => i % 2 === 0).map((label, idx) => (
                   <button key={label} type="button"
                     onClick={() => {
                       const h = TIMELINE_START + idx;
@@ -333,7 +372,7 @@ export default function AgendaPage() {
                       setShowNewItem(true);
                     }}
                     style={{
-                      flex: 1, display: "flex", alignItems: "flex-start", justifyContent: "flex-end",
+                      height: 32, display: "flex", alignItems: "flex-start", justifyContent: "flex-end",
                       paddingRight: 8, background: "none", border: 0, cursor: "pointer",
                       fontFamily: "inherit",
                     }}>
@@ -343,7 +382,7 @@ export default function AgendaPage() {
               </div>
 
               {/* Timeline track */}
-              <div style={{ flex: 1, position: "relative", minHeight: 400 }}>
+              <div style={{ flex: 1, position: "relative", minHeight: TOTAL_SLOTS * 16 }}>
                 {/* Vertical line */}
                 <div style={{
                   position: "absolute", left: 0, top: 6, bottom: 6, width: 2,
@@ -351,20 +390,27 @@ export default function AgendaPage() {
                   borderRadius: 1,
                 }} />
 
-                {/* Clickable hour slots */}
-                {HOUR_LABELS.map((_, idx) => (
+                {/* Clickable half-hour slots */}
+                {HALF_HOUR_LABELS.slice(0, -1).map((_, idx) => (
                   <button key={idx} type="button"
                     onClick={() => {
-                      const h = TIMELINE_START + idx;
+                      const totalMins = TIMELINE_START * 60 + idx * SLOT_MINUTES;
+                      const h = Math.floor(totalMins / 60);
+                      const m = totalMins % 60;
+                      const start = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+                      const endTotal = totalMins + SLOT_MINUTES;
+                      const eh = Math.floor(endTotal / 60);
+                      const em = endTotal % 60;
+                      const end = `${String(eh).padStart(2, "0")}:${String(em).padStart(2, "0")}`;
                       setNewItemType("compromisso");
-                      setNewStartTime(`${String(h).padStart(2, "0")}:00`);
-                      setNewEndTime(`${String(h + 1).padStart(2, "0")}:00`);
+                      setNewStartTime(start);
+                      setNewEndTime(end);
                       setShowNewItem(true);
                     }}
                     style={{
                       position: "absolute", left: 12, right: 8,
-                      top: `${(idx / HOUR_LABELS.length) * 100}%`,
-                      height: `${(1 / HOUR_LABELS.length) * 100}%`,
+                      top: `${(idx / TOTAL_SLOTS) * 100}%`,
+                      height: `${(1 / TOTAL_SLOTS) * 100}%`,
                       background: "transparent", border: 0, cursor: "pointer",
                     }}
                   />
@@ -375,35 +421,56 @@ export default function AgendaPage() {
                   const top = getTopPct(item.start_time || "07:00");
                   const height = item.end_time
                     ? getHeightPct(item.start_time || "07:00", item.end_time)
-                    : 8;
+                    : (SLOT_MINUTES / TOTAL_MINUTES) * 100;
                   const priorityCfg = PRIORITY_CONFIG[item.priority as EisenhowerPriority] || PRIORITY_CONFIG.importante_nao_urgente;
                   const PriorityIcon = priorityCfg.icon;
+                  const short = height < 4; // compact mode for short events
 
                   return (
                     <button key={item.id} type="button"
-                      onClick={(e) => { e.stopPropagation(); setEditingItem(item); setEditTitle(item.title || ""); setEditDone(item.status === "concluida"); }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditingItem(item);
+                        setEditTitle(item.title || "");
+                        setEditStartTime(item.start_time?.slice(0, 5) || "09:00");
+                        setEditEndTime(item.end_time?.slice(0, 5) || "10:00");
+                        setEditEmoji(item.emoji || "");
+                        setEditPriority(item.priority as EisenhowerPriority);
+                        setEditDone(item.status === "concluida");
+                      }}
                       style={{
                         position: "absolute", left: 12, right: 8, zIndex: 2,
-                        top: `${top}%`, height: `${height}%`, minHeight: 50,
-                        background: "rgba(124,92,255,0.15)",
-                        border: "1px solid rgba(167,139,250,0.3)",
-                        borderRadius: 12, padding: "10px 12px",
-                        display: "flex", flexDirection: "column",
+                        top: `${top}%`, height: `${height}%`,
+                        background: item.color ? `${item.color}22` : "rgba(124,92,255,0.15)",
+                        border: item.color
+                          ? `1px solid ${item.color}44`
+                          : "1px solid rgba(167,139,250,0.3)",
+                        borderRadius: 10, padding: short ? "4px 8px" : "8px 10px",
+                        display: "flex", flexDirection: short ? "row" : "column",
+                        alignItems: short ? "center" : "stretch",
+                        gap: short ? 6 : 2,
                         justifyContent: "center", cursor: "pointer",
                         textAlign: "left", fontFamily: "inherit",
+                        overflow: "hidden",
                       }}>
-                      <span style={{ fontSize: 9, color: "#A78BFA", marginBottom: 2 }}>
-                        {item.start_time?.slice(0, 5)} – {item.end_time?.slice(0, 5)}
+                      <span style={{
+                        fontSize: short ? 9 : 9, color: item.color || "#A78BFA",
+                        flexShrink: 0, lineHeight: 1,
+                      }}>
+                        {item.start_time?.slice(0, 5)}{item.end_time ? ` – ${item.end_time.slice(0, 5)}` : ""}
                       </span>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                        <span style={{ fontSize: 13, fontWeight: 600, color: "#e0d6ff", flex: 1 }}>
-                          {item.emoji && <span style={{ marginRight: 4 }}>{item.emoji}</span>}
-                          {item.title}
+                      <span style={{
+                        fontSize: short ? 10 : 12, fontWeight: 600, color: "#e0d6ff",
+                        overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                      }}>
+                        {item.emoji && <span style={{ marginRight: 3 }}>{item.emoji}</span>}
+                        {item.title}
+                      </span>
+                      {!short && (
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 8, color: priorityCfg.color, whiteSpace: "nowrap" }}>
+                          <PriorityIcon size={8} /> {priorityCfg.shortLabel}
                         </span>
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 9, color: priorityCfg.color, whiteSpace: "nowrap" }}>
-                          <PriorityIcon size={9} /> {priorityCfg.shortLabel}
-                        </span>
-                      </div>
+                      )}
                     </button>
                   );
                 })}
@@ -412,8 +479,8 @@ export default function AgendaPage() {
           </div>
         )}
 
-        {/* ── TAREFAS DO DIA (só agenda, view dia) ────────────── */}
-        {activeModule === "agenda" && viewMode === "dia" && (
+        {/* ── TAREFAS DO DIA (só agenda, view dia, só aparece se houver tarefas) ── */}
+        {activeModule === "agenda" && viewMode === "dia" && tarefas.length > 0 && (
         <div style={{
           background: "#151520", borderRadius: 18,
           border: "1px solid rgba(167,139,250,0.1)",
@@ -433,23 +500,30 @@ export default function AgendaPage() {
             </div>
           </div>
 
-          {/* Pending tasks */}
-          {pendingTarefas.length === 0 && completedTarefas.length === 0 ? (
-            <p style={{ color: "#9e96b5", fontSize: 12, textAlign: "center", padding: 16 }}>Nenhuma tarefa para hoje</p>
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              {[...pendingTarefas, ...completedTarefas].map((item) => {
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {[...pendingTarefas, ...completedTarefas].map((item) => {
                 const done = item.status === "concluida";
                 const priorityCfg = PRIORITY_CONFIG[item.priority as EisenhowerPriority] || PRIORITY_CONFIG.importante_nao_urgente;
                 const PriorityIcon = priorityCfg.icon;
                 return (
-                  <div key={item.id} style={{
-                    display: "flex", alignItems: "center", gap: 10,
-                    padding: "10px 12px", borderRadius: 12,
-                    background: done ? "transparent" : "rgba(124,92,255,0.04)",
-                    border: done ? "1px solid transparent" : "1px solid rgba(167,139,250,0.08)",
-                  }}>
-                    <button type="button" onClick={() => toggleTask(item)}
+                  <div key={item.id}
+                    onClick={() => {
+                      setEditingItem(item);
+                      setEditTitle(item.title || "");
+                      setEditStartTime(item.start_time?.slice(0, 5) || "09:00");
+                      setEditEndTime(item.end_time?.slice(0, 5) || "10:00");
+                      setEditEmoji(item.emoji || "");
+                      setEditPriority(item.priority as EisenhowerPriority);
+                      setEditDone(item.status === "concluida");
+                    }}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 10,
+                      padding: "10px 12px", borderRadius: 12,
+                      background: done ? "transparent" : "rgba(124,92,255,0.04)",
+                      border: done ? "1px solid transparent" : "1px solid rgba(167,139,250,0.08)",
+                      cursor: "pointer",
+                    }}>
+                    <button type="button" onClick={(e) => { e.stopPropagation(); toggleTask(item); }}
                       style={{
                         width: 22, height: 22, borderRadius: "50%", flexShrink: 0,
                         border: done ? "none" : "1.5px solid rgba(167,139,250,0.3)",
@@ -474,8 +548,7 @@ export default function AgendaPage() {
                 );
               })}
             </div>
-          )}
-        </div>
+          </div>
         )}
 
       </div>
@@ -526,17 +599,7 @@ export default function AgendaPage() {
             )}
 
             <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
-              <button type="button" onClick={() => {
-                setEditTitle(editingItem.title);
-                setEditStartTime(editingItem.start_time?.slice(0,5) || "09:00");
-                setEditEndTime(editingItem.end_time?.slice(0,5) || "10:00");
-                setEditEmoji(editingItem.emoji || "");
-                setEditPriority(editingItem.priority as EisenhowerPriority);
-                setEditDone(editingItem.status === "concluida");
-                setEditingItem(null);
-                setNewItemType(editingItem.item_type as "compromisso" | "tarefa");
-                setShowEditExisting(editingItem);
-              }}
+              <button type="button" onClick={() => openEditor(editingItem)}
                 style={{ flex: 1, padding: 10, borderRadius: 12, border: "1px solid rgba(167,139,250,0.2)", background: "transparent", color: "#A78BFA", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
                 ✏️ Editar
               </button>
@@ -598,7 +661,9 @@ export default function AgendaPage() {
             border: "1px solid rgba(167,139,250,0.15)",
           }}>
             <h2 style={{ margin: "0 0 4px", fontSize: 18, fontWeight: 700, color: "#e0d6ff" }}>
-              {newItemType === "compromisso" ? "Novo compromisso" : "Nova tarefa"}
+              {editingId
+                ? `Editar ${newItemType === "compromisso" ? "compromisso" : "tarefa"}`
+                : newItemType === "compromisso" ? "Novo compromisso" : "Nova tarefa"}
             </h2>
             <p style={{ margin: "0 0 20px", fontSize: 12, color: "#9e96b5" }}>
               {formatDateLabel(selectedDate)}
@@ -745,20 +810,20 @@ export default function AgendaPage() {
 
             {/* Actions */}
             <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
-              <button type="button" onClick={() => setShowNewItem(false)}
+              <button type="button" onClick={closeNewItemModal}
                 style={{
                   flex: 1, padding: "14px 0", borderRadius: 14,
                   border: "1px solid rgba(167,139,250,0.2)", background: "transparent",
                   cursor: "pointer", fontFamily: "inherit", fontSize: 14, fontWeight: 600, color: "#9e96b5",
                 }}>Cancelar</button>
-              <button type="button" onClick={handleCreate} disabled={saving || !newTitle.trim()}
+              <button type="button" onClick={handleSave} disabled={saving || !newTitle.trim()}
                 style={{
                   flex: 2, padding: "14px 0", borderRadius: 14, border: 0,
                   cursor: (saving || !newTitle.trim()) ? "not-allowed" : "pointer",
                   fontFamily: "inherit", fontSize: 14, fontWeight: 700,
                   background: (saving || !newTitle.trim()) ? "#1e1840" : "#7C5CFF",
                   color: (saving || !newTitle.trim()) ? "#9e96b5" : "#fff",
-                }}>{saving ? "Salvando…" : "Adicionar"}</button>
+                }}>{saving ? "Salvando…" : editingId ? "Salvar alterações" : "Adicionar"}</button>
             </div>
           </div>
         </div>
@@ -942,7 +1007,7 @@ const AREA_CONFIG_PT: Record<string, { emoji: string }> = {
 const DAY_FULL_NAMES = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"];
 
 const hubBtnStyle: React.CSSProperties = {
-  flex: 1, padding: "12px 0", borderRadius: 14, border: 0, cursor: "pointer",
+  flex: 1, padding: "12px 0", borderRadius: 14, cursor: "pointer",
   display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
   fontFamily: "inherit", fontSize: 13, fontWeight: 700,
   background: "#1a1530", color: "#9e96b5",
