@@ -364,7 +364,7 @@ export function CheckInForm({ existingCheckIn }: CheckInFormProps) {
                         flex: 1, padding: "8px 0", borderRadius: 12, border: 0,
                         cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600,
                         background: value === true
-                          ? (isSuicidal ? "#FF4D4D" : "#22D18B")
+                          ? (isSuicidal ? "#FF4D4D" : "#7C5CFF")
                           : "rgba(167,139,250,0.1)",
                         color: value === true ? "#fff" : "#9e96b5",
                         transition: "all .15s",
@@ -504,7 +504,7 @@ export function CheckInForm({ existingCheckIn }: CheckInFormProps) {
 
       {/* 5. Save */}
       <div className="flex items-center gap-3">
-        <Button type="submit" size="lg" className="flex-1 rounded-xl" disabled={loading}>
+        <Button type="submit" size="lg" className="flex-1 rounded-xl" style={{ background: "#7C5CFF" }} disabled={loading}>
           {loading
             ? t("salvando")
             : existingCheckIn
