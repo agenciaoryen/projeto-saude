@@ -84,8 +84,8 @@ const translations: Record<Lang, Record<string, string>> = {
     desbloqueado: "desbloqueado!",
 
     // Check-in questions
-    q_meditacao_fe: "Separou um momento para si?",
-    q_meditacao: "Separou um momento para si?",
+    q_meditacao_fe: "Meditou, orou ou respirou de maneira intencional hoje?",
+    q_meditacao: "Meditou, orou ou respirou de maneira intencional hoje?",
     q_criatividade_hobby: "Fez algo criativo ou relaxante?",
     q_criatividade_geral: "Fez algo criativo ou relaxante?",
     q_julgada: "Sentiu-se julgado(a) hoje?",
@@ -98,7 +98,7 @@ const translations: Record<Lang, Record<string, string>> = {
     q_dormiu: "Dormiu e descansou bem?",
     q_suicida_label: "Teve pensamentos difíceis hoje?",
     q_gostou: "Fez algo que te deu prazer?",
-    q_metas: "Avançou nas suas metas?",
+    q_metas: "Avançou nas suas metas hoje?",
 
     // Check-in hints
     q_exercicio_hint: "Pequenas vitórias contam muito",
@@ -661,8 +661,8 @@ const translations: Record<Lang, Record<string, string>> = {
     checkin_atualizado: "¡Check-in actualizado con éxito! 🌱",
     desbloqueado: "desbloqueado!",
 
-    q_meditacao_fe: "¿Separaste un momento para ti?",
-    q_meditacao: "¿Separaste un momento para ti?",
+    q_meditacao_fe: "¿Meditaste, oraste o respiraste intencionalmente hoy?",
+    q_meditacao: "¿Meditaste, oraste o respiraste intencionalmente hoy?",
     q_criatividade_hobby: "¿Hiciste algo creativo o relajante?",
     q_criatividade_geral: "¿Hiciste algo creativo o relajante?",
     q_julgada: "¿Te sentiste juzgado(a) hoy?",
@@ -675,7 +675,7 @@ const translations: Record<Lang, Record<string, string>> = {
     q_dormiu: "¿Dormiste y descansaste bien?",
     q_suicida_label: "¿Tuviste pensamientos difíciles hoy?",
     q_gostou: "¿Hiciste algo que te dio placer?",
-    q_metas: "¿Avanzaste en tus metas?",
+    q_metas: "¿Avanzaste en tus metas hoy?",
 
     q_exercicio_hint: "Las pequeñas victorias cuentan mucho",
     q_agua_hint: "La hidratación es la base de todo",
@@ -1229,8 +1229,8 @@ const translations: Record<Lang, Record<string, string>> = {
     checkin_atualizado: "Check-in updated! 🌱",
     desbloqueado: "unlocked!",
 
-    q_meditacao_fe: "Took a moment for yourself?",
-    q_meditacao: "Took a moment for yourself?",
+    q_meditacao_fe: "Meditated, prayed or breathed intentionally today?",
+    q_meditacao: "Meditated, prayed or breathed intentionally today?",
     q_criatividade_hobby: "Did something creative or relaxing?",
     q_criatividade_geral: "Did something creative or relaxing?",
     q_julgada: "Felt judged today?",
@@ -1243,7 +1243,7 @@ const translations: Record<Lang, Record<string, string>> = {
     q_dormiu: "Slept and rested well?",
     q_suicida_label: "Had difficult thoughts today?",
     q_gostou: "Did something that gave you pleasure?",
-    q_metas: "Made progress on your goals?",
+    q_metas: "Made progress on your goals today?",
 
     q_exercicio_hint: "Small victories count a lot",
     q_agua_hint: "Hydration is the foundation of everything",

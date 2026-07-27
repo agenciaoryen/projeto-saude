@@ -360,26 +360,30 @@ export function CheckInForm({ existingCheckIn }: CheckInFormProps) {
                     <button
                       type="button"
                       onClick={() => handleCheck(q.key as keyof FormData, true)}
-                      className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors ${
-                        value === true
-                          ? isSuicidal
-                            ? "bg-red-500 text-white"
-                            : "bg-emerald-500 text-white"
-                          : "bg-muted text-muted-foreground hover:bg-emerald-100 dark:hover:bg-emerald-950/50"
-                      }`}
+                      style={{
+                        flex: 1, padding: "8px 0", borderRadius: 12, border: 0,
+                        cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600,
+                        background: value === true
+                          ? (isSuicidal ? "#FF4D4D" : "#22D18B")
+                          : "rgba(167,139,250,0.1)",
+                        color: value === true ? "#fff" : "#9e96b5",
+                        transition: "all .15s",
+                      }}
                     >
                       ✓ {t("sim")}
                     </button>
                     <button
                       type="button"
                       onClick={() => handleCheck(q.key as keyof FormData, false)}
-                      className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors ${
-                        value === false
-                          ? isSuicidal
-                            ? "bg-emerald-500 text-white"
-                            : "bg-amber-500 text-white"
-                          : "bg-muted text-muted-foreground hover:bg-amber-100 dark:hover:bg-amber-950/50"
-                      }`}
+                      style={{
+                        flex: 1, padding: "8px 0", borderRadius: 12, border: 0,
+                        cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600,
+                        background: value === false
+                          ? (isSuicidal ? "#22D18B" : "#FF5C5C")
+                          : "rgba(167,139,250,0.1)",
+                        color: value === false ? "#fff" : "#9e96b5",
+                        transition: "all .15s",
+                      }}
                     >
                       ✗ {t("nao")}
                     </button>
