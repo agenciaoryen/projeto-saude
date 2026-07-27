@@ -745,14 +745,16 @@ export default function DashboardPage() {
           {/* Progress bar */}
           <div className="px-1 mb-3">
             <div
-              className="h-1.5 rounded-full overflow-hidden"
-              style={{ background: "oklch(.25 .02 270)" }}
+              className="rounded-full overflow-hidden"
+              style={{ height: 6, background: "oklch(.25 .02 270)" }}
             >
               <div
-                className="h-full rounded-full transition-[width] duration-700"
+                className="h-full rounded-full"
                 style={{
                   width: `${positivePct}%`,
                   background: "linear-gradient(90deg, #7C5CFF, #A78BFA)",
+                  boxShadow: "0 0 8px rgba(124,92,255,0.4)",
+                  transition: "width 0.7s ease",
                 }}
               />
             </div>
