@@ -227,8 +227,15 @@ export default function AgendaPage() {
   const filteredCompromissos = compromissos;
   const filteredTarefas = tarefas;
 
-  const pendingTarefas = filteredTarefas.filter(t => t.status !== "concluida");
-  const completedTarefas = filteredTarefas.filter(t => t.status === "concluida");
+  const tarefasSemHorario = filteredTarefas.filter(t => !t.start_time);
+  const tarefasComHorario = filteredTarefas.filter(t => t.start_time);
+
+  // All timeline items (compromissos + tarefas with time)
+  const timelineItems = useMemo(() =>
+    [...filteredCompromissos, ...tarefasComHorario].sort((a, b) =>
+      (a.start_time || "").localeCompare(b.start_time || "")
+    ),
+  [filteredCompromissos, tarefasComHorario]);
 
   const toggleTask = async (item: AgendaItem) => {
     const newStatus = item.status === "concluida" ? "pendente" : "concluida";
@@ -390,8 +397,95 @@ export default function AgendaPage() {
           <div style={{
             background: "#1a1530", borderRadius: 18,
             border: "1px solid rgba(167,139,250,0.12)",
-            padding: "12px 0", marginBottom: 20, position: "relative",
+            padding: "0 0 0 0", marginBottom: 20, position: "relative",
           }}>
+            {/* ── Task strip: tarefas sem horário + planejamento ── */}
+            {(tarefasSemHorario.length > 0 || dayPlanTasks.length > 0) && (
+              <div style={{
+                padding: "12px 14px",
+                borderBottom: "1px solid rgba(167,139,250,0.1)",
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: tarefasSemHorario.length + dayPlanTasks.length > 0 ? 8 : 0 }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".06em", color: "#A78BFA" }}>
+                    Tarefas
+                  </span>
+                  {(() => {
+                    const planPending = dayPlanTasks.filter((t: any) => t.status !== "concluida").length;
+                    const total = tarefasSemHorario.filter(t => t.status !== "concluida").length + planPending;
+                    if (total === 0) return null;
+                    return (
+                      <span style={{ padding: "1px 6px", borderRadius: 9999, fontSize: 9, fontWeight: 600, background: "rgba(167,139,250,0.15)", color: "#A78BFA" }}>
+                        {total}
+                      </span>
+                    );
+                  })()}
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                  {/* Agenda tasks without time */}
+                  {[...tarefasSemHorario].map((item) => {
+                    const done = item.status === "concluida";
+                    const priorityCfg = PRIORITY_CONFIG[item.priority as EisenhowerPriority] || PRIORITY_CONFIG.importante_nao_urgente;
+                    return (
+                      <button key={item.id} type="button"
+                        onClick={() => {
+                          setEditingItem(item);
+                          setEditTitle(item.title || "");
+                          setEditEmoji(item.emoji || "");
+                          setEditPriority(item.priority as EisenhowerPriority);
+                          setEditDone(done);
+                        }}
+                        style={{
+                          display: "inline-flex", alignItems: "center", gap: 5,
+                          padding: "6px 10px", borderRadius: 8, border: "1px solid rgba(167,139,250,0.2)",
+                          background: done ? "transparent" : "rgba(124,92,255,0.06)",
+                          cursor: "pointer", fontFamily: "inherit", fontSize: 12,
+                          color: done ? "#5a5470" : "#e0d6ff",
+                          textDecoration: done ? "line-through" : "none",
+                          whiteSpace: "nowrap",
+                        }}>
+                        <span style={{ fontSize: 12, flexShrink: 0 }} onClick={(e) => { e.stopPropagation(); toggleTask(item); }}>
+                          {done ? <CheckCircle2 size={14} color="#7C5CFF" /> : <div style={{ width: 14, height: 14, borderRadius: "50%", border: "1.5px solid rgba(167,139,250,0.3)" }} />}
+                        </span>
+                        {item.emoji && <span>{item.emoji}</span>}
+                        {item.title}
+                      </button>
+                    );
+                  })}
+                  {/* Weekly plan tasks */}
+                  {dayPlanTasks.map((t: any) => {
+                    const done = t.status === "concluida";
+                    const areaEmoji = (AREA_CONFIG_PT as any)[t.area]?.emoji || "⚪";
+                    return (
+                      <button key={`plan-${t.id}`} type="button"
+                        onClick={async () => {
+                          const newStatus = done ? "pendente" : "concluida";
+                          setAllWeekTasks((prev: any[]) => prev.map((wt: any) => wt.id === t.id ? { ...wt, status: newStatus } : wt));
+                          await fetch(`/api/weekly-plans/tasks/${t.id}`, {
+                            method: "PATCH",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ status: newStatus }),
+                          });
+                        }}
+                        style={{
+                          display: "inline-flex", alignItems: "center", gap: 5,
+                          padding: "6px 10px", borderRadius: 8, border: "1px solid rgba(167,139,250,0.15)",
+                          background: done ? "transparent" : "rgba(167,139,250,0.04)",
+                          cursor: "pointer", fontFamily: "inherit", fontSize: 12,
+                          color: done ? "#5a5470" : "#9e96b5",
+                          textDecoration: done ? "line-through" : "none",
+                          whiteSpace: "nowrap",
+                        }}>
+                        <span style={{ fontSize: 11 }}>
+                          {done ? <CheckCircle2 size={13} color="#7C5CFF" /> : <div style={{ width: 13, height: 13, borderRadius: "50%", border: "1.5px solid rgba(167,139,250,0.2)" }} />}
+                        </span>
+                        {areaEmoji} {t.title}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             <div ref={timelineScrollRef} style={{
               display: "flex",
               maxHeight: 500, overflowY: "auto", overflowX: "hidden",
@@ -455,8 +549,9 @@ export default function AgendaPage() {
                   />
                 ))}
 
-                {/* Event cards (pixel-perfect positioning) */}
-                {filteredCompromissos.map((item) => {
+                {/* Event cards — compromissos + tarefas com horário */}
+                {timelineItems.map((item) => {
+                  const isTask = item.item_type === "tarefa";
                   const topPx = timeToPx(item.start_time || "07:00");
                   const heightPx = item.end_time
                     ? eventHeightPx(item.start_time || "07:00", item.end_time)
@@ -466,7 +561,8 @@ export default function AgendaPage() {
                     : false;
                   const priorityCfg = PRIORITY_CONFIG[item.priority as EisenhowerPriority] || PRIORITY_CONFIG.importante_nao_urgente;
                   const PriorityIcon = priorityCfg.icon;
-                  const short = heightPx < SLOT_PX * 1.5; // compact for events < 45min
+                  const short = heightPx < SLOT_PX * 1.5;
+                  const done = item.status === "concluida";
 
                   return (
                     <button key={item.id} type="button"
@@ -478,19 +574,21 @@ export default function AgendaPage() {
                         setEditEndTime(item.end_time?.slice(0, 5) || "10:00");
                         setEditEmoji(item.emoji || "");
                         setEditPriority(item.priority as EisenhowerPriority);
-                        setEditDone(item.status === "concluida");
+                        setEditDone(done);
                       }}
                       style={{
-                        position: "absolute", left: 12, right: 8, zIndex: 2,
+                        position: "absolute", left: 12, right: 8, zIndex: isTask ? 1 : 2,
                         top: topPx + 1,
                         height: heightPx - 2,
-                        background: item.color ? `${item.color}22` : "rgba(124,92,255,0.15)",
-                        borderLeft: item.color
-                          ? `2px solid ${item.color}`
-                          : "2px solid rgba(167,139,250,0.5)",
-                        borderTop: "1px solid rgba(167,139,250,0.15)",
-                        borderRight: "1px solid rgba(167,139,250,0.15)",
-                        borderBottom: crossesMidnight ? "2px dashed rgba(167,139,250,0.4)" : "1px solid rgba(167,139,250,0.15)",
+                        background: isTask
+                          ? "rgba(167,139,250,0.04)"
+                          : item.color ? `${item.color}22` : "rgba(124,92,255,0.15)",
+                        borderLeft: isTask
+                          ? "2px dashed rgba(167,139,250,0.25)"
+                          : item.color ? `2px solid ${item.color}` : "2px solid rgba(167,139,250,0.5)",
+                        borderTop: "1px solid rgba(167,139,250,0.08)",
+                        borderRight: "1px solid rgba(167,139,250,0.08)",
+                        borderBottom: crossesMidnight ? "2px dashed rgba(167,139,250,0.4)" : "1px solid rgba(167,139,250,0.08)",
                         borderRadius: 4, padding: short ? "2px 6px" : "4px 8px",
                         display: "flex", flexDirection: short ? "row" : "column",
                         alignItems: short ? "center" : "stretch",
@@ -499,22 +597,32 @@ export default function AgendaPage() {
                         textAlign: "left", fontFamily: "inherit",
                         overflow: "hidden",
                         boxSizing: "border-box",
+                        opacity: done ? 0.5 : 1,
+                        textDecoration: done ? "line-through" : "none",
                       }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                        {isTask && (
+                          <span style={{ flexShrink: 0, fontSize: 11, lineHeight: 1 }}>
+                            {done ? <CheckCircle2 size={11} color="#7C5CFF" /> : <div style={{ width: 11, height: 11, borderRadius: "50%", border: "1.5px solid rgba(167,139,250,0.3)" }} />}
+                          </span>
+                        )}
+                        <span style={{
+                          fontSize: short ? 8 : 9, color: isTask ? "#9e96b5" : (item.color || "#A78BFA"),
+                          flexShrink: 0, lineHeight: 1,
+                        }}>
+                          {item.start_time?.slice(0, 5)}{item.end_time ? ` – ${item.end_time.slice(0, 5)}` : ""}
+                          {crossesMidnight && " ↗"}
+                        </span>
+                      </div>
                       <span style={{
-                        fontSize: short ? 8 : 9, color: item.color || "#A78BFA",
-                        flexShrink: 0, lineHeight: 1, opacity: 0.8,
-                      }}>
-                        {item.start_time?.slice(0, 5)}{item.end_time ? ` – ${item.end_time.slice(0, 5)}` : ""}
-                        {crossesMidnight && " ↗"}
-                      </span>
-                      <span style={{
-                        fontSize: short ? 10 : 11, fontWeight: 600, color: "#e0d6ff",
+                        fontSize: short ? 10 : 11, fontWeight: done ? 400 : 600,
+                        color: done ? "#5a5470" : "#e0d6ff",
                         overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                       }}>
                         {item.emoji && <span style={{ marginRight: 3 }}>{item.emoji}</span>}
                         {item.title}
                       </span>
-                      {!short && (
+                      {!short && !isTask && (
                         <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 8, color: priorityCfg.color, whiteSpace: "nowrap" }}>
                           <PriorityIcon size={8} /> {priorityCfg.shortLabel}
                         </span>
@@ -523,133 +631,6 @@ export default function AgendaPage() {
                   );
                 })}
               </div>
-            </div>
-          </div>
-        )}
-
-        {/* ── TAREFAS DO DIA (só agenda, view dia, só aparece se houver tarefas) ── */}
-        {activeModule === "agenda" && viewMode === "dia" && (tarefas.length > 0 || dayPlanTasks.length > 0) && (
-        <div style={{
-          background: "#151520", borderRadius: 18,
-          border: "1px solid rgba(167,139,250,0.1)",
-          padding: "16px 18px", marginBottom: 20,
-        }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#e0d6ff" }}>Tarefas do dia</h2>
-              {(() => {
-                const planPending = dayPlanTasks.filter((t: any) => t.status !== "concluida").length;
-                const total = pendingTarefas.length + planPending;
-                if (total === 0) return null;
-                return (
-                  <span style={{
-                    padding: "2px 8px", borderRadius: 9999, fontSize: 10, fontWeight: 600,
-                    background: "rgba(167,139,250,0.15)", color: "#A78BFA",
-                  }}>
-                    {total} restante{total !== 1 ? "s" : ""}
-                  </span>
-                );
-              })()}
-            </div>
-          </div>
-
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            {[...pendingTarefas, ...completedTarefas].map((item) => {
-                const done = item.status === "concluida";
-                const priorityCfg = PRIORITY_CONFIG[item.priority as EisenhowerPriority] || PRIORITY_CONFIG.importante_nao_urgente;
-                const PriorityIcon = priorityCfg.icon;
-                return (
-                  <div key={item.id}
-                    onClick={() => {
-                      setEditingItem(item);
-                      setEditTitle(item.title || "");
-                      setEditStartTime(item.start_time?.slice(0, 5) || "09:00");
-                      setEditEndTime(item.end_time?.slice(0, 5) || "10:00");
-                      setEditEmoji(item.emoji || "");
-                      setEditPriority(item.priority as EisenhowerPriority);
-                      setEditDone(item.status === "concluida");
-                    }}
-                    style={{
-                      display: "flex", alignItems: "center", gap: 10,
-                      padding: "10px 12px", borderRadius: 12,
-                      background: done ? "transparent" : "rgba(124,92,255,0.04)",
-                      border: done ? "1px solid transparent" : "1px solid rgba(167,139,250,0.08)",
-                      cursor: "pointer",
-                    }}>
-                    <button type="button" onClick={(e) => { e.stopPropagation(); toggleTask(item); }}
-                      style={{
-                        width: 22, height: 22, borderRadius: "50%", flexShrink: 0,
-                        border: done ? "none" : "1.5px solid rgba(167,139,250,0.3)",
-                        background: done ? "#7C5CFF" : "transparent",
-                        cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
-                      }}>
-                      {done && <CheckCircle2 size={14} color="#fff" />}
-                    </button>
-                    <span style={{
-                      flex: 1, fontSize: 13, fontWeight: done ? 400 : 500,
-                      color: done ? "#5a5470" : "#e0d6ff",
-                      textDecoration: done ? "line-through" : "none",
-                    }}>
-                      {item.emoji && <span style={{ marginRight: 4 }}>{item.emoji}</span>}
-                      {item.title}
-                    </span>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 9, color: priorityCfg.color }}>
-                      <PriorityIcon size={9} /> {priorityCfg.shortLabel}
-                    </span>
-                    <GripVertical size={14} color="#5a5470" style={{ cursor: "grab", flexShrink: 0 }} />
-                  </div>
-                );
-              })}
-
-              {/* Weekly plan tasks for this day */}
-              {dayPlanTasks.map((t: any) => {
-                const done = t.status === "concluida";
-                const areaEmoji = (AREA_CONFIG_PT as any)[t.area]?.emoji || "⚪";
-                return (
-                  <div key={`plan-${t.id}`}
-                    onClick={() => {
-                      setEditingItem({ ...t, item_type: "tarefa", start_time: t.scheduled_time, end_time: null, priority: "importante_nao_urgente", emoji: areaEmoji, color: null, description: null, repeat_type: "none", notify_minutes: null, due_date: null });
-                      setEditTitle(t.title || "");
-                      setEditDone(done);
-                    }}
-                    style={{
-                      display: "flex", alignItems: "center", gap: 10,
-                      padding: "10px 12px", borderRadius: 12,
-                      background: done ? "transparent" : "rgba(167,139,250,0.04)",
-                      border: done ? "1px solid transparent" : "1px solid rgba(167,139,250,0.08)",
-                      cursor: "pointer",
-                    }}>
-                    <button type="button" onClick={async (e) => {
-                      e.stopPropagation();
-                      const newStatus = done ? "pendente" : "concluida";
-                      setAllWeekTasks((prev: any[]) => prev.map((wt: any) => wt.id === t.id ? { ...wt, status: newStatus } : wt));
-                      await fetch(`/api/weekly-plans/tasks/${t.id}`, {
-                        method: "PATCH",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ status: newStatus }),
-                      });
-                    }}
-                      style={{
-                        width: 22, height: 22, borderRadius: "50%", flexShrink: 0,
-                        border: done ? "none" : "1.5px solid rgba(167,139,250,0.3)",
-                        background: done ? "#7C5CFF" : "transparent",
-                        cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
-                      }}>
-                      {done && <CheckCircle2 size={14} color="#fff" />}
-                    </button>
-                    <span style={{
-                      flex: 1, fontSize: 13, fontWeight: done ? 400 : 500,
-                      color: done ? "#5a5470" : "#e0d6ff",
-                      textDecoration: done ? "line-through" : "none",
-                    }}>
-                      {areaEmoji} {t.title}
-                    </span>
-                    {t.scheduled_time && (
-                      <span style={{ fontSize: 9, color: "#9e96b5", fontFamily: "monospace" }}>{t.scheduled_time.slice(0, 5)}</span>
-                    )}
-                  </div>
-                );
-              })}
             </div>
           </div>
         )}
@@ -885,7 +866,7 @@ export default function AgendaPage() {
               <div style={{ marginTop: 14 }}>
                 <label style={{ fontSize: 10, color: "#9e96b5", marginBottom: 6, display: "block" }}>Data limite</label>
                 <input type="date" value={newDueDate} onChange={e => setNewDueDate(e.target.value)}
-                  style={{ ...modalInput }} />
+                  style={{ ...modalInput, width: "100%", boxSizing: "border-box", minWidth: 0 }} />
               </div>
             )}
 
