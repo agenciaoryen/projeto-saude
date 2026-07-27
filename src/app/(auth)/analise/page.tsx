@@ -325,6 +325,79 @@ export default function AnalisePage() {
     return factors.slice(0, 4);
   }, [checkIns, habitKeys]);
 
+  // ── streak ─────────────────────────────────────────────────────────────────
+
+  const streak = useMemo(() => {
+    if (checkIns.length === 0) return 0;
+    const today = daysAgo(0);
+    const dates = new Set(checkIns.map((c) => c.date));
+    let count = 0;
+    const d = new Date();
+    while (true) {
+      const ds = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      if (dates.has(ds)) {
+        count++;
+        d.setDate(d.getDate() - 1);
+      } else {
+        break;
+      }
+    }
+    return count;
+  }, [checkIns]);
+
+  // ── trend data (wellness per day) ──────────────────────────────────────────
+
+  const trendData = useMemo(() => {
+    const points: { date: string; label: string; score: number | null }[] = [];
+    for (let i = periodDays - 1; i >= 0; i--) {
+      const ds = daysAgo(i);
+      const ci = checkIns.find((c) => c.date === ds);
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const label = String(d.getDate()).padStart(2, "0") + "/" + String(d.getMonth() + 1).padStart(2, "0");
+      points.push({
+        date: ds,
+        label: periodDays > 14 ? (i % 3 === 0 ? label : "") : label, // fewer labels for longer periods
+        score: ci ? wellnessScore(ci, habitKeys) : null,
+      });
+    }
+    return points;
+  }, [checkIns, periodDays, habitKeys]);
+
+  // ── mood timeline ──────────────────────────────────────────────────────────
+
+  const moodTimeline = useMemo(() => {
+    return trendData.map((p) => {
+      const ci = checkIns.find((c) => c.date === p.date);
+      if (!ci) return { ...p, dominant: null as string | null };
+      const tags = ci.mood_tags ?? [];
+      if (tags.length === 0) return { ...p, dominant: null };
+      const pos = tags.filter((t) => POSITIVE_TAGS.has(t.toLowerCase())).length;
+      const neg = tags.filter((t) => NEGATIVE_TAGS.has(t.toLowerCase())).length;
+      if (pos > neg) return { ...p, dominant: "positive" };
+      if (neg > pos) return { ...p, dominant: "negative" };
+      return { ...p, dominant: "neutral" };
+    });
+  }, [trendData, checkIns]);
+
+  // ── heatmap ────────────────────────────────────────────────────────────────
+
+  const heatmapData = useMemo(() => {
+    const dates = new Set(checkIns.map((c) => c.date));
+    const cells: { date: string; label: string; filled: boolean }[] = [];
+    for (let i = periodDays - 1; i >= 0; i--) {
+      const ds = daysAgo(i);
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      cells.push({
+        date: ds,
+        label: String(d.getDate()),
+        filled: dates.has(ds),
+      });
+    }
+    return cells;
+  }, [checkIns, periodDays]);
+
   // ── render ─────────────────────────────────────────────────────────────────
 
   if (loading) {
@@ -394,6 +467,22 @@ export default function AnalisePage() {
         </p>
       </div>
 
+      {/* Streak */}
+      {streak > 0 && (
+        <div style={{ padding: "0 20px", marginBottom: 4 }}>
+          <div style={{
+            display: "inline-flex", alignItems: "center", gap: 8,
+            background: "oklch(0.18 0.02 270)", borderRadius: 9999,
+            padding: "8px 16px", border: "1px solid oklch(0.28 0.02 270 / 0.5)",
+          }}>
+            <span style={{ fontSize: 18 }}>🔥</span>
+            <span style={{ fontSize: 14, fontWeight: 700, color: "#e0d6ff" }}>
+              {streak} {streak === 1 ? "dia" : "dias"} seguidos
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Tabs */}
       <div style={{ padding: "12px 20px", display: "flex", gap: 8 }}>
         {(["semana", "mes", "trimestre"] as const).map((t) => (
@@ -437,6 +526,87 @@ export default function AnalisePage() {
           <p style={{ color: "oklch(0.55 0.03 270)", fontSize: 14 }}>
             Registre {3 - periodCI.length} {3 - periodCI.length === 1 ? "dia" : "dias"} a mais para ver sua evolução.
           </p>
+        </div>
+      )}
+
+      {/* Trend chart */}
+      {trendData.filter((p) => p.score != null).length >= 3 && (
+        <div style={{ padding: "4px 16px 0" }}>
+          <p style={{ margin: "0 0 6px", fontSize: 10.5, fontWeight: 700, letterSpacing: ".12em", textTransform: "uppercase", color: "oklch(0.65 0.12 270)", paddingLeft: 4 }}>
+            Tendência de bem-estar
+          </p>
+          <div style={{
+            background: "oklch(0.16 0.012 270)",
+            border: "1px solid oklch(0.28 0.02 270 / 0.5)",
+            borderRadius: 18, padding: "16px 8px 8px",
+            overflow: "hidden",
+          }}>
+            <svg viewBox={`0 0 ${Math.max(trendData.length * 16, 280)} 120`} style={{ width: "100%", height: 120 }}>
+              {/* Grid lines */}
+              {[25, 50, 75].map((y) => (
+                <line key={y} x1={0} x2={Math.max(trendData.length * 16, 280)} y1={120 - y * 1.2} y2={120 - y * 1.2}
+                  stroke="oklch(0.22 0.02 270)" strokeWidth={0.5} strokeDasharray="4 3" />
+              ))}
+              {/* Line */}
+              <polyline
+                fill="none"
+                stroke="#7C5CFF"
+                strokeWidth={2.5}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                points={trendData
+                  .map((p, i) => {
+                    if (p.score == null) return null;
+                    const x = i * 16 + 8;
+                    const y = 120 - p.score * 1.2;
+                    return `${x},${y}`;
+                  })
+                  .filter(Boolean)
+                  .join(" ")}
+              />
+              {/* Dots */}
+              {trendData.map((p, i) => {
+                if (p.score == null) return null;
+                const x = i * 16 + 8;
+                const y = 120 - p.score * 1.2;
+                return (
+                  <circle key={i} cx={x} cy={y} r={3} fill="#7C5CFF"
+                    style={{ filter: "drop-shadow(0 0 3px rgba(124,92,255,0.5))" }} />
+                );
+              })}
+              {/* Area fill */}
+              <polygon
+                fill="url(#trendGrad)"
+                points={
+                  (() => {
+                    const pts = trendData
+                      .map((p, i) => p.score != null ? `${i * 16 + 8},${120 - p.score * 1.2}` : null)
+                      .filter(Boolean);
+                    if (pts.length === 0) return "";
+                    const firstX = trendData.findIndex((p) => p.score != null) * 16 + 8;
+                    const lastX = (trendData.length - 1 - [...trendData].reverse().findIndex((p) => p.score != null)) * 16 + 8;
+                    return `${firstX},120 ${pts.join(" ")} ${lastX},120`;
+                  })()
+                }
+              />
+              <defs>
+                <linearGradient id="trendGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#7C5CFF" stopOpacity={0.25} />
+                  <stop offset="100%" stopColor="#7C5CFF" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+            </svg>
+            {/* X-axis labels */}
+            {periodDays <= 14 && (
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 6px 0" }}>
+                {trendData.filter((_, i) => periodDays > 14 ? i % 3 === 0 : true).map((p, i) => (
+                  <span key={i} style={{ fontSize: 9, color: "oklch(0.5 0.02 270)", minWidth: 20, textAlign: "center" }}>
+                    {p.label}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
@@ -503,6 +673,83 @@ export default function AnalisePage() {
               </div>
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* Mood timeline */}
+      {moodTimeline.some((m) => m.dominant != null) && (
+        <div style={{ padding: "4px 16px 0" }}>
+          <p style={{ margin: "0 0 6px", fontSize: 10.5, fontWeight: 700, letterSpacing: ".12em", textTransform: "uppercase", color: "oklch(0.65 0.12 270)", paddingLeft: 4 }}>
+            Humor · {tabLabel}
+          </p>
+          <div style={{
+            background: "oklch(0.16 0.012 270)",
+            border: "1px solid oklch(0.28 0.02 270 / 0.5)",
+            borderRadius: 18, padding: "12px 10px",
+            display: "flex", alignItems: "center", gap: 2,
+            overflowX: "auto",
+          }}>
+            {moodTimeline.map((m, i) => (
+              <div key={i} style={{
+                width: periodDays > 30 ? 18 : 24,
+                height: periodDays > 30 ? 18 : 24,
+                borderRadius: 6,
+                flexShrink: 0,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: periodDays > 30 ? 10 : 13,
+                background: m.dominant === "positive" ? "rgba(34,209,139,0.15)"
+                  : m.dominant === "negative" ? "rgba(255,92,92,0.15)"
+                  : m.dominant === "neutral" ? "rgba(167,139,250,0.1)"
+                  : "oklch(0.2 0.01 270)",
+                border: m.dominant === "positive" ? "1px solid rgba(34,209,139,0.3)"
+                  : m.dominant === "negative" ? "1px solid rgba(255,92,92,0.3)"
+                  : m.dominant === "neutral" ? "1px solid rgba(167,139,250,0.2)"
+                  : "1px solid transparent",
+              }}
+                title={m.date}
+              >
+                {m.dominant === "positive" ? "🙂"
+                  : m.dominant === "negative" ? "😔"
+                  : m.dominant === "neutral" ? "😐"
+                  : ""}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Heatmap */}
+      <div style={{ padding: "4px 16px 0" }}>
+        <p style={{ margin: "0 0 6px", fontSize: 10.5, fontWeight: 700, letterSpacing: ".12em", textTransform: "uppercase", color: "oklch(0.65 0.12 270)", paddingLeft: 4 }}>
+          Consistência · {tabLabel}
+        </p>
+        <div style={{
+          background: "oklch(0.16 0.012 270)",
+          border: "1px solid oklch(0.28 0.02 270 / 0.5)",
+          borderRadius: 18, padding: "12px 10px",
+          display: "flex", flexWrap: "wrap", gap: 3,
+        }}>
+          {heatmapData.map((cell, i) => (
+            <div key={i} style={{
+              width: periodDays > 30 ? 11 : 14,
+              height: periodDays > 30 ? 11 : 14,
+              borderRadius: 3,
+              flexShrink: 0,
+              background: cell.filled ? "#7C5CFF" : "oklch(0.22 0.02 270)",
+              opacity: cell.filled ? 1 : 0.5,
+              transition: "transform 0.15s ease",
+            }}
+              title={`${cell.date}${cell.filled ? " ✓" : ""}`}
+            />
+          ))}
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 8px 0" }}>
+          <span style={{ fontSize: 9, color: "oklch(0.5 0.02 270)" }}>
+            {heatmapData.filter((c) => c.filled).length}/{periodDays} dias
+          </span>
+          <span style={{ fontSize: 9, color: "oklch(0.5 0.02 270)" }}>
+            {periodDays > 0 ? Math.round((heatmapData.filter((c) => c.filled).length / periodDays) * 100) : 0}%
+          </span>
         </div>
       </div>
 
