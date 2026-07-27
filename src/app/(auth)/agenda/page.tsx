@@ -569,43 +569,60 @@ export default function AgendaPage() {
                         boxSizing: "border-box",
                         opacity: done ? 0.5 : 1,
                       }}>
-                      {/* Row 1: time + checkbox */}
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                        <span style={{
-                          fontSize: short ? 8 : 9, color: isTask ? "#9e96b5" : (item.color || "#A78BFA"),
-                          flexShrink: 0, lineHeight: 1,
-                        }}>
-                          {item.start_time?.slice(0, 5)}{item.end_time ? ` – ${item.end_time.slice(0, 5)}` : ""}
-                          {crossesMidnight && " ↗"}
-                        </span>
-                        {/* Check: always visible, both for tasks and compromissos */}
-                        <span
-                          onClick={(e) => { e.stopPropagation(); toggleTask(item); }}
-                          style={{ flexShrink: 0, fontSize: 11, lineHeight: 1, cursor: "pointer", display: "flex" }}>
-                          {done
-                            ? <CheckCircle2 size={short ? 10 : 12} color="#7C5CFF" />
-                            : <div style={{
-                                width: short ? 10 : 12, height: short ? 10 : 12, borderRadius: "50%",
-                                border: isTask ? "1.5px solid rgba(167,139,250,0.35)" : "1.5px solid rgba(167,139,250,0.2)",
-                              }} />
-                          }
-                        </span>
-                      </div>
-                      {/* Row 2: title + emoji */}
-                      <span style={{
-                        fontSize: short ? 10 : 11, fontWeight: done ? 400 : 600,
-                        color: done ? "#5a5470" : "#e0d6ff",
-                        overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                        textDecoration: done ? "line-through" : "none",
-                      }}>
-                        {item.emoji && <span style={{ marginRight: 3 }}>{item.emoji}</span>}
-                        {item.title}
-                      </span>
-                      {/* Row 3: priority label (only for compromissos, not short) */}
-                      {!short && !isTask && (
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 8, color: priorityCfg.color, whiteSpace: "nowrap" }}>
-                          <PriorityIcon size={8} /> {priorityCfg.shortLabel}
-                        </span>
+                      {/* Short mode: single-row layout */}
+                      {short ? (
+                        <div style={{ display: "flex", alignItems: "center", gap: 4, minWidth: 0 }}>
+                          <span style={{ fontSize: 8, color: isTask ? "#9e96b5" : (item.color || "#A78BFA"), flexShrink: 0, lineHeight: 1 }}>
+                            {item.start_time?.slice(0, 5)}
+                          </span>
+                          <span style={{
+                            fontSize: 10, fontWeight: done ? 400 : 600,
+                            color: done ? "#5a5470" : "#e0d6ff",
+                            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                            textDecoration: done ? "line-through" : "none", flex: 1, minWidth: 0,
+                          }}>
+                            {item.emoji && <span style={{ marginRight: 2 }}>{item.emoji}</span>}
+                            {item.title}
+                          </span>
+                          <span onClick={(e) => { e.stopPropagation(); toggleTask(item); }}
+                            style={{ flexShrink: 0, cursor: "pointer", display: "flex" }}>
+                            {done
+                              ? <CheckCircle2 size={10} color="#7C5CFF" />
+                              : <div style={{ width: 10, height: 10, borderRadius: "50%", border: isTask ? "1.5px solid rgba(167,139,250,0.35)" : "1.5px solid rgba(167,139,250,0.2)" }} />
+                            }
+                          </span>
+                        </div>
+                      ) : (
+                        /* Tall mode: stacked layout */
+                        <>
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                            <span style={{ fontSize: 9, color: isTask ? "#9e96b5" : (item.color || "#A78BFA"), flexShrink: 0, lineHeight: 1 }}>
+                              {item.start_time?.slice(0, 5)}{item.end_time ? ` – ${item.end_time.slice(0, 5)}` : ""}
+                              {crossesMidnight && " ↗"}
+                            </span>
+                            <span onClick={(e) => { e.stopPropagation(); toggleTask(item); }}
+                              style={{ flexShrink: 0, cursor: "pointer", display: "flex" }}>
+                              {done
+                                ? <CheckCircle2 size={12} color="#7C5CFF" />
+                                : <div style={{ width: 12, height: 12, borderRadius: "50%", border: isTask ? "1.5px solid rgba(167,139,250,0.35)" : "1.5px solid rgba(167,139,250,0.2)" }} />
+                              }
+                            </span>
+                          </div>
+                          <span style={{
+                            fontSize: 11, fontWeight: done ? 400 : 600,
+                            color: done ? "#5a5470" : "#e0d6ff",
+                            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                            textDecoration: done ? "line-through" : "none",
+                          }}>
+                            {item.emoji && <span style={{ marginRight: 3 }}>{item.emoji}</span>}
+                            {item.title}
+                          </span>
+                          {!isTask && (
+                            <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 8, color: priorityCfg.color, whiteSpace: "nowrap" }}>
+                              <PriorityIcon size={8} /> {priorityCfg.shortLabel}
+                            </span>
+                          )}
+                        </>
                       )}
                     </button>
                   );
