@@ -287,7 +287,7 @@ export default function AnalisePage() {
     // Compute wellness for each check-in
     const scores = checkIns.map((ci) => wellnessScore(ci, habitKeys));
 
-    // Correlation of each habit with overall wellness
+    // Only behavioral, actionable habits — no bodily functions or external events
     const habitLabels: Record<string, string> = {
       slept_well: "Sono",
       ate_well: "Alimentação",
@@ -298,16 +298,13 @@ export default function AnalisePage() {
       did_something_enjoyable: "Lazer",
       talked_to_someone: "Conexão social",
       drank_water: "Hidratação",
-      took_medication: "Medicação",
-      felt_judged: "Julgamento",
-      bowel_movement: "Intestino",
     };
 
     const factors: { label: string; pct: number; negative: boolean }[] = [];
 
     for (const k of habitKeys) {
       if (k === "water_cups" || k === "suicidal_thoughts" || k === "feeling" || k === "mood_tags" || k === "gratitude" || k === "gratitude_photos") continue;
-      if (!habitLabels[k]) continue;
+      if (!habitLabels[k]) continue; // skips bowel_movement, felt_judged, took_medication
 
       // Split into days with this habit true vs false
       const trueScores: number[] = [];
@@ -788,7 +785,7 @@ export default function AnalisePage() {
           }}>
             <p style={{ margin: "0 0 12px", fontSize: 13, color: "#e0d6ff", lineHeight: 1.4 }}>
               {impactFactors[0]?.label
-                ? `${impactFactors[0].label} é o fator que mais eleva seu bem-estar.`
+                ? `${impactFactors[0].label} é o hábito que mais acompanha seus dias bons.`
                 : "Continue registrando para ver seus padrões."}
             </p>
             {impactFactors.map((f) => (
