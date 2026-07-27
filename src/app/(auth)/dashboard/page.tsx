@@ -746,7 +746,7 @@ export default function DashboardPage() {
           <div className="px-1 mb-3">
             <div
               className="rounded-full overflow-hidden"
-              style={{ height: 6, background: "oklch(.25 .02 270)" }}
+              style={{ height: 10, background: "oklch(.25 .02 270)" }}
             >
               <div
                 className="h-full rounded-full"
