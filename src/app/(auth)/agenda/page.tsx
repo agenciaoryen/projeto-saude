@@ -531,7 +531,8 @@ export default function AgendaPage() {
                     : false;
                   const priorityCfg = PRIORITY_CONFIG[item.priority as EisenhowerPriority] || PRIORITY_CONFIG.importante_nao_urgente;
                   const PriorityIcon = priorityCfg.icon;
-                  const short = heightPx < SLOT_PX * 1.5;
+                  const short = heightPx < SLOT_PX * 1.5;       // < 45min: compact
+                  const roomy = heightPx >= SLOT_PX * 2.5;      // ≥ 75min: enough space for priority
                   const done = item.status === "concluida";
 
                   return (
@@ -565,6 +566,7 @@ export default function AgendaPage() {
                         gap: short ? 4 : 1,
                         justifyContent: "flex-start", cursor: "pointer",
                         textAlign: "left", fontFamily: "inherit",
+                        overflow: "hidden",
                         boxSizing: "border-box",
                         opacity: done ? 0.5 : 1,
                       }}>
@@ -612,12 +614,13 @@ export default function AgendaPage() {
                             color: done ? "#5a5470" : "#e0d6ff",
                             overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                             textDecoration: done ? "line-through" : "none",
+                            lineHeight: 1.3,
                           }}>
                             {item.emoji && <span style={{ marginRight: 3 }}>{item.emoji}</span>}
                             {item.title}
                           </span>
-                          {!isTask && (
-                            <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 8, color: priorityCfg.color, whiteSpace: "nowrap" }}>
+                          {!isTask && roomy && (
+                            <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 8, color: priorityCfg.color, whiteSpace: "nowrap", lineHeight: 1 }}>
                               <PriorityIcon size={8} /> {priorityCfg.shortLabel}
                             </span>
                           )}
