@@ -408,10 +408,9 @@ function EditCheckInView({ answers, setAnswers, enabledKeys, context, gender, on
                 height: 48, borderRadius: 12, cursor: "pointer", fontFamily: "inherit",
                 fontSize: 14, fontWeight: 500, textAlign: "left", padding: "0 18px",
                 transition: "all .15s ease",
-                background: answers.suicidal_thoughts === false ? "var(--primary)" : "oklch(0.16 0.012 270 / 0.7)",
-                backdropFilter: "blur(8px)",
-                border: answers.suicidal_thoughts === false ? "none" : "1px solid oklch(0.5 0.12 270 / .2)",
-                color: answers.suicidal_thoughts === false ? "#fff" : "var(--foreground)",
+                background: answers.suicidal_thoughts === false ? "#7C5CFF" : "rgba(124,92,255,0.1)",
+                border: answers.suicidal_thoughts === false ? "none" : "1px solid rgba(167,139,250,0.2)",
+                color: answers.suicidal_thoughts === false ? "#fff" : "#7C5CFF",
               }}>
                 Não, hoje não.
               </button>
@@ -419,9 +418,9 @@ function EditCheckInView({ answers, setAnswers, enabledKeys, context, gender, on
                 height: 48, borderRadius: 12, cursor: "pointer", fontFamily: "inherit",
                 fontSize: 14, fontWeight: 500, textAlign: "left", padding: "0 18px",
                 transition: "all .15s ease",
-                background: answers.suicidal_thoughts === true ? "oklch(.72 .1 30 / .35)" : "oklch(.85 .04 30 / .15)",
-                border: "1px solid oklch(.6 .1 30 / .3)",
-                color: "oklch(.35 .07 30)",
+                background: answers.suicidal_thoughts === true ? "rgba(255,77,77,0.25)" : "rgba(255,77,77,0.1)",
+                border: "1px solid rgba(255,77,77,0.3)",
+                color: answers.suicidal_thoughts === true ? "#FF6B6B" : "#FF6B6B",
               }}>
                 Sim, tive esse pensamento.
               </button>
@@ -439,7 +438,7 @@ function EditCheckInView({ answers, setAnswers, enabledKeys, context, gender, on
         <button type="button" onClick={onSave} disabled={saving} style={{
           width: "100%", height: 52, borderRadius: 16, border: 0,
           cursor: saving ? "not-allowed" : "pointer",
-          background: "var(--primary)", color: "#fff",
+          background: "#7C5CFF", color: "#fff",
           fontFamily: "inherit", fontSize: 15, fontWeight: 600, letterSpacing: "-0.01em",
           boxShadow: "0 4px 14px -4px oklch(0.5 0.12 270 / .45)",
           opacity: saving ? 0.7 : 1, transition: "opacity .15s ease",
@@ -612,7 +611,7 @@ function FeelingStep({ initialValue, initialMoodTags, gender, onChange, onMoodTa
         }}>← Voltar</button>
         <button type="button" onClick={onNext} style={{
           height: 48, padding: "0 24px", borderRadius: 14,
-          background: "var(--primary)", color: "#fff", border: 0, cursor: "pointer",
+          background: "#7C5CFF", color: "#fff", border: 0, cursor: "pointer",
           fontFamily: "inherit", fontSize: 14, fontWeight: 600,
           display: "inline-flex", alignItems: "center", gap: 6,
           boxShadow: "0 4px 14px -4px oklch(0.5 0.12 270 / .45)",
@@ -905,7 +904,7 @@ function HabitStep({ habitKey, context, onAnswer, onSkip, onPrev }: {
       <div style={{ marginTop: 36, display: "flex", gap: 10 }}>
         <button type="button" onClick={() => onAnswer(habitKey, true)} style={{
           flex: 1, height: 56, borderRadius: 16, border: 0, cursor: "pointer",
-          background: "var(--primary)", color: "#fff",
+          background: "#7C5CFF", color: "#fff",
           fontFamily: "inherit", fontSize: 16, fontWeight: 600, letterSpacing: "-0.005em",
           boxShadow: "0 4px 14px -4px oklch(0.5 0.12 270 / .45)",
           display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
@@ -1003,7 +1002,7 @@ function GratitudeStep({ initialValue, initialPhotos, onChange, onPhotosChange, 
         <button type="button" onClick={onPrev} style={{ background: "transparent", border: 0, cursor: "pointer", fontFamily: "inherit", fontSize: 13, color: "var(--muted-foreground)" }}>← Voltar</button>
         <button type="button" onClick={onNext} style={{
           height: 48, padding: "0 24px", borderRadius: 14,
-          background: "var(--primary)", color: "#fff", border: 0, cursor: "pointer",
+          background: "#7C5CFF", color: "#fff", border: 0, cursor: "pointer",
           fontFamily: "inherit", fontSize: 14, fontWeight: 600,
           display: "inline-flex", alignItems: "center", gap: 6,
           boxShadow: "0 4px 14px -4px oklch(0.5 0.12 270 / .45)",
@@ -1033,16 +1032,16 @@ function ConfirmStep({ onAnswer, onPrev }: { onAnswer: (v: boolean) => void; onP
       <div style={{ marginTop: 36, display: "flex", flexDirection: "column", gap: 8 }}>
         <button type="button" onClick={() => onAnswer(false)} style={{
           height: 52, borderRadius: 14,
-          background: "oklch(0.16 0.012 270 / 0.7)", backdropFilter: "blur(8px)",
-          border: "1px solid oklch(0.5 0.12 270 / .2)", cursor: "pointer",
+          background: "rgba(124,92,255,0.1)", backdropFilter: "blur(8px)",
+          border: "1px solid rgba(167,139,250,0.2)", cursor: "pointer",
           fontFamily: "inherit", fontSize: 15, fontWeight: 500,
-          color: "var(--foreground)", textAlign: "left", padding: "0 18px",
+          color: "#7C5CFF", textAlign: "left", padding: "0 18px",
         }}>Não, hoje não.</button>
         <button type="button" onClick={() => onAnswer(true)} style={{
           height: 52, borderRadius: 14,
-          background: "oklch(.85 .04 30 / .15)", border: "1px solid oklch(.6 .1 30 / .3)",
+          background: "rgba(255,77,77,0.15)", border: "1px solid rgba(255,77,77,0.3)",
           cursor: "pointer", fontFamily: "inherit", fontSize: 15, fontWeight: 500,
-          color: "oklch(.35 .07 30)", textAlign: "left", padding: "0 18px",
+          color: "#FF6B6B", textAlign: "left", padding: "0 18px",
         }}>Sim, tive esse pensamento.</button>
       </div>
       <button type="button" onClick={onPrev} style={{
