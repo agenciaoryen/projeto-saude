@@ -229,6 +229,7 @@ export default function AgendaPage() {
   const TOTAL_MINUTES = (TIMELINE_END - TIMELINE_START) * 60;
   const SLOT_MINUTES = 30; // 30-min slots
   const TOTAL_SLOTS = TOTAL_MINUTES / SLOT_MINUTES; // 48 slots
+  const SLOT_PX = 20; // pixel height per 30-min slot
 
   // ── Smart scroll: snap to 2h before current time ────────────
   const timelineScrollRef = useRef<HTMLDivElement>(null);
@@ -236,10 +237,10 @@ export default function AgendaPage() {
     if (!timelineScrollRef.current) return;
     const now = new Date();
     const currentMins = now.getHours() * 60 + now.getMinutes();
-    // Scroll to 2 hours before current time, but not before 07:00
-    const targetMins = Math.max(7 * 60, currentMins - 120);
-    const slotIdx = (targetMins - TIMELINE_START * 60) / SLOT_MINUTES;
-    const scrollTop = Math.max(0, slotIdx * 16 - 60); // 16px per slot, 60px offset for context
+    // Scroll to 2 hours before current time, but never before 06:00
+    const targetMins = Math.max(6 * 60, currentMins - 120);
+    const slotIdx = targetMins / SLOT_MINUTES;
+    const scrollTop = Math.max(0, slotIdx * SLOT_PX - 40); // 40px offset for a bit of context above
     timelineScrollRef.current.scrollTop = scrollTop;
   }, []);
 
@@ -391,7 +392,7 @@ export default function AgendaPage() {
                         setShowNewItem(true);
                       }}
                       style={{
-                        height: 32, display: "flex", alignItems: "flex-start", justifyContent: "flex-end",
+                        height: SLOT_PX * 2, display: "flex", alignItems: "flex-start", justifyContent: "flex-end",
                         paddingRight: 8, background: "none", border: 0, cursor: "pointer",
                         fontFamily: "inherit",
                       }}>
@@ -402,7 +403,7 @@ export default function AgendaPage() {
               </div>
 
               {/* Timeline track */}
-              <div style={{ flex: 1, position: "relative", minHeight: TOTAL_SLOTS * 16 }}>
+              <div style={{ flex: 1, position: "relative", minHeight: TOTAL_SLOTS * SLOT_PX }}>
                 {/* Vertical line */}
                 <div style={{
                   position: "absolute", left: 0, top: 6, bottom: 6, width: 2,
