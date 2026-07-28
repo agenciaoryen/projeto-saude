@@ -83,6 +83,9 @@ export default function AgendaPage() {
   const [newItemType, setNewItemType] = useState<"compromisso" | "tarefa">("tarefa");
   const [allWeekTasks, setAllWeekTasks] = useState<any[]>([]);
   const [tasksOpen, setTasksOpen] = useState(true);
+  const [editingPlanTask, setEditingPlanTask] = useState<any>(null);
+  const [planEditTitle, setPlanEditTitle] = useState("");
+  const [planEditDay, setPlanEditDay] = useState(0);
   const [editingItem, setEditingItem] = useState<AgendaItem | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editDone, setEditDone] = useState(false);
@@ -426,7 +429,11 @@ export default function AgendaPage() {
                     const areaEmoji = (AREA_CONFIG_PT as any)[t.area]?.emoji || "⚪";
                     return (
                       <button key={`plan-${t.id}`} type="button"
-                        onClick={() => switchView("semana")}
+                        onClick={() => {
+                          setEditingPlanTask(t);
+                          setPlanEditTitle(t.title || "");
+                          setPlanEditDay(t.day_of_week ?? 0);
+                        }}
                         style={{
                           display: "inline-flex", alignItems: "center", gap: 5,
                           padding: "6px 10px", borderRadius: 8, border: "1px solid rgba(167,139,250,0.15)",
@@ -709,6 +716,69 @@ export default function AgendaPage() {
               style={{ width: "100%", marginTop: 8, padding: 10, borderRadius: 12, border: "1px solid rgba(167,139,250,0.15)", background: "rgba(167,139,250,0.05)", color: "#9e96b5", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
               📋 Duplicar
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Mini editor for weekly plan tasks ────────────────── */}
+      {editingPlanTask && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 100, background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          <div style={{ width: "100%", maxWidth: 380, background: "#151520", borderRadius: 24, padding: 24, border: "1px solid rgba(167,139,250,0.15)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "#e0d6ff" }}>Editar tarefa do plano</h3>
+              <button type="button" onClick={() => setEditingPlanTask(null)} style={{ background: "none", border: 0, color: "#9e96b5", fontSize: 18, cursor: "pointer" }}>✕</button>
+            </div>
+
+            {/* Title */}
+            <input value={planEditTitle} onChange={e => setPlanEditTitle(e.target.value)}
+              placeholder="Título"
+              style={{...modalInput, marginBottom: 12}} autoFocus />
+
+            {/* Day selector */}
+            <label style={{ fontSize: 10, color: "#9e96b5", marginBottom: 6, display: "block" }}>Mover para</label>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 16 }}>
+              {["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"].map((label, i) => (
+                <button key={i} type="button" onClick={() => setPlanEditDay(i)}
+                  style={{
+                    padding: "6px 10px", borderRadius: 9999, border: 0, cursor: "pointer",
+                    fontFamily: "inherit", fontSize: 11, fontWeight: 600,
+                    background: planEditDay === i ? "#7C5CFF" : "#1e1840",
+                    color: planEditDay === i ? "#fff" : "#9e96b5",
+                  }}>{label}</button>
+              ))}
+            </div>
+
+            {/* Actions */}
+            <div style={{ display: "flex", gap: 10 }}>
+              <button type="button" onClick={async () => {
+                if (!confirm("Excluir esta tarefa?")) return;
+                await fetch(`/api/weekly-plans/tasks/${editingPlanTask.id}`, { method: "DELETE" });
+                setAllWeekTasks((prev: any[]) => prev.filter((wt: any) => wt.id !== editingPlanTask.id));
+                setEditingPlanTask(null);
+              }}
+                style={{ flex: 1, padding: "12px 0", borderRadius: 14, border: 0, background: "rgba(255,92,92,0.1)", color: "#FF5C5C", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+                🗑 Excluir
+              </button>
+              <button type="button" onClick={async () => {
+                const updates: Record<string, unknown> = {
+                  title: planEditTitle.trim() || editingPlanTask.title,
+                  day_of_week: planEditDay,
+                };
+                const res = await fetch(`/api/weekly-plans/tasks/${editingPlanTask.id}`, {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify(updates),
+                });
+                if (res.ok) {
+                  const updated = await res.json();
+                  setAllWeekTasks((prev: any[]) => prev.map((wt: any) => wt.id === editingPlanTask.id ? updated : wt));
+                  setEditingPlanTask(null);
+                }
+              }}
+                style={{ flex: 2, padding: "12px 0", borderRadius: 14, border: 0, background: "#7C5CFF", color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                Salvar
+              </button>
+            </div>
           </div>
         </div>
       )}
