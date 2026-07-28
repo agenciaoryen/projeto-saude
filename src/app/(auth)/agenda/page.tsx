@@ -327,12 +327,29 @@ export default function AgendaPage() {
 
   // ── Overlap detection: assign columns to simultaneous events ──
   const timelineColumns = useMemo(() => {
-    try {
-      if (!timelineItems || timelineItems.length === 0) return [];
-      return timelineItems.map(item => ({ item, column: 0, total: 1 }));
-    } catch {
-      return [];
+    if (!timelineItems || timelineItems.length === 0) return [];
+    const result: { item: AgendaItem; column: number; total: number }[] = [];
+
+    for (const item of timelineItems) {
+      const istart = timeToPx(item.start_time || "00:00");
+      const iend = item.end_time
+        ? (timeToPx(item.end_time) <= istart ? TRACK_HEIGHT : timeToPx(item.end_time))
+        : istart + SLOT_PX;
+
+      const usedCols = new Set<number>();
+      for (const r of result) {
+        const rs = timeToPx(r.item.start_time || "00:00");
+        const re = r.item.end_time
+          ? (timeToPx(r.item.end_time) <= rs ? TRACK_HEIGHT : timeToPx(r.item.end_time))
+          : rs + SLOT_PX;
+        if (istart < re && rs < iend) usedCols.add(r.column);
+      }
+
+      let col = 0;
+      while (usedCols.has(col)) col++;
+      result.push({ item, column: col, total: 1 });
     }
+    return result;
   }, [timelineItems]);
 
   /** Get the real DB id (handles synthetic repeated/crossed items) */
