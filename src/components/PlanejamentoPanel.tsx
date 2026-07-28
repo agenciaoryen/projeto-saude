@@ -142,7 +142,7 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
 
   // Lock body scroll when editor is open
   useEffect(() => {
-    if (editingPlanTask || showStoneEditor) {
+    if (editingPlanTask || showStoneEditor || showAddTask) {
       document.body.style.overflow = "hidden";
       document.body.style.position = "fixed";
       document.body.style.width = "100%";
@@ -394,7 +394,8 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
 
       {/* Add Task Sheet */}
       {showAddTask && (
-        <div style={{ position: "fixed", inset: 0, zIndex: 100, background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+        <div onTouchMove={(e) => e.stopPropagation()}
+          style={{ position: "fixed", inset: 0, zIndex: 100, background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)", display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "60px 20px 20px", overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
           <div style={{ width: "100%", maxWidth: 400, maxHeight: "80dvh", overflowY: "auto", background: "#151520", borderRadius: 24, padding: 24, border: "1px solid rgba(167,139,250,0.15)" }}>
             <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 700, color: "#e0d6ff" }}>Nova atividade</h3>
             <input value={newTaskTitle} onChange={e => setNewTaskTitle(e.target.value)} placeholder="Título" autoFocus style={inputS} />
