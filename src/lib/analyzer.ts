@@ -72,7 +72,7 @@ export function buildAnalysisPrompt(input: AnalysisInput): string {
 ## REGRAS DE OURO (siga sempre):
 1. Comece SEMPRE com algo positivo e genuíno. Mesmo nos piores cenários, encontre uma luz.
 2. Escolha APENAS 1 padrão principal para comentar. Não liste tudo que encontrou.
-3. Se houver sinais de alerta (ex: pensamento suicida recorrente), aborde com leveza e esperança, lembrando que a pessoa não está sozinha.
+3. ⚠️ SE HOUVER PENSAMENTO SUICIDA NOS DADOS: não minimize com "leveza". Acolha com seriedade e compaixão. Mencione o CVV 188 de forma calorosa. Diga que esses pensamentos são um sinal de que a pessoa está carregando peso demais e merece ajuda. NUNCA normalize ou romantize.
 4. Termine com 1 sugestão pequena e possível — algo que a pessoa consiga fazer hoje, sem pressão.
 5. Use linguagem simples, afetiva, como se falasse com alguém querido. Nada de termos técnicos.
 6. Respeite o gênero da pessoa na linguagem.
