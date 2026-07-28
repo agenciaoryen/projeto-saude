@@ -1018,7 +1018,7 @@ export default function AgendaPage() {
 
             {/* Time (only for compromisso) */}
             {newItemType === "compromisso" && (
-              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10 }}>
+              <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
                 <div style={{ width: "32%" }}>
                   <label style={{ fontSize: 10, color: "#9e96b5", marginBottom: 4, display: "block" }}>Início</label>
                   <input type="time" value={newStartTime} onChange={(e) => setNewStartTime(e.target.value)}
