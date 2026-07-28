@@ -145,6 +145,7 @@ export function CheckInForm({ existingCheckIn }: CheckInFormProps) {
         mood_tags: existingCheckIn.mood_tags ?? [],
         gratitude: existingCheckIn.gratitude,
         gratitude_photos: existingCheckIn.gratitude_photos || [],
+        water_cups: existingCheckIn.water_cups ?? 0,
       });
     }
   }, [existingCheckIn]);
@@ -428,6 +429,62 @@ export function CheckInForm({ existingCheckIn }: CheckInFormProps) {
               </button>
             </div>
           )}
+          {/* ── Resumo do score ── */}
+          <div style={{
+            marginTop: 16, padding: "14px 16px", borderRadius: 14,
+            background: "oklch(0.16 0.012 270)", border: "1px solid oklch(0.28 0.02 270 / 0.5)",
+          }}>
+            <p style={{ margin: "0 0 10px", fontSize: 12, fontWeight: 700, color: "#A78BFA" }}>
+              📋 Seu dia até agora: {score}/{total}
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+              {[...enabledKeys.filter(k => k !== "suicidal_thoughts" && k !== "felt_judged")].map((key) => {
+                const done = form[key as keyof FormData] === true;
+                const emoji = QUESTION_EMOJI[key] || "•";
+                const label = key === "ate_well" ? "🍽️ Comeu bem"
+                  : key === "drank_water" ? `💧 Água (${form.water_cups} copos)`
+                  : getQuestionLabel(key, context, t);
+                const hint = key === "ate_well"
+                  ? (done ? "Refeições equilibradas hoje" : hasMealData ? "Registre mais refeições" : "Registre suas refeições")
+                  : key === "drank_water"
+                  ? (done ? `${form.water_cups} copos = ${form.water_cups * 250}ml ✓` : `${form.water_cups}/${MIN_WATER_CUPS} copos para meta`)
+                  : "";
+                return (
+                  <div key={key} style={{
+                    display: "flex", alignItems: "center", gap: 8,
+                    fontSize: 12, color: done ? "#e0d6ff" : "#9e96b5",
+                    opacity: done ? 1 : 0.6,
+                  }}>
+                    <span style={{ fontSize: 14, width: 22, textAlign: "center" }}>
+                      {done ? "✅" : "⬜"}
+                    </span>
+                    <span style={{ flex: 1 }}>{label}</span>
+                    {hint ? <span style={{ fontSize: 10, color: "#9e96b5" }}>{hint}</span> : null}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Água: contador de copos */}
+            <div style={{ marginTop: 12, paddingTop: 10, borderTop: "1px solid oklch(0.28 0.02 270 / 0.3)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 11, fontWeight: 600, color: "#9e96b5" }}>💧 Copos d'água hoje:</span>
+                <div style={{ display: "flex", gap: 4 }}>
+                  {[0, 1, 2, 3, 4, 6, 8].map((n) => (
+                    <button key={n} type="button" onClick={() => setForm(prev => ({ ...prev, water_cups: n }))}
+                      style={{
+                        padding: "3px 8px", borderRadius: 9999, border: 0, cursor: "pointer",
+                        fontFamily: "inherit", fontSize: 11, fontWeight: 600,
+                        background: form.water_cups === n ? "#7C5CFF" : "rgba(167,139,250,0.1)",
+                        color: form.water_cups === n ? "#fff" : "#9e96b5",
+                      }}>
+                      {n === 0 ? "—" : n}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
         </CardContent>
       </Card>
 

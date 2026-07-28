@@ -39,6 +39,7 @@ export default function NovoDiarioPage() {
   const [pdfs, setPdfs] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [recording, setRecording] = useState(false);
+  const [audioMenuOpen, setAudioMenuOpen] = useState(false);
   const dateInputRef = useRef<HTMLInputElement>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
@@ -373,36 +374,53 @@ export default function NovoDiarioPage() {
             }}>
             <Camera size={20} />
           </button>
-          {/* Audio button — tap to upload, hold to record */}
-          <button type="button"
-            onClick={() => audioInputRef.current?.click()}
-            onMouseDown={() => startRecording()}
-            onMouseUp={() => stopRecording()}
-            onMouseLeave={() => recording && stopRecording()}
-            onTouchStart={(e) => { e.preventDefault(); startRecording(); }}
-            onTouchEnd={(e) => { e.preventDefault(); stopRecording(); }}
-            style={{
-              width: recording ? 88 : 72, height: recording ? 88 : 72, borderRadius: 14,
-              border: recording ? "2px solid #FF4D4D" : "1.5px dashed rgba(167,139,250,0.3)",
-              background: recording ? "rgba(255,77,77,0.15)" : "rgba(124,92,255,0.06)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              cursor: "pointer", color: recording ? "#FF4D4D" : "#A78BFA",
-              transition: "all .15s ease", flexDirection: "column", gap: 2,
-              userSelect: "none",
-            }}>
-            {recording ? (
-              <>
-                <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#FF4D4D", animation: "pulse 1s infinite" }} />
-                <span style={{ fontSize: 8, color: "#FF4D4D", fontWeight: 600 }}>Gravando</span>
-                <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }`}</style>
-              </>
-            ) : (
-              <>
-                <Mic size={20} />
-                <span style={{ fontSize: 9, color: "#9e96b5" }}>Áudio</span>
-              </>
+          {/* Audio button with menu */}
+          <div style={{ position: "relative" }}>
+            <button type="button"
+              onClick={() => setAudioMenuOpen(!audioMenuOpen)}
+              style={{
+                width: 72, height: 72, borderRadius: 14,
+                border: "1.5px dashed rgba(167,139,250,0.3)",
+                background: "rgba(124,92,255,0.06)", display: "flex",
+                alignItems: "center", justifyContent: "center",
+                cursor: "pointer", color: "#A78BFA", flexDirection: "column", gap: 2,
+              }}>
+              <Mic size={20} />
+              <span style={{ fontSize: 9, color: "#9e96b5" }}>Áudio</span>
+            </button>
+            {audioMenuOpen && (
+              <div style={{
+                position: "absolute", bottom: 80, left: 0, zIndex: 20,
+                background: "#1a1530", border: "1px solid rgba(167,139,250,0.25)",
+                borderRadius: 14, padding: 6, boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
+                display: "flex", flexDirection: "column", gap: 2, minWidth: 180,
+              }}>
+                <button type="button" onClick={() => { setAudioMenuOpen(false); startRecording(); }}
+                  onMouseUp={() => stopRecording()}
+                  onMouseLeave={() => recording && stopRecording()}
+                  onTouchEnd={(e) => { e.preventDefault(); stopRecording(); }}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10,
+                    border: 0, background: recording ? "rgba(255,77,77,0.15)" : "transparent",
+                    cursor: "pointer", fontFamily: "inherit", fontSize: 13, color: recording ? "#FF4D4D" : "#e0d6ff",
+                    fontWeight: 600, textAlign: "left", width: "100%",
+                  }}>
+                  <span style={{ fontSize: 16 }}>{recording ? "🔴" : "🎤"}</span>
+                  {recording ? "Gravando... solte para parar" : "Gravar áudio"}
+                </button>
+                <button type="button" onClick={() => { setAudioMenuOpen(false); audioInputRef.current?.click(); }}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10,
+                    border: 0, background: "transparent", cursor: "pointer", fontFamily: "inherit",
+                    fontSize: 13, color: "#e0d6ff", fontWeight: 600, textAlign: "left", width: "100%",
+                  }}>
+                  <span style={{ fontSize: 16 }}>📁</span>
+                  Escolher arquivo
+                </button>
+              </div>
             )}
-          </button>
+            {audioMenuOpen && <div style={{ position: "fixed", inset: 0, zIndex: 19 }} onClick={() => setAudioMenuOpen(false)} />}
+          </div>
           <input ref={photoInputRef} type="file" accept="image/*" style={{ display: "none" }}
             onChange={(e) => { if (e.target.files?.[0]) handlePhotoAdd(e.target.files[0]); e.target.value = ""; }} />
           <input ref={audioInputRef} type="file" accept="audio/*" style={{ display: "none" }}
