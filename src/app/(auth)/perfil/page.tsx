@@ -427,10 +427,12 @@ export default function PerfilPage() {
                 <button key={opt.id} type="button" onClick={() => setGender(opt.id)}
                   style={{
                     flex: 1, height: 40, borderRadius: 11, border: 0,
-                    cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700,
+                    padding: "0 6px",
+                    cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700,
                     transition: "all .15s ease",
                     background: gender === opt.id ? "#7C5CFF" : "#1e1840",
                     color: gender === opt.id ? "#fff" : "#7C5CFF",
+                    whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
                   }}>
                   {opt.label}
                 </button>
