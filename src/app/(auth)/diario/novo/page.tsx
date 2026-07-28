@@ -5,12 +5,17 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useTranslation } from "@/lib/useTranslation";
-import { getLocalDate } from "@/lib/utils";
 import { compressImage, uploadToCloud, photoUrl } from "@/lib/photo-storage";
 import { ChevronLeft, ChevronDown, Plus, X, ArrowRight, Camera } from "lucide-react";
 
 const MOODS = [1, 2, 3, 4, 5] as const;
 const MOOD_EMOJI: Record<number, string> = { 1: "😔", 2: "😕", 3: "😐", 4: "🙂", 5: "😊" };
+
+/** Get today's date in the user's actual browser timezone (not hardcoded offset) */
+function getBrowserDate(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
 
 function formatLongDate(dateStr: string): string {
   const d = new Date(dateStr + "T12:00:00");
@@ -23,7 +28,7 @@ function formatLongDate(dateStr: string): string {
 export default function NovoDiarioPage() {
   const router = useRouter();
   const { t } = useTranslation();
-  const [entryDate, setEntryDate] = useState(() => getLocalDate());
+  const [entryDate, setEntryDate] = useState(() => getBrowserDate());
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [mood, setMood] = useState<number | null>(null);
