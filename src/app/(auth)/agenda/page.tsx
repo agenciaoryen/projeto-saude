@@ -325,38 +325,10 @@ export default function AgendaPage() {
     ),
   [compromissos, tarefasComHorario]);
 
-  // ── Overlap detection: assign columns to simultaneous events ──
-  const timelineColumns = useMemo(() => {
-    if (timelineItems.length === 0) return [];
-    const cols: { item: AgendaItem; column: number; total: number }[] = [];
-    for (const item of timelineItems) {
-      const itemStart = timeToPx(item.start_time || "00:00");
-      const itemEnd = item.end_time
-        ? timeToPx(item.end_time) <= itemStart ? TRACK_HEIGHT : timeToPx(item.end_time)
-        : itemStart + SLOT_PX;
-
-      const conflicts = cols.filter(c => {
-        const cStart = timeToPx(c.item.start_time || "00:00");
-        const cEnd = c.item.end_time
-          ? (timeToPx(c.item.end_time) <= cStart ? TRACK_HEIGHT : timeToPx(c.item.end_time))
-          : cStart + SLOT_PX;
-        return itemStart < cEnd && cStart < itemEnd;
-      });
-
-      const usedCols = new Set(conflicts.map(c => c.column));
-      let col = 0;
-      while (usedCols.has(col)) col++;
-      const conflictTotals = conflicts.map(c => c.total).filter(t => typeof t === "number" && !isNaN(t));
-      const total = Math.max(col + 1, ...(conflictTotals.length > 0 ? conflictTotals : [1]));
-      // Update all conflicting items to have the same total
-      for (const c of conflicts) {
-        const idx = cols.indexOf(c);
-        if (idx >= 0 && c.total < total) cols[idx] = { ...c, total };
-      }
-      cols.push({ item, column: col, total: isNaN(total) ? 1 : total });
-    }
-    return cols;
-  }, [timelineItems]);
+  // ── Timeline items with columns (simple, no overlap for now) ──
+  const timelineColumns = useMemo(() =>
+    timelineItems.map(item => ({ item, column: 0, total: 1 })),
+  [timelineItems]);
 
   /** Get the real DB id (handles synthetic repeated/crossed items) */
   const realId = (item: AgendaItem) => (item as any)._origId || item.id;
@@ -437,16 +409,8 @@ export default function AgendaPage() {
     return Math.max(SLOT_PX, h); // minimum 1 slot
   };
 
-  // Current time (updates every minute for the "needle")
-  const [now, setNow] = useState(new Date());
-  useEffect(() => {
-    const t = setInterval(() => setNow(new Date()), 60000);
-    return () => clearInterval(t);
-  }, []);
-
-  const currentTimePx = timeToPx(
-    `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`
-  );
+  // Current time needle (disabled until stable)
+  const currentTimePx = -1;
 
   const HALF_HOUR_LABELS = Array.from({ length: TOTAL_SLOTS + 1 }, (_, i) => {
     const totalMins = (TIMELINE_START * 60) + i * SLOT_MINUTES;
