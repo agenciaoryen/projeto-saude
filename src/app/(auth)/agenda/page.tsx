@@ -1018,8 +1018,8 @@ export default function AgendaPage() {
 
             {/* Time (only for compromisso) */}
             {newItemType === "compromisso" && (
-              <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
-                <div style={{ width: "32%" }}>
+              <div style={{ display: "flex", gap: 12, marginTop: 10 }}>
+                <div style={{ width: "32%", overflow: "hidden" }}>
                   <label style={{ fontSize: 10, color: "#9e96b5", marginBottom: 4, display: "block" }}>Início</label>
                   <input type="time" value={newStartTime} onChange={(e) => setNewStartTime(e.target.value)}
                     style={{
@@ -1030,7 +1030,7 @@ export default function AgendaPage() {
                       width: "100%", boxSizing: "border-box",
                     }} />
                 </div>
-                <div style={{ width: "32%" }}>
+                <div style={{ width: "32%", overflow: "hidden" }}>
                   <label style={{ fontSize: 10, color: "#9e96b5", marginBottom: 4, display: "block" }}>Fim</label>
                   <input type="time" value={newEndTime} onChange={(e) => setNewEndTime(e.target.value)}
                     style={{
