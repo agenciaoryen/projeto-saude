@@ -183,6 +183,7 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
       body: JSON.stringify({
         title: newTaskTitle.trim(), area: newTaskArea, day_of_week: newTaskDay,
         task_type: newTaskType, scheduled_time: newTaskTime || null,
+        stone_rank: newIsStone ? newStoneRank : null,
       }),
     });
     if (res.ok) {
@@ -315,7 +316,8 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
                   setPlanEditArea(task.area || "saude");
                   setPlanEditType(task.task_type || "manutencao");
                   setPlanEditTime(task.scheduled_time?.slice(0, 5) || "");
-                  setPlanEditStone(false);
+                  setPlanEditStone(!!task.stone_rank);
+                  setPlanEditStoneRank(task.stone_rank || 1);
                   setPlanShowMore(false);
                 }}
                 style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 0", borderBottom: "1px solid rgba(167,139,250,0.05)", cursor: "pointer" }}>
@@ -324,6 +326,11 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
                   {done && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3"><path d="m5 12 5 5 9-10" /></svg>}
                 </button>
                 <span style={{ fontSize: 10 }}>{area.emoji}</span>
+                {task.stone_rank && (
+                  <span style={{ fontSize: 8, fontWeight: 800, color: "#A78BFA", background: "rgba(167,139,250,0.12)", padding: "1px 4px", borderRadius: 4, fontFamily: "monospace", flexShrink: 0 }}>
+                    {["I","II","III"][task.stone_rank - 1]}
+                  </span>
+                )}
                 <span style={{ flex: 1, fontSize: 12, fontWeight: 500, color: done ? "#5a5470" : "#e0d6ff", textDecoration: done ? "line-through" : "none" }}>{task.title}</span>
                 <button type="button" onClick={(e) => { e.stopPropagation(); assignToToday(task); }}
                   style={{ padding: "3px 8px", borderRadius: 9999, border: "1px solid rgba(167,139,250,0.25)", background: "rgba(124,92,255,0.08)", color: "#A78BFA", fontSize: 9, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
@@ -355,7 +362,8 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
                   setPlanEditArea(task.area || "saude");
                   setPlanEditType(task.task_type || "manutencao");
                   setPlanEditTime(task.scheduled_time?.slice(0, 5) || "");
-                  setPlanEditStone(false);
+                  setPlanEditStone(!!task.stone_rank);
+                  setPlanEditStoneRank(task.stone_rank || 1);
                   setPlanShowMore(false);
                 }}
                 style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 0", borderBottom: "1px solid rgba(167,139,250,0.05)", cursor: "pointer" }}>
@@ -364,6 +372,11 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
                   {done && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3"><path d="m5 12 5 5 9-10" /></svg>}
                 </button>
                 <span style={{ fontSize: 10 }}>{area.emoji}</span>
+                {task.stone_rank && (
+                  <span style={{ fontSize: 8, fontWeight: 800, color: "#A78BFA", background: "rgba(167,139,250,0.12)", padding: "1px 4px", borderRadius: 4, fontFamily: "monospace", flexShrink: 0 }}>
+                    {["I","II","III"][task.stone_rank - 1]}
+                  </span>
+                )}
                 <span style={{ flex: 1, fontSize: 12, fontWeight: 500, color: done ? "#5a5470" : "#e0d6ff", textDecoration: done ? "line-through" : "none" }}>{task.title}</span>
                 {task.scheduled_time && <span style={{ fontSize: 9, color: "#9e96b5", fontFamily: "monospace" }}>{task.scheduled_time.slice(0,5)}</span>}
               </div>
@@ -611,7 +624,7 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
                 <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", marginBottom: 10 }}>
                   <input type="checkbox" checked={planEditStone} onChange={e => setPlanEditStone(e.target.checked)}
                     style={{ accentColor: "#7C5CFF", width: 16, height: 16 }} />
-                  <span style={{ fontSize: 12, fontWeight: 600, color: "#e0d6ff" }}>Definir como pedra</span>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: "#e0d6ff" }}>Vinculada à pedra</span>
                 </label>
                 {planEditStone && (
                   <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
@@ -697,6 +710,7 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
                     area: planEditArea,
                     task_type: planEditType,
                     scheduled_time: planEditTime || null,
+                    stone_rank: planEditStone ? planEditStoneRank : null,
                   };
                   const res = await fetch(`/api/weekly-plans/tasks/${editingPlanTask.id}`, {
                     method: "PATCH",
