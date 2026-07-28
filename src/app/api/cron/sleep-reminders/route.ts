@@ -168,5 +168,70 @@ export async function GET(req: NextRequest) {
     log.weekly = userIds.length;
   }
 
+  // ── Agenda appointment reminders ────────────────────────────────────────────
+  // Calculate the SP dates needed: today and tomorrow
+  const tomorrowSP = (() => {
+    const d = new Date(spNow.getTime() + 24 * 60 * 60 * 1000);
+    return [
+      d.getUTCFullYear(),
+      String(d.getUTCMonth() + 1).padStart(2, "0"),
+      String(d.getUTCDate()).padStart(2, "0"),
+    ].join("-");
+  })();
+
+  // Fetch agenda items for today AND tomorrow that have notify_minutes set
+  const { data: agendaItems } = await admin
+    .from("agenda_items")
+    .select("id, user_id, title, date, start_time, notify_minutes, item_type")
+    .in("date", [todaySP, tomorrowSP])
+    .not("notify_minutes", "is", null)
+    .not("start_time", "is", null)
+    .in("user_id", userIds);
+
+  for (const item of (agendaItems ?? [])) {
+    if (!item.start_time || !item.notify_minutes) continue;
+
+    // Calculate notification time: start_time minus notify_minutes
+    const [sh, sm] = item.start_time.split(":").map(Number);
+    const totalStartMins = sh * 60 + sm;
+    const notifyMins = item.notify_minutes;
+    let notifTotalMins = totalStartMins - notifyMins;
+
+    // Determine which date the notification should fire on
+    let notifDate: string;
+    if (notifTotalMins < 0) {
+      // Notification crosses midnight backwards (e.g., 00:30 - 60min = 23:30 prev day)
+      notifTotalMins += 24 * 60;
+      // The notification fires on the day BEFORE the appointment
+      if (item.date === tomorrowSP) {
+        notifDate = todaySP;
+      } else {
+        // Appointment is today, notification was yesterday — skip
+        continue;
+      }
+    } else {
+      // Notification is on the same day as the appointment
+      notifDate = item.date;
+    }
+
+    // Only fire if notification date is today and time matches
+    if (notifDate !== todaySP) continue;
+
+    const notifH = Math.floor(notifTotalMins / 60);
+    const notifM = notifTotalMins % 60;
+    const notifTime = `${String(notifH).padStart(2, "0")}:${String(notifM).padStart(2, "0")}`;
+
+    if (notifTime !== currentTime) continue;
+
+    const emoji = item.item_type === "compromisso" ? "📅" : "☑️";
+    totalSent += await sendPushToUser(item.user_id, {
+      title: `${emoji} ${item.title}`,
+      body: `Em ${notifyMins} min — ${item.start_time.slice(0, 5)}`,
+      tag: `agenda-${item.id}`,
+      data: { url: "/agenda" },
+    });
+    log.agenda = (log.agenda ?? 0) + 1;
+  }
+
   return NextResponse.json({ ok: true, time: currentTime, sent: totalSent, ...log });
 }
