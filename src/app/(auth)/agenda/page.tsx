@@ -751,7 +751,11 @@ export default function AgendaPage() {
                         setEditDone(done);
                       }}
                       style={{
-                        position: "absolute", left: 12, right: 8, zIndex: isTask ? 1 : 2,
+                        position: "absolute",
+                        left: total > 1 ? `calc(12px + (100% - 20px) * ${column} / ${total})` : 12,
+                        width: total > 1 ? `calc((100% - 20px) / ${total} - 2px)` : undefined,
+                        right: total > 1 ? undefined : 8,
+                        zIndex: isTask ? 1 : 2,
                         top: topPx + 1,
                         height: heightPx - 2,
                         background: isTask
