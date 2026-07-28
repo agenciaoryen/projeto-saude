@@ -42,7 +42,7 @@ export async function GET(request: Request) {
       ext === "png" ? "image/png" :
       ext === "webp" ? "image/webp" :
       ext === "jpg" || ext === "jpeg" ? "image/jpeg" :
-      ext === "weba" || ext === "webm" ? "audio/webm" :
+      ext === "webm" ? "audio/webm" :
       ext === "m4a" ? "audio/mp4" :
       ext === "ogg" ? "audio/ogg" :
       ext === "mp4" ? "video/mp4" :

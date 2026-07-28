@@ -33,7 +33,7 @@ export async function POST(request: Request) {
       if (mimeType.startsWith("image/")) {
         ext = mimeType.includes("png") ? "png" : mimeType.includes("webp") ? "webp" : "jpg";
       } else if (mimeType.startsWith("audio/")) {
-        ext = mimeType.includes("webm") ? "weba" : mimeType.includes("mp4") || mimeType.includes("m4a") ? "m4a" : "ogg";
+        ext = mimeType.includes("webm") ? "webm" : mimeType.includes("mp4") || mimeType.includes("m4a") ? "m4a" : "ogg";
       } else if (mimeType.startsWith("video/")) {
         ext = "mp4";
       } else if (mimeType.includes("pdf") || mimeType === "application/pdf") {

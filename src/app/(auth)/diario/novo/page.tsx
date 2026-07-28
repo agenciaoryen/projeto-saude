@@ -158,13 +158,10 @@ export default function NovoDiarioPage() {
   }, [pdfs.length]);
 
   const startRecording = async () => {
+    if (recording) return;
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
-        ? "audio/webm;codecs=opus"
-        : MediaRecorder.isTypeSupported("audio/webm")
-          ? "audio/webm"
-          : "audio/mp4";
+      const mimeType = MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : "audio/mp4";
       const recorder = new MediaRecorder(stream, { mimeType });
       mediaRecorderRef.current = recorder;
       audioChunksRef.current = [];
@@ -175,17 +172,17 @@ export default function NovoDiarioPage() {
       recorder.onstop = async () => {
         clearInterval(timerInterval);
         stream.getTracks().forEach(t => t.stop());
+        if (audioChunksRef.current.length === 0) { setRecording(false); setRecordingTime(0); return; }
         const blob = new Blob(audioChunksRef.current, { type: mimeType });
-        if (blob.size === 0) { setRecording(false); setRecordingTime(0); return; }
         const reader = new FileReader();
-        const base64 = await new Promise<string>((resolve) => {
-          reader.onload = () => resolve(reader.result as string);
-          reader.readAsDataURL(blob);
-        });
-        try {
-          const path = await uploadToCloud(base64, "diary");
-          setAudios((prev) => [...prev, path]);
-        } catch { toast.error("Erro ao salvar áudio"); }
+        reader.onload = async () => {
+          const base64 = reader.result as string;
+          try {
+            const path = await uploadToCloud(base64, "diary");
+            setAudios((prev) => [...prev, path]);
+          } catch { toast.error("Erro ao salvar áudio"); }
+        };
+        reader.readAsDataURL(blob);
       };
       recorder.start(1000);
       setRecording(true);
@@ -452,43 +449,28 @@ export default function NovoDiarioPage() {
             onChange={(e) => { if (e.target.files?.[0]) handlePhotoAdd(e.target.files[0]); e.target.value = ""; }} />
           <input ref={cameraCaptureRef} type="file" accept="image/*" capture="environment" style={{ display: "none" }}
             onChange={(e) => { if (e.target.files?.[0]) handlePhotoAdd(e.target.files[0]); e.target.value = ""; }} />
-          {/* Audio button with menu */}
+          {/* Audio button — tap hold to record, short tap to upload */}
           <div style={{ position: "relative" }}>
             <button type="button"
-              onClick={() => setAudioMenuOpen(!audioMenuOpen)}
+              onClick={() => { if (!recording) audioInputRef.current?.click(); }}
+              onMouseDown={(e) => { e.preventDefault(); startRecording(); }}
+              onMouseUp={() => { if (recording) stopRecording(); }}
+              onMouseLeave={() => { if (recording) stopRecording(); }}
+              onTouchStart={(e) => { e.preventDefault(); startRecording(); }}
+              onTouchEnd={(e) => { e.preventDefault(); if (recording) stopRecording(); }}
               style={{
-                width: 72, height: 72, borderRadius: 14,
-                border: "1.5px dashed rgba(167,139,250,0.3)",
-                background: "rgba(124,92,255,0.06)", display: "flex",
-                alignItems: "center", justifyContent: "center",
-                cursor: "pointer", color: "#A78BFA", flexDirection: "column", gap: 2,
+                width: recording ? 88 : 72, height: recording ? 88 : 72, borderRadius: 14,
+                border: recording ? "2px solid #FF4D4D" : "1.5px dashed rgba(167,139,250,0.3)",
+                background: recording ? "rgba(255,77,77,0.15)" : "rgba(124,92,255,0.06)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                cursor: "pointer", color: recording ? "#FF4D4D" : "#A78BFA",
+                flexDirection: "column", gap: 2, userSelect: "none", transition: "all .15s ease",
               }}>
               <Mic size={20} />
-              <span style={{ fontSize: 9, color: "#9e96b5" }}>Áudio</span>
+              <span style={{ fontSize: 9, color: recording ? "#FF4D4D" : "#9e96b5", fontWeight: 600 }}>
+                {recording ? `${recordingTime}s` : "Áudio"}
+              </span>
             </button>
-            {audioMenuOpen && (
-              <div style={{
-                position: "absolute", bottom: 80, left: 0, zIndex: 20,
-                background: "#1a1530", border: "1px solid rgba(167,139,250,0.25)",
-                borderRadius: 14, padding: 6, boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
-                display: "flex", flexDirection: "column", gap: 2, minWidth: 180,
-              }}>
-                <button type="button" onClick={() => { setAudioMenuOpen(false); startRecording(); }}
-                  onMouseUp={() => stopRecording()}
-                  onMouseLeave={() => recording && stopRecording()}
-                  onTouchEnd={(e) => { e.preventDefault(); stopRecording(); }}
-                  style={{ ...menuItemStyle, background: recording ? "rgba(255,77,77,0.15)" : "transparent", color: recording ? "#FF4D4D" : "#e0d6ff" }}>
-                  <span style={{ fontSize: 16 }}>{recording ? "🔴" : "🎤"}</span>
-                  {recording ? "Gravando... solte para parar" : "Gravar áudio"}
-                </button>
-                <button type="button" onClick={() => { setAudioMenuOpen(false); audioInputRef.current?.click(); }}
-                  style={menuItemStyle}>
-                  <span style={{ fontSize: 16 }}>📁</span>
-                  Escolher arquivo
-                </button>
-              </div>
-            )}
-            {audioMenuOpen && <div style={{ position: "fixed", inset: 0, zIndex: 19 }} onClick={() => setAudioMenuOpen(false)} />}
           </div>
           <input ref={photoInputRef} type="file" accept="image/*" style={{ display: "none" }}
             onChange={(e) => { if (e.target.files?.[0]) handlePhotoAdd(e.target.files[0]); e.target.value = ""; }} />
