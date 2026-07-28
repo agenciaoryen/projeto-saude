@@ -976,7 +976,7 @@ export default function AgendaPage() {
           <div style={{
             width: "100%", maxWidth: 420,
             background: "#151520", borderRadius: 24,
-            padding: 20,
+            padding: 20, overflow: "hidden",
             border: "1px solid rgba(167,139,250,0.15)",
           }}>
             <h2 style={{ margin: "0 0 4px", fontSize: 18, fontWeight: 700, color: "#e0d6ff" }}>
@@ -1018,30 +1018,18 @@ export default function AgendaPage() {
 
             {/* Time (only for compromisso) */}
             {newItemType === "compromisso" && (
-              <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
-                <div style={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
+              <>
+                <div style={{ marginTop: 10 }}>
                   <label style={{ fontSize: 10, color: "#9e96b5", marginBottom: 4, display: "block" }}>Início</label>
                   <input type="time" value={newStartTime} onChange={(e) => setNewStartTime(e.target.value)}
-                    style={{
-                      height: 44, padding: "0 6px", fontSize: 14, fontWeight: 600,
-                      borderRadius: 12, border: "1px solid rgba(167,139,250,0.2)",
-                      background: "#0B0B10", color: "#e0d6ff",
-                      fontFamily: "inherit", outline: "none",
-                      width: "100%", boxSizing: "border-box",
-                    }} />
+                    style={modalInput} />
                 </div>
-                <div style={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
+                <div style={{ marginTop: 10 }}>
                   <label style={{ fontSize: 10, color: "#9e96b5", marginBottom: 4, display: "block" }}>Fim</label>
                   <input type="time" value={newEndTime} onChange={(e) => setNewEndTime(e.target.value)}
-                    style={{
-                      height: 44, padding: "0 6px", fontSize: 14, fontWeight: 600,
-                      borderRadius: 12, border: "1px solid rgba(167,139,250,0.2)",
-                      background: "#0B0B10", color: "#e0d6ff",
-                      fontFamily: "inherit", outline: "none",
-                      width: "100%", boxSizing: "border-box",
-                    }} />
+                    style={modalInput} />
                 </div>
-              </div>
+              </>
             )}
 
             {/* Description */}
