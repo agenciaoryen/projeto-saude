@@ -325,6 +325,38 @@ export default function AgendaPage() {
     ),
   [compromissos, tarefasComHorario]);
 
+  // ── Overlap detection: assign columns to simultaneous events ──
+  const timelineColumns = useMemo(() => {
+    const cols: { item: AgendaItem; column: number; total: number }[] = [];
+    for (const item of timelineItems) {
+      const itemStart = timeToPx(item.start_time || "00:00");
+      const itemEnd = item.end_time
+        ? timeToPx(item.end_time) <= itemStart ? TRACK_HEIGHT : timeToPx(item.end_time)
+        : itemStart + SLOT_PX;
+
+      // Find conflicting items (already placed) that overlap with this one
+      const conflicts = cols.filter(c => {
+        const cStart = timeToPx(c.item.start_time || "00:00");
+        const cEnd = c.item.end_time
+          ? (timeToPx(c.item.end_time) <= cStart ? TRACK_HEIGHT : timeToPx(c.item.end_time))
+          : cStart + SLOT_PX;
+        return itemStart < cEnd && cStart < itemEnd;
+      });
+
+      const usedCols = new Set(conflicts.map(c => c.column));
+      let col = 0;
+      while (usedCols.has(col)) col++;
+      const total = Math.max(col + 1, ...conflicts.map(c => c.total));
+      // Update all conflicting items to have the same total
+      for (const c of conflicts) {
+        const idx = cols.indexOf(c);
+        if (idx >= 0 && c.total < total) cols[idx] = { ...c, total };
+      }
+      cols.push({ item, column: col, total });
+    }
+    return cols;
+  }, [timelineItems]);
+
   /** Get the real DB id (handles synthetic repeated/crossed items) */
   const realId = (item: AgendaItem) => (item as any)._origId || item.id;
 
@@ -401,6 +433,17 @@ export default function AgendaPage() {
     const h = endPx - startPx;
     return Math.max(SLOT_PX, h); // minimum 1 slot
   };
+
+  // Current time (updates every minute for the "needle")
+  const [now, setNow] = useState(new Date());
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 60000);
+    return () => clearInterval(t);
+  }, []);
+
+  const currentTimePx = timeToPx(
+    `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`
+  );
 
   const HALF_HOUR_LABELS = Array.from({ length: TOTAL_SLOTS + 1 }, (_, i) => {
     const totalMins = (TIMELINE_START * 60) + i * SLOT_MINUTES;
@@ -664,8 +707,24 @@ export default function AgendaPage() {
                   />
                 ))}
 
+                {/* Current time needle */}
+                {currentTimePx > 0 && currentTimePx < TRACK_HEIGHT && (
+                  <div style={{
+                    position: "absolute", left: 0, right: 0, top: currentTimePx, zIndex: 5,
+                    height: 2, background: "#FF4D4D",
+                    boxShadow: "0 0 6px rgba(255,77,77,0.5)",
+                    pointerEvents: "none",
+                  }}>
+                    <div style={{
+                      position: "absolute", left: -5, top: -4,
+                      width: 10, height: 10, borderRadius: "50%",
+                      background: "#FF4D4D", boxShadow: "0 0 6px rgba(255,77,77,0.6)",
+                    }} />
+                  </div>
+                )}
+
                 {/* Event cards — compromissos + tarefas com horário */}
-                {timelineItems.map((item) => {
+                {timelineColumns.map(({ item, column, total }) => {
                   const isTask = item.item_type === "tarefa";
                   const topPx = timeToPx(item.start_time || "07:00");
                   const heightPx = item.end_time
@@ -693,7 +752,11 @@ export default function AgendaPage() {
                         setEditDone(done);
                       }}
                       style={{
-                        position: "absolute", left: 12, right: 8, zIndex: isTask ? 1 : 2,
+                        position: "absolute",
+                        left: total > 1 ? `calc(12px + (100% - 20px) * ${column} / ${total})` : 12,
+                        width: total > 1 ? `calc((100% - 20px) / ${total} - 2px)` : undefined,
+                        right: total > 1 ? undefined : 8,
+                        zIndex: isTask ? 1 : 2,
                         top: topPx + 1,
                         height: heightPx - 2,
                         background: isTask
