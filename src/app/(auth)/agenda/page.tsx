@@ -1018,22 +1018,18 @@ export default function AgendaPage() {
 
             {/* Time (only for compromisso) */}
             {newItemType === "compromisso" && (
-              <table style={{ width: "100%", marginTop: 10, borderCollapse: "collapse", tableLayout: "fixed" }}>
-                <tbody>
-                  <tr>
-                    <td style={{ width: "50%", padding: "0 5px 0 0", verticalAlign: "top" }}>
-                      <label style={{ fontSize: 10, color: "#9e96b5", marginBottom: 4, display: "block" }}>Início</label>
-                      <input type="time" value={newStartTime} onChange={(e) => setNewStartTime(e.target.value)}
-                        style={{ ...modalInput, padding: "10px 6px", fontSize: 13 }} />
-                    </td>
-                    <td style={{ width: "50%", padding: "0 0 0 5px", verticalAlign: "top" }}>
-                      <label style={{ fontSize: 10, color: "#9e96b5", marginBottom: 4, display: "block" }}>Fim</label>
-                      <input type="time" value={newEndTime} onChange={(e) => setNewEndTime(e.target.value)}
-                        style={{ ...modalInput, padding: "10px 6px", fontSize: 13 }} />
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+              <div style={{ display: "flex", gap: 12, marginTop: 10, width: "100%" }}>
+                <div style={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
+                  <label style={{ fontSize: 10, color: "#9e96b5", marginBottom: 4, display: "block" }}>Início</label>
+                  <input type="time" value={newStartTime} onChange={(e) => setNewStartTime(e.target.value)}
+                    style={{ ...modalInput, padding: "12px 8px", fontSize: 13, minWidth: 0, maxWidth: "100%" }} />
+                </div>
+                <div style={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
+                  <label style={{ fontSize: 10, color: "#9e96b5", marginBottom: 4, display: "block" }}>Fim</label>
+                  <input type="time" value={newEndTime} onChange={(e) => setNewEndTime(e.target.value)}
+                    style={{ ...modalInput, padding: "12px 8px", fontSize: 13, minWidth: 0, maxWidth: "100%" }} />
+                </div>
+              </div>
             )}
 
             {/* Description */}
