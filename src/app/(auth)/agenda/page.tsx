@@ -164,7 +164,7 @@ export default function AgendaPage() {
     setNewRepeat(item.repeat_type || "none");
     setNewNotify(item.notify_minutes ?? null);
     setNewDueDate(item.due_date || "");
-    setEditingId(item.id);
+    setEditingId(realId(item));
     setEditingItem(null);
     setShowNewItem(true);
   };
@@ -172,11 +172,69 @@ export default function AgendaPage() {
   const fetchItems = useCallback(async (date: string) => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/agenda?date=${date}`);
-      if (res.ok) {
-        const data = await res.json();
-        setItems(Array.isArray(data) ? data : []);
+      // Fetch a window around the selected date to catch repeats and midnight-crossings
+      const from = shiftDate(date, -30);
+      const to = shiftDate(date, 30);
+      const res = await fetch(`/api/agenda?from=${from}&to=${to}`);
+      if (!res.ok) { setItems([]); setLoading(false); return; }
+      const all: AgendaItem[] = await res.json();
+      if (!Array.isArray(all)) { setItems([]); setLoading(false); return; }
+
+      // ── Build result: items that belong to `date` ──
+      const result: AgendaItem[] = [];
+
+      // Helper: does a repeat rule match `date` given an original date?
+      const repeatMatches = (item: AgendaItem, target: string): boolean => {
+        if (!item.repeat_type || item.repeat_type === "none") return false;
+        const orig = new Date(item.date + "T12:00:00");
+        const tgt = new Date(target + "T12:00:00");
+        if (tgt <= orig) return false; // don't repeat before original
+        switch (item.repeat_type) {
+          case "daily": return true;
+          case "weekly": return orig.getDay() === tgt.getDay();
+          case "monthly": return orig.getDate() === tgt.getDate();
+          case "weekdays": return tgt.getDay() >= 1 && tgt.getDay() <= 5;
+          case "yearly":
+            return orig.getDate() === tgt.getDate() && orig.getMonth() === tgt.getMonth();
+          default: return false;
+        }
+      };
+
+      for (const item of all) {
+        // Exact date match
+        if (item.date === date) { result.push(item); continue; }
+        // Repeating item — use original id for API, synthetic key for React
+        if (repeatMatches(item, date)) {
+          result.push({ ...item, date, id: item.id + "_r_" + date, _origId: item.id } as AgendaItem & { _origId?: string });
+          continue;
+        }
       }
+
+      // ── Midnight-crossing: items from YESTERDAY that cross into today ──
+      const yesterday = shiftDate(date, -1);
+      const yesterdayItems = all.filter(i => i.date === yesterday && i.item_type === "compromisso" && i.start_time && i.end_time);
+      for (const item of yesterdayItems) {
+        const [sh, sm] = (item.start_time || "00:00").split(":").map(Number);
+        const [eh, em] = (item.end_time || "00:00").split(":").map(Number);
+        if (eh * 60 + em <= sh * 60 + sm) {
+          // Crosses midnight — show continuation on today
+          result.push({
+            ...item,
+            date,
+            id: item.id + "_cross",
+            start_time: "00:00",
+            // Keep end_time as the original (it ends today)
+          });
+        }
+      }
+
+      // Sort: compromissos by start_time, then tarefas
+      result.sort((a, b) => {
+        if (a.item_type !== b.item_type) return a.item_type === "compromisso" ? -1 : 1;
+        return (a.start_time || "").localeCompare(b.start_time || "");
+      });
+
+      setItems(result);
     } catch { /* silent */ }
     setLoading(false);
   }, []);
@@ -236,13 +294,16 @@ export default function AgendaPage() {
     ),
   [compromissos, tarefasComHorario]);
 
+  /** Get the real DB id (handles synthetic repeated/crossed items) */
+  const realId = (item: AgendaItem) => (item as any)._origId || item.id;
+
   const toggleTask = async (item: AgendaItem) => {
     const newStatus = item.status === "concluida" ? "pendente" : "concluida";
     setItems(prev => prev.map(i => i.id === item.id ? { ...i, status: newStatus } : i));
     await fetch("/api/agenda", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: item.id, status: newStatus }),
+      body: JSON.stringify({ id: realId(item), status: newStatus }),
     });
   };
 
@@ -697,7 +758,7 @@ export default function AgendaPage() {
               </button>
               <button type="button" onClick={async () => {
                 if (!confirm("Excluir este compromisso?")) return;
-                await fetch(`/api/agenda?id=${editingItem.id}`, { method: "DELETE" });
+                await fetch(`/api/agenda?id=${realId(editingItem)}`, { method: "DELETE" });
                 setEditingItem(null); fetchItems(selectedDate);
               }}
                 style={{ flex: 1, padding: 10, borderRadius: 12, border: 0, background: "rgba(255,92,92,0.1)", color: "#FF5C5C", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
@@ -855,16 +916,16 @@ export default function AgendaPage() {
 
             {/* Time (only for compromisso) */}
             {newItemType === "compromisso" && (
-              <div style={{ display: "flex", gap: 12, marginTop: 10 }}>
+              <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <label style={{ fontSize: 10, color: "#9e96b5", marginBottom: 4, display: "block" }}>Início</label>
                   <input type="time" value={newStartTime} onChange={(e) => setNewStartTime(e.target.value)}
-                    style={{ ...modalInput, padding: "10px 8px", width: "100%", boxSizing: "border-box" }} />
+                    style={{ ...modalInput, padding: "10px 4px", fontSize: 13, width: "100%", boxSizing: "border-box", minWidth: 0 }} />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <label style={{ fontSize: 10, color: "#9e96b5", marginBottom: 4, display: "block" }}>Fim</label>
                   <input type="time" value={newEndTime} onChange={(e) => setNewEndTime(e.target.value)}
-                    style={{ ...modalInput, padding: "10px 8px", width: "100%", boxSizing: "border-box" }} />
+                    style={{ ...modalInput, padding: "10px 4px", fontSize: 13, width: "100%", boxSizing: "border-box", minWidth: 0 }} />
                 </div>
               </div>
             )}
@@ -1048,7 +1109,7 @@ function ListView({ allWeekTasks, loadWeekTasks, compromissos, selectedDate }: {
   const deleteItem = async () => {
     if (!confirm("Tem certeza que deseja excluir?")) return;
     if (editingItem.item_type) {
-      await fetch(`/api/agenda?id=${editingItem.id}`, { method: "DELETE" });
+      await fetch(`/api/agenda?id=${(editingItem as any)._origId || editingItem.id}`, { method: "DELETE" });
     } else {
       await fetch(`/api/weekly-plans/tasks/${editingItem.id}`, { method: "DELETE" });
     }
