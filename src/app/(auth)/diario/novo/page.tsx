@@ -157,75 +157,46 @@ export default function NovoDiarioPage() {
     } catch { toast.error("Erro ao processar PDF"); }
   }, [pdfs.length]);
 
-  // WAV encoder — produces universally playable audio (iOS Safari, Chrome, etc.)
-  const encodeWav = (samples: Float32Array, sampleRate: number): Blob => {
-    const buf = new ArrayBuffer(44 + samples.length * 2);
-    const view = new DataView(buf);
-    const writeStr = (off: number, s: string) => { for (let i = 0; i < s.length; i++) view.setUint8(off + i, s.charCodeAt(i)); };
-    writeStr(0, "RIFF"); view.setUint32(4, 36 + samples.length * 2, true);
-    writeStr(8, "WAVE"); writeStr(12, "fmt ");
-    view.setUint32(16, 16, true); view.setUint16(20, 1, true); // PCM
-    view.setUint16(22, 1, true); // mono
-    view.setUint32(24, sampleRate, true);
-    view.setUint32(28, sampleRate * 2, true);
-    view.setUint16(32, 2, true); view.setUint16(34, 16, true);
-    writeStr(36, "data"); view.setUint32(40, samples.length * 2, true);
-    for (let i = 0; i < samples.length; i++) {
-      const s = Math.max(-1, Math.min(1, samples[i]));
-      view.setInt16(44 + i * 2, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
-    }
-    return new Blob([buf], { type: "audio/wav" });
-  };
-
   const startRecording = async () => {
     if (recording) return;
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const audioCtx = new AudioContext({ sampleRate: 44100 });
-      const source = audioCtx.createMediaStreamSource(stream);
-      const processor = audioCtx.createScriptProcessor(4096, 1, 1);
-      const chunks: Float32Array[] = [];
-      source.connect(processor);
-      processor.connect(audioCtx.destination);
-      processor.onaudioprocess = (e) => {
-        chunks.push(new Float32Array(e.inputBuffer.getChannelData(0)));
-      };
-      (mediaRecorderRef as any).current = { audioCtx, processor, source, stream, chunks };
+      // Try formats in order of cross-browser compatibility
+      const mimeType = ["audio/mp4", "audio/aac", "audio/webm;codecs=opus", "audio/webm", "audio/ogg;codecs=opus"]
+        .find(t => MediaRecorder.isTypeSupported(t)) || "";
+      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : {});
+      mediaRecorderRef.current = recorder as any;
+      audioChunksRef.current = [];
       setRecordingTime(0);
       const startTime = Date.now();
       const timerInterval = setInterval(() => setRecordingTime(Math.floor((Date.now() - startTime) / 1000)), 500);
-      (mediaRecorderRef as any).current.timer = timerInterval;
-      setRecording(true);
-      // Store stop function
-      (mediaRecorderRef as any).current.stopFn = async () => {
+      recorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunksRef.current.push(e.data); };
+      recorder.onstop = async () => {
         clearInterval(timerInterval);
-        processor.disconnect();
-        source.disconnect();
-        audioCtx.close();
         stream.getTracks().forEach(t => t.stop());
-        const allSamples = new Float32Array(chunks.reduce((sum, c) => sum + c.length, 0));
-        let offset = 0;
-        for (const c of chunks) { allSamples.set(c, offset); offset += c.length; }
-        if (allSamples.length === 0) { setRecording(false); setRecordingTime(0); return; }
-        const wavBlob = encodeWav(allSamples, 44100);
+        if (audioChunksRef.current.length === 0) { setRecording(false); setRecordingTime(0); return; }
+        const blob = new Blob(audioChunksRef.current, { type: recorder.mimeType || "audio/webm" });
         const reader = new FileReader();
         reader.onload = async () => {
           const base64 = reader.result as string;
           try {
             const path = await uploadToCloud(base64, "diary");
             setAudios((prev) => [...prev, path]);
+            toast.success("Áudio salvo!");
           } catch { toast.error("Erro ao salvar áudio"); }
         };
-        reader.readAsDataURL(wavBlob);
+        reader.readAsDataURL(blob);
       };
+      recorder.start(1000);
+      setRecording(true);
     } catch {
       audioInputRef.current?.click();
     }
   };
 
   const stopRecording = () => {
-    const ref = mediaRecorderRef.current as any;
-    if (ref?.stopFn) { ref.stopFn(); }
+    const rec = mediaRecorderRef.current as MediaRecorder | null;
+    if (rec && rec.state !== "inactive") rec.stop();
     setRecording(false);
     setRecordingTime(0);
   };

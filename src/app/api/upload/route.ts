@@ -34,7 +34,7 @@ export async function POST(request: Request) {
       if (mimeType.startsWith("image/")) {
         ext = mimeType.includes("png") ? "png" : mimeType.includes("webp") ? "webp" : "jpg";
       } else if (mimeType.startsWith("audio/")) {
-        ext = mimeType.includes("webm") ? "webm" : mimeType.includes("wav") ? "wav" : mimeType.includes("mp4") || mimeType.includes("m4a") || mimeType.includes("x-m4a") ? "m4a" : mimeType.includes("ogg") || mimeType.includes("opus") ? "ogg" : "mp3";
+        ext = mimeType.includes("webm") ? "webm" : mimeType.includes("wav") || mimeType.includes("wave") ? "wav" : mimeType.includes("aac") ? "m4a" : mimeType.includes("mp4") || mimeType.includes("m4a") || mimeType.includes("x-m4a") ? "m4a" : mimeType.includes("ogg") || mimeType.includes("opus") ? "ogg" : "mp3";
       } else if (mimeType.startsWith("video/")) {
         ext = "mp4";
       } else if (mimeType.includes("pdf") || mimeType === "application/pdf") {
