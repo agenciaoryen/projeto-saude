@@ -391,7 +391,7 @@ function SleepHistoryRow({ log, onEdit, lang }: { log: SleepLog; onEdit: (log: S
       onClick={() => onEdit(log)}
       style={{
         display: "flex", alignItems: "center", gap: 12,
-        padding: "11px 0", borderBottom: "1px solid oklch(.28 .02 270 / .5)",
+        padding: "11px 16px", borderBottom: "1px solid oklch(.28 .02 270 / .2)",
         cursor: "pointer",
       }}
     >
