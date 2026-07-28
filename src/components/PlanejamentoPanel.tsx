@@ -216,6 +216,19 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
 
   const selectedDayTasks = tasks.filter((t: any) => t.day_of_week === selectedDay)
     .sort((a: any, b: any) => (a.position || 0) - (b.position || 0));
+  const openTasks = tasks.filter((t: any) => t.day_of_week == null || t.day_of_week === -1);
+
+  const assignToToday = async (task: any) => {
+    const today = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1;
+    const res = await fetch(`/api/weekly-plans/tasks/${task.id}`, {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ day_of_week: today }),
+    });
+    if (res.ok) {
+      const updated = await res.json();
+      setTasks((prev: any[]) => prev.map(t => t.id === task.id ? updated : t));
+    }
+  };
 
   if (loading) return <p style={{ color: "#9e96b5", fontSize: 13, textAlign: "center", padding: 20 }}>Carregando...</p>;
 
@@ -271,6 +284,33 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
           );
         })}
       </div>
+
+      {/* Em aberto */}
+      {openTasks.length > 0 && (
+        <div style={{ background: "#1a1530", borderRadius: 16, border: "1px solid rgba(167,139,250,0.1)", padding: "10px 14px", marginBottom: 8 }}>
+          <p style={{ margin: "0 0 6px", fontSize: 11, fontWeight: 600, color: "#A78BFA" }}>📋 Em aberto</p>
+          {openTasks.map((task: any) => {
+            const area = AREA_CONFIG[task.area] || AREA_CONFIG.outros;
+            const done = task.status === "concluida";
+            return (
+              <div key={task.id}
+                onClick={() => { setEditingPlanTask(task); setPlanEditTitle(task.title || ""); setPlanEditDay(task.day_of_week ?? -1); }}
+                style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 0", borderBottom: "1px solid rgba(167,139,250,0.05)", cursor: "pointer" }}>
+                <button type="button" onClick={(e) => { e.stopPropagation(); toggleTask(task.id, task.status); }}
+                  style={{ width: 18, height: 18, borderRadius: task.task_type === "manutencao" ? "50%" : 4, flexShrink: 0, border: done ? "none" : "1.5px solid rgba(167,139,250,0.3)", background: done ? "#7C5CFF" : "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  {done && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3"><path d="m5 12 5 5 9-10" /></svg>}
+                </button>
+                <span style={{ fontSize: 10 }}>{area.emoji}</span>
+                <span style={{ flex: 1, fontSize: 12, fontWeight: 500, color: done ? "#5a5470" : "#e0d6ff", textDecoration: done ? "line-through" : "none" }}>{task.title}</span>
+                <button type="button" onClick={(e) => { e.stopPropagation(); assignToToday(task); }}
+                  style={{ padding: "3px 8px", borderRadius: 9999, border: "1px solid rgba(167,139,250,0.25)", background: "rgba(124,92,255,0.08)", color: "#A78BFA", fontSize: 9, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
+                  Hoje →
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Tasks */}
       <div style={{ background: "#1a1530", borderRadius: 16, border: "1px solid rgba(167,139,250,0.1)", padding: "10px 14px", marginBottom: 8 }}>
@@ -376,6 +416,8 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
               <div style={{ flex: 1 }}>
                 <p style={{ fontSize: 10, color: "#9e96b5", marginBottom: 4 }}>Dia</p>
                 <div style={{ display: "flex", gap: 2 }}>
+                  <button type="button" onClick={() => setNewTaskDay(-1)}
+                    style={{ padding: "6px 4px", borderRadius: 8, border: 0, cursor: "pointer", background: newTaskDay === -1 ? "#7C5CFF" : "rgba(167,139,250,0.08)", color: newTaskDay === -1 ? "#fff" : "#9e96b5", fontSize: 9, fontWeight: 600, fontFamily: "inherit" }}>—</button>
                   {DAY_NAMES.map((d, i) => (
                     <button key={i} type="button" onClick={() => setNewTaskDay(i)}
                       style={{ flex: 1, padding: "6px 2px", borderRadius: 8, border: 0, cursor: "pointer", background: newTaskDay === i ? "#7C5CFF" : "rgba(167,139,250,0.08)", color: newTaskDay === i ? "#fff" : "#9e96b5", fontSize: 9, fontWeight: 600, fontFamily: "inherit" }}>{d}</button>
@@ -390,31 +432,52 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
                 style={{ flex: 1, padding: "8px 0", borderRadius: 10, border: newTaskType === "crescimento" ? "2px solid #7C5CFF" : "1px solid rgba(167,139,250,0.15)", background: newTaskType === "crescimento" ? "rgba(124,92,255,0.1)" : "transparent", cursor: "pointer", color: newTaskType === "crescimento" ? "#A78BFA" : "#9e96b5", fontSize: 11, fontWeight: 600, fontFamily: "inherit" }}>↑ Crescer</button>
             </div>
             {/* Pedra da semana */}
-            <div style={{ marginTop: 14, padding: "12px 14px", borderRadius: 14, background: "#0B0B10", border: newIsStone ? "1px solid rgba(124,92,255,0.3)" : "1px solid rgba(167,139,250,0.1)" }}>
-              <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
-                <input type="checkbox" checked={newIsStone} onChange={e => setNewIsStone(e.target.checked)}
-                  style={{ accentColor: "#7C5CFF", width: 18, height: 18 }} />
-                <span style={{ fontSize: 13, fontWeight: 600, color: "#e0d6ff" }}>Definir como pedra da semana</span>
-              </label>
-              {newIsStone && (
-                <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-                  {[1,2,3].map(n => (
-                    <button key={n} type="button" onClick={() => setNewStoneRank(n)}
-                      style={{
-                        flex: 1, padding: "8px 0", borderRadius: 10, border: 0, cursor: "pointer",
-                        fontFamily: "inherit", fontSize: 12, fontWeight: 700,
-                        background: newStoneRank === n ? "#7C5CFF" : "rgba(167,139,250,0.08)",
-                        color: newStoneRank === n ? "#fff" : "#9e96b5",
-                      }}>
-                      {["I", "II", "III"][n-1]}
-                    </button>
-                  ))}
+            {(() => {
+              const occupiedStones = tasks.filter((t: any) => t.task_type === "crescimento" && t.linked_goal_id != null).length >= 3
+                ? [1,2,3] : tasks.filter((t: any) => (t as any).stone_rank).map((t: any) => (t as any).stone_rank);
+              const availableRanks = [1,2,3].filter(r => !occupiedStones.includes(r));
+              if (availableRanks.length === 0) return null;
+              return (
+                <div style={{ marginTop: 14, padding: "12px 14px", borderRadius: 14, background: "#0B0B10", border: newIsStone ? "1px solid rgba(124,92,255,0.3)" : "1px solid rgba(167,139,250,0.1)" }}>
+                  <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
+                    <input type="checkbox" checked={newIsStone} onChange={e => setNewIsStone(e.target.checked)}
+                      style={{ accentColor: "#7C5CFF", width: 18, height: 18 }} />
+                    <span style={{ fontSize: 13, fontWeight: 600, color: "#e0d6ff" }}>Definir como pedra da semana</span>
+                  </label>
+                  {newIsStone && (
+                    <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                      {availableRanks.map(n => (
+                        <button key={n} type="button" onClick={() => setNewStoneRank(n)}
+                          style={{
+                            flex: 1, padding: "8px 0", borderRadius: 10, border: 0, cursor: "pointer",
+                            fontFamily: "inherit", fontSize: 12, fontWeight: 700,
+                            background: newStoneRank === n ? "#7C5CFF" : "rgba(167,139,250,0.08)",
+                            color: newStoneRank === n ? "#fff" : "#9e96b5",
+                          }}>
+                          {["I", "II", "III"][n-1]}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
+              );
+            })()}
+
+            {/* Time — toggle on/off */}
+            <div style={{ marginTop: 12 }}>
+              {newTaskTime ? (
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ fontSize: 13, color: "#A78BFA", fontWeight: 600 }}>🕐 {newTaskTime}</span>
+                  <button type="button" onClick={() => setNewTaskTime("")}
+                    style={{ padding: "2px 6px", borderRadius: 9999, border: 0, background: "rgba(167,139,250,0.1)", color: "#9e96b5", fontSize: 10, cursor: "pointer", fontFamily: "inherit" }}>✕</button>
+                </div>
+              ) : (
+                <button type="button" onClick={() => setNewTaskTime("09:00")}
+                  style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 14px", borderRadius: 10, border: "1px dashed rgba(167,139,250,0.25)", background: "transparent", color: "#9e96b5", fontSize: 12, cursor: "pointer", fontFamily: "inherit", width: "100%", justifyContent: "center" }}>
+                  🕐 Adicionar horário
+                </button>
               )}
             </div>
-
-            <input type="time" value={newTaskTime} onChange={e => setNewTaskTime(e.target.value)}
-              style={{ ...inputS, marginTop: 12 }} />
             <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
               <button type="button" onClick={() => setShowAddTask(false)}
                 style={{ flex: 1, padding: 14, borderRadius: 14, border: "1px solid rgba(167,139,250,0.2)", background: "transparent", color: "#9e96b5", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Cancelar</button>
