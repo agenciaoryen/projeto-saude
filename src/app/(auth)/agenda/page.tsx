@@ -340,15 +340,28 @@ export default function AgendaPage() {
       const iend = item.end_time && toMins(item.end_time) <= istart ? 24 * 60 : toMins(item.end_time) || istart + 30;
 
       const usedCols = new Set<number>();
-      for (const r of result) {
+      let overlapping: number[] = []; // indices of overlapping items
+      for (let i = 0; i < result.length; i++) {
+        const r = result[i];
         const rs = toMins(r.item.start_time);
         const re = r.item.end_time && toMins(r.item.end_time) <= rs ? 24 * 60 : toMins(r.item.end_time) || rs + 30;
-        if (istart < re && rs < iend) usedCols.add(r.column);
+        if (istart < re && rs < iend) {
+          usedCols.add(r.column);
+          overlapping.push(i);
+        }
       }
 
       let col = 0;
       while (usedCols.has(col)) col++;
-      result.push({ item, column: col, total: 1 });
+      const overlapTotals = overlapping.map(i => result[i].total);
+      const total = Math.max(col + 1, overlapTotals.length > 0 ? Math.max(...overlapTotals) : 1);
+
+      // Update all overlapping events to have the same total
+      for (const i of overlapping) {
+        if (result[i].total < total) result[i] = { ...result[i], total };
+      }
+
+      result.push({ item, column: col, total });
     }
     return result;
   }, [timelineItems]);
