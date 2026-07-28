@@ -23,20 +23,30 @@ export async function POST(request: Request) {
     }
 
     // Decode base64 (with or without data URI prefix)
-    const matches = base64.match(/^data:image\/(\w+);base64,(.+)$/);
+    const matches = base64.match(/^data:([^;]+);base64,(.+)$/);
     let buffer: Buffer;
     let ext: string;
+    let mimeType: string;
     if (matches) {
-      ext = matches[1] === "png" ? "png" : "jpg";
+      mimeType = matches[1];
+      // Map MIME type to extension
+      if (mimeType.startsWith("image/")) {
+        ext = mimeType.includes("png") ? "png" : mimeType.includes("webp") ? "webp" : "jpg";
+      } else if (mimeType.startsWith("audio/")) {
+        ext = mimeType.includes("webm") ? "weba" : mimeType.includes("mp4") || mimeType.includes("m4a") ? "m4a" : "ogg";
+      } else if (mimeType.startsWith("video/")) {
+        ext = "mp4";
+      } else if (mimeType.includes("pdf") || mimeType === "application/pdf") {
+        ext = "pdf";
+        mimeType = "application/pdf";
+      } else {
+        ext = "jpg";
+      }
       buffer = Buffer.from(matches[2], "base64");
     } else {
       ext = "jpg";
+      mimeType = "image/jpeg";
       buffer = Buffer.from(base64, "base64");
-    }
-
-    // Sanitize extension
-    if (!["jpg", "jpeg", "png", "webp"].includes(ext)) {
-      ext = "jpg";
     }
 
     const fileName = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
@@ -46,7 +56,7 @@ export async function POST(request: Request) {
     const { error: uploadError } = await admin.storage
       .from("user-content")
       .upload(path, buffer, {
-        contentType: `image/${ext}`,
+        contentType: mimeType,
         upsert: false,
       });
 

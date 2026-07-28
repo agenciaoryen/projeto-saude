@@ -108,7 +108,10 @@ export default function AgendaPage() {
   const [newRepeat, setNewRepeat] = useState("none");
   const [newNotify, setNewNotify] = useState<number | null>(null);
   const [newDueDate, setNewDueDate] = useState("");
+  const [newLinkedGoalId, setNewLinkedGoalId] = useState("");
   const [saving, setSaving] = useState(false);
+  const [activeGoals, setActiveGoals] = useState<any[]>([]);
+  const [weekPedras, setWeekPedras] = useState<{ id: string; title: string }[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null); // non-null = editing existing item
   const [editingIsRepeat, setEditingIsRepeat] = useState(false); // true if editing a repeated occurrence
 
@@ -129,6 +132,7 @@ export default function AgendaPage() {
       repeat_type: newRepeat,
       notify_minutes: newNotify,
       due_date: newDueDate || null,
+      linked_goal_id: newLinkedGoalId || null,
     };
 
     if (editingId && editingIsRepeat) {
@@ -169,7 +173,7 @@ export default function AgendaPage() {
     setNewTitle(""); setNewEmoji(""); setNewPriority("importante_nao_urgente");
     setNewStartTime("09:00"); setNewEndTime("10:00");
     setNewDescription(""); setNewColor("#7C5CFF");
-    setNewRepeat("none"); setNewNotify(null); setNewDueDate("");
+    setNewRepeat("none"); setNewNotify(null); setNewDueDate(""); setNewLinkedGoalId("");
   };
 
   const openEditor = (item: AgendaItem) => {
@@ -184,6 +188,7 @@ export default function AgendaPage() {
     setNewRepeat(item.repeat_type || "none");
     setNewNotify(item.notify_minutes ?? null);
     setNewDueDate(item.due_date || "");
+    setNewLinkedGoalId(item.linked_goal_id || "");
     setEditingId(realId(item));
     setEditingIsRepeat(item.id.includes("_r_") || item.id.includes("_cross"));
     setEditingItem(null);
@@ -290,10 +295,27 @@ export default function AgendaPage() {
 
   useEffect(() => { fetchItems(selectedDate); }, [selectedDate, fetchItems]);
 
-  // Fetch weekly plan tasks for the current week
+  // Fetch weekly plan tasks + goals + pedras for the current week
   useEffect(() => {
-    fetch("/api/weekly-plans").then(r => r.json()).then(data => {
-      if (data?.current?.weekly_tasks) setAllWeekTasks(data.current.weekly_tasks);
+    Promise.all([
+      fetch("/api/weekly-plans").then(r => r.json()).catch(() => null),
+      fetch("/api/goals").then(r => r.json()).catch(() => []),
+    ]).then(([planData, goalsData]) => {
+      if (planData?.current?.weekly_tasks) setAllWeekTasks(planData.current.weekly_tasks);
+      // Active goals
+      if (Array.isArray(goalsData)) {
+        setActiveGoals(goalsData.filter((g: any) => g.status === "ativa"));
+      }
+      // Focus goals (pedras com goal real)
+      if (planData?.current?.weekly_focus_goals && Array.isArray(goalsData)) {
+        const focusGoalIds = (planData.current.weekly_focus_goals ?? []).map((f: any) => f.goal_id);
+        const pedras = goalsData
+          .filter((g: any) => focusGoalIds.includes(g.id))
+          .map((g: any) => ({ id: g.id, title: `🎯 ${g.title}` }));
+        setWeekPedras(pedras);
+      } else if (Array.isArray(goalsData)) {
+        setActiveGoals(goalsData.filter((g: any) => g.status === "ativa"));
+      }
     }).catch(() => {});
   }, [selectedDate]);
 
@@ -1137,6 +1159,37 @@ export default function AgendaPage() {
               placeholder="Descrição (opcional)"
               rows={2}
               style={{ ...modalInput, marginTop: 10, resize: "none", height: 56 }} />
+
+            {/* Vincular a meta */}
+            {(activeGoals.length > 0 || weekPedras.length > 0) && (
+              <div style={{ marginTop: 14 }}>
+                <label style={{ fontSize: 10, color: "#9e96b5", marginBottom: 6, display: "block" }}>Vincular a meta (opcional)</label>
+                <select value={newLinkedGoalId} onChange={e => setNewLinkedGoalId(e.target.value)}
+                  style={{
+                    ...modalInput, height: 44, appearance: "none",
+                    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23A78BFA' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
+                    backgroundRepeat: "no-repeat",
+                    backgroundPosition: "right 14px center",
+                    paddingRight: 36,
+                  }}>
+                  <option value="">Nenhuma</option>
+                  {weekPedras.length > 0 && (
+                    <optgroup label="Pedras da semana">
+                      {weekPedras.map(p => (
+                        <option key={p.id} value={p.id}>{p.title}</option>
+                      ))}
+                    </optgroup>
+                  )}
+                  {activeGoals.filter((g: any) => !weekPedras.some(p => p.id === g.id)).length > 0 && (
+                    <optgroup label="Demais metas">
+                      {activeGoals.filter((g: any) => !weekPedras.some(p => p.id === g.id)).map((g: any) => (
+                        <option key={g.id} value={g.id}>{g.emoji || "🎯"} {g.title}</option>
+                      ))}
+                    </optgroup>
+                  )}
+                </select>
+              </div>
+            )}
 
             {/* Color picker */}
             <div style={{ marginTop: 14 }}>
