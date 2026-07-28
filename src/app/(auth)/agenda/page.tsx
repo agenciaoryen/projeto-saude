@@ -182,7 +182,7 @@ export default function AgendaPage() {
     setNewNotify(item.notify_minutes ?? null);
     setNewDueDate(item.due_date || "");
     setEditingId(realId(item));
-    setEditingIsRepeat(!!(item as any)._origId);
+    setEditingIsRepeat(item.id.includes("_r_") || item.id.includes("_cross"));
     setEditingItem(null);
     setShowNewItem(true);
   };
@@ -317,9 +317,10 @@ export default function AgendaPage() {
 
   const toggleTask = async (item: AgendaItem) => {
     const newStatus = item.status === "concluida" ? "pendente" : "concluida";
-    const isRepeated = !!(item as any)._origId || item.id.includes("_r_") || item.id.includes("_cross");
+    // Detect synthetic items: repeated occurrences or midnight-crossing continuations
+    const isSynthetic = item.id.includes("_r_") || item.id.includes("_cross");
 
-    if (isRepeated) {
+    if (isSynthetic) {
       // Create a standalone record for this specific date (don't touch the original)
       const res = await fetch("/api/agenda", {
         method: "POST",
