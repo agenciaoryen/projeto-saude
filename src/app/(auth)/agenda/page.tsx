@@ -570,12 +570,13 @@ export default function AgendaPage() {
               }
             }}
           >
-            {/* ── Collapsible task strip (overlay, always visible) ── */}
+            {/* ── Collapsible task strip ── */}
             <div style={{
-              position: "absolute", top: 0, left: 0, right: 0, zIndex: 10,
-              background: "#1a1530", borderRadius: "18px 18px 0 0",
-              borderBottom: tasksOpen ? "1px solid rgba(167,139,250,0.15)" : "none",
+              background: "#1a1530", borderRadius: tasksOpen ? "18px 18px 0 0" : 0,
+              borderBottom: tasksOpen ? "1px solid rgba(167,139,250,0.15)" : "1px solid rgba(167,139,250,0.06)",
               boxShadow: tasksOpen ? "0 8px 24px rgba(0,0,0,0.4)" : "none",
+              position: tasksOpen ? "absolute" : "relative",
+              top: 0, left: 0, right: 0, zIndex: 10,
             }}>
                 <button type="button" onClick={() => setTasksOpen(!tasksOpen)} style={{
                   width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
