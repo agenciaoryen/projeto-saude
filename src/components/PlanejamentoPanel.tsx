@@ -113,10 +113,17 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
   const [editingPlanTask, setEditingPlanTask] = useState<any>(null);
   const [planEditTitle, setPlanEditTitle] = useState("");
   const [planEditDay, setPlanEditDay] = useState(0);
+  const [planEditArea, setPlanEditArea] = useState("saude");
+  const [planEditType, setPlanEditType] = useState<"manutencao" | "crescimento">("manutencao");
+  const [planEditStone, setPlanEditStone] = useState(false);
+  const [planEditStoneRank, setPlanEditStoneRank] = useState(1);
+  const [planEditTime, setPlanEditTime] = useState("");
+  const [planShowMore, setPlanShowMore] = useState(false);
   const [showStoneEditor, setShowStoneEditor] = useState(false);
   const [stone1, setStone1] = useState("");
   const [stone2, setStone2] = useState("");
   const [stone3, setStone3] = useState("");
+  const [editingStoneIndex, setEditingStoneIndex] = useState(0); // 0=I, 1=II, 2=III
 
   const fetchPlan = async () => {
     try {
@@ -247,6 +254,7 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
                   setStone1(focuses[0] || "");
                   setStone2(focuses[1] || "");
                   setStone3(focuses[2] || "");
+                  setEditingStoneIndex(i);
                   setShowStoneEditor(true);
                 }}
                 style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 14, border: "1px solid rgba(167,139,250,0.15)", background: "#1a1530", cursor: "pointer", textAlign: "left", fontFamily: "inherit", width: "100%" }}>
@@ -295,7 +303,16 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
             const done = task.status === "concluida";
             return (
               <div key={task.id}
-                onClick={() => { setEditingPlanTask(task); setPlanEditTitle(task.title || ""); setPlanEditDay(task.day_of_week ?? -1); }}
+                onClick={() => {
+                  setEditingPlanTask(task);
+                  setPlanEditTitle(task.title || "");
+                  setPlanEditDay(task.day_of_week ?? -1);
+                  setPlanEditArea(task.area || "saude");
+                  setPlanEditType(task.task_type || "manutencao");
+                  setPlanEditTime(task.scheduled_time?.slice(0, 5) || "");
+                  setPlanEditStone(false);
+                  setPlanShowMore(false);
+                }}
                 style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 0", borderBottom: "1px solid rgba(167,139,250,0.05)", cursor: "pointer" }}>
                 <button type="button" onClick={(e) => { e.stopPropagation(); toggleTask(task.id, task.status); }}
                   style={{ width: 18, height: 18, borderRadius: task.task_type === "manutencao" ? "50%" : 4, flexShrink: 0, border: done ? "none" : "1.5px solid rgba(167,139,250,0.3)", background: done ? "#7C5CFF" : "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -326,7 +343,16 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
             const done = task.status === "concluida";
             return (
               <div key={task.id}
-                onClick={() => { setEditingPlanTask(task); setPlanEditTitle(task.title || ""); setPlanEditDay(task.day_of_week ?? 0); }}
+                onClick={() => {
+                  setEditingPlanTask(task);
+                  setPlanEditTitle(task.title || "");
+                  setPlanEditDay(task.day_of_week ?? 0);
+                  setPlanEditArea(task.area || "saude");
+                  setPlanEditType(task.task_type || "manutencao");
+                  setPlanEditTime(task.scheduled_time?.slice(0, 5) || "");
+                  setPlanEditStone(false);
+                  setPlanShowMore(false);
+                }}
                 style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 0", borderBottom: "1px solid rgba(167,139,250,0.05)", cursor: "pointer" }}>
                 <button type="button" onClick={(e) => { e.stopPropagation(); toggleTask(task.id, task.status); }}
                   style={{ width: 18, height: 18, borderRadius: task.task_type === "manutencao" ? "50%" : 4, flexShrink: 0, border: done ? "none" : "1.5px solid rgba(167,139,250,0.3)", background: done ? "#7C5CFF" : "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -518,7 +544,7 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
         </div>
       )}
 
-      {/* ── Mini editor for plan tasks ────────────────── */}
+      {/* ── Plan task editor ──────────────────────────── */}
       {editingPlanTask && (
         <div onTouchMove={(e) => e.stopPropagation()}
           style={{ position: "fixed", inset: 0, zIndex: 100, background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)", display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "60px 20px 20px", overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
@@ -527,21 +553,92 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
               <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "#e0d6ff" }}>Editar tarefa</h3>
               <button type="button" onClick={() => setEditingPlanTask(null)} style={{ background: "none", border: 0, color: "#9e96b5", fontSize: 18, cursor: "pointer" }}>✕</button>
             </div>
+
+            {/* Title */}
             <input value={planEditTitle} onChange={e => setPlanEditTitle(e.target.value)}
               placeholder="Título" autoFocus
-              style={{...inputS, marginBottom: 12, width: "100%", boxSizing: "border-box"}} />
-            <label style={{ fontSize: 10, color: "#9e96b5", marginBottom: 6, display: "block" }}>Mover para</label>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 16 }}>
+              style={{...inputS, marginBottom: 10, width: "100%", boxSizing: "border-box"}} />
+
+            {/* Day */}
+            <label style={{ fontSize: 10, color: "#9e96b5", marginBottom: 4, display: "block" }}>Dia {planEditDay === -1 && <span style={{ color: "#A78BFA" }}>· Em aberto</span>}</label>
+            <div style={{ display: "flex", gap: 2, marginBottom: planShowMore ? 10 : 16 }}>
               {["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"].map((label, i) => (
-                <button key={i} type="button" onClick={() => setPlanEditDay(i)}
-                  style={{
-                    padding: "6px 10px", borderRadius: 9999, border: 0, cursor: "pointer",
-                    fontFamily: "inherit", fontSize: 11, fontWeight: 600,
-                    background: planEditDay === i ? "#7C5CFF" : "#1e1840",
-                    color: planEditDay === i ? "#fff" : "#9e96b5",
-                  }}>{label}</button>
+                <button key={i} type="button" onClick={() => setPlanEditDay(planEditDay === i ? -1 : i)}
+                  style={{ flex: 1, padding: "5px 2px", borderRadius: 8, border: 0, cursor: "pointer", fontFamily: "inherit", fontSize: 9, fontWeight: 600,
+                    background: planEditDay === i ? "#7C5CFF" : "rgba(167,139,250,0.08)", color: planEditDay === i ? "#fff" : "#9e96b5" }}>{label}</button>
               ))}
             </div>
+
+            {/* More options toggle */}
+            <button type="button" onClick={() => setPlanShowMore(!planShowMore)}
+              style={{ width: "100%", padding: "8px 0", borderRadius: 10, border: 0, cursor: "pointer", background: planShowMore ? "rgba(124,92,255,0.08)" : "transparent", color: "#9e96b5", fontSize: 11, fontWeight: 600, fontFamily: "inherit", marginBottom: planShowMore ? 10 : 16, display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
+              {planShowMore ? "▲" : "▼"} Mais opções
+            </button>
+
+            {planShowMore && (
+              <>
+                {/* Area */}
+                <p style={{ fontSize: 10, color: "#9e96b5", margin: "0 0 4px" }}>Área</p>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 3, marginBottom: 10 }}>
+                  {ALL_AREAS.slice(0,9).map(a => {
+                    const area = AREA_CONFIG[a];
+                    return (
+                    <button key={a} type="button" onClick={() => setPlanEditArea(a)}
+                      style={{ padding: "6px 4px", borderRadius: 8, border: planEditArea === a ? "1.5px solid #7C5CFF" : "1px solid rgba(167,139,250,0.12)", background: planEditArea === a ? "rgba(124,92,255,0.1)" : "#0B0B10", cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 4 }}>
+                      <span style={{ fontSize: 12 }}>{area?.emoji}</span>
+                      <span style={{ fontSize: 9, fontWeight: 600, color: planEditArea === a ? "#A78BFA" : "#9e96b5" }}>{(AREAS_LABELS as any)[a] || a}</span>
+                    </button>
+                    );
+                  })}
+                </div>
+
+                {/* Type */}
+                <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
+                  <button type="button" onClick={() => setPlanEditType("manutencao")}
+                    style={{ flex: 1, padding: "7px 0", borderRadius: 8, border: planEditType === "manutencao" ? "1.5px solid #7C5CFF" : "1px solid rgba(167,139,250,0.12)", background: planEditType === "manutencao" ? "rgba(124,92,255,0.1)" : "transparent", cursor: "pointer", color: planEditType === "manutencao" ? "#A78BFA" : "#9e96b5", fontSize: 10, fontWeight: 600, fontFamily: "inherit" }}>↻ Hábito</button>
+                  <button type="button" onClick={() => setPlanEditType("crescimento")}
+                    style={{ flex: 1, padding: "7px 0", borderRadius: 8, border: planEditType === "crescimento" ? "1.5px solid #7C5CFF" : "1px solid rgba(167,139,250,0.12)", background: planEditType === "crescimento" ? "rgba(124,92,255,0.1)" : "transparent", cursor: "pointer", color: planEditType === "crescimento" ? "#A78BFA" : "#9e96b5", fontSize: 10, fontWeight: 600, fontFamily: "inherit" }}>↑ Crescer</button>
+                </div>
+
+                {/* Stone */}
+                <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", marginBottom: 10 }}>
+                  <input type="checkbox" checked={planEditStone} onChange={e => setPlanEditStone(e.target.checked)}
+                    style={{ accentColor: "#7C5CFF", width: 16, height: 16 }} />
+                  <span style={{ fontSize: 12, fontWeight: 600, color: "#e0d6ff" }}>Definir como pedra</span>
+                </label>
+                {planEditStone && (
+                  <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
+                    {([1,2,3] as const).map(n => (
+                      <button key={n} type="button" onClick={() => setPlanEditStoneRank(n)}
+                        style={{ flex: 1, padding: "6px 0", borderRadius: 8, border: 0, cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: 700,
+                          background: planEditStoneRank === n ? "#7C5CFF" : "rgba(167,139,250,0.08)", color: planEditStoneRank === n ? "#fff" : "#9e96b5" }}>
+                        {["I","II","III"][n-1]}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Time */}
+                {planEditTime ? (
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                    <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 8, background: "#0B0B10", border: "1px solid rgba(167,139,250,0.2)" }}>
+                      <span style={{ fontSize: 11 }}>🕐</span>
+                      <input type="time" value={planEditTime} onChange={e => setPlanEditTime(e.target.value)}
+                        style={{ flex: 1, background: "transparent", border: 0, color: "#A78BFA", fontSize: 12, fontWeight: 600, fontFamily: "inherit", outline: "none" }} />
+                    </div>
+                    <button type="button" onClick={() => setPlanEditTime("")}
+                      style={{ padding: "6px", borderRadius: 9999, border: 0, background: "rgba(167,139,250,0.1)", color: "#9e96b5", fontSize: 11, cursor: "pointer", fontFamily: "inherit" }}>✕</button>
+                  </div>
+                ) : (
+                  <button type="button" onClick={() => setPlanEditTime("09:00")}
+                    style={{ width: "100%", padding: "8px 0", borderRadius: 8, border: "1px dashed rgba(167,139,250,0.2)", background: "transparent", color: "#9e96b5", fontSize: 11, cursor: "pointer", fontFamily: "inherit", marginBottom: 10 }}>
+                    🕐 Adicionar horário
+                  </button>
+                )}
+              </>
+            )}
+
+            {/* Actions */}
             <div style={{ display: "flex", gap: 10 }}>
               <button type="button" onClick={async () => {
                 if (!confirm("Excluir esta tarefa?")) return;
@@ -556,6 +653,9 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
                 const updates: Record<string, unknown> = {
                   title: planEditTitle.trim() || editingPlanTask.title,
                   day_of_week: planEditDay,
+                  area: planEditArea,
+                  task_type: planEditType,
+                  scheduled_time: planEditTime || null,
                 };
                 const res = await fetch(`/api/weekly-plans/tasks/${editingPlanTask.id}`, {
                   method: "PATCH",
@@ -577,29 +677,44 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
       )}
 
       {/* ── Stone editor modal ─────────────────────────── */}
+      {/* ── Stone editor modal ─────────────────────────── */}
       {showStoneEditor && (
         <div onTouchMove={(e) => e.stopPropagation()}
           style={{ position: "fixed", inset: 0, zIndex: 100, background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)", display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "60px 20px 20px", overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
           <div style={{ width: "100%", maxWidth: 380, background: "#151520", borderRadius: 24, padding: 24, border: "1px solid rgba(167,139,250,0.15)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "#e0d6ff" }}>Editar pedras</h3>
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "#e0d6ff" }}>Pedra {["I","II","III"][editingStoneIndex]}</h3>
               <button type="button" onClick={() => setShowStoneEditor(false)} style={{ background: "none", border: 0, color: "#9e96b5", fontSize: 18, cursor: "pointer" }}>✕</button>
             </div>
-            {[1,2,3].map(n => {
+
+            {/* Editable fields for the clicked stone */}
+            {(() => {
+              const n = editingStoneIndex + 1;
               const val = n === 1 ? stone1 : n === 2 ? stone2 : stone3;
               const setVal = n === 1 ? setStone1 : n === 2 ? setStone2 : setStone3;
               return (
-                <div key={n} style={{ marginBottom: 10 }}>
-                  <label style={{ fontSize: 10, fontWeight: 700, color: "#A78BFA", textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 4, display: "block" }}>
-                    {["I", "II", "III"][n-1]}
-                  </label>
-                  <input value={val} onChange={e => setVal(e.target.value)}
-                    placeholder={`Pedra ${["I","II","III"][n-1]}`}
-                    style={{...inputS, width: "100%", boxSizing: "border-box"}} />
-                </div>
+                <input value={val} onChange={e => setVal(e.target.value)}
+                  placeholder={`Pedra ${["I","II","III"][editingStoneIndex]}`} autoFocus
+                  style={{...inputS, marginBottom: 16, width: "100%", boxSizing: "border-box"}} />
               );
-            })}
-            <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
+            })()}
+
+            {/* Show other stones compactly */}
+            <div style={{ marginBottom: 16 }}>
+              {[0,1,2].filter(i => i !== editingStoneIndex).map(i => (
+                <div key={i} style={{ marginBottom: 6 }}>
+                  <label style={{ fontSize: 10, fontWeight: 700, color: "#5a5470", textTransform: "uppercase", letterSpacing: ".06em", display: "block", marginBottom: 2 }}>
+                    {["I","II","III"][i]}
+                  </label>
+                  <input value={i === 0 ? stone1 : i === 1 ? stone2 : stone3}
+                    onChange={e => (i === 0 ? setStone1 : i === 1 ? setStone2 : setStone3)(e.target.value)}
+                    placeholder={`Pedra ${["I","II","III"][i]}`}
+                    style={{...inputS, width: "100%", boxSizing: "border-box", fontSize: 12, padding: "8px 10px"}} />
+                </div>
+              ))}
+            </div>
+
+            <div style={{ display: "flex", gap: 10 }}>
               <button type="button" onClick={() => setShowStoneEditor(false)}
                 style={{ flex: 1, padding: 14, borderRadius: 14, border: "1px solid rgba(167,139,250,0.2)", background: "transparent", color: "#9e96b5", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Cancelar</button>
               <button type="button" onClick={async () => {
