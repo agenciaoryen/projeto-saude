@@ -420,7 +420,9 @@ export default function AgendaPage() {
 
   /** Convert HH:MM to pixel offset from top of track */
   const timeToPx = (time: string): number => {
+    if (!time || !time.includes(":")) return 0;
     const [h, m] = time.split(":").map(Number);
+    if (isNaN(h) || isNaN(m)) return 0;
     return ((h * 60 + m) / SLOT_MINUTES) * SLOT_PX;
   };
 
@@ -753,8 +755,8 @@ export default function AgendaPage() {
                       }}
                       style={{
                         position: "absolute",
-                        left: total > 1 ? `calc(12px + (100% - 20px) * ${column} / ${total})` : 12,
-                        width: total > 1 ? `calc((100% - 20px) / ${total} - 2px)` : undefined,
+                        left: total > 1 && total > 0 ? `calc(12px + (100% - 20px) * ${column} / ${total})` : 12,
+                        width: total > 1 && total > 0 ? `calc((100% - 20px) / ${total} - 2px)` : undefined,
                         right: total > 1 ? undefined : 8,
                         zIndex: isTask ? 1 : 2,
                         top: topPx + 1,
