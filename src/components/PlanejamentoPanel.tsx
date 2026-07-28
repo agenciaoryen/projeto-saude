@@ -251,11 +251,16 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
             {focuses.map((focus: string, i: number) => (
               <button key={i} type="button"
                 onClick={() => {
-                  setStone1(focuses[0] || "");
-                  setStone2(focuses[1] || "");
-                  setStone3(focuses[2] || "");
-                  setEditingStoneIndex(i);
-                  setShowStoneEditor(true);
+                  // Open the same task editor, pre-filled as a stone
+                  setEditingPlanTask({ id: null, title: focus, stoneRank: i + 1, isStone: true });
+                  setPlanEditTitle(focus || "");
+                  setPlanEditDay(-1);
+                  setPlanEditArea("saude");
+                  setPlanEditType("crescimento");
+                  setPlanEditTime("");
+                  setPlanEditStone(true);
+                  setPlanEditStoneRank(i + 1);
+                  setPlanShowMore(false);
                 }}
                 style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 14, border: "1px solid rgba(167,139,250,0.15)", background: "#1a1530", cursor: "pointer", textAlign: "left", fontFamily: "inherit", width: "100%" }}>
                 <span style={{ fontSize: 22, fontWeight: 800, color: "#A78BFA", fontFamily: "monospace", opacity: 0.4, flexShrink: 0 }}>{["I","II","III"][i]}</span>
@@ -550,7 +555,9 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
           style={{ position: "fixed", inset: 0, zIndex: 100, background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)", display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "60px 20px 20px", overflow: "hidden" }}>
           <div style={{ width: "100%", maxWidth: 380, maxHeight: "70dvh", overflowY: "auto", WebkitOverflowScrolling: "touch", background: "#151520", borderRadius: 24, padding: 24, border: "1px solid rgba(167,139,250,0.15)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "#e0d6ff" }}>Editar tarefa</h3>
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "#e0d6ff" }}>
+                {(editingPlanTask as any).isStone ? `Pedra ${["I","II","III"][planEditStoneRank - 1]}` : "Editar tarefa"}
+              </h3>
               <button type="button" onClick={() => setEditingPlanTask(null)} style={{ background: "none", border: 0, color: "#9e96b5", fontSize: 18, cursor: "pointer" }}>✕</button>
             </div>
 
@@ -641,31 +648,66 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
             {/* Actions */}
             <div style={{ display: "flex", gap: 10 }}>
               <button type="button" onClick={async () => {
-                if (!confirm("Excluir esta tarefa?")) return;
-                await fetch(`/api/weekly-plans/tasks/${editingPlanTask.id}`, { method: "DELETE" });
-                setTasks((prev: any[]) => prev.filter((t: any) => t.id !== editingPlanTask.id));
-                setEditingPlanTask(null);
+                if ((editingPlanTask as any).isStone) {
+                  if (!confirm("Remover esta pedra?")) return;
+                  const rank = planEditStoneRank;
+                  const stoneField = rank === 1 ? "main_focus" : rank === 2 ? "main_focus_2" : "main_focus_3";
+                  if (!plan) return;
+                  const res = await fetch(`/api/weekly-plans/${plan.id}`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ [stoneField]: null }),
+                  });
+                  if (res.ok) {
+                    const updated = await res.json();
+                    setPlan(updated);
+                    setEditingPlanTask(null);
+                  }
+                } else {
+                  if (!confirm("Excluir esta tarefa?")) return;
+                  await fetch(`/api/weekly-plans/tasks/${editingPlanTask.id}`, { method: "DELETE" });
+                  setTasks((prev: any[]) => prev.filter((t: any) => t.id !== editingPlanTask.id));
+                  setEditingPlanTask(null);
+                }
               }}
                 style={{ flex: 1, padding: "12px 0", borderRadius: 14, border: 0, background: "rgba(255,92,92,0.1)", color: "#FF5C5C", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
                 🗑 Excluir
               </button>
               <button type="button" onClick={async () => {
-                const updates: Record<string, unknown> = {
-                  title: planEditTitle.trim() || editingPlanTask.title,
-                  day_of_week: planEditDay,
-                  area: planEditArea,
-                  task_type: planEditType,
-                  scheduled_time: planEditTime || null,
-                };
-                const res = await fetch(`/api/weekly-plans/tasks/${editingPlanTask.id}`, {
-                  method: "PATCH",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify(updates),
-                });
-                if (res.ok) {
-                  const updated = await res.json();
-                  setTasks((prev: any[]) => prev.map((t: any) => t.id === editingPlanTask.id ? updated : t));
-                  setEditingPlanTask(null);
+                if ((editingPlanTask as any).isStone) {
+                  // Save as stone (plan API)
+                  const rank = planEditStoneRank;
+                  const stoneField = rank === 1 ? "main_focus" : rank === 2 ? "main_focus_2" : "main_focus_3";
+                  if (!plan) return;
+                  const res = await fetch(`/api/weekly-plans/${plan.id}`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ [stoneField]: planEditTitle.trim() || null }),
+                  });
+                  if (res.ok) {
+                    const updated = await res.json();
+                    setPlan(updated);
+                    setEditingPlanTask(null);
+                  }
+                } else {
+                  // Save as task (task API)
+                  const updates: Record<string, unknown> = {
+                    title: planEditTitle.trim() || editingPlanTask.title,
+                    day_of_week: planEditDay,
+                    area: planEditArea,
+                    task_type: planEditType,
+                    scheduled_time: planEditTime || null,
+                  };
+                  const res = await fetch(`/api/weekly-plans/tasks/${editingPlanTask.id}`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(updates),
+                  });
+                  if (res.ok) {
+                    const updated = await res.json();
+                    setTasks((prev: any[]) => prev.map((t: any) => t.id === editingPlanTask.id ? updated : t));
+                    setEditingPlanTask(null);
+                  }
                 }
               }}
                 style={{ flex: 2, padding: "12px 0", borderRadius: 14, border: 0, background: "#7C5CFF", color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
