@@ -339,8 +339,8 @@ export default function AgendaPage() {
         }),
       });
       if (res.ok) {
-        const created = await res.json();
-        setItems(prev => prev.map(i => i.id === item.id ? { ...created, id: created.id, _origId: undefined } as any : i));
+        // Refetch to get clean data instead of manually patching state
+        fetchItems(selectedDate);
       }
     } else {
       setItems(prev => prev.map(i => i.id === item.id ? { ...i, status: newStatus } : i));
