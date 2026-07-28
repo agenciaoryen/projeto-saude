@@ -1021,14 +1021,20 @@ export default function AgendaPage() {
               <>
                 <div style={{ marginTop: 10 }}>
                   <label style={{ fontSize: 10, color: "#9e96b5", marginBottom: 4, display: "block" }}>Início</label>
-                  <input type="time" value={newStartTime} onChange={(e) => setNewStartTime(e.target.value)}
-                    style={modalInput} />
+                  <div style={{ overflow: "hidden", borderRadius: 12 }}>
+                    <input type="time" value={newStartTime} onChange={(e) => setNewStartTime(e.target.value)}
+                      style={modalInput} />
+                  </div>
                 </div>
                 <div style={{ marginTop: 10 }}>
                   <label style={{ fontSize: 10, color: "#9e96b5", marginBottom: 4, display: "block" }}>Fim</label>
-                  <input type="time" value={newEndTime} onChange={(e) => setNewEndTime(e.target.value)}
-                    style={modalInput} />
+                  <div style={{ overflow: "hidden", borderRadius: 12 }}>
+                    <input type="time" value={newEndTime} onChange={(e) => setNewEndTime(e.target.value)}
+                      style={modalInput} />
+                  </div>
                 </div>
+              </>
+            )}
               </>
             )}
 
@@ -1101,8 +1107,10 @@ export default function AgendaPage() {
             {newItemType === "tarefa" && (
               <div style={{ marginTop: 14 }}>
                 <label style={{ fontSize: 10, color: "#9e96b5", marginBottom: 6, display: "block" }}>Data limite</label>
-                <input type="date" value={newDueDate} onChange={e => setNewDueDate(e.target.value)}
-                  style={modalInput} />
+                <div style={{ overflow: "hidden", borderRadius: 12 }}>
+                  <input type="date" value={newDueDate} onChange={e => setNewDueDate(e.target.value)}
+                    style={modalInput} />
+                </div>
               </div>
             )}
 
