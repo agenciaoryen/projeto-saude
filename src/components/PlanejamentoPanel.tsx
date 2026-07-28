@@ -423,12 +423,10 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
               <div style={{ flex: 1 }}>
-                <p style={{ fontSize: 10, color: "#9e96b5", marginBottom: 4 }}>Dia</p>
+                <p style={{ fontSize: 10, color: "#9e96b5", marginBottom: 4 }}>Dia {newTaskDay === -1 && <span style={{ color: "#A78BFA" }}>· Em aberto</span>}</p>
                 <div style={{ display: "flex", gap: 2 }}>
-                  <button type="button" onClick={() => setNewTaskDay(-1)}
-                    style={{ padding: "6px 4px", borderRadius: 8, border: 0, cursor: "pointer", background: newTaskDay === -1 ? "#7C5CFF" : "rgba(167,139,250,0.08)", color: newTaskDay === -1 ? "#fff" : "#9e96b5", fontSize: 9, fontWeight: 600, fontFamily: "inherit" }}>—</button>
                   {DAY_NAMES.map((d, i) => (
-                    <button key={i} type="button" onClick={() => setNewTaskDay(i)}
+                    <button key={i} type="button" onClick={() => setNewTaskDay(newTaskDay === i ? -1 : i)}
                       style={{ flex: 1, padding: "6px 2px", borderRadius: 8, border: 0, cursor: "pointer", background: newTaskDay === i ? "#7C5CFF" : "rgba(167,139,250,0.08)", color: newTaskDay === i ? "#fff" : "#9e96b5", fontSize: 9, fontWeight: 600, fontFamily: "inherit" }}>{d}</button>
                   ))}
                 </div>
