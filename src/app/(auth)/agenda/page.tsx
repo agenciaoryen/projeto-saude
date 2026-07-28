@@ -1018,16 +1018,16 @@ export default function AgendaPage() {
 
             {/* Time (only for compromisso) */}
             {newItemType === "compromisso" && (
-              <div style={{ display: "flex", gap: 12, marginTop: 10, width: "100%" }}>
-                <div style={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
+              <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                <div style={{ flex: "0 0 calc(50% - 4px)", overflow: "hidden" }}>
                   <label style={{ fontSize: 10, color: "#9e96b5", marginBottom: 4, display: "block" }}>Início</label>
                   <input type="time" value={newStartTime} onChange={(e) => setNewStartTime(e.target.value)}
-                    style={{ ...modalInput, padding: "12px 8px", fontSize: 13, minWidth: 0, maxWidth: "100%" }} />
+                    style={{ ...modalInput, padding: "12px 6px", fontSize: 12 }} />
                 </div>
-                <div style={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
+                <div style={{ flex: "0 0 calc(50% - 4px)", overflow: "hidden" }}>
                   <label style={{ fontSize: 10, color: "#9e96b5", marginBottom: 4, display: "block" }}>Fim</label>
                   <input type="time" value={newEndTime} onChange={(e) => setNewEndTime(e.target.value)}
-                    style={{ ...modalInput, padding: "12px 8px", fontSize: 13, minWidth: 0, maxWidth: "100%" }} />
+                    style={{ ...modalInput, padding: "12px 6px", fontSize: 12 }} />
                 </div>
               </div>
             )}
