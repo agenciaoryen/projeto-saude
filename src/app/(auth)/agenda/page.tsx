@@ -327,6 +327,7 @@ export default function AgendaPage() {
 
   // ── Overlap detection: assign columns to simultaneous events ──
   const timelineColumns = useMemo(() => {
+    if (timelineItems.length === 0) return [];
     const cols: { item: AgendaItem; column: number; total: number }[] = [];
     for (const item of timelineItems) {
       const itemStart = timeToPx(item.start_time || "00:00");
@@ -334,7 +335,6 @@ export default function AgendaPage() {
         ? timeToPx(item.end_time) <= itemStart ? TRACK_HEIGHT : timeToPx(item.end_time)
         : itemStart + SLOT_PX;
 
-      // Find conflicting items (already placed) that overlap with this one
       const conflicts = cols.filter(c => {
         const cStart = timeToPx(c.item.start_time || "00:00");
         const cEnd = c.item.end_time
@@ -346,13 +346,14 @@ export default function AgendaPage() {
       const usedCols = new Set(conflicts.map(c => c.column));
       let col = 0;
       while (usedCols.has(col)) col++;
-      const total = Math.max(col + 1, ...conflicts.map(c => c.total));
+      const conflictTotals = conflicts.map(c => c.total).filter(t => typeof t === "number" && !isNaN(t));
+      const total = Math.max(col + 1, ...(conflictTotals.length > 0 ? conflictTotals : [1]));
       // Update all conflicting items to have the same total
       for (const c of conflicts) {
         const idx = cols.indexOf(c);
         if (idx >= 0 && c.total < total) cols[idx] = { ...c, total };
       }
-      cols.push({ item, column: col, total });
+      cols.push({ item, column: col, total: isNaN(total) ? 1 : total });
     }
     return cols;
   }, [timelineItems]);
