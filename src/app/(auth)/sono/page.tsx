@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { Moon, Zap, Clock, TrendingUp, Plus } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import {
