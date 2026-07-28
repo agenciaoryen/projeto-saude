@@ -105,11 +105,12 @@ export default function AgendaPage() {
   const [newDueDate, setNewDueDate] = useState("");
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null); // non-null = editing existing item
+  const [editingIsRepeat, setEditingIsRepeat] = useState(false); // true if editing a repeated occurrence
 
   const handleSave = async () => {
     if (!newTitle.trim()) return;
     setSaving(true);
-    const method = editingId ? "PATCH" : "POST";
+
     const body: Record<string, unknown> = {
       title: newTitle.trim(),
       item_type: newItemType,
@@ -124,8 +125,21 @@ export default function AgendaPage() {
       notify_minutes: newNotify,
       due_date: newDueDate || null,
     };
-    if (editingId) body.id = editingId;
 
+    if (editingId && editingIsRepeat) {
+      // Editing a repeated occurrence — ask: this one or all?
+      const applyAll = confirm("Aplicar alterações a TODOS os compromissos desta repetição?\n\nOK = Todos\nCancelar = Apenas este");
+      if (applyAll) {
+        body.id = editingId;
+      } else {
+        // Create a standalone copy for this date
+        delete body.id;
+      }
+    } else if (editingId) {
+      body.id = editingId;
+    }
+
+    const method = body.id ? "PATCH" : "POST";
     const res = await fetch("/api/agenda", {
       method,
       headers: { "Content-Type": "application/json" },
@@ -146,6 +160,7 @@ export default function AgendaPage() {
   const closeNewItemModal = () => {
     setShowNewItem(false);
     setEditingId(null);
+    setEditingIsRepeat(false);
     setNewTitle(""); setNewEmoji(""); setNewPriority("importante_nao_urgente");
     setNewStartTime("09:00"); setNewEndTime("10:00");
     setNewDescription(""); setNewColor("#7C5CFF");
@@ -165,6 +180,7 @@ export default function AgendaPage() {
     setNewNotify(item.notify_minutes ?? null);
     setNewDueDate(item.due_date || "");
     setEditingId(realId(item));
+    setEditingIsRepeat(!!(item as any)._origId);
     setEditingItem(null);
     setShowNewItem(true);
   };
@@ -299,12 +315,38 @@ export default function AgendaPage() {
 
   const toggleTask = async (item: AgendaItem) => {
     const newStatus = item.status === "concluida" ? "pendente" : "concluida";
-    setItems(prev => prev.map(i => i.id === item.id ? { ...i, status: newStatus } : i));
-    await fetch("/api/agenda", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: realId(item), status: newStatus }),
-    });
+    const isRepeated = !!(item as any)._origId;
+
+    if (isRepeated) {
+      // Create a standalone record for this specific date
+      const res = await fetch("/api/agenda", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: item.title,
+          item_type: item.item_type,
+          date: item.date,
+          start_time: item.start_time,
+          end_time: item.end_time,
+          priority: item.priority,
+          emoji: item.emoji,
+          description: item.description,
+          color: item.color,
+          status: newStatus,
+        }),
+      });
+      if (res.ok) {
+        const created = await res.json();
+        setItems(prev => prev.map(i => i.id === item.id ? { ...created, id: created.id } : i));
+      }
+    } else {
+      setItems(prev => prev.map(i => i.id === item.id ? { ...i, status: newStatus } : i));
+      await fetch("/api/agenda", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: realId(item), status: newStatus }),
+      });
+    }
   };
 
   // ── Timeline calculations ──────────────────────────────────────
@@ -957,6 +999,7 @@ export default function AgendaPage() {
                   {[
                     { val: "none", label: "Não" },
                     { val: "daily", label: "Diário" },
+                    { val: "weekdays", label: "Dias úteis" },
                     { val: "weekly", label: "Semanal" },
                     { val: "monthly", label: "Mensal" },
                   ].map(r => (
