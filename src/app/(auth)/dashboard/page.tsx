@@ -419,7 +419,7 @@ export default function DashboardPage() {
         date: ds,
         label: d.toLocaleDateString("pt-BR", { weekday: "short" }).replace(".", ""),
         sleepQuality: sl?.quality ?? null,
-        sleepHrs: sl?.duration_min ? Math.round(sl.duration_min / 60 * 10) / 10 : null,
+        sleepHrs: sl?.duration_min ? Math.floor(sl.duration_min / 60 * 10) / 10 : null,
         cuidados: ci
           ? habitKeys.filter((k) => (ci as unknown as Record<string, unknown>)[k] === true).length
           : null,
@@ -694,7 +694,7 @@ export default function DashboardPage() {
             emoji="😴"
             label="Sono"
             value={recentSleep?.duration_min
-              ? `${Math.round(recentSleep.duration_min / 60)}h${recentSleep.duration_min % 60 > 0 ? ` ${recentSleep.duration_min % 60}min` : ""}`
+              ? `${Math.floor(recentSleep.duration_min / 60)}h${recentSleep.duration_min % 60 > 0 ? ` ${recentSleep.duration_min % 60}min` : ""}`
               : recentSleep?.quality
                 ? `Qualidade ${recentSleep.quality}/5`
                 : "—"}
