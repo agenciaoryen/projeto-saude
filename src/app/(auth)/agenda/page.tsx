@@ -1019,7 +1019,7 @@ export default function AgendaPage() {
             {/* Time (only for compromisso) */}
             {newItemType === "compromisso" && (
               <div style={{ display: "flex", gap: 12, marginTop: 10 }}>
-                <div style={{ width: "32%", overflow: "hidden" }}>
+                <div style={{ width: "36%" }}>
                   <label style={{ fontSize: 10, color: "#9e96b5", marginBottom: 4, display: "block" }}>Início</label>
                   <input type="time" value={newStartTime} onChange={(e) => setNewStartTime(e.target.value)}
                     style={{
@@ -1030,7 +1030,7 @@ export default function AgendaPage() {
                       width: "100%", boxSizing: "border-box",
                     }} />
                 </div>
-                <div style={{ width: "32%", overflow: "hidden" }}>
+                <div style={{ width: "36%" }}>
                   <label style={{ fontSize: 10, color: "#9e96b5", marginBottom: 4, display: "block" }}>Fim</label>
                   <input type="time" value={newEndTime} onChange={(e) => setNewEndTime(e.target.value)}
                     style={{
@@ -1113,8 +1113,10 @@ export default function AgendaPage() {
             {newItemType === "tarefa" && (
               <div style={{ marginTop: 14 }}>
                 <label style={{ fontSize: 10, color: "#9e96b5", marginBottom: 6, display: "block" }}>Data limite</label>
-                <input type="date" value={newDueDate} onChange={e => setNewDueDate(e.target.value)}
-                  style={modalInput} />
+                <div style={{ overflow: "hidden", borderRadius: 12 }}>
+                  <input type="date" value={newDueDate} onChange={e => setNewDueDate(e.target.value)}
+                    style={{ ...modalInput, minWidth: 0 }} />
+                </div>
               </div>
             )}
 
