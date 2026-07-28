@@ -1018,15 +1018,15 @@ export default function AgendaPage() {
 
             {/* Time (only for compromisso) */}
             {newItemType === "compromisso" && (
-              <table style={{ width: "100%", marginTop: 10, borderCollapse: "separate", borderSpacing: "10px 0", tableLayout: "fixed" }}>
+              <table style={{ width: "100%", marginTop: 10, borderCollapse: "collapse", tableLayout: "fixed" }}>
                 <tbody>
                   <tr>
-                    <td style={{ width: "50%", padding: 0 }}>
+                    <td style={{ width: "50%", padding: "0 5px 0 0", verticalAlign: "top" }}>
                       <label style={{ fontSize: 10, color: "#9e96b5", marginBottom: 4, display: "block" }}>Início</label>
                       <input type="time" value={newStartTime} onChange={(e) => setNewStartTime(e.target.value)}
                         style={{ ...modalInput, padding: "10px 6px", fontSize: 13 }} />
                     </td>
-                    <td style={{ width: "50%", padding: 0 }}>
+                    <td style={{ width: "50%", padding: "0 0 0 5px", verticalAlign: "top" }}>
                       <label style={{ fontSize: 10, color: "#9e96b5", marginBottom: 4, display: "block" }}>Fim</label>
                       <input type="time" value={newEndTime} onChange={(e) => setNewEndTime(e.target.value)}
                         style={{ ...modalInput, padding: "10px 6px", fontSize: 13 }} />
