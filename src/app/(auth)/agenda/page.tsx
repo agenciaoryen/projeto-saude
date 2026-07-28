@@ -426,11 +426,12 @@ export default function AgendaPage() {
                     const areaEmoji = (AREA_CONFIG_PT as any)[t.area]?.emoji || "⚪";
                     return (
                       <button key={`plan-${t.id}`} type="button"
+                        onClick={() => switchView("semana")}
                         style={{
                           display: "inline-flex", alignItems: "center", gap: 5,
                           padding: "6px 10px", borderRadius: 8, border: "1px solid rgba(167,139,250,0.15)",
                           background: done ? "transparent" : "rgba(167,139,250,0.04)",
-                          cursor: "default", fontFamily: "inherit", fontSize: 12,
+                          cursor: "pointer", fontFamily: "inherit", fontSize: 12,
                           color: done ? "#5a5470" : "#9e96b5",
                           textDecoration: done ? "line-through" : "none",
                           whiteSpace: "nowrap",
