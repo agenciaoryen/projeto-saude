@@ -325,10 +325,58 @@ export default function AgendaPage() {
     ),
   [compromissos, tarefasComHorario]);
 
-  // ── Timeline items with columns (simple, no overlap for now) ──
-  const timelineColumns = useMemo(() =>
-    timelineItems.map(item => ({ item, column: 0, total: 1 })),
-  [timelineItems]);
+  // ── Overlap detection: assign columns to simultaneous events ──
+  const timelineColumns = useMemo(() => {
+    if (timelineItems.length === 0) return [];
+    const result: { item: AgendaItem; column: number; total: number }[] = [];
+
+    for (const item of timelineItems) {
+      const istart = timeToPx(item.start_time || "00:00");
+      const iend = item.end_time && timeToPx(item.end_time) > istart
+        ? timeToPx(item.end_time)
+        : item.end_time && timeToPx(item.end_time) <= istart
+          ? TRACK_HEIGHT
+          : istart + SLOT_PX;
+
+      // Find which columns are occupied by overlapping events
+      const usedColumns = new Set<number>();
+      let maxTotal = 1;
+      for (const r of result) {
+        const rstart = timeToPx(r.item.start_time || "00:00");
+        const rend = r.item.end_time && timeToPx(r.item.end_time) > rstart
+          ? timeToPx(r.item.end_time)
+          : r.item.end_time && timeToPx(r.item.end_time) <= rstart
+            ? TRACK_HEIGHT
+            : rstart + SLOT_PX;
+        if (istart < rend && rstart < iend) {
+          usedColumns.add(r.column);
+          if (r.total > maxTotal) maxTotal = r.total;
+        }
+      }
+
+      // Find first free column
+      let col = 0;
+      while (usedColumns.has(col)) col++;
+      const total = Math.max(maxTotal, col + 1);
+
+      // Update overlapping events to match total
+      for (let i = 0; i < result.length; i++) {
+        const r = result[i];
+        const rstart = timeToPx(r.item.start_time || "00:00");
+        const rend = r.item.end_time && timeToPx(r.item.end_time) > rstart
+          ? timeToPx(r.item.end_time)
+          : r.item.end_time && timeToPx(r.item.end_time) <= rstart
+            ? TRACK_HEIGHT
+            : rstart + SLOT_PX;
+        if (istart < rend && rstart < iend && r.total < total) {
+          result[i] = { ...r, total };
+        }
+      }
+
+      result.push({ item, column: col, total });
+    }
+    return result;
+  }, [timelineItems]);
 
   /** Get the real DB id (handles synthetic repeated/crossed items) */
   const realId = (item: AgendaItem) => (item as any)._origId || item.id;
