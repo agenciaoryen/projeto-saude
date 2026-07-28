@@ -329,19 +329,20 @@ export default function AgendaPage() {
   const timelineColumns = useMemo(() => {
     if (!timelineItems || timelineItems.length === 0) return [];
     const result: { item: AgendaItem; column: number; total: number }[] = [];
+    const toMins = (t: string | null) => {
+      if (!t || !t.includes(":")) return 0;
+      const [h, m] = t.split(":").map(Number);
+      return h * 60 + m;
+    };
 
     for (const item of timelineItems) {
-      const istart = timeToPx(item.start_time || "00:00");
-      const iend = item.end_time
-        ? (timeToPx(item.end_time) <= istart ? TRACK_HEIGHT : timeToPx(item.end_time))
-        : istart + SLOT_PX;
+      const istart = toMins(item.start_time);
+      const iend = item.end_time && toMins(item.end_time) <= istart ? 24 * 60 : toMins(item.end_time) || istart + 30;
 
       const usedCols = new Set<number>();
       for (const r of result) {
-        const rs = timeToPx(r.item.start_time || "00:00");
-        const re = r.item.end_time
-          ? (timeToPx(r.item.end_time) <= rs ? TRACK_HEIGHT : timeToPx(r.item.end_time))
-          : rs + SLOT_PX;
+        const rs = toMins(r.item.start_time);
+        const re = r.item.end_time && toMins(r.item.end_time) <= rs ? 24 * 60 : toMins(r.item.end_time) || rs + 30;
         if (istart < re && rs < iend) usedCols.add(r.column);
       }
 
