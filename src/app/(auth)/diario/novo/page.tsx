@@ -357,7 +357,9 @@ export default function NovoDiarioPage() {
               flexShrink: 0, display: "flex", alignItems: "center", gap: 6,
               padding: "0 8px 0 4px", position: "relative",
             }}>
-              <audio src={photoUrl(a)!} controls preload="metadata" style={{ height: 28, width: 160 }} />
+              <audio src={photoUrl(a)!} controls preload="metadata" crossOrigin="anonymous" style={{ height: 28, width: 160 }}>
+                <a href={photoUrl(a)!} target="_blank" rel="noopener">Ouvir áudio</a>
+              </audio>
               <button type="button" onClick={() => removeAudio(a)}
                 style={{
                   width: 20, height: 20, borderRadius: "50%", background: "rgba(0,0,0,0.5)",

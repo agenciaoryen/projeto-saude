@@ -54,6 +54,8 @@ export async function GET(request: Request) {
       headers: {
         "Content-Type": contentType,
         "Cache-Control": "public, max-age=31536000, immutable",
+        "Accept-Ranges": "bytes",
+        "Access-Control-Allow-Origin": "*",
       },
     });
   } catch (error) {
