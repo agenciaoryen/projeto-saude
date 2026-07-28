@@ -247,7 +247,9 @@ export default function DashboardPage() {
           // Sleep logs (same data source as sleep page)
           if (Array.isArray(sleepData)) {
             setSleepLogs(sleepData);
-            if (sleepData.length > 0) setRecentSleep(sleepData[0]);
+            const todaySleep = sleepData.find((s: SleepLog) => s.date === today);
+            if (todaySleep) setRecentSleep(todaySleep);
+            else if (sleepData.length > 0) setRecentSleep(sleepData[0]); // fallback
           }
 
           // Last mood
@@ -490,6 +492,11 @@ export default function DashboardPage() {
     : todayCheckIn.mood_tags?.length > 0 ? formatMood(todayCheckIn.mood_tags[0], userGender)
     : null;
 
+  // Humor emoji: reflects the actual mood, not always 😊
+  const humorEmoji = todayCheckIn?.mood_tags?.length > 0
+    ? (getMoodById(todayCheckIn.mood_tags[0])?.emoji ?? "😊")
+    : "😊";
+
   return (
     <div
       className="relative min-h-screen pb-28"
@@ -700,7 +707,7 @@ export default function DashboardPage() {
             onClick={() => router.push("/sono")}
           />
           <StatChip
-            emoji="😊"
+            emoji={humorEmoji}
             label="Humor"
             value={humorValue || "—"}
             sub={todayCheckIn ? "Check-in feito" : "Pendente"}
