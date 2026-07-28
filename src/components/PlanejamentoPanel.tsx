@@ -112,6 +112,9 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
   const [reviewBlock, setReviewBlock] = useState("");
   const [reviewLearn, setReviewLearn] = useState("");
   const [reviewScore, setReviewScore] = useState(3);
+  const [editingPlanTask, setEditingPlanTask] = useState<any>(null);
+  const [planEditTitle, setPlanEditTitle] = useState("");
+  const [planEditDay, setPlanEditDay] = useState(0);
 
   const fetchPlan = async () => {
     try {
@@ -263,8 +266,10 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
             const area = AREA_CONFIG[task.area] || AREA_CONFIG.outros;
             const done = task.status === "concluida";
             return (
-              <div key={task.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 0", borderBottom: "1px solid rgba(167,139,250,0.05)" }}>
-                <button type="button" onClick={() => toggleTask(task.id, task.status)}
+              <div key={task.id}
+                onClick={() => { setEditingPlanTask(task); setPlanEditTitle(task.title || ""); setPlanEditDay(task.day_of_week ?? 0); }}
+                style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 0", borderBottom: "1px solid rgba(167,139,250,0.05)", cursor: "pointer" }}>
+                <button type="button" onClick={(e) => { e.stopPropagation(); toggleTask(task.id, task.status); }}
                   style={{ width: 18, height: 18, borderRadius: task.task_type === "manutencao" ? "50%" : 4, flexShrink: 0, border: done ? "none" : "1.5px solid rgba(167,139,250,0.3)", background: done ? "#7C5CFF" : "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
                   {done && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3"><path d="m5 12 5 5 9-10" /></svg>}
                 </button>
@@ -423,6 +428,63 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
                 style={{ flex: 1, padding: 14, borderRadius: 14, border: "1px solid rgba(167,139,250,0.2)", background: "transparent", color: "#9e96b5", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Cancelar</button>
               <button type="button" onClick={saveReview} disabled={!reviewWin.trim()}
                 style={{ flex: 2, padding: 14, borderRadius: 14, border: 0, background: reviewWin.trim() ? "#7C5CFF" : "#1e1840", color: reviewWin.trim() ? "#fff" : "#9e96b5", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Salvar revisão</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Mini editor for plan tasks ────────────────── */}
+      {editingPlanTask && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 100, background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          <div style={{ width: "100%", maxWidth: 380, background: "#151520", borderRadius: 24, padding: 24, border: "1px solid rgba(167,139,250,0.15)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "#e0d6ff" }}>Editar tarefa</h3>
+              <button type="button" onClick={() => setEditingPlanTask(null)} style={{ background: "none", border: 0, color: "#9e96b5", fontSize: 18, cursor: "pointer" }}>✕</button>
+            </div>
+            <input value={planEditTitle} onChange={e => setPlanEditTitle(e.target.value)}
+              placeholder="Título" autoFocus
+              style={{...inputS, marginBottom: 12, width: "100%", boxSizing: "border-box"}} />
+            <label style={{ fontSize: 10, color: "#9e96b5", marginBottom: 6, display: "block" }}>Mover para</label>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 16 }}>
+              {["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"].map((label, i) => (
+                <button key={i} type="button" onClick={() => setPlanEditDay(i)}
+                  style={{
+                    padding: "6px 10px", borderRadius: 9999, border: 0, cursor: "pointer",
+                    fontFamily: "inherit", fontSize: 11, fontWeight: 600,
+                    background: planEditDay === i ? "#7C5CFF" : "#1e1840",
+                    color: planEditDay === i ? "#fff" : "#9e96b5",
+                  }}>{label}</button>
+              ))}
+            </div>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button type="button" onClick={async () => {
+                if (!confirm("Excluir esta tarefa?")) return;
+                await fetch(`/api/weekly-plans/tasks/${editingPlanTask.id}`, { method: "DELETE" });
+                setTasks((prev: any[]) => prev.filter((t: any) => t.id !== editingPlanTask.id));
+                setEditingPlanTask(null);
+              }}
+                style={{ flex: 1, padding: "12px 0", borderRadius: 14, border: 0, background: "rgba(255,92,92,0.1)", color: "#FF5C5C", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+                🗑 Excluir
+              </button>
+              <button type="button" onClick={async () => {
+                const updates: Record<string, unknown> = {
+                  title: planEditTitle.trim() || editingPlanTask.title,
+                  day_of_week: planEditDay,
+                };
+                const res = await fetch(`/api/weekly-plans/tasks/${editingPlanTask.id}`, {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify(updates),
+                });
+                if (res.ok) {
+                  const updated = await res.json();
+                  setTasks((prev: any[]) => prev.map((t: any) => t.id === editingPlanTask.id ? updated : t));
+                  setEditingPlanTask(null);
+                }
+              }}
+                style={{ flex: 2, padding: "12px 0", borderRadius: 14, border: 0, background: "#7C5CFF", color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                Salvar
+              </button>
             </div>
           </div>
         </div>
