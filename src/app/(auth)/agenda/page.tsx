@@ -980,18 +980,20 @@ export default function AgendaPage() {
 
             {/* Time (only for compromisso) */}
             {newItemType === "compromisso" && (
-              <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
-                <div style={{ flex: 1 }}>
-                  <label style={{ fontSize: 10, color: "#9e96b5", marginBottom: 4, display: "block" }}>Início</label>
-                  <input type="time" value={newStartTime} onChange={(e) => setNewStartTime(e.target.value)}
-                    style={{ ...modalInput, width: "100%", boxSizing: "border-box" }} />
+              <>
+                <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
+                  <div style={{ flex: "1 1 0", minWidth: 0 }}>
+                    <label style={{ fontSize: 10, color: "#9e96b5", marginBottom: 4, display: "block" }}>Início</label>
+                    <input type="time" value={newStartTime} onChange={(e) => setNewStartTime(e.target.value)}
+                      style={{ ...modalInput }} />
+                  </div>
+                  <div style={{ flex: "1 1 0", minWidth: 0 }}>
+                    <label style={{ fontSize: 10, color: "#9e96b5", marginBottom: 4, display: "block" }}>Fim</label>
+                    <input type="time" value={newEndTime} onChange={(e) => setNewEndTime(e.target.value)}
+                      style={{ ...modalInput }} />
+                  </div>
                 </div>
-                <div style={{ flex: 1 }}>
-                  <label style={{ fontSize: 10, color: "#9e96b5", marginBottom: 4, display: "block" }}>Fim</label>
-                  <input type="time" value={newEndTime} onChange={(e) => setNewEndTime(e.target.value)}
-                    style={{ ...modalInput, width: "100%", boxSizing: "border-box" }} />
-                </div>
-              </div>
+              </>
             )}
 
             {/* Description */}
