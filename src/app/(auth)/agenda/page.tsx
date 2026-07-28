@@ -820,8 +820,34 @@ export default function AgendaPage() {
                 ✏️ Editar
               </button>
               <button type="button" onClick={async () => {
-                if (!confirm("Excluir este compromisso?")) return;
-                await fetch(`/api/agenda?id=${realId(editingItem)}`, { method: "DELETE" });
+                const isSynth = editingItem.id.includes("_r_") || editingItem.id.includes("_cross");
+                if (isSynth) {
+                  const deleteAll = confirm("Este compromisso se repete.\n\nOK = Excluir TODOS\nCancelar = Apenas este");
+                  if (deleteAll) {
+                    await fetch(`/api/agenda?id=${realId(editingItem)}`, { method: "DELETE" });
+                  } else {
+                    // Mark just this occurrence as concluída (acts as exclusion)
+                    await fetch("/api/agenda", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        title: editingItem.title,
+                        item_type: editingItem.item_type,
+                        date: editingItem.date,
+                        start_time: editingItem.start_time,
+                        end_time: editingItem.end_time,
+                        priority: editingItem.priority,
+                        emoji: editingItem.emoji || null,
+                        description: editingItem.description || null,
+                        color: editingItem.color || null,
+                        status: "concluida",
+                      }),
+                    });
+                  }
+                } else {
+                  if (!confirm("Excluir este compromisso?")) return;
+                  await fetch(`/api/agenda?id=${realId(editingItem)}`, { method: "DELETE" });
+                }
                 setEditingItem(null); fetchItems(selectedDate);
               }}
                 style={{ flex: 1, padding: 10, borderRadius: 12, border: 0, background: "rgba(255,92,92,0.1)", color: "#FF5C5C", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
