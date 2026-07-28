@@ -467,9 +467,13 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
             <div style={{ marginTop: 12 }}>
               {newTaskTime ? (
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ fontSize: 13, color: "#A78BFA", fontWeight: 600 }}>🕐 {newTaskTime}</span>
+                  <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", borderRadius: 10, background: "#0B0B10", border: "1px solid rgba(167,139,250,0.2)" }}>
+                    <span style={{ fontSize: 12, flexShrink: 0 }}>🕐</span>
+                    <input type="time" value={newTaskTime} onChange={e => setNewTaskTime(e.target.value)}
+                      style={{ flex: 1, background: "transparent", border: 0, color: "#A78BFA", fontSize: 13, fontWeight: 600, fontFamily: "inherit", outline: "none", minWidth: 0 }} />
+                  </div>
                   <button type="button" onClick={() => setNewTaskTime("")}
-                    style={{ padding: "2px 6px", borderRadius: 9999, border: 0, background: "rgba(167,139,250,0.1)", color: "#9e96b5", fontSize: 10, cursor: "pointer", fontFamily: "inherit" }}>✕</button>
+                    style={{ padding: "8px", borderRadius: 9999, border: 0, background: "rgba(167,139,250,0.1)", color: "#9e96b5", fontSize: 12, cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}>✕</button>
                 </div>
               ) : (
                 <button type="button" onClick={() => setNewTaskTime("09:00")}
