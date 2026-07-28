@@ -1035,8 +1035,6 @@ export default function AgendaPage() {
                 </div>
               </>
             )}
-              </>
-            )}
 
             {/* Description */}
             <textarea value={newDescription} onChange={e => setNewDescription(e.target.value)}
