@@ -82,10 +82,12 @@ export default function AgendaPage() {
   const [showNewItem, setShowNewItem] = useState(false);
   const [newItemType, setNewItemType] = useState<"compromisso" | "tarefa">("tarefa");
   const [allWeekTasks, setAllWeekTasks] = useState<any[]>([]);
-  const [tasksOpen, setTasksOpen] = useState(true);
+  const [tasksOpen, setTasksOpen] = useState(false); // closed by default now
   const [editingPlanTask, setEditingPlanTask] = useState<any>(null);
   const [planEditTitle, setPlanEditTitle] = useState("");
   const [planEditDay, setPlanEditDay] = useState(0);
+  const touchStartX = useRef(0);
+  const touchStartY = useRef(0);
   const [editingItem, setEditingItem] = useState<AgendaItem | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editDone, setEditDone] = useState(false);
@@ -394,8 +396,8 @@ export default function AgendaPage() {
   });
 
   return (
-    <div style={{ minHeight: "100dvh", background: "#0B0B10", paddingBottom: 100 }}>
-      <div style={{ maxWidth: 480, margin: "0 auto", padding: "0 20px" }}>
+    <div style={{ height: "100dvh", background: "#0B0B10", paddingBottom: 100, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      <div style={{ maxWidth: 480, margin: "0 auto", padding: "0 20px", width: "100%", display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}>
 
         {/* ── Title + Date navigation ─────────────────────────── */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: 12, marginBottom: 8 }}>
@@ -407,19 +409,23 @@ export default function AgendaPage() {
               {viewMode === "metas" ? "Acompanhe seu progresso" : viewMode === "semana" ? weekRangeLabel(selectedDate) : formatDateLabel(selectedDate)}
             </p>
           </div>
-          <div style={{ display: "flex", gap: 8 }}>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            {selectedDate !== today && (
+              <button type="button" onClick={() => setSelectedDate(today)}
+                style={{ ...navBtnStyle, width: "auto", padding: "0 14px", fontSize: 12, fontWeight: 600 }}>
+                Hoje
+              </button>
+            )}
             <button type="button"
               onClick={() => {
                 const days = activeModule === "planejamento" ? -7 : -1;
-                const newDate = shiftDate(selectedDate, days);
-                setSelectedDate(newDate);
+                setSelectedDate(shiftDate(selectedDate, days));
               }}
               style={navBtnStyle}><ChevronLeft size={18} /></button>
             <button type="button"
               onClick={() => {
                 const days = activeModule === "planejamento" ? 7 : 1;
-                const newDate = shiftDate(selectedDate, days);
-                setSelectedDate(newDate);
+                setSelectedDate(shiftDate(selectedDate, days));
               }}
               style={navBtnStyle}><ChevronRight size={18} /></button>
           </div>
@@ -463,18 +469,34 @@ export default function AgendaPage() {
         {/* ── TIMELINE (só agenda, view dia) ──────────────────── */}
         {activeModule === "agenda" && viewMode === "dia" && (
           <div style={{
+            flex: 1, display: "flex", flexDirection: "column", minHeight: 0,
             background: "#1a1530", borderRadius: 18,
             border: "1px solid rgba(167,139,250,0.12)",
-            padding: "0 0 0 0", marginBottom: 20, position: "relative",
-          }}>
-            {/* ── Collapsible task strip ── */}
+            position: "relative", overflow: "hidden",
+          }}
+            onTouchStart={(e) => {
+              touchStartX.current = e.touches[0].clientX;
+              touchStartY.current = e.touches[0].clientY;
+            }}
+            onTouchEnd={(e) => {
+              const dx = e.changedTouches[0].clientX - touchStartX.current;
+              const dy = e.changedTouches[0].clientY - touchStartY.current;
+              if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 60) {
+                setSelectedDate(shiftDate(selectedDate, dx > 0 ? -1 : 1));
+              }
+            }}
+          >
+            {/* ── Collapsible task strip (overlay) ── */}
             {(tarefasSemHorario.length > 0 || dayPlanTasks.length > 0) && (
               <div style={{
-                borderBottom: tasksOpen ? "1px solid rgba(167,139,250,0.1)" : "none",
+                position: "absolute", top: 0, left: 0, right: 0, zIndex: 10,
+                background: "#1a1530", borderRadius: "18px 18px 0 0",
+                borderBottom: tasksOpen ? "1px solid rgba(167,139,250,0.15)" : "none",
+                boxShadow: tasksOpen ? "0 8px 24px rgba(0,0,0,0.4)" : "none",
               }}>
                 <button type="button" onClick={() => setTasksOpen(!tasksOpen)} style={{
                   width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
-                  padding: "12px 14px", background: "none", border: 0, cursor: "pointer",
+                  padding: "10px 14px", background: "none", border: 0, cursor: "pointer",
                   fontFamily: "inherit",
                 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -495,7 +517,7 @@ export default function AgendaPage() {
                   </span>
                 </button>
                 {tasksOpen && (
-                <div style={{ padding: "0 14px 12px", display: "flex", flexWrap: "wrap", gap: 6 }}>
+                <div style={{ padding: "0 14px 10px", display: "flex", flexWrap: "wrap", gap: 6, maxHeight: 160, overflowY: "auto" }}>
                   {/* Agenda tasks without time */}
                   {[...tarefasSemHorario].map((item) => {
                     const done = item.status === "concluida";
@@ -568,8 +590,8 @@ export default function AgendaPage() {
             )}
 
             <div ref={timelineScrollRef} style={{
-              display: "flex",
-              maxHeight: 500, overflowY: "auto", overflowX: "hidden",
+              display: "flex", flex: 1, minHeight: 0,
+              overflowY: "auto", overflowX: "hidden",
               scrollBehavior: "smooth",
               WebkitOverflowScrolling: "touch",
             }}>
