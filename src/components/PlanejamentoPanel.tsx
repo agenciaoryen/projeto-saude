@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { useRouter } from "next/navigation";
-import { Plus, Pencil, Star, ChevronDown, Clock, X, Check } from "lucide-react";
+import { Plus, Star, ChevronDown, Clock, X, Check } from "lucide-react";
 
 const AREA_CONFIG: Record<string, { emoji: string; hue: number }> = {
   saude: { emoji: "💚", hue: 160 }, carreira: { emoji: "💼", hue: 220 },
@@ -90,7 +89,6 @@ function MiniRadar({ counts }: { counts: Record<string, number> }) {
 // ── Panel ───────────────────────────────────────────────────────
 
 export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
-  const router = useRouter();
   const [plan, setPlan] = useState<any>(null);
   const [tasks, setTasks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -144,7 +142,7 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
 
   // Lock body scroll when editor is open
   useEffect(() => {
-    if (editingPlanTask) {
+    if (editingPlanTask || showStoneEditor) {
       document.body.style.overflow = "hidden";
       document.body.style.position = "fixed";
       document.body.style.width = "100%";
@@ -240,27 +238,21 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
     <div style={{ marginBottom: 20 }}>
       {/* Stones */}
       <div style={{ marginBottom: 14 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-          <h2 style={{ margin: 0, fontSize: 13, fontWeight: 700, color: "#A78BFA", textTransform: "uppercase", letterSpacing: ".08em" }}>Pedras</h2>
-          {focuses.length > 0 && (
-            <button type="button" onClick={() => {
-              setStone1(focuses[0] || "");
-              setStone2(focuses[1] || "");
-              setStone3(focuses[2] || "");
-              setShowStoneEditor(true);
-            }}
-              style={{ background: "none", border: 0, cursor: "pointer", color: "#A78BFA", fontFamily: "inherit", fontSize: 11, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
-              <Pencil size={11} /> Editar
-            </button>
-          )}
-        </div>
+        <h2 style={{ margin: "0 0 10px", fontSize: 13, fontWeight: 700, color: "#A78BFA", textTransform: "uppercase", letterSpacing: ".08em" }}>Pedras</h2>
         {focuses.length > 0 ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             {focuses.map((focus: string, i: number) => (
-              <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 14, border: "1px solid rgba(167,139,250,0.15)", background: "#1a1530" }}>
+              <button key={i} type="button"
+                onClick={() => {
+                  setStone1(focuses[0] || "");
+                  setStone2(focuses[1] || "");
+                  setStone3(focuses[2] || "");
+                  setShowStoneEditor(true);
+                }}
+                style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 14, border: "1px solid rgba(167,139,250,0.15)", background: "#1a1530", cursor: "pointer", textAlign: "left", fontFamily: "inherit", width: "100%" }}>
                 <span style={{ fontSize: 22, fontWeight: 800, color: "#A78BFA", fontFamily: "monospace", opacity: 0.4, flexShrink: 0 }}>{["I","II","III"][i]}</span>
                 <span style={{ fontSize: 13, fontWeight: 600, color: "#e0d6ff", lineHeight: 1.3 }}>{focus}</span>
-              </div>
+              </button>
             ))}
           </div>
         ) : (
