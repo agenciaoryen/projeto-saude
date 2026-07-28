@@ -409,8 +409,17 @@ export default function AgendaPage() {
     return Math.max(SLOT_PX, h); // minimum 1 slot
   };
 
-  // Current time needle (disabled until stable)
-  const currentTimePx = -1;
+  // Current time needle
+  const [now, setNow] = useState<Date | null>(null);
+  useEffect(() => {
+    setNow(new Date());
+    const t = setInterval(() => setNow(new Date()), 60000);
+    return () => clearInterval(t);
+  }, []);
+
+  const currentTimePx = now
+    ? timeToPx(`${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`)
+    : -1;
 
   const HALF_HOUR_LABELS = Array.from({ length: TOTAL_SLOTS + 1 }, (_, i) => {
     const totalMins = (TIMELINE_START * 60) + i * SLOT_MINUTES;
