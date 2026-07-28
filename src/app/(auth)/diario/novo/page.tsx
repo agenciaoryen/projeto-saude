@@ -36,9 +36,12 @@ export default function NovoDiarioPage() {
   const [photos, setPhotos] = useState<string[]>([]);
   const [audios, setAudios] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+  const [recording, setRecording] = useState(false);
   const dateInputRef = useRef<HTMLInputElement>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
 
   const selectedMoodEmoji = mood ? MOOD_EMOJI[mood] : "😶";
 
@@ -101,6 +104,39 @@ export default function NovoDiarioPage() {
   }, []);
 
   const isAudioFile = (path: string) => /\.(mp3|m4a|wav|ogg|webm|aac|flac)$/i.test(path);
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream, { mimeType: MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : "audio/mp4" });
+      mediaRecorderRef.current = recorder;
+      audioChunksRef.current = [];
+      recorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunksRef.current.push(e.data); };
+      recorder.onstop = async () => {
+        stream.getTracks().forEach(t => t.stop());
+        const blob = new Blob(audioChunksRef.current);
+        const reader = new FileReader();
+        const base64 = await new Promise<string>((resolve) => {
+          reader.onload = () => resolve(reader.result as string);
+          reader.readAsDataURL(blob);
+        });
+        const path = await uploadToCloud(base64, "diary");
+        setAudios((prev) => [...prev, path]);
+      };
+      recorder.start();
+      setRecording(true);
+    } catch {
+      // Fall back to file upload
+      audioInputRef.current?.click();
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      mediaRecorderRef.current.stop();
+    }
+    setRecording(false);
+  };
 
   const handlePaste = (e: React.ClipboardEvent) => {
     e.preventDefault();
@@ -257,16 +293,35 @@ export default function NovoDiarioPage() {
             }}>
             <Camera size={20} />
           </button>
-          {/* Audio button */}
-          <button type="button" onClick={() => audioInputRef.current?.click()}
+          {/* Audio button — tap to upload, hold to record */}
+          <button type="button"
+            onClick={() => audioInputRef.current?.click()}
+            onMouseDown={() => startRecording()}
+            onMouseUp={() => stopRecording()}
+            onMouseLeave={() => recording && stopRecording()}
+            onTouchStart={(e) => { e.preventDefault(); startRecording(); }}
+            onTouchEnd={(e) => { e.preventDefault(); stopRecording(); }}
             style={{
-              width: 72, height: 72, borderRadius: 14,
-              border: "1.5px dashed rgba(167,139,250,0.3)",
-              background: "rgba(124,92,255,0.06)",
+              width: recording ? 88 : 72, height: recording ? 88 : 72, borderRadius: 14,
+              border: recording ? "2px solid #FF4D4D" : "1.5px dashed rgba(167,139,250,0.3)",
+              background: recording ? "rgba(255,77,77,0.15)" : "rgba(124,92,255,0.06)",
               display: "flex", alignItems: "center", justifyContent: "center",
-              cursor: "pointer", color: "#A78BFA",
+              cursor: "pointer", color: recording ? "#FF4D4D" : "#A78BFA",
+              transition: "all .15s ease", flexDirection: "column", gap: 2,
+              userSelect: "none",
             }}>
-            <Mic size={20} />
+            {recording ? (
+              <>
+                <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#FF4D4D", animation: "pulse 1s infinite" }} />
+                <span style={{ fontSize: 8, color: "#FF4D4D", fontWeight: 600 }}>Gravando</span>
+                <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }`}</style>
+              </>
+            ) : (
+              <>
+                <Mic size={20} />
+                <span style={{ fontSize: 9, color: "#9e96b5" }}>Áudio</span>
+              </>
+            )}
           </button>
           <input ref={photoInputRef} type="file" accept="image/*" style={{ display: "none" }}
             onChange={(e) => { if (e.target.files?.[0]) handlePhotoAdd(e.target.files[0]); e.target.value = ""; }} />

@@ -143,8 +143,8 @@ export default function HistoricoPage() {
           Histórico
         </h1>
         <p className="mt-1.5 text-sm text-muted-foreground">
-          {checkIns.length} {checkIns.length === 1 ? "check-in" : "check-ins"}
-          {checkIns.length > 0 && ` · desde ${formatStart(checkIns)}`}
+          {monthGroups.length} {monthGroups.length === 1 ? "mês" : "meses"} de registro
+          {checkIns.length > 0 && ` · ${checkIns.length} check-ins ao todo`}
         </p>
       </div>
 
