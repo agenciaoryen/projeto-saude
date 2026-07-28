@@ -247,15 +247,19 @@ export default function AgendaPage() {
       for (const item of yesterdayItems) {
         const [sh, sm] = (item.start_time || "00:00").split(":").map(Number);
         const [eh, em] = (item.end_time || "00:00").split(":").map(Number);
+        // Crosses midnight if end time is earlier than or equal to start time
         if (eh * 60 + em <= sh * 60 + sm) {
-          // Crosses midnight — show continuation on today
-          result.push({
-            ...item,
-            date,
-            id: item.id + "_cross",
-            start_time: "00:00",
-            // Keep end_time as the original (it ends today)
-          });
+          // Check if a standalone item already exists for this continuation
+          const crossKey = date + "|" + item.title.toLowerCase().trim();
+          if (!realEntries.has(crossKey)) {
+            result.push({
+              ...item,
+              date,
+              id: item.id + "_cross",
+              start_time: "00:00",
+              _origId: item.id,
+            } as any);
+          }
         }
       }
 
