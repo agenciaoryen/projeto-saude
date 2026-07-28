@@ -37,8 +37,17 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Arquivo não encontrado" }, { status: 404 });
     }
 
-    const ext = path.split(".").pop();
-    const contentType = ext === "png" ? "image/png" : ext === "webp" ? "image/webp" : "image/jpeg";
+    const ext = path.split(".").pop()?.toLowerCase() || "";
+    const contentType =
+      ext === "png" ? "image/png" :
+      ext === "webp" ? "image/webp" :
+      ext === "jpg" || ext === "jpeg" ? "image/jpeg" :
+      ext === "weba" || ext === "webm" ? "audio/webm" :
+      ext === "m4a" ? "audio/mp4" :
+      ext === "ogg" ? "audio/ogg" :
+      ext === "mp4" ? "video/mp4" :
+      ext === "pdf" ? "application/pdf" :
+      "image/jpeg";
 
     return new NextResponse(data, {
       headers: {
