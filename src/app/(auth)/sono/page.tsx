@@ -590,6 +590,37 @@ export default function SonoPage() {
   const [editingLog, setEditingLog] = useState<SleepLog | null>(null);
   const [config, setConfig] = useState<SleepConfig>(DEFAULT_CONFIG);
   const [configSaving, setConfigSaving] = useState(false);
+  const [openSleepMonths, setOpenSleepMonths] = useState<Set<string>>(new Set());
+
+  // Open current month by default once logs load
+  useEffect(() => {
+    if (logs.length > 0) {
+      const now = new Date();
+      setOpenSleepMonths(new Set([`${now.getFullYear()}-${now.getMonth()}`]));
+    }
+  }, [logs.length === 0]); // eslint-disable-line
+
+  const sleepMonthGroups = useMemo(() => {
+    const groups = new Map<string, { label: string; logs: SleepLog[]; key: string }>();
+    logs.forEach((log) => {
+      const d = new Date(log.date + "T12:00:00");
+      const key = `${d.getFullYear()}-${d.getMonth()}`;
+      if (!groups.has(key)) {
+        const raw = d.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+        groups.set(key, { label: raw.charAt(0).toUpperCase() + raw.slice(1), logs: [], key });
+      }
+      groups.get(key)!.logs.push(log);
+    });
+    return Array.from(groups.values());
+  }, [logs]);
+
+  const toggleSleepMonth = (key: string) => {
+    setOpenSleepMonths((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  };
 
   const loadLogs = useCallback(async () => {
     const [sleepData, prefsData] = await Promise.all([
@@ -745,19 +776,42 @@ export default function SonoPage() {
         />
 
         {/* ── History ── */}
-        {logs.length > 0 && (
-          <Card className="rounded-2xl">
-            <CardContent className="p-4">
-              <p className="text-sm font-semibold mb-1">{tFn(lang, "sono_historico_title")}</p>
-              <p className="text-xs text-muted-foreground mb-3">
-                {tFn(lang, "sono_pontuacao")} = {tFn(lang, "sono_monitoramento")}
-              </p>
-              {logs.slice(0, 14).map((log) => (
-                <SleepHistoryRow key={log.id} log={log} onEdit={setEditingLog} lang={lang} />
-              ))}
-            </CardContent>
-          </Card>
-        )}
+        {sleepMonthGroups.map((group) => (
+          <div key={group.key} style={{
+            background: "oklch(0.16 0.012 270)",
+            borderRadius: 18,
+            border: "1px solid oklch(0.28 0.02 270 / 0.5)",
+            overflow: "hidden",
+          }}>
+            {/* Month header */}
+            <button
+              type="button"
+              onClick={() => toggleSleepMonth(group.key)}
+              style={{
+                width: "100%", display: "flex", alignItems: "center", gap: 8,
+                padding: "12px 16px", background: "transparent", border: 0,
+                cursor: "pointer", fontFamily: "inherit",
+              }}
+            >
+              <span style={{
+                fontSize: 10, color: "#A78BFA", transition: "transform .2s",
+                display: "inline-block",
+                transform: openSleepMonths.has(group.key) ? "rotate(90deg)" : "rotate(0deg)",
+              }}>▶</span>
+              <span style={{
+                flex: 1, textAlign: "left",
+                fontSize: 12, fontWeight: 700, color: "#e0d6ff",
+                textTransform: "capitalize",
+              }}>{group.label}</span>
+              <span style={{ fontSize: 10, color: "#9e96b5" }}>{group.logs.length}</span>
+            </button>
+
+            {/* Entries */}
+            {openSleepMonths.has(group.key) && group.logs.map((log) => (
+              <SleepHistoryRow key={log.id} log={log} onEdit={setEditingLog} lang={lang} />
+            ))}
+          </div>
+        ))}
 
         <p className="text-xs text-muted-foreground text-center" style={{ padding: "0 8px" }}>
           {tFn(lang, "sono_monitoramento")}

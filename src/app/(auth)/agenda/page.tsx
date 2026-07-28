@@ -88,6 +88,9 @@ export default function AgendaPage() {
   const [planEditDay, setPlanEditDay] = useState(0);
   const touchStartX = useRef(0);
   const touchStartY = useRef(0);
+  const [confirmDialog, setConfirmDialog] = useState<{ message: string; okLabel?: string; cancelLabel?: string; okColor?: string; onOk: () => void; onCancel?: () => void } | null>(null);
+  const showConfirm = (message: string, onOk: () => void, opts?: { okLabel?: string; cancelLabel?: string; okColor?: string; onCancel?: () => void }) =>
+    setConfirmDialog({ message, onOk, ...opts });
   const [editingItem, setEditingItem] = useState<AgendaItem | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editDone, setEditDone] = useState(false);
@@ -807,21 +810,23 @@ export default function AgendaPage() {
                       }}>
                       {/* Short mode: single-row layout */}
                       {short ? (
-                        <div style={{ display: "flex", alignItems: "center", gap: 4, minWidth: 0 }}>
-                          <span style={{ fontSize: 8, color: isTask ? "#9e96b5" : (item.color || "#A78BFA"), flexShrink: 0, lineHeight: 1 }}>
-                            {item.start_time?.slice(0, 5)}
-                          </span>
-                          <span style={{
-                            fontSize: 10, fontWeight: done ? 400 : 600,
-                            color: done ? "#5a5470" : "#e0d6ff",
-                            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                            textDecoration: done ? "line-through" : "none", flex: 1, minWidth: 0,
-                          }}>
-                            {item.emoji && <span style={{ marginRight: 2 }}>{item.emoji}</span>}
-                            {item.title}
+                        <div style={{ display: "flex", alignItems: "center", gap: 4, minWidth: 0, justifyContent: "space-between" }}>
+                          <span style={{ display: "flex", alignItems: "center", gap: 4, flex: 1, minWidth: 0, overflow: "hidden" }}>
+                            <span style={{ fontSize: 8, color: isTask ? "#9e96b5" : (item.color || "#A78BFA"), flexShrink: 0, lineHeight: 1 }}>
+                              {item.start_time?.slice(0, 5)}
+                            </span>
+                            <span style={{
+                              fontSize: 10, fontWeight: done ? 400 : 600,
+                              color: done ? "#5a5470" : "#e0d6ff",
+                              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                              textDecoration: done ? "line-through" : "none",
+                            }}>
+                              {item.emoji && <span style={{ marginRight: 2 }}>{item.emoji}</span>}
+                              {item.title}
+                            </span>
                           </span>
                           <span onClick={(e) => { e.stopPropagation(); toggleTask(item); }}
-                            style={{ flexShrink: 0, cursor: "pointer", display: "flex" }}>
+                            style={{ flexShrink: 0, cursor: "pointer", display: "flex", marginLeft: 4 }}>
                             {done
                               ? <CheckCircle2 size={10} color="#7C5CFF" />
                               : <div style={{ width: 10, height: 10, borderRadius: "50%", border: isTask ? "1.5px solid rgba(167,139,250,0.35)" : "1.5px solid rgba(167,139,250,0.2)" }} />
@@ -922,36 +927,37 @@ export default function AgendaPage() {
                 style={{ flex: 1, padding: 10, borderRadius: 12, border: "1px solid rgba(167,139,250,0.2)", background: "transparent", color: "#A78BFA", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
                 ✏️ Editar
               </button>
-              <button type="button" onClick={async () => {
+              <button type="button" onClick={() => {
                 const isSynth = editingItem.id.includes("_r_") || editingItem.id.includes("_cross");
                 if (isSynth) {
-                  const deleteAll = confirm("Este compromisso se repete.\n\nOK = Excluir TODOS\nCancelar = Apenas este");
-                  if (deleteAll) {
-                    await fetch(`/api/agenda?id=${realId(editingItem)}`, { method: "DELETE" });
-                  } else {
-                    // Mark just this occurrence as concluída (acts as exclusion)
-                    await fetch("/api/agenda", {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({
-                        title: editingItem.title,
-                        item_type: editingItem.item_type,
-                        date: editingItem.date,
-                        start_time: editingItem.start_time,
-                        end_time: editingItem.end_time,
-                        priority: editingItem.priority,
-                        emoji: editingItem.emoji || null,
-                        description: editingItem.description || null,
-                        color: editingItem.color || null,
-                        status: "concluida",
-                      }),
+                  showConfirm("Este compromisso se repete.", () => {
+                    fetch(`/api/agenda?id=${realId(editingItem)}`, { method: "DELETE" }).then(() => {
+                      setEditingItem(null); fetchItems(selectedDate);
                     });
-                  }
+                  }, {
+                    okLabel: "Excluir todos",
+                    cancelLabel: "Apenas este",
+                    onCancel: () => {
+                      fetch("/api/agenda", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          title: editingItem.title, item_type: editingItem.item_type,
+                          date: editingItem.date, start_time: editingItem.start_time,
+                          end_time: editingItem.end_time, priority: editingItem.priority,
+                          emoji: editingItem.emoji || null, description: editingItem.description || null,
+                          color: editingItem.color || null, status: "concluida",
+                        }),
+                      }).then(() => { setEditingItem(null); fetchItems(selectedDate); });
+                    },
+                  });
                 } else {
-                  if (!confirm("Excluir este compromisso?")) return;
-                  await fetch(`/api/agenda?id=${realId(editingItem)}`, { method: "DELETE" });
+                  showConfirm("Excluir este compromisso?", () => {
+                    fetch(`/api/agenda?id=${realId(editingItem)}`, { method: "DELETE" }).then(() => {
+                      setEditingItem(null); fetchItems(selectedDate);
+                    });
+                  });
                 }
-                setEditingItem(null); fetchItems(selectedDate);
               }}
                 style={{ flex: 1, padding: 10, borderRadius: 12, border: 0, background: "rgba(255,92,92,0.1)", color: "#FF5C5C", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
                 🗑 Excluir
@@ -1240,6 +1246,25 @@ export default function AgendaPage() {
                   background: (saving || !newTitle.trim()) ? "#1e1840" : "#7C5CFF",
                   color: (saving || !newTitle.trim()) ? "#9e96b5" : "#fff",
                 }}>{saving ? "Salvando…" : editingId ? "Salvar alterações" : "Adicionar"}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Custom confirm dialog ───────────────────────── */}
+      {confirmDialog && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          <div style={{ width: "100%", maxWidth: 320, background: "#1a1530", borderRadius: 20, padding: 24, border: "1px solid rgba(167,139,250,0.2)", textAlign: "center" }}>
+            <p style={{ margin: "0 0 20px", fontSize: 15, fontWeight: 600, color: "#e0d6ff", lineHeight: 1.5 }}>{confirmDialog.message}</p>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button type="button" onClick={() => { confirmDialog.onCancel?.(); setConfirmDialog(null); }}
+                style={{ flex: 1, padding: "12px 0", borderRadius: 12, border: "1px solid rgba(167,139,250,0.2)", background: "transparent", color: "#9e96b5", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+                {confirmDialog.cancelLabel || "Cancelar"}
+              </button>
+              <button type="button" onClick={() => { confirmDialog.onOk(); setConfirmDialog(null); }}
+                style={{ flex: 1, padding: "12px 0", borderRadius: 12, border: 0, background: confirmDialog.okColor || "#FF5C5C", color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                {confirmDialog.okLabel || "Excluir"}
+              </button>
             </div>
           </div>
         </div>
