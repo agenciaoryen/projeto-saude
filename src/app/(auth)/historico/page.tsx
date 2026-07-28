@@ -69,6 +69,7 @@ export default function HistoricoPage() {
   const [checkIns, setCheckIns] = useState<CheckIn[]>([]);
   const [enabledKeys, setEnabledKeys] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [openMonths, setOpenMonths] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     Promise.all([
@@ -81,6 +82,9 @@ export default function HistoricoPage() {
           [...data].sort((a: CheckIn, b: CheckIn) => b.date.localeCompare(a.date))
         );
       }
+      // Open current month by default
+      const now = new Date();
+      setOpenMonths(new Set([`${now.getFullYear()}-${now.getMonth()}`]));
       setLoading(false);
     });
   }, []);
@@ -94,6 +98,14 @@ export default function HistoricoPage() {
     [enabledKeys]
   );
   const monthGroups = useMemo(() => groupByMonth(checkIns), [checkIns]);
+  const toggleMonth = (key: string) => {
+    setOpenMonths((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  };
+
   const today = new Date().toISOString().slice(0, 10);
 
   if (loading) {
@@ -162,20 +174,31 @@ export default function HistoricoPage() {
       {/* Timeline */}
       {monthGroups.map((group, gi) => (
         <div key={group.key} style={{ paddingTop: gi === 0 ? 24 : 36 }}>
-          {/* Month header */}
-          <div
-            className="px-6 pb-3.5 flex items-baseline justify-between"
-            style={{ opacity: group.muted ? 0.7 : 1 }}
+          {/* Month header — clickable */}
+          <button
+            type="button"
+            onClick={() => toggleMonth(group.key)}
+            className="w-full px-6 pb-3.5 flex items-center gap-2"
+            style={{
+              background: "transparent", border: 0, cursor: "pointer",
+              fontFamily: "inherit", opacity: group.muted ? 0.7 : 1,
+            }}
           >
-            <h2 className="text-[11px] font-bold tracking-[.16em] uppercase m-0">
+            <span style={{
+              fontSize: 10, color: "#A78BFA", transition: "transform .2s",
+              display: "inline-block",
+              transform: openMonths.has(group.key) ? "rotate(90deg)" : "rotate(0deg)",
+            }}>▶</span>
+            <h2 className="text-[11px] font-bold tracking-[.16em] uppercase m-0 flex-1 text-left">
               {group.label}
             </h2>
             <span className="text-[11px] text-muted-foreground tabular-nums">
-              {group.entries.length} {group.entries.length === 1 ? "check-in" : "check-ins"}
+              {group.entries.length}
             </span>
-          </div>
+          </button>
 
           {/* Entries */}
+          {openMonths.has(group.key) && (
           <div style={{ opacity: group.muted ? 0.75 : 1 }}>
             {group.entries.map((ci) => {
               const d = new Date(ci.date + "T12:00:00");
@@ -274,6 +297,7 @@ export default function HistoricoPage() {
               );
             })}
           </div>
+          )}
         </div>
       ))}
     </div>

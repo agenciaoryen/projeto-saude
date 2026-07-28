@@ -677,81 +677,56 @@ export default function SonoPage() {
           <>
             {/* Stats grid */}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-              <Card className="rounded-2xl">
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Clock className="size-3.5" style={{ color: P }} />
-                    <p className="text-xs text-muted-foreground">{tFn(lang, "sono_avg_noite")}</p>
+              {[
+                { icon: "🌙", label: tFn(lang, "sono_avg_noite"), value: stats!.avgDurationMin > 0 ? formatDuration(stats!.avgDurationMin) : "–", sub: "média da semana", color: "#e0d6ff" },
+                { icon: "⭐", label: tFn(lang, "sono_avg_qualidade"), value: stats!.avgQuality > 0 ? `${stats!.avgQuality}/5` : "–", sub: stats!.avgQuality > 0 ? QUALITY_EMOJI[Math.round(stats!.avgQuality)] : "", color: qualityColor(stats!.avgQuality) },
+                { icon: "📊", label: tFn(lang, "sono_consistencia"), value: `${stats!.consistencyScore}`, sub: "de 100", color: scoreColor(stats!.consistencyScore) },
+                { icon: "🎯", label: "Meta de sono", value: config ? `${config.target_hours}h` : "–", sub: stats!.avgDurationMin > 0 ? `${formatDuration(stats!.avgDurationMin)} médio` : "sem dados", color: "#5EEAD4" },
+              ].map((card) => (
+                <div key={card.label} style={{
+                  background: "oklch(0.16 0.012 270)",
+                  borderRadius: 18,
+                  border: "1px solid oklch(0.28 0.02 270 / 0.5)",
+                  padding: "16px 14px",
+                  display: "flex", flexDirection: "column", gap: 4,
+                }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <span style={{ fontSize: 16 }}>{card.icon}</span>
+                    <span style={{ fontSize: 10, fontWeight: 600, color: "#9e96b5", textTransform: "uppercase", letterSpacing: ".06em" }}>{card.label}</span>
                   </div>
-                  <p style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>
-                    {stats!.avgDurationMin > 0 ? formatDuration(stats!.avgDurationMin) : "–"}
+                  <p style={{ margin: 0, fontSize: 24, fontWeight: 700, color: card.color, letterSpacing: "-0.02em" }}>
+                    {card.value}
                   </p>
-                </CardContent>
-              </Card>
-
-              <Card className="rounded-2xl">
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Zap className="size-3.5 text-amber-400" />
-                    <p className="text-xs text-muted-foreground">{tFn(lang, "sono_avg_qualidade")}</p>
-                  </div>
-                  <p style={{ margin: 0, fontSize: 22, fontWeight: 700, color: qualityColor(stats!.avgQuality) }}>
-                    {stats!.avgQuality > 0 ? `${stats!.avgQuality} ${QUALITY_EMOJI[Math.round(stats!.avgQuality)]}` : "–"}
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="rounded-2xl">
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <TrendingUp className="size-3.5 text-emerald-500" />
-                    <p className="text-xs text-muted-foreground">{tFn(lang, "sono_consistencia")}</p>
-                  </div>
-                  <p style={{ margin: 0, fontSize: 22, fontWeight: 700, color: scoreColor(stats!.consistencyScore) }}>
-                    {stats!.consistencyScore}
-                    <span style={{ fontSize: 13, fontWeight: 500, color: "#9e96b5" }}> /100</span>
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="rounded-2xl">
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Moon className="size-3.5" style={{ color: P }} />
-                    <p className="text-xs text-muted-foreground">{tFn(lang, "sono_noites_semana")}</p>
-                  </div>
-                  <p style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>
-                    {stats!.totalNights}
-                  </p>
-                </CardContent>
-              </Card>
+                  {card.sub && (
+                    <p style={{ margin: 0, fontSize: 10, color: "#9e96b5" }}>{card.sub}</p>
+                  )}
+                </div>
+              ))}
             </div>
 
-            {/* Best / Worst */}
-            {stats!.bestNight && stats!.worstNight && stats!.bestNight.date !== stats!.worstNight.date && (
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                <Card className="rounded-2xl" style={{ background: "oklch(.16 .012 270)", border: "1px solid oklch(.28 .02 270 / .5)" }}>
-                  <CardContent className="p-3 text-center">
-                    <p className="text-xs text-muted-foreground mb-1">🌟 {tFn(lang, "sono_melhor_noite")}</p>
-                    <p style={{ margin: 0, fontSize: 13, fontWeight: 600 }}>
-                      {new Date(stats!.bestNight.date + "T12:00:00").toLocaleDateString(dateLocale(lang), { weekday: "short", day: "numeric" })}
-                    </p>
-                    <p style={{ margin: "2px 0 0", fontSize: 18, fontWeight: 700, color: "oklch(.58 .18 270)" }}>
-                      {stats!.bestNight.quality ? QUALITY_EMOJI[stats!.bestNight.quality] : sleepScore(stats!.bestNight)}
-                    </p>
-                  </CardContent>
-                </Card>
-                <Card className="rounded-2xl" style={{ background: "oklch(.95 .03 30 / .3)", border: "1px solid oklch(.7 .08 30 / .3)" }}>
-                  <CardContent className="p-3 text-center">
-                    <p className="text-xs text-muted-foreground mb-1">💡 {tFn(lang, "sono_a_melhorar")}</p>
-                    <p style={{ margin: 0, fontSize: 13, fontWeight: 600 }}>
-                      {new Date(stats!.worstNight.date + "T12:00:00").toLocaleDateString(dateLocale(lang), { weekday: "short", day: "numeric" })}
-                    </p>
-                    <p style={{ margin: "2px 0 0", fontSize: 18, fontWeight: 700, color: "oklch(.5 .15 30)" }}>
-                      {stats!.worstNight.quality ? QUALITY_EMOJI[stats!.worstNight.quality] : sleepScore(stats!.worstNight)}
-                    </p>
-                  </CardContent>
-                </Card>
+            {/* Melhor noite + comparativo semanal */}
+            {stats!.bestNight && (
+              <div style={{
+                background: "oklch(0.16 0.012 270)",
+                borderRadius: 18,
+                border: "1px solid oklch(0.28 0.02 270 / 0.5)",
+                padding: "14px 16px",
+                display: "flex", alignItems: "center", gap: 12,
+              }}>
+                <span style={{ fontSize: 28 }}>🌟</span>
+                <div style={{ flex: 1 }}>
+                  <p style={{ margin: 0, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".08em", color: "#A78BFA" }}>
+                    Melhor noite da semana
+                  </p>
+                  <p style={{ margin: "2px 0 0", fontSize: 13, color: "#e0d6ff" }}>
+                    {new Date(stats!.bestNight.date + "T12:00:00").toLocaleDateString(dateLocale(lang), { weekday: "long", day: "numeric" })}
+                    {" · "}{stats!.bestNight.duration_min ? formatDuration(stats!.bestNight.duration_min) : ""}
+                    {stats!.bestNight.quality ? ` · qualidade ${stats!.bestNight.quality}/5` : ""}
+                  </p>
+                </div>
+                <span style={{ fontSize: 24 }}>
+                  {stats!.bestNight.quality ? QUALITY_EMOJI[stats!.bestNight.quality] : "😊"}
+                </span>
               </div>
             )}
           </>
