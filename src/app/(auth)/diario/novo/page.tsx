@@ -161,7 +161,10 @@ export default function NovoDiarioPage() {
     if (recording) return;
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mimeType = MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : "audio/mp4";
+      // MP4 works on iOS Safari + Android Chrome; fallback to webm
+      const mimeType = MediaRecorder.isTypeSupported("audio/mp4") ? "audio/mp4"
+        : MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm"
+        : "audio/webm";
       const recorder = new MediaRecorder(stream, { mimeType });
       mediaRecorderRef.current = recorder;
       audioChunksRef.current = [];
@@ -355,7 +358,7 @@ export default function NovoDiarioPage() {
               flexShrink: 0, display: "flex", alignItems: "center", gap: 6,
               padding: "0 8px 0 4px", position: "relative",
             }}>
-              <audio src={photoUrl(a)!} controls style={{ height: 28, width: 160 }} />
+              <audio src={photoUrl(a)!} controls preload="metadata" style={{ height: 28, width: 160 }} />
               <button type="button" onClick={() => removeAudio(a)}
                 style={{
                   width: 20, height: 20, borderRadius: "50%", background: "rgba(0,0,0,0.5)",
@@ -456,8 +459,8 @@ export default function NovoDiarioPage() {
               onMouseDown={(e) => { e.preventDefault(); startRecording(); }}
               onMouseUp={() => { if (recording) stopRecording(); }}
               onMouseLeave={() => { if (recording) stopRecording(); }}
-              onTouchStart={(e) => { e.preventDefault(); startRecording(); }}
-              onTouchEnd={(e) => { e.preventDefault(); if (recording) stopRecording(); }}
+              onTouchStart={() => { startRecording(); }}
+              onTouchEnd={() => { if (recording) stopRecording(); }}
               style={{
                 width: recording ? 88 : 72, height: recording ? 88 : 72, borderRadius: 14,
                 border: recording ? "2px solid #FF4D4D" : "1.5px dashed rgba(167,139,250,0.3)",

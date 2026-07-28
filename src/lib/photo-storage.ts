@@ -111,6 +111,10 @@ export function photoHash(base64: string): string {
 
 /** Upload a base64 image to Supabase Storage. Returns the cloud path. */
 export async function uploadToCloud(base64: string, folder: "meals" | "diary" | "avatars"): Promise<string> {
+  // Warn about large uploads
+  if (base64.length > 5_000_000) {
+    console.warn(`[upload] Large file: ${(base64.length / 1_000_000).toFixed(1)}MB base64`);
+  }
   const res = await fetch("/api/upload", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -118,7 +122,9 @@ export async function uploadToCloud(base64: string, folder: "meals" | "diary" | 
   });
 
   if (!res.ok) {
-    throw new Error("Falha ao enviar foto");
+    const err = await res.json().catch(() => ({ error: res.statusText }));
+    console.error("[upload] Failed:", err);
+    throw new Error(err.error || "Falha ao enviar arquivo");
   }
 
   const data = await res.json();

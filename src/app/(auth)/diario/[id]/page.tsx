@@ -491,7 +491,7 @@ export default function DiarioEntryPage() {
                       borderRadius: 14, padding: "12px 14px", display: "flex", alignItems: "center", gap: 10,
                     }}>
                       <span style={{ fontSize: 20 }}>🎙️</span>
-                      <audio src={src} controls style={{ flex: 1, height: 32 }} />
+                      <audio src={src} controls preload="metadata" style={{ flex: 1, height: 32 }} />
                     </div>
                   ) : null;
                 })}

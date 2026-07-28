@@ -1,5 +1,6 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { syncCheckInField } from "@/lib/checkin-sync";
 import { NextRequest, NextResponse } from "next/server";
 
 // GET /api/agenda?date=YYYY-MM-DD  OR  /api/agenda?from=YYYY-MM-DD&to=YYYY-MM-DD
@@ -123,6 +124,11 @@ export async function PATCH(req: NextRequest) {
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  // Se concluiu um item vinculado a meta, sincroniza check-in em tempo real
+  if (data.linked_goal_id && data.status === "concluida" && data.date) {
+    syncCheckInField(user.id, data.date, "worked_on_goals", true).catch(() => {});
   }
 
   return NextResponse.json(data);

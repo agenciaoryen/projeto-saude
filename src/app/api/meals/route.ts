@@ -1,5 +1,8 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { syncCheckInField } from "@/lib/checkin-sync";
+import { ateWellFromMeals } from "@/lib/meal-utils";
+import { getLocalDate } from "@/lib/utils";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest) {
@@ -108,6 +111,8 @@ export async function POST(req: NextRequest) {
         .single();
 
       if (error) throw error;
+      // Auto-sync ate_well no check-in de hoje
+      syncAteWell(admin, user.id).catch(() => {});
       return NextResponse.json(updated);
     }
 
@@ -118,6 +123,8 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (error) throw error;
+    // Auto-sync ate_well no check-in de hoje
+    syncAteWell(admin, user.id).catch(() => {});
     return NextResponse.json(created, { status: 201 });
   } catch (error) {
     console.error("POST /api/meals error:", error);
@@ -126,6 +133,26 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+/** Recalcula ate_well das refeições de hoje e sincroniza o check-in */
+async function syncAteWell(
+  admin: ReturnType<typeof getSupabaseAdmin>,
+  userId: string
+) {
+  const today = getLocalDate();
+  const startOfDay = `${today}T00:00:00-03:00`;
+  const endOfDay = `${today}T23:59:59-03:00`;
+
+  const { data: meals } = await admin
+    .from("meals")
+    .select("macros, status_analise, classificacao")
+    .eq("user_id", userId)
+    .gte("data_hora", startOfDay)
+    .lte("data_hora", endOfDay);
+
+  const ateWell = ateWellFromMeals((meals ?? []) as any[]);
+  await syncCheckInField(userId, today, "ate_well", ateWell);
 }
 
 export async function DELETE(req: NextRequest) {

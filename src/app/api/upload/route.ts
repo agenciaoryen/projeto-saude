@@ -29,17 +29,20 @@ export async function POST(request: Request) {
     let mimeType: string;
     if (matches) {
       mimeType = matches[1];
+      console.log("[upload] mimeType detected:", mimeType);
       // Map MIME type to extension
       if (mimeType.startsWith("image/")) {
         ext = mimeType.includes("png") ? "png" : mimeType.includes("webp") ? "webp" : "jpg";
       } else if (mimeType.startsWith("audio/")) {
-        ext = mimeType.includes("webm") ? "webm" : mimeType.includes("mp4") || mimeType.includes("m4a") ? "m4a" : "ogg";
+        ext = mimeType.includes("webm") ? "webm" : mimeType.includes("mp4") || mimeType.includes("m4a") || mimeType.includes("x-m4a") ? "m4a" : mimeType.includes("ogg") || mimeType.includes("opus") ? "ogg" : "mp3";
       } else if (mimeType.startsWith("video/")) {
         ext = "mp4";
       } else if (mimeType.includes("pdf") || mimeType === "application/pdf") {
         ext = "pdf";
         mimeType = "application/pdf";
       } else {
+        // Unknown type — try to guess from the prefix
+        console.log("[upload] unknown mimeType, falling back:", mimeType);
         ext = "jpg";
       }
       buffer = Buffer.from(matches[2], "base64");
