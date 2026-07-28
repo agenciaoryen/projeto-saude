@@ -317,10 +317,10 @@ export default function AgendaPage() {
 
   const toggleTask = async (item: AgendaItem) => {
     const newStatus = item.status === "concluida" ? "pendente" : "concluida";
-    const isRepeated = !!(item as any)._origId;
+    const isRepeated = !!(item as any)._origId || item.id.includes("_r_") || item.id.includes("_cross");
 
     if (isRepeated) {
-      // Create a standalone record for this specific date
+      // Create a standalone record for this specific date (don't touch the original)
       const res = await fetch("/api/agenda", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -331,15 +331,15 @@ export default function AgendaPage() {
           start_time: item.start_time,
           end_time: item.end_time,
           priority: item.priority,
-          emoji: item.emoji,
-          description: item.description,
-          color: item.color,
+          emoji: item.emoji || null,
+          description: item.description || null,
+          color: item.color || null,
           status: newStatus,
         }),
       });
       if (res.ok) {
         const created = await res.json();
-        setItems(prev => prev.map(i => i.id === item.id ? { ...created, id: created.id } : i));
+        setItems(prev => prev.map(i => i.id === item.id ? { ...created, id: created.id, _origId: undefined } as any : i));
       }
     } else {
       setItems(prev => prev.map(i => i.id === item.id ? { ...i, status: newStatus } : i));
@@ -486,14 +486,13 @@ export default function AgendaPage() {
               }
             }}
           >
-            {/* ── Collapsible task strip (overlay) ── */}
-            {(tarefasSemHorario.length > 0 || dayPlanTasks.length > 0) && (
-              <div style={{
-                position: "absolute", top: 0, left: 0, right: 0, zIndex: 10,
-                background: "#1a1530", borderRadius: "18px 18px 0 0",
-                borderBottom: tasksOpen ? "1px solid rgba(167,139,250,0.15)" : "none",
-                boxShadow: tasksOpen ? "0 8px 24px rgba(0,0,0,0.4)" : "none",
-              }}>
+            {/* ── Collapsible task strip (overlay, always visible) ── */}
+            <div style={{
+              position: "absolute", top: 0, left: 0, right: 0, zIndex: 10,
+              background: "#1a1530", borderRadius: "18px 18px 0 0",
+              borderBottom: tasksOpen ? "1px solid rgba(167,139,250,0.15)" : "none",
+              boxShadow: tasksOpen ? "0 8px 24px rgba(0,0,0,0.4)" : "none",
+            }}>
                 <button type="button" onClick={() => setTasksOpen(!tasksOpen)} style={{
                   width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
                   padding: "10px 14px", background: "none", border: 0, cursor: "pointer",
@@ -587,7 +586,6 @@ export default function AgendaPage() {
                 </div>
                 )}
               </div>
-            )}
 
             <div ref={timelineScrollRef} style={{
               display: "flex", flex: 1, minHeight: 0,
