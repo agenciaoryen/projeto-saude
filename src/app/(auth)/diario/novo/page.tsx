@@ -40,7 +40,9 @@ export default function NovoDiarioPage() {
   const [saving, setSaving] = useState(false);
   const [recording, setRecording] = useState(false);
   const [audioMenuOpen, setAudioMenuOpen] = useState(false);
+  const [cameraMenuOpen, setCameraMenuOpen] = useState(false);
   const dateInputRef = useRef<HTMLInputElement>(null);
+  const cameraCaptureRef = useRef<HTMLInputElement>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
@@ -109,6 +111,12 @@ export default function NovoDiarioPage() {
   }, []);
 
   const isAudioFile = (path: string) => /\.(mp3|m4a|wav|ogg|webm|aac|flac)$/i.test(path);
+
+  const menuItemStyle: React.CSSProperties = {
+    display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10,
+    border: 0, background: "transparent", cursor: "pointer", fontFamily: "inherit",
+    fontSize: 13, color: "#e0d6ff", fontWeight: 600, textAlign: "left", width: "100%",
+  };
 
   const handleVideoAdd = useCallback(async (file: File) => {
     // Check duration for videos (max 10 min)
@@ -363,17 +371,51 @@ export default function NovoDiarioPage() {
               </button>
             </div>
           ))}
-          {/* Photo button */}
-          <button type="button" onClick={() => photoInputRef.current?.click()}
-            style={{
-              width: 72, height: 72, borderRadius: 14,
-              border: "1.5px dashed rgba(167,139,250,0.3)",
-              background: "rgba(124,92,255,0.06)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              cursor: "pointer", color: "#A78BFA",
-            }}>
-            <Camera size={20} />
-          </button>
+          {/* Camera button with menu */}
+          <div style={{ position: "relative" }}>
+            <button type="button"
+              onClick={() => setCameraMenuOpen(!cameraMenuOpen)}
+              style={{
+                width: 72, height: 72, borderRadius: 14,
+                border: "1.5px dashed rgba(167,139,250,0.3)",
+                background: "rgba(124,92,255,0.06)", display: "flex",
+                alignItems: "center", justifyContent: "center",
+                cursor: "pointer", color: "#A78BFA", flexDirection: "column", gap: 2,
+              }}>
+              <Camera size={20} />
+              <span style={{ fontSize: 9, color: "#9e96b5" }}>Câmera</span>
+            </button>
+            {cameraMenuOpen && (
+              <div style={{
+                position: "absolute", bottom: 80, left: 0, zIndex: 20,
+                background: "#1a1530", border: "1px solid rgba(167,139,250,0.25)",
+                borderRadius: 14, padding: 6, boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
+                display: "flex", flexDirection: "column", gap: 2, minWidth: 200,
+              }}>
+                <button type="button" onClick={() => { setCameraMenuOpen(false); photoInputRef.current?.click(); }}
+                  style={menuItemStyle}>
+                  <span style={{ fontSize: 16 }}>🖼️</span> Fototeca
+                </button>
+                <button type="button" onClick={() => { setCameraMenuOpen(false); cameraCaptureRef.current?.click(); }}
+                  style={menuItemStyle}>
+                  <span style={{ fontSize: 16 }}>📸</span> Tirar foto
+                </button>
+                <button type="button" onClick={() => { setCameraMenuOpen(false); videoInputRef.current?.click(); }}
+                  style={menuItemStyle}>
+                  <span style={{ fontSize: 16 }}>🎬</span> Gravar vídeo
+                </button>
+                <button type="button" onClick={() => { setCameraMenuOpen(false); photoInputRef.current?.click(); }}
+                  style={menuItemStyle}>
+                  <span style={{ fontSize: 16 }}>📁</span> Escolher arquivo
+                </button>
+              </div>
+            )}
+            {cameraMenuOpen && <div style={{ position: "fixed", inset: 0, zIndex: 19 }} onClick={() => setCameraMenuOpen(false)} />}
+          </div>
+          <input ref={photoInputRef} type="file" accept="image/*" style={{ display: "none" }}
+            onChange={(e) => { if (e.target.files?.[0]) handlePhotoAdd(e.target.files[0]); e.target.value = ""; }} />
+          <input ref={cameraCaptureRef} type="file" accept="image/*" capture="environment" style={{ display: "none" }}
+            onChange={(e) => { if (e.target.files?.[0]) handlePhotoAdd(e.target.files[0]); e.target.value = ""; }} />
           {/* Audio button with menu */}
           <div style={{ position: "relative" }}>
             <button type="button"
@@ -399,21 +441,12 @@ export default function NovoDiarioPage() {
                   onMouseUp={() => stopRecording()}
                   onMouseLeave={() => recording && stopRecording()}
                   onTouchEnd={(e) => { e.preventDefault(); stopRecording(); }}
-                  style={{
-                    display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10,
-                    border: 0, background: recording ? "rgba(255,77,77,0.15)" : "transparent",
-                    cursor: "pointer", fontFamily: "inherit", fontSize: 13, color: recording ? "#FF4D4D" : "#e0d6ff",
-                    fontWeight: 600, textAlign: "left", width: "100%",
-                  }}>
+                  style={{ ...menuItemStyle, background: recording ? "rgba(255,77,77,0.15)" : "transparent", color: recording ? "#FF4D4D" : "#e0d6ff" }}>
                   <span style={{ fontSize: 16 }}>{recording ? "🔴" : "🎤"}</span>
                   {recording ? "Gravando... solte para parar" : "Gravar áudio"}
                 </button>
                 <button type="button" onClick={() => { setAudioMenuOpen(false); audioInputRef.current?.click(); }}
-                  style={{
-                    display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10,
-                    border: 0, background: "transparent", cursor: "pointer", fontFamily: "inherit",
-                    fontSize: 13, color: "#e0d6ff", fontWeight: 600, textAlign: "left", width: "100%",
-                  }}>
+                  style={menuItemStyle}>
                   <span style={{ fontSize: 16 }}>📁</span>
                   Escolher arquivo
                 </button>
@@ -425,32 +458,8 @@ export default function NovoDiarioPage() {
             onChange={(e) => { if (e.target.files?.[0]) handlePhotoAdd(e.target.files[0]); e.target.value = ""; }} />
           <input ref={audioInputRef} type="file" accept="audio/*" style={{ display: "none" }}
             onChange={(e) => { if (e.target.files?.[0]) handleAudioAdd(e.target.files[0]); e.target.value = ""; }} />
-          {/* Video button */}
-          <button type="button" onClick={() => videoInputRef.current?.click()}
-            style={{
-              width: 72, height: 72, borderRadius: 14,
-              border: "1.5px dashed rgba(167,139,250,0.3)",
-              background: "rgba(124,92,255,0.06)", display: "flex",
-              alignItems: "center", justifyContent: "center",
-              cursor: "pointer", color: "#A78BFA", flexDirection: "column", gap: 2,
-            }}>
-            <Video size={20} />
-            <span style={{ fontSize: 9, color: "#9e96b5" }}>Vídeo</span>
-          </button>
           <input ref={videoInputRef} type="file" accept="video/*" style={{ display: "none" }}
             onChange={(e) => { if (e.target.files?.[0]) handleVideoAdd(e.target.files[0]); e.target.value = ""; }} />
-          {/* PDF button */}
-          <button type="button" onClick={() => pdfInputRef.current?.click()}
-            style={{
-              width: 72, height: 72, borderRadius: 14,
-              border: "1.5px dashed rgba(167,139,250,0.3)",
-              background: "rgba(124,92,255,0.06)", display: "flex",
-              alignItems: "center", justifyContent: "center",
-              cursor: "pointer", color: "#A78BFA", flexDirection: "column", gap: 2,
-            }}>
-            <FileText size={20} />
-            <span style={{ fontSize: 9, color: "#9e96b5" }}>PDF</span>
-          </button>
           <input ref={pdfInputRef} type="file" accept=".pdf,application/pdf" style={{ display: "none" }}
             onChange={(e) => { if (e.target.files?.[0]) handlePdfAdd(e.target.files[0]); e.target.value = ""; }} />
         </div>
