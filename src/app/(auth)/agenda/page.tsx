@@ -1114,7 +1114,7 @@ export default function AgendaPage() {
               <div style={{ marginTop: 14 }}>
                 <label style={{ fontSize: 10, color: "#9e96b5", marginBottom: 6, display: "block" }}>Data limite</label>
                 <input type="date" value={newDueDate} onChange={e => setNewDueDate(e.target.value)}
-                  style={{ ...modalInput, width: "100%", boxSizing: "border-box", minWidth: 0 }} />
+                  style={modalInput} />
               </div>
             )}
 
