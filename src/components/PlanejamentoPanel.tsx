@@ -115,6 +115,10 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
   const [editingPlanTask, setEditingPlanTask] = useState<any>(null);
   const [planEditTitle, setPlanEditTitle] = useState("");
   const [planEditDay, setPlanEditDay] = useState(0);
+  const [showStoneEditor, setShowStoneEditor] = useState(false);
+  const [stone1, setStone1] = useState("");
+  const [stone2, setStone2] = useState("");
+  const [stone3, setStone3] = useState("");
 
   const fetchPlan = async () => {
     try {
@@ -239,7 +243,12 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
           <h2 style={{ margin: 0, fontSize: 13, fontWeight: 700, color: "#A78BFA", textTransform: "uppercase", letterSpacing: ".08em" }}>Pedras</h2>
           {focuses.length > 0 && (
-            <button type="button" onClick={() => router.push("/planejamento")}
+            <button type="button" onClick={() => {
+              setStone1(focuses[0] || "");
+              setStone2(focuses[1] || "");
+              setStone3(focuses[2] || "");
+              setShowStoneEditor(true);
+            }}
               style={{ background: "none", border: 0, cursor: "pointer", color: "#A78BFA", fontFamily: "inherit", fontSize: 11, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
               <Pencil size={11} /> Editar
             </button>
@@ -569,6 +578,57 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
                 }
               }}
                 style={{ flex: 2, padding: "12px 0", borderRadius: 14, border: 0, background: "#7C5CFF", color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                Salvar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Stone editor modal ─────────────────────────── */}
+      {showStoneEditor && (
+        <div onTouchMove={(e) => e.stopPropagation()}
+          style={{ position: "fixed", inset: 0, zIndex: 100, background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)", display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "60px 20px 20px", overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
+          <div style={{ width: "100%", maxWidth: 380, background: "#151520", borderRadius: 24, padding: 24, border: "1px solid rgba(167,139,250,0.15)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "#e0d6ff" }}>Editar pedras</h3>
+              <button type="button" onClick={() => setShowStoneEditor(false)} style={{ background: "none", border: 0, color: "#9e96b5", fontSize: 18, cursor: "pointer" }}>✕</button>
+            </div>
+            {[1,2,3].map(n => {
+              const val = n === 1 ? stone1 : n === 2 ? stone2 : stone3;
+              const setVal = n === 1 ? setStone1 : n === 2 ? setStone2 : setStone3;
+              return (
+                <div key={n} style={{ marginBottom: 10 }}>
+                  <label style={{ fontSize: 10, fontWeight: 700, color: "#A78BFA", textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 4, display: "block" }}>
+                    {["I", "II", "III"][n-1]}
+                  </label>
+                  <input value={val} onChange={e => setVal(e.target.value)}
+                    placeholder={`Pedra ${["I","II","III"][n-1]}`}
+                    style={{...inputS, width: "100%", boxSizing: "border-box"}} />
+                </div>
+              );
+            })}
+            <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
+              <button type="button" onClick={() => setShowStoneEditor(false)}
+                style={{ flex: 1, padding: 14, borderRadius: 14, border: "1px solid rgba(167,139,250,0.2)", background: "transparent", color: "#9e96b5", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Cancelar</button>
+              <button type="button" onClick={async () => {
+                if (!plan) return;
+                const res = await fetch(`/api/weekly-plans/${plan.id}`, {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    main_focus: stone1.trim() || null,
+                    main_focus_2: stone2.trim() || null,
+                    main_focus_3: stone3.trim() || null,
+                  }),
+                });
+                if (res.ok) {
+                  const updated = await res.json();
+                  setPlan(updated);
+                  setShowStoneEditor(false);
+                }
+              }}
+                style={{ flex: 2, padding: 14, borderRadius: 14, border: 0, background: "#7C5CFF", color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
                 Salvar
               </button>
             </div>
