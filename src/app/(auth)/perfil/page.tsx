@@ -3,9 +3,11 @@
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { BellRing, BellOff } from "lucide-react";
 import { useTranslation } from "@/lib/useTranslation";
 import { LANG_OPTIONS } from "@/lib/i18n";
 import { compressImage, uploadToCloud, photoUrl } from "@/lib/photo-storage";
+import { requestPushSubscription, hasPushPermission } from "@/lib/push-utils";
 import { LogoutButton } from "@/components/LogoutButton";
 import { AvatarCropModal } from "@/components/AvatarCropModal";
 
@@ -156,6 +158,45 @@ export default function PerfilPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [memberSince, setMemberSince] = useState("");
   const [cropImage, setCropImage] = useState<string | null>(null);
+  const [pushState, setPushState] = useState<"unknown" | "granted" | "denied" | "loading" | "unsupported">("unknown");
+
+  // ── Push notifications ────────────────────────────────────────────────────────
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+      setPushState("unsupported");
+      return;
+    }
+    if (hasPushPermission()) {
+      setPushState("granted");
+    } else if ("Notification" in window && Notification.permission === "denied") {
+      setPushState("denied");
+    }
+  }, []);
+
+  const handleEnablePush = async () => {
+    setPushState("loading");
+    const { sub, error } = await requestPushSubscription();
+    if (!sub) {
+      if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "denied") {
+        setPushState("denied");
+      } else {
+        setPushState("unknown");
+        toast.error(error ?? "Erro ao ativar notificações");
+      }
+      return;
+    }
+    try {
+      await fetch("/api/push/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(sub),
+      });
+    } catch { /* retry next visit */ }
+    setPushState("granted");
+    toast.success("Notificações ativadas!");
+  };
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isFirstRender = useRef(true);
@@ -439,6 +480,70 @@ export default function PerfilPage() {
               </button>
             ))}
           </div>
+        </div>
+
+        {/* Notificações Push */}
+        <div style={card}>
+          {label11("Notificações")}
+          <p style={{ margin: "0 0 14px", fontSize: 12, color: "#9e96b5", lineHeight: 1.5 }}>
+            Receba lembretes de sono, check-in, refeições e compromissos da sua agenda.
+          </p>
+
+          {pushState === "granted" && (
+            <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", borderRadius: 12, background: "rgba(124,92,255,0.08)", border: "1px solid rgba(167,139,250,0.2)" }}>
+              <BellRing size={18} style={{ color: "#7C5CFF", flexShrink: 0 }} />
+              <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: "#e0d6ff" }}>Notificações ativas</span>
+              <button
+                type="button"
+                onClick={async () => {
+                  const res = await fetch("/api/push/test", { method: "POST" });
+                  if (!res.ok) {
+                    const { error } = await res.json();
+                    toast.error(error ?? "Erro ao enviar teste");
+                  } else {
+                    toast.success("Push de teste enviado!");
+                  }
+                }}
+                style={{
+                  padding: "6px 12px", borderRadius: 9999, border: 0, cursor: "pointer",
+                  background: "#7C5CFF", color: "#fff", fontFamily: "inherit",
+                  fontSize: 11, fontWeight: 600,
+                }}
+              >
+                Testar
+              </button>
+            </div>
+          )}
+
+          {pushState === "unknown" && (
+            <button type="button" onClick={handleEnablePush}
+              style={{
+                width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                padding: "12px 14px", borderRadius: 12, border: 0, cursor: "pointer",
+                background: "#7C5CFF", color: "#fff", fontFamily: "inherit",
+                fontSize: 13, fontWeight: 700,
+              }}>
+              <BellRing size={16} /> Ativar notificações
+            </button>
+          )}
+
+          {pushState === "loading" && (
+            <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", borderRadius: 12, background: "rgba(124,92,255,0.08)", border: "1px solid rgba(167,139,250,0.2)" }}>
+              <BellRing size={18} style={{ color: "#A78BFA", flexShrink: 0 }} className="animate-pulse" />
+              <span style={{ fontSize: 13, color: "#A78BFA", fontWeight: 500 }}>Aguardando permissão...</span>
+            </div>
+          )}
+
+          {pushState === "denied" && (
+            <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", borderRadius: 12, background: "rgba(255,92,92,0.06)", border: "1px solid rgba(255,92,92,0.2)" }}>
+              <BellOff size={18} style={{ color: "#FF5C5C", flexShrink: 0 }} />
+              <span style={{ flex: 1, fontSize: 12, color: "#FF5C5C", fontWeight: 500, lineHeight: 1.4 }}>
+                Notificações bloqueadas. Vá nas configurações do navegador para liberar.
+              </span>
+            </div>
+          )}
+
+          {pushState === "unsupported" && null}
         </div>
 
         {/* Porquês */}

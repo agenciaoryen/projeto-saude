@@ -243,21 +243,32 @@ export default function AgendaPage() {
 
       // ── Midnight-crossing: items from YESTERDAY that cross into today ──
       const yesterday = shiftDate(date, -1);
-      const yesterdayItems = all.filter(i => i.date === yesterday && i.item_type === "compromisso" && i.start_time && i.end_time);
-      for (const item of yesterdayItems) {
+      // Collect ALL items that appeared yesterday (real + synthetic repeats)
+      const yesterdayCrossItems: AgendaItem[] = [];
+      for (const item of all) {
+        // Real item on yesterday
+        if (item.date === yesterday && item.item_type === "compromisso" && item.start_time && item.end_time) {
+          yesterdayCrossItems.push(item);
+        }
+        // Repeating item that would appear on yesterday
+        if (item.repeat_type && item.repeat_type !== "none" && item.item_type === "compromisso" && item.start_time && item.end_time) {
+          if (repeatMatches(item, yesterday)) {
+            yesterdayCrossItems.push({ ...item, date: yesterday });
+          }
+        }
+      }
+      for (const item of yesterdayCrossItems) {
         const [sh, sm] = (item.start_time || "00:00").split(":").map(Number);
         const [eh, em] = (item.end_time || "00:00").split(":").map(Number);
-        // Crosses midnight if end time is earlier than or equal to start time
         if (eh * 60 + em <= sh * 60 + sm) {
-          // Check if a standalone item already exists for this continuation
           const crossKey = date + "|" + item.title.toLowerCase().trim();
           if (!realEntries.has(crossKey)) {
             result.push({
               ...item,
               date,
-              id: item.id + "_cross",
+              id: (item as any)._origId ? (item as any)._origId + "_cross" : item.id + "_cross",
               start_time: "00:00",
-              _origId: item.id,
+              _origId: (item as any)._origId || item.id,
             } as any);
           }
         }

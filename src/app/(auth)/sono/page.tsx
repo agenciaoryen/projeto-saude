@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Moon, Zap, Clock, TrendingUp, BellRing, BellOff, Plus } from "lucide-react";
+import { Moon, Zap, Clock, TrendingUp, Plus } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   computeSleepStats,
@@ -9,7 +9,6 @@ import {
   formatDuration,
   sleepCycleTimes,
 } from "@/lib/sleep-utils";
-import { requestPushSubscription, hasPushPermission } from "@/lib/push-utils";
 import type { SleepLog, SleepStats } from "@/types";
 import { getLocalDate } from "@/lib/utils";
 import { useTranslation } from "@/lib/useTranslation";
@@ -63,30 +62,6 @@ function scoreColor(s: number): string {
 function fmt12(ts: string | null, lang: Lang = "pt"): string {
   if (!ts) return "--";
   return new Date(ts).toLocaleTimeString(dateLocale(lang), { hour: "2-digit", minute: "2-digit" });
-}
-
-// ── Push helpers ──────────────────────────────────────────────────────────────
-
-type PushState = "unknown" | "granted" | "denied" | "loading" | "unsupported";
-
-type PushResult = "granted" | "denied" | "error";
-
-async function subscribeToPush(): Promise<{ result: PushResult; errorMsg?: string }> {
-  const { sub, error } = await requestPushSubscription();
-  if (!sub) {
-    if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "denied") {
-      return { result: "denied" };
-    }
-    return { result: "error", errorMsg: error ?? undefined };
-  }
-  try {
-    await fetch("/api/push/subscribe", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(sub),
-    });
-  } catch { /* retry on next visit */ }
-  return { result: "granted" };
 }
 
 // ── Input style shared ────────────────────────────────────────────────────────
@@ -613,8 +588,6 @@ export default function SonoPage() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingLog, setEditingLog] = useState<SleepLog | null>(null);
-  const [pushState, setPushState] = useState<PushState>("unknown");
-  const [pushError, setPushError] = useState<string | null>(null);
   const [config, setConfig] = useState<SleepConfig>(DEFAULT_CONFIG);
   const [configSaving, setConfigSaving] = useState(false);
 
@@ -638,35 +611,6 @@ export default function SonoPage() {
   }, []);
 
   useEffect(() => { loadLogs(); }, [loadLogs]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
-      setPushState("unsupported");
-      return;
-    }
-    if (hasPushPermission()) {
-      setPushState("granted");
-    } else if (Notification.permission === "denied") {
-      setPushState("denied");
-    } else {
-      setPushState("unknown");
-    }
-  }, []);
-
-  const handleEnablePush = async () => {
-    setPushState("loading");
-    const { result, errorMsg } = await subscribeToPush();
-    if (result === "granted") {
-      setPushState("granted");
-    } else if (result === "denied") {
-      setPushState("denied");
-    } else {
-      setPushState("unknown");
-      setPushError(errorMsg ?? "Erro desconhecido");
-      setTimeout(() => setPushError(null), 8000);
-    }
-  };
 
   const handleSaveConfig = async () => {
     setConfigSaving(true);
@@ -815,90 +759,6 @@ export default function SonoPage() {
 
         {/* ── Cycle calculator ── */}
         <CycleCalculator defaultBedtime={config.bedtime} lang={lang} />
-
-        {/* ── Push notification ── */}
-        {pushState === "unknown" && (
-          <Card className="rounded-2xl" style={{
-            background: "linear-gradient(135deg, oklch(.58 .18 270 / .15) 0%, oklch(.58 .18 270 / .1) 100%)",
-            border: "1px solid oklch(.58 .18 270 / .25)",
-          }}>
-            <CardContent className="p-4 space-y-3">
-              <div className="flex items-center gap-2">
-                <BellRing className="size-4" style={{ color: P }} />
-                <p className="text-sm font-semibold">{tFn(lang, "sono_lembretes")}</p>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {tFn(lang, "sono_lembretes_desc")}
-              </p>
-              <button type="button" onClick={handleEnablePush} style={{
-                height: 40, padding: "0 18px", borderRadius: 9999,
-                background: P, color: "#fff",
-                border: 0, cursor: "pointer", fontFamily: "inherit",
-                fontSize: 13, fontWeight: 600,
-              }}>
-                {tFn(lang, "sono_ativar")}
-              </button>
-            </CardContent>
-          </Card>
-        )}
-
-        {pushState === "loading" && (
-          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", borderRadius: 12, background: PL, border: PB }}>
-            <BellRing className="size-4 animate-pulse" style={{ color: P }} />
-            <p style={{ margin: 0, fontSize: 13, fontWeight: 500 }}>{tFn(lang, "sono_aguardando_perm")}</p>
-          </div>
-        )}
-
-        {pushError && pushState === "unknown" && (
-          <div style={{ display: "flex", alignItems: "flex-start", gap: 8, padding: "10px 14px", borderRadius: 12, background: "oklch(.95 .02 60 / .5)", border: "1px solid oklch(.7 .06 60 / .3)" }}>
-            <BellOff className="size-4 mt-0.5 shrink-0" style={{ color: "oklch(.55 .1 60)" }} />
-            <div>
-              <p style={{ margin: 0, fontSize: 12, color: "oklch(.4 .08 60)", fontWeight: 600 }}>
-                {tFn(lang, "sono_nao_foi_possivel")}
-              </p>
-              <p style={{ margin: "2px 0 0", fontSize: 11, color: "oklch(.5 .06 60)", fontFamily: "monospace", wordBreak: "break-all" }}>
-                {pushError}
-              </p>
-            </div>
-          </div>
-        )}
-
-        {pushState === "granted" && (
-          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", borderRadius: 12, background: PL, border: PB }}>
-            <BellRing className="size-4 shrink-0" style={{ color: P }} />
-            <p style={{ margin: 0, flex: 1, fontSize: 13, color: "#e0d6ff", fontWeight: 500 }}>
-              {tFn(lang, "sono_ativos")}
-            </p>
-            <button
-              type="button"
-              onClick={async () => {
-                const res = await fetch("/api/push/test", { method: "POST" });
-                if (!res.ok) {
-                  const { error } = await res.json();
-                  alert(error ?? "Erro ao enviar teste");
-                }
-              }}
-              style={{
-                padding: "4px 10px", borderRadius: 9999, border: 0, cursor: "pointer",
-                background: P, color: "#fff", fontFamily: "inherit",
-                fontSize: 11, fontWeight: 600, flexShrink: 0,
-              }}
-            >
-              {tFn(lang, "sono_testar")}
-            </button>
-          </div>
-        )}
-
-        {pushState === "denied" && (
-          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", borderRadius: 12, background: "oklch(.95 .02 30 / .4)", border: "1px solid oklch(.7 .06 30 / .3)" }}>
-            <BellOff className="size-4" style={{ color: "oklch(.5 .1 30)" }} />
-            <p style={{ margin: 0, fontSize: 12, color: "oklch(.4 .08 30)", fontWeight: 500, lineHeight: 1.4 }}>
-              {tFn(lang, "sono_notif_bloqueadas")}
-            </p>
-          </div>
-        )}
-
-        {pushState === "unsupported" && null}
 
         {/* ── Sleep config ── */}
         <SleepConfigCard
