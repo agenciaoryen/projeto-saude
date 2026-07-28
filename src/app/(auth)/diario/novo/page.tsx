@@ -39,6 +39,7 @@ export default function NovoDiarioPage() {
   const [pdfs, setPdfs] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [recording, setRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
   const [audioMenuOpen, setAudioMenuOpen] = useState(false);
   const [cameraMenuOpen, setCameraMenuOpen] = useState(false);
   const dateInputRef = useRef<HTMLInputElement>(null);
@@ -159,25 +160,36 @@ export default function NovoDiarioPage() {
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream, { mimeType: MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : "audio/mp4" });
+      const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+        ? "audio/webm;codecs=opus"
+        : MediaRecorder.isTypeSupported("audio/webm")
+          ? "audio/webm"
+          : "audio/mp4";
+      const recorder = new MediaRecorder(stream, { mimeType });
       mediaRecorderRef.current = recorder;
       audioChunksRef.current = [];
+      setRecordingTime(0);
+      const startTime = Date.now();
+      const timerInterval = setInterval(() => setRecordingTime(Math.floor((Date.now() - startTime) / 1000)), 500);
       recorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunksRef.current.push(e.data); };
       recorder.onstop = async () => {
+        clearInterval(timerInterval);
         stream.getTracks().forEach(t => t.stop());
-        const blob = new Blob(audioChunksRef.current);
+        const blob = new Blob(audioChunksRef.current, { type: mimeType });
+        if (blob.size === 0) { setRecording(false); setRecordingTime(0); return; }
         const reader = new FileReader();
         const base64 = await new Promise<string>((resolve) => {
           reader.onload = () => resolve(reader.result as string);
           reader.readAsDataURL(blob);
         });
-        const path = await uploadToCloud(base64, "diary");
-        setAudios((prev) => [...prev, path]);
+        try {
+          const path = await uploadToCloud(base64, "diary");
+          setAudios((prev) => [...prev, path]);
+        } catch { toast.error("Erro ao salvar áudio"); }
       };
-      recorder.start();
+      recorder.start(1000);
       setRecording(true);
     } catch {
-      // Fall back to file upload
       audioInputRef.current?.click();
     }
   };
@@ -187,6 +199,7 @@ export default function NovoDiarioPage() {
       mediaRecorderRef.current.stop();
     }
     setRecording(false);
+    setRecordingTime(0);
   };
 
   const handlePaste = (e: React.ClipboardEvent) => {
@@ -313,6 +326,29 @@ export default function NovoDiarioPage() {
               </button>
             </div>
           ))}
+          {/* Recording indicator */}
+          {recording && (
+            <div style={{
+              height: 44, borderRadius: 12,
+              border: "2px solid #FF4D4D",
+              background: "rgba(255,77,77,0.12)",
+              flexShrink: 0, display: "flex", alignItems: "center", gap: 8,
+              padding: "0 14px", animation: "pulse 1s infinite",
+            }}>
+              <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#FF4D4D", flexShrink: 0 }} />
+              <span style={{ fontSize: 12, fontWeight: 600, color: "#FF4D4D" }}>
+                Gravando {recordingTime}s
+              </span>
+              <button type="button" onClick={stopRecording}
+                style={{
+                  width: 28, height: 28, borderRadius: "50%", background: "#FF4D4D",
+                  border: 0, color: "#fff", display: "flex", alignItems: "center",
+                  justifyContent: "center", cursor: "pointer", fontSize: 14,
+                }}>
+                ■
+              </button>
+            </div>
+          )}
           {/* Audio clips */}
           {audios.map((a) => (
             <div key={a} style={{

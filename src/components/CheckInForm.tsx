@@ -222,8 +222,8 @@ export function CheckInForm({ existingCheckIn }: CheckInFormProps) {
     }
   }, [form.water_cups]);
 
-  // ate_well e drank_water são auto-calculados — mostramos como cards informativos
-  const autoCalculatedKeys = new Set(["ate_well", "drank_water"]);
+  // ate_well, drank_water e worked_on_goals são auto-calculados
+  const autoCalculatedKeys = new Set(["ate_well", "drank_water", "worked_on_goals"]);
   const visibleKeys = enabledKeys.filter((k) => !autoCalculatedKeys.has(k));
 
   const activeQuestions = visibleKeys.map((key) => ({
@@ -448,6 +448,8 @@ export function CheckInForm({ existingCheckIn }: CheckInFormProps) {
                   ? (done ? "Refeições equilibradas hoje" : hasMealData ? "Registre mais refeições" : "Registre suas refeições")
                   : key === "drank_water"
                   ? (done ? `${form.water_cups} copos = ${form.water_cups * 250}ml ✓` : `${form.water_cups}/${MIN_WATER_CUPS} copos para meta`)
+                  : key === "worked_on_goals"
+                  ? (done ? "Completou tarefas do plano hoje" : "Conclua uma tarefa do plano")
                   : "";
                 return (
                   <div key={key} style={{

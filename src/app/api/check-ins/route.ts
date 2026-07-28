@@ -74,11 +74,11 @@ export async function POST(req: NextRequest) {
       bowel_movement: body.bowel_movement ?? false,
       exercise_walk: body.exercise_walk ?? false,
       water_cups: body.water_cups ?? 0,
-      drank_water: body.water_cups !== undefined ? body.water_cups >= 4 : (body.drank_water ?? false),
+      drank_water: body.water_cups !== undefined ? body.water_cups >= 6 : (body.drank_water ?? false),
       slept_well: body.slept_well ?? false,
       suicidal_thoughts: body.suicidal_thoughts ?? false,
       did_something_enjoyable: body.did_something_enjoyable ?? false,
-      worked_on_goals: body.worked_on_goals ?? false,
+      worked_on_goals: body.worked_on_goals ?? false, // será recalculado abaixo
       feeling: body.feeling ?? "",
       mood_tags: body.mood_tags ?? [],
       gratitude: body.gratitude ?? "",
@@ -86,6 +86,47 @@ export async function POST(req: NextRequest) {
     };
 
     const admin = getSupabaseAdmin();
+
+    // ── Auto-detect "trabalhou nas metas" ──────────────────────────
+    // Check if user completed any goal-related tasks today
+    const checkDate = row.date;
+    const todayDow = new Date(checkDate + "T12:00:00").getDay();
+    const monDow = todayDow === 0 ? 6 : todayDow - 1; // 0=Mon..6=Sun
+
+    const [planRes, agendaRes, actionsRes] = await Promise.all([
+      // Weekly plan tasks completed today
+      admin.from("weekly_tasks")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("day_of_week", monDow)
+        .eq("status", "concluida")
+        .limit(1),
+      // Agenda items linked to goals, completed today
+      admin.from("agenda_items")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("status", "concluida")
+        .eq("date", checkDate)
+        .not("linked_goal_id", "is", null)
+        .limit(1),
+      // Goal actions completed today (via updated_at)
+      admin.from("goal_actions")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("status", "concluida")
+        .gte("updated_at", `${checkDate}T00:00:00`)
+        .lte("updated_at", `${checkDate}T23:59:59`)
+        .limit(1),
+    ]);
+
+    const workedOnGoals =
+      (planRes.data?.length ?? 0) > 0 ||
+      (agendaRes.data?.length ?? 0) > 0 ||
+      (actionsRes.data?.length ?? 0) > 0;
+
+    if (workedOnGoals) {
+      row.worked_on_goals = true;
+    }
 
     const { data: existing } = await admin
       .from("check_ins")
