@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useTranslation } from "@/lib/useTranslation";
 import { compressImage, uploadToCloud, photoUrl } from "@/lib/photo-storage";
-import { ChevronLeft, ChevronDown, Plus, X, ArrowRight, Camera } from "lucide-react";
+import { ChevronLeft, ChevronDown, Plus, X, ArrowRight, Camera, Mic } from "lucide-react";
 
 const MOODS = [1, 2, 3, 4, 5] as const;
 const MOOD_EMOJI: Record<number, string> = { 1: "😔", 2: "😕", 3: "😐", 4: "🙂", 5: "😊" };
@@ -34,9 +34,11 @@ export default function NovoDiarioPage() {
   const [mood, setMood] = useState<number | null>(null);
   const [moodOpen, setMoodOpen] = useState(false);
   const [photos, setPhotos] = useState<string[]>([]);
+  const [audios, setAudios] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const dateInputRef = useRef<HTMLInputElement>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
+  const audioInputRef = useRef<HTMLInputElement>(null);
 
   const selectedMoodEmoji = mood ? MOOD_EMOJI[mood] : "😶";
 
@@ -61,7 +63,7 @@ export default function NovoDiarioPage() {
     const res = await fetch("/api/diary", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ date: entryDate, title: title.trim(), content: content.trim(), mood, photos }),
+      body: JSON.stringify({ date: entryDate, title: title.trim(), content: content.trim(), mood, photos: [...photos, ...audios] }),
     });
     if (!res.ok) { toast.error(t("erro_salvar_entrada")); setSaving(false); return; }
     toast.success(t("entrada_salva"));
@@ -77,9 +79,28 @@ export default function NovoDiarioPage() {
     } catch { toast.error("Erro ao processar imagem"); }
   }, []);
 
+  const handleAudioAdd = useCallback(async (file: File) => {
+    try {
+      const reader = new FileReader();
+      const base64 = await new Promise<string>((resolve, reject) => {
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const path = await uploadToCloud(base64, "diary");
+      setAudios((prev) => [...prev, path]);
+    } catch { toast.error("Erro ao processar áudio"); }
+  }, []);
+
   const removePhoto = useCallback((path: string) => {
     setPhotos((prev) => prev.filter((p) => p !== path));
   }, []);
+
+  const removeAudio = useCallback((path: string) => {
+    setAudios((prev) => prev.filter((a) => a !== path));
+  }, []);
+
+  const isAudioFile = (path: string) => /\.(mp3|m4a|wav|ogg|webm|aac|flac)$/i.test(path);
 
   const handlePaste = (e: React.ClipboardEvent) => {
     e.preventDefault();
@@ -184,9 +205,10 @@ export default function NovoDiarioPage() {
         />
       </div>
 
-      {/* Photo strip */}
+      {/* Media strip (photos + audio) */}
       <div style={{ padding: "20px 24px 0" }}>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          {/* Photos */}
           {photos.map((p) => (
             <div key={p} style={{
               width: 72, height: 72, borderRadius: 14, overflow: "hidden",
@@ -204,6 +226,27 @@ export default function NovoDiarioPage() {
               </button>
             </div>
           ))}
+          {/* Audio clips */}
+          {audios.map((a) => (
+            <div key={a} style={{
+              height: 44, borderRadius: 12, overflow: "hidden",
+              border: "1.5px solid rgba(167,139,250,0.25)",
+              background: "rgba(124,92,255,0.06)",
+              flexShrink: 0, display: "flex", alignItems: "center", gap: 6,
+              padding: "0 8px 0 4px", position: "relative",
+            }}>
+              <audio src={photoUrl(a)!} controls style={{ height: 28, width: 160 }} />
+              <button type="button" onClick={() => removeAudio(a)}
+                style={{
+                  width: 20, height: 20, borderRadius: "50%", background: "rgba(0,0,0,0.5)",
+                  border: 0, color: "#fff", display: "flex", alignItems: "center",
+                  justifyContent: "center", cursor: "pointer", flexShrink: 0,
+                }}>
+                <X size={10} />
+              </button>
+            </div>
+          ))}
+          {/* Photo button */}
           <button type="button" onClick={() => photoInputRef.current?.click()}
             style={{
               width: 72, height: 72, borderRadius: 14,
@@ -212,10 +255,23 @@ export default function NovoDiarioPage() {
               display: "flex", alignItems: "center", justifyContent: "center",
               cursor: "pointer", color: "#A78BFA",
             }}>
-            <Plus size={22} />
+            <Camera size={20} />
+          </button>
+          {/* Audio button */}
+          <button type="button" onClick={() => audioInputRef.current?.click()}
+            style={{
+              width: 72, height: 72, borderRadius: 14,
+              border: "1.5px dashed rgba(167,139,250,0.3)",
+              background: "rgba(124,92,255,0.06)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              cursor: "pointer", color: "#A78BFA",
+            }}>
+            <Mic size={20} />
           </button>
           <input ref={photoInputRef} type="file" accept="image/*" style={{ display: "none" }}
             onChange={(e) => { if (e.target.files?.[0]) handlePhotoAdd(e.target.files[0]); e.target.value = ""; }} />
+          <input ref={audioInputRef} type="file" accept="audio/*" style={{ display: "none" }}
+            onChange={(e) => { if (e.target.files?.[0]) handleAudioAdd(e.target.files[0]); e.target.value = ""; }} />
         </div>
       </div>
 
