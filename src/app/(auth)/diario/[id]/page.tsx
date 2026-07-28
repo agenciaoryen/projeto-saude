@@ -122,6 +122,9 @@ export default function DiarioEntryPage() {
   };
 
   const isAudio = (path: string) => /\.(mp3|m4a|wav|ogg|webm|aac|flac)$/i.test(path);
+  const isVideo = (path: string) => /\.(mp4|mov|webm|avi|mkv)$/i.test(path);
+  const isPdf = (path: string) => /\.pdf$/i.test(path);
+  const isPhoto = (path: string) => !isAudio(path) && !isVideo(path) && !isPdf(path);
 
   if (loading) {
     return (
@@ -374,9 +377,21 @@ export default function DiarioEntryPage() {
               </p>
             )}
 
-            {/* Media display (photos + audio) */}
+            {/* Media display (photos + audio + video + pdf) */}
             {entry.photos && entry.photos.length > 0 && (
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {/* Videos */}
+                {entry.photos.filter(isVideo).map((p) => {
+                  const src = photoUrl(p);
+                  return src ? (
+                    <div key={p} style={{
+                      background: "#1a1530", border: "1px solid rgba(167,139,250,0.2)",
+                      borderRadius: 14, overflow: "hidden",
+                    }}>
+                      <video src={src} controls style={{ width: "100%", maxHeight: 360, display: "block" }} />
+                    </div>
+                  ) : null;
+                })}
                 {/* Audio files */}
                 {entry.photos.filter(isAudio).map((p) => {
                   const src = photoUrl(p);
@@ -390,10 +405,26 @@ export default function DiarioEntryPage() {
                     </div>
                   ) : null;
                 })}
+                {/* PDFs */}
+                {entry.photos.filter(isPdf).map((p) => {
+                  const src = photoUrl(p);
+                  return src ? (
+                    <a key={p} href={src} target="_blank" rel="noopener noreferrer"
+                      style={{
+                        display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
+                        background: "#1a1530", border: "1px solid rgba(167,139,250,0.2)",
+                        borderRadius: 14, textDecoration: "none",
+                      }}>
+                      <span style={{ fontSize: 24 }}>📄</span>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: "#e0d6ff", flex: 1 }}>Ver documento</span>
+                      <span style={{ fontSize: 11, color: "#A78BFA" }}>Abrir ↗</span>
+                    </a>
+                  ) : null;
+                })}
                 {/* Photos */}
-                {entry.photos.filter(p => !isAudio(p)).length > 0 && (
+                {entry.photos.filter(isPhoto).length > 0 && (
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 8 }}>
-                    {entry.photos.filter(p => !isAudio(p)).map((p) => {
+                    {entry.photos.filter(isPhoto).map((p) => {
                       const src = photoUrl(p);
                       return src ? (
                         <img key={p} src={src} alt="" style={{

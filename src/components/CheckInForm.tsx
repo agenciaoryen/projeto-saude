@@ -102,6 +102,7 @@ export function CheckInForm({ existingCheckIn }: CheckInFormProps) {
     mood_tags: [] as string[],
     gratitude: "",
     gratitude_photos: [] as string[],
+    water_cups: 0,
   });
 
   useEffect(() => {
@@ -202,7 +203,7 @@ export function CheckInForm({ existingCheckIn }: CheckInFormProps) {
     }));
   };
 
-  // Auto-calcula "ate_well" baseado nas refeições do dia (background, sem UI interativa)
+  // Auto-calcula "ate_well" baseado nas refeições do dia
   useEffect(() => {
     if (!mealsLoaded || todayMeals.length === 0) return;
     const calculated = ateWellFromMeals(todayMeals);
@@ -211,8 +212,18 @@ export function CheckInForm({ existingCheckIn }: CheckInFormProps) {
     }
   }, [mealsLoaded, todayMeals, existingCheckIn]);
 
-  // Filtra ate_well das perguntas visíveis — é auto-calculado, não interativo
-  const visibleKeys = enabledKeys.filter((k) => k !== "ate_well");
+  // Auto-calcula "drank_water" baseado nos copos (threshold: 6 copos = 1.5L)
+  const MIN_WATER_CUPS = 6;
+  useEffect(() => {
+    const hydrated = form.water_cups >= MIN_WATER_CUPS;
+    if (form.drank_water !== hydrated) {
+      setForm((prev) => ({ ...prev, drank_water: hydrated }));
+    }
+  }, [form.water_cups]);
+
+  // ate_well e drank_water são auto-calculados — mostramos como cards informativos
+  const autoCalculatedKeys = new Set(["ate_well", "drank_water"]);
+  const visibleKeys = enabledKeys.filter((k) => !autoCalculatedKeys.has(k));
 
   const activeQuestions = visibleKeys.map((key) => ({
     key,
