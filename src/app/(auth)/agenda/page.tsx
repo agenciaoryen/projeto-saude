@@ -218,13 +218,26 @@ export default function AgendaPage() {
         }
       };
 
+      // Track which (date, title) combos already exist as real items
+      const realEntries = new Set<string>();
       for (const item of all) {
         // Exact date match
-        if (item.date === date) { result.push(item); continue; }
-        // Repeating item — use original id for API, synthetic key for React
-        if (repeatMatches(item, date)) {
-          result.push({ ...item, date, id: item.id + "_r_" + date, _origId: item.id } as AgendaItem & { _origId?: string });
+        if (item.date === date) {
+          result.push(item);
+          realEntries.add(item.date + "|" + item.title.toLowerCase().trim());
           continue;
+        }
+      }
+
+      for (const item of all) {
+        // Skip if already processed as exact match
+        if (item.date === date) continue;
+        // Repeating item
+        if (repeatMatches(item, date)) {
+          const key = date + "|" + item.title.toLowerCase().trim();
+          // Skip if a standalone item already exists for this date+title
+          if (realEntries.has(key)) continue;
+          result.push({ ...item, date, id: item.id + "_r_" + date, _origId: item.id } as AgendaItem & { _origId?: string });
         }
       }
 
