@@ -752,9 +752,8 @@ export default function AgendaPage() {
                       }}
                       style={{
                         position: "absolute",
-                        left: total > 1 ? `calc(12px + (100% - 20px) * ${column} / ${total})` : 12,
-                        width: total > 1 ? `calc((100% - 20px) / ${total} - 2px)` : undefined,
-                        right: total > 1 ? undefined : 8,
+                        left: total > 1 ? `calc(12px + (100% - 22px) * ${column} / ${total})` : 12,
+                        width: total > 1 ? `calc((100% - 22px) / ${total} - 3px)` : `calc(100% - 20px)`,
                         zIndex: isTask ? 1 : 2,
                         top: topPx + 1,
                         height: heightPx - 2,
