@@ -262,7 +262,7 @@ export default function NovoDiarioPage() {
         <div
           ref={contentRef}
           contentEditable suppressContentEditableWarning role="textbox" aria-multiline="true"
-          aria-label="Conteúdo do diário" data-placeholder="Escreva o que estiver passando...\n\nDica: digite / para ações rápidas"
+          aria-label="Conteúdo do diário" data-placeholder="Escreva o que estiver passando... (digite / para ações rápidas)"
           onInput={handleContentInput}
           onPaste={handlePaste}
           style={{
