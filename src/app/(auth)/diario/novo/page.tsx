@@ -311,7 +311,7 @@ export default function NovoDiarioPage() {
           }}>
             {EMOJI_LIST.map(emoji => (
               <button key={emoji} type="button" onClick={() => {
-                insertAtCursor(emoji);
+                insertHtmlAtCursor(emoji);
                 setEmojiPickerOpen(false);
               }}
                 style={{ width: 40, height: 40, borderRadius: 8, border: 0, background: "transparent", cursor: "pointer", fontSize: 22 }}>
