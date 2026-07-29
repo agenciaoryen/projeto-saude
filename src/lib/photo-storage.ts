@@ -131,6 +131,20 @@ export async function uploadToCloud(base64: string, folder: "meals" | "diary" | 
   return data.path as string;
 }
 
+/** Upload a file via FormData (for large files: video, etc.) */
+export async function uploadFile(file: File, folder: "meals" | "diary" | "avatars"): Promise<string> {
+  const form = new FormData();
+  form.append("file", file);
+  form.append("folder", folder);
+  const res = await fetch("/api/upload", { method: "POST", body: form });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: res.statusText }));
+    throw new Error(err.error || "Falha ao enviar arquivo");
+  }
+  const data = await res.json();
+  return data.path as string;
+}
+
 /** Build the URL to load a photo. Cloud paths (with /) use /api/media, local keys use IndexedDB. */
 export function photoUrl(path: string | null): string | null {
   if (!path) return null;

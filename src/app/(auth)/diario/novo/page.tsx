@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useTranslation } from "@/lib/useTranslation";
-import { compressImage, uploadToCloud, photoUrl } from "@/lib/photo-storage";
+import { compressImage, uploadToCloud, uploadFile, photoUrl } from "@/lib/photo-storage";
 import { ChevronLeft, ChevronDown, Plus, X, ArrowRight, Camera, Mic, Video, FileText } from "lucide-react";
 
 const MOODS = [1, 2, 3, 4, 5] as const;
@@ -120,20 +120,14 @@ export default function NovoDiarioPage() {
   };
 
   const handleVideoAdd = useCallback(async (file: File) => {
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error("Vídeo muito grande. Máximo: 10 MB.");
+    if (file.size > 30 * 1024 * 1024) {
+      toast.error("Vídeo muito grande. Máximo: 30 MB.");
       return;
     }
     try {
-      const reader = new FileReader();
-      const base64 = await new Promise<string>((resolve, reject) => {
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-      const path = await uploadToCloud(base64, "diary");
+      const path = await uploadFile(file, "diary");
       setVideos((prev) => [...prev, path]);
-    } catch { toast.error("Erro ao processar vídeo"); }
+    } catch { toast.error("Erro ao enviar vídeo"); }
   }, []);
 
   const handlePdfAdd = useCallback(async (file: File) => {

@@ -12,25 +12,42 @@ export async function POST(request: Request) {
   }
 
   try {
+    const contentType = request.headers.get("content-type") || "";
+
+    // ── FormData upload (for large files: video, etc.) ──
+    if (contentType.includes("multipart/form-data")) {
+      const form = await request.formData();
+      const file = form.get("file") as File | null;
+      const folder = form.get("folder") as string;
+      if (!file || !folder) return NextResponse.json({ error: "file e folder obrigatórios" }, { status: 400 });
+      if (!["meals", "diary", "avatars"].includes(folder)) return NextResponse.json({ error: "folder inválido" }, { status: 400 });
+
+      const buf = Buffer.from(await file.arrayBuffer());
+      const originalName = file.name || "file";
+      const ext = originalName.split(".").pop()?.toLowerCase() || "mp4";
+      const safeExt = ["jpg","jpeg","png","webp","mp3","m4a","webm","wav","ogg","mp4","mov","pdf"].includes(ext) ? ext : "mp4";
+      const fileName = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${safeExt}`;
+      const path = `${folder}/${user.id}/${fileName}`;
+      const mimeType = file.type || "application/octet-stream";
+
+      const admin = getSupabaseAdmin();
+      const { error: uploadError } = await admin.storage.from("user-content").upload(path, buf, { contentType: mimeType, upsert: false });
+      if (uploadError) { console.error("Upload error:", uploadError); return NextResponse.json({ error: "Erro ao fazer upload" }, { status: 500 }); }
+      return NextResponse.json({ path });
+    }
+
+    // ── Base64 JSON upload (images, audio, PDF) ──
     const { base64, folder } = await request.json();
 
-    if (!base64 || !folder) {
-      return NextResponse.json({ error: "base64 e folder obrigatórios" }, { status: 400 });
-    }
+    if (!base64 || !folder) return NextResponse.json({ error: "base64 e folder obrigatórios" }, { status: 400 });
+    if (!["meals", "diary", "avatars"].includes(folder)) return NextResponse.json({ error: "folder inválido" }, { status: 400 });
 
-    if (!["meals", "diary", "avatars"].includes(folder)) {
-      return NextResponse.json({ error: "folder inválido" }, { status: 400 });
-    }
-
-    // Decode base64 (with or without data URI prefix)
     const matches = base64.match(/^data:([^;]+);base64,(.+)$/);
     let buffer: Buffer;
     let ext: string;
     let mimeType: string;
     if (matches) {
       mimeType = matches[1];
-      console.log("[upload] mimeType detected:", mimeType);
-      // Map MIME type to extension
       if (mimeType.startsWith("image/")) {
         ext = mimeType.includes("png") ? "png" : mimeType.includes("webp") ? "webp" : "jpg";
       } else if (mimeType.startsWith("audio/")) {
@@ -38,11 +55,8 @@ export async function POST(request: Request) {
       } else if (mimeType.startsWith("video/")) {
         ext = "mp4";
       } else if (mimeType.includes("pdf") || mimeType === "application/pdf") {
-        ext = "pdf";
-        mimeType = "application/pdf";
+        ext = "pdf"; mimeType = "application/pdf";
       } else {
-        // Unknown type — try to guess from the prefix
-        console.log("[upload] unknown mimeType, falling back:", mimeType);
         ext = "jpg";
       }
       buffer = Buffer.from(matches[2], "base64");
