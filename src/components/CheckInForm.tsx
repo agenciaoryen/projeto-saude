@@ -449,15 +449,22 @@ export function CheckInForm({ existingCheckIn }: CheckInFormProps) {
               {[...enabledKeys.filter(k => k !== "suicidal_thoughts" && k !== "felt_judged")].map((key) => {
                 const done = form[key as keyof FormData] === true;
                 const emoji = QUESTION_EMOJI[key] || "•";
-                const label = key === "ate_well" ? "🍽️ Comeu bem"
-                  : key === "drank_water" ? `💧 Água (${form.water_cups} copos)`
+                const label = key === "ate_well" ? "Comeu bem"
+                  : key === "drank_water" ? `Água`
+                  : key === "worked_on_goals" ? "Metas"
+                  : key === "slept_well" ? "Sono"
                   : getQuestionLabel(key, context, t);
                 const hint = key === "ate_well"
-                  ? (done ? "Refeições equilibradas hoje" : hasMealData ? "Registre mais refeições" : "Registre suas refeições")
+                  ? (done ? "Refeições equilibradas hoje" : "Registre pelo menos 2 refeições no dia")
                   : key === "drank_water"
-                  ? (done ? `${form.water_cups} copos = ${form.water_cups * 250}ml ✓` : `${form.water_cups}/${MIN_WATER_CUPS} copos para meta`)
+                  ? (() => {
+                      const falta = MIN_WATER_CUPS - form.water_cups;
+                      return done ? `${form.water_cups} copos ✓` : falta > 1 ? `Faltam só ${falta} copos` : falta === 1 ? "Falta só 1 copo" : "Marque seus copos";
+                    })()
                   : key === "worked_on_goals"
-                  ? (done ? "Completou tarefas do plano hoje" : "Conclua uma tarefa do plano")
+                  ? (done ? "Avançou hoje" : "Conclua uma tarefa do plano")
+                  : key === "slept_well"
+                  ? (done ? "Boa noite de sono" : "Registre seu sono")
                   : "";
                 return (
                   <div key={key} style={{

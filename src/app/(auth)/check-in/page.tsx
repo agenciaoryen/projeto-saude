@@ -144,7 +144,7 @@ function LoadingScreen() {
 
 // ── EditCheckInView — shown when editing an existing check-in ─────────────────
 
-function EditCheckInView({ answers, setAnswers, enabledKeys, context, gender, onSave, onClose, saving }: {
+function EditCheckInView({ answers, setAnswers, enabledKeys, context, gender, onSave, onClose, saving, todaySleep }: {
   answers: CheckInAnswers;
   setAnswers: React.Dispatch<React.SetStateAction<CheckInAnswers>>;
   enabledKeys: string[];
@@ -153,6 +153,7 @@ function EditCheckInView({ answers, setAnswers, enabledKeys, context, gender, on
   onSave: () => void;
   onClose: () => void;
   saving: boolean;
+  todaySleep: { quality: number | null; duration_min: number | null } | null;
 }) {
   const feelingRef = useRef<HTMLDivElement>(null);
   const gratitudeRef = useRef<HTMLDivElement>(null);
@@ -360,23 +361,41 @@ function EditCheckInView({ answers, setAnswers, enabledKeys, context, gender, on
           }}>
             {scoreKeys.map((key) => {
               const done = answers[key as HabitKey] === true;
-              const base = HABIT_COPY[key];
-              const emoji = base?.emoji ?? "•";
-              const label = base?.label ?? key;
+              const cups = answers.water_cups ?? 0;
+              const waterGoal = 4;
+              let emoji = "•";
+              let label = key;
               let hint = "";
-              if (key === "ate_well") hint = done ? "Refeições equilibradas" : "Registre suas refeições";
-              if (key === "worked_on_goals") hint = done ? "Avançou hoje" : "Conclua uma tarefa do plano";
-              if (key === "slept_well") hint = done ? "Boa noite de sono" : "Registre seu sono";
-              if (key === "drank_water") hint = `${answers.water_cups ?? 0} copos`;
+              if (key === "ate_well") {
+                emoji = "🍽️"; label = "Comeu bem";
+                hint = done ? "Refeições equilibradas hoje" : "Registre pelo menos 2 refeições no dia";
+              } else if (key === "worked_on_goals") {
+                emoji = "🎯"; label = "Metas";
+                hint = done ? "Avançou hoje" : "Conclua uma tarefa do plano";
+              } else if (key === "slept_well") {
+                emoji = "😴"; label = "Sono";
+                if (done) hint = "Boa noite de sono";
+                else if (todaySleep?.quality != null) hint = `Qualidade ${todaySleep.quality}/5 — não atingiu o mínimo`;
+                else hint = "Registre seu sono";
+              } else if (key === "drank_water") {
+                emoji = "💧"; label = "Água";
+                const falta = waterGoal - cups;
+                hint = done ? `${cups} copos ✓` : falta > 1 ? `Faltam só ${falta} copos` : falta === 1 ? "Falta só 1 copo" : "Marque seus copos";
+              } else {
+                const base = HABIT_COPY[key];
+                emoji = base?.emoji ?? "•";
+                label = base?.label ?? key;
+              }
               return (
                 <div key={key} style={{
                   display: "flex", alignItems: "center", gap: 8,
                   fontSize: 12.5, color: done ? "#e0d6ff" : "#9e96b5",
                   opacity: done ? 1 : 0.55,
                 }}>
-                  <span style={{ fontSize: 14 }}>{done ? "✅" : "⬜"}</span>
-                  <span>{emoji} {label}</span>
-                  {hint ? <span style={{ fontSize: 10, color: "#9e96b5", marginLeft: "auto" }}>{hint}</span> : null}
+                  <span style={{ fontSize: 14, flexShrink: 0 }}>{done ? "✅" : "⬜"}</span>
+                  <span style={{ flexShrink: 0 }}>{emoji}</span>
+                  <span style={{ flex: 1, minWidth: 0 }}>{label}</span>
+                  {hint ? <span style={{ fontSize: 10, color: "#9e96b5", textAlign: "right", whiteSpace: "nowrap" }}>{hint}</span> : null}
                 </div>
               );
             })}
@@ -1132,6 +1151,7 @@ export default function CheckInPage() {
   const [stepIdx, setStepIdx] = useState(0);
   const [answers, setAnswers] = useState<CheckInAnswers>(defaultAnswers);
   const [saving, setSaving] = useState(false);
+  const [todaySleep, setTodaySleep] = useState<{ quality: number | null; duration_min: number | null } | null>(null);
 
   const savedRef = useRef(false);
   const latestAnswers = useRef<CheckInAnswers>(defaultAnswers());
@@ -1147,6 +1167,9 @@ export default function CheckInPage() {
       const enabled: string[] = prefs.enabled_questions ?? [];
       const ctx: Record<string, boolean> = prefs.context ?? {};
       const hasSleepLog = Array.isArray(sleepLogs) && sleepLogs.length > 0;
+      if (hasSleepLog) {
+        setTodaySleep({ quality: sleepLogs[0].quality ?? null, duration_min: sleepLogs[0].duration_min ?? null });
+      }
       setEnabledKeys(enabled);
       setContext(ctx);
       setGender((prefs.context?.gender as string) ?? "nao_dizer");
@@ -1310,6 +1333,7 @@ export default function CheckInPage() {
         onSave={handleEditSave}
         onClose={() => router.push("/dashboard")}
         saving={saving}
+        todaySleep={todaySleep}
       />
     );
   }

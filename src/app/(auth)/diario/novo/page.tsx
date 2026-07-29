@@ -37,6 +37,66 @@ export default function NovoDiarioPage() {
   const [saving, setSaving] = useState(false);
   const dateInputRef = useRef<HTMLInputElement>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  // ── Slash commands ──────────────────────────────────────────
+  const [slashOpen, setSlashOpen] = useState(false);
+  const [slashQuery, setSlashQuery] = useState("");
+  const [slashPos, setSlashPos] = useState({ x: 0, y: 0 });
+  const slashSavedSel = useRef<{ node: Node | null; offset: number }>({ node: null, offset: 0 });
+
+  const SLASH_COMMANDS = [
+    { id: "foto", label: "Inserir foto", emoji: "📷", action: () => photoInputRef.current?.click() },
+    { id: "hora", label: "Inserir horário", emoji: "🕐", action: () => insertAtCursor(new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })) },
+    { id: "emoji", label: "Inserir emoji", emoji: "😊", action: () => { setEmojiPickerOpen(true); } },
+  ];
+
+  const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
+  const EMOJI_LIST = ["😊","😂","❤️","🙏","😢","😡","😴","🥰","😰","🤔","💪","🔥","✨","🌟","🎉","💀","👍","👎","🤝","📝"];
+
+  const insertAtCursor = (text: string) => {
+    const el = contentRef.current;
+    if (!el) return;
+    el.focus();
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0) {
+      const range = sel.getRangeAt(0);
+      range.deleteContents();
+      range.insertNode(document.createTextNode(text));
+      range.collapse(false);
+      sel.removeAllRanges();
+      sel.addRange(range);
+    }
+    el.dispatchEvent(new Event("input", { bubbles: true }));
+  };
+
+  const handleContentInput = (e: React.FormEvent<HTMLDivElement>) => {
+    setContent((e.target as HTMLElement).innerText);
+    const sel = window.getSelection();
+    if (!sel || !sel.rangeCount) return;
+    const range = sel.getRangeAt(0);
+    const node = range.startContainer;
+    const text = node.textContent || "";
+    const offset = range.startOffset;
+
+    // Find if we're right after a "/"
+    const before = text.slice(0, offset);
+    const slashIdx = before.lastIndexOf("/");
+    if (slashIdx >= 0 && (slashIdx === 0 || before[slashIdx - 1] === " " || before[slashIdx - 1] === "\n")) {
+      const query = before.slice(slashIdx + 1);
+      if (!query.includes(" ") && !query.includes("\n")) {
+        setSlashQuery(query);
+        setSlashOpen(true);
+        // Save position to replace later
+        slashSavedSel.current = { node, offset: slashIdx };
+        // Position menu near cursor
+        const rect = range.getClientRects()[0];
+        if (rect) setSlashPos({ x: rect.left, y: rect.bottom + 4 });
+        return;
+      }
+    }
+    setSlashOpen(false);
+  };
 
   const selectedMoodEmoji = mood ? MOOD_EMOJI[mood] : "😶";
 
@@ -173,15 +233,79 @@ export default function NovoDiarioPage() {
       {/* Content */}
       <div style={{ padding: "0 24px" }}>
         <div
+          ref={contentRef}
           contentEditable suppressContentEditableWarning role="textbox" aria-multiline="true"
-          aria-label="Conteúdo do diário" data-placeholder="Escreva o que estiver passando..."
-          onInput={(e) => setContent((e.target as HTMLElement).innerText)}
+          aria-label="Conteúdo do diário" data-placeholder="Escreva o que estiver passando...\n\nDica: digite / para ações rápidas"
+          onInput={handleContentInput}
           onPaste={handlePaste}
           style={{
             outline: "none", fontSize: 15, lineHeight: 1.7, letterSpacing: "-0.005em",
-            minHeight: "40vh", color: "#e0d6ff",
+            minHeight: "40vh", color: "#e0d6ff", position: "relative",
           }}
         />
+        {/* Slash command menu */}
+        {slashOpen && (
+          <div style={{
+            position: "fixed", left: Math.min(slashPos.x, typeof window !== "undefined" ? window.innerWidth - 220 : 200), top: slashPos.y, zIndex: 50,
+            background: "#1a1530", border: "1px solid rgba(167,139,250,0.25)", borderRadius: 14,
+            padding: 4, boxShadow: "0 8px 24px rgba(0,0,0,0.5)", minWidth: 200, maxHeight: 260, overflowY: "auto",
+          }}>
+            {SLASH_COMMANDS.filter(c => c.id.includes(slashQuery.toLowerCase()) || c.label.toLowerCase().includes(slashQuery.toLowerCase())).map((cmd, i) => (
+              <button key={cmd.id} type="button"
+                onClick={() => {
+                  setSlashOpen(false);
+                  const el = contentRef.current; if (!el) return;
+                  el.focus();
+                  const sel = window.getSelection(); if (!sel) return;
+                  const { node, offset } = slashSavedSel.current;
+                  if (node && node.textContent) {
+                    const before = node.textContent.slice(0, offset);
+                    const after = node.textContent.slice(offset + 1 + slashQuery.length);
+                    node.textContent = before + after;
+                    const range = document.createRange();
+                    range.setStart(node, before.length);
+                    range.collapse(true);
+                    sel.removeAllRanges();
+                    sel.addRange(range);
+                  }
+                  cmd.action();
+                  el.dispatchEvent(new Event("input", { bubbles: true }));
+                }}
+                style={{
+                  display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", borderRadius: 10,
+                  border: 0, background: i === 0 ? "rgba(124,92,255,0.1)" : "transparent",
+                  cursor: "pointer", fontFamily: "inherit", fontSize: 13, color: "#e0d6ff",
+                  fontWeight: 600, textAlign: "left", width: "100%",
+                }}>
+                <span style={{ fontSize: 18 }}>{cmd.emoji}</span>
+                <span>{cmd.label}</span>
+              </button>
+            ))}
+          </div>
+        )}
+        {/* Emoji picker */}
+        {emojiPickerOpen && (
+          <div style={{
+            position: "fixed", bottom: 100, left: "50%", transform: "translateX(-50%)", zIndex: 50,
+            background: "#1a1530", border: "1px solid rgba(167,139,250,0.25)", borderRadius: 14,
+            padding: 8, boxShadow: "0 8px 24px rgba(0,0,0,0.5)", display: "flex", flexWrap: "wrap", gap: 4,
+            maxWidth: 320,
+          }}>
+            {EMOJI_LIST.map(emoji => (
+              <button key={emoji} type="button" onClick={() => {
+                insertAtCursor(emoji);
+                setEmojiPickerOpen(false);
+              }}
+                style={{ width: 40, height: 40, borderRadius: 8, border: 0, background: "transparent", cursor: "pointer", fontSize: 22 }}>
+                {emoji}
+              </button>
+            ))}
+            <button type="button" onClick={() => setEmojiPickerOpen(false)}
+              style={{ width: "100%", padding: "6px 0", borderRadius: 8, border: 0, background: "transparent", cursor: "pointer", color: "#9e96b5", fontSize: 11, fontFamily: "inherit" }}>
+              Fechar
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Photo strip */}
