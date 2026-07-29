@@ -106,22 +106,30 @@ export function CheckInForm({ existingCheckIn }: CheckInFormProps) {
   });
 
   useEffect(() => {
-    fetch("/api/preferences")
-      .then((res) => res.json())
-      .then((data) => {
-        setEnabledKeys(data.enabled_questions || []);
-        setContext(data.context || {});
-      })
-      .catch(() => {});
-
     const today = getLocalDate();
-    fetch(`/api/meals?date=${today}`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (Array.isArray(data)) setTodayMeals(data);
-        setMealsLoaded(true);
-      })
-      .catch(() => setMealsLoaded(true));
+    Promise.all([
+      fetch("/api/preferences").then(r => r.json()).catch(() => ({})),
+      fetch(`/api/meals?date=${today}`).then(r => r.json()).catch(() => []),
+      fetch(`/api/check-ins?date=${today}`).then(r => r.json()).catch(() => null),
+    ]).then(([prefs, meals, todayCi]) => {
+      setEnabledKeys(prefs.enabled_questions || []);
+      setContext(prefs.context || {});
+
+      if (Array.isArray(meals)) setTodayMeals(meals);
+      setMealsLoaded(true);
+
+      // Se já existe check-in hoje (criado por sync de sono/refeição), mescla campos auto-calc
+      if (todayCi && !existingCheckIn) {
+        setForm(prev => ({
+          ...prev,
+          slept_well: todayCi.slept_well ?? prev.slept_well,
+          ate_well: todayCi.ate_well ?? prev.ate_well,
+          worked_on_goals: todayCi.worked_on_goals ?? prev.worked_on_goals,
+          drank_water: todayCi.drank_water ?? prev.drank_water,
+          water_cups: todayCi.water_cups ?? prev.water_cups,
+        }));
+      }
+    }).catch(() => setMealsLoaded(true));
   }, []);
 
   useEffect(() => {
