@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useTranslation } from "@/lib/useTranslation";
 import { compressImage, uploadToCloud, uploadFile, photoUrl } from "@/lib/photo-storage";
-import { ChevronLeft, ChevronDown, Plus, X, ArrowRight, Camera, Mic, Video, FileText } from "lucide-react";
+import { ChevronLeft, ChevronDown, Plus, X, ArrowRight, Camera } from "lucide-react";
 
 const MOODS = [1, 2, 3, 4, 5] as const;
 const MOOD_EMOJI: Record<number, string> = { 1: "😔", 2: "😕", 3: "😐", 4: "🙂", 5: "😊" };
@@ -287,10 +287,9 @@ export default function NovoDiarioPage() {
         />
       </div>
 
-      {/* Media strip (photos + audio) */}
+      {/* Photos */}
       <div style={{ padding: "20px 24px 0" }}>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-          {/* Photos */}
           {photos.map((p) => (
             <div key={p} style={{
               width: 72, height: 72, borderRadius: 14, overflow: "hidden",

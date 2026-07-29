@@ -105,8 +105,10 @@ function defaultAnswers(): CheckInAnswers {
 
 function buildSteps(enabledKeys: string[], hasSuicidal: boolean, hasSleepLog: boolean): Step[] {
   const steps: Step[] = [{ kind: "feeling" }];
+  const autoKeys = new Set(["ate_well", "worked_on_goals"]);
   for (const key of HABIT_ORDER) {
     if (key === "slept_well" && hasSleepLog) continue; // já registrou sono hoje
+    if (autoKeys.has(key)) continue; // auto-calculado pelo backend
     if (enabledKeys.includes(key)) steps.push({ kind: "habit", habitKey: key });
   }
   steps.push({ kind: "gratitude" });
@@ -161,8 +163,15 @@ function EditCheckInView({ answers, setAnswers, enabledKeys, context, gender, on
     if (gratitudeRef.current && answers.gratitude) gratitudeRef.current.innerText = answers.gratitude;
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const habitsToShow = HABIT_ORDER.filter((key) => key !== "slept_well" && enabledKeys.includes(key));
+  // Auto-calc fields: not shown as manual toggles
+  const autoKeys = new Set(["slept_well", "ate_well", "worked_on_goals"]);
+  const habitsToShow = HABIT_ORDER.filter((key) => !autoKeys.has(key) && enabledKeys.includes(key));
   const hasConfirm = enabledKeys.includes("suicidal_thoughts");
+
+  // Score: all enabled habits minus suicidal/felt_judged
+  const scoreKeys = enabledKeys.filter((k) => k !== "suicidal_thoughts" && k !== "felt_judged");
+  const score = scoreKeys.filter((k) => answers[k as HabitKey] === true).length;
+  const scoreTotal = scoreKeys.length;
 
   const handlePhotoAdd = async (file: File) => {
     try {
@@ -337,6 +346,42 @@ function EditCheckInView({ answers, setAnswers, enabledKeys, context, gender, on
             </div>
           </section>
         )}
+
+        {/* ── Resumo automático ── */}
+        <section>
+          <p style={{ margin: "0 0 10px", fontSize: 13, fontWeight: 700, color: "#A78BFA" }}>
+            📋 Seu dia até agora: {score}/{scoreTotal}
+          </p>
+          <div style={{
+            padding: "14px 16px", borderRadius: 14,
+            background: "oklch(0.16 0.012 270 / 0.7)", backdropFilter: "blur(8px)",
+            border: "1px solid oklch(0.28 0.02 270 / 0.4)",
+            display: "flex", flexDirection: "column", gap: 6,
+          }}>
+            {scoreKeys.map((key) => {
+              const done = answers[key as HabitKey] === true;
+              const base = HABIT_COPY[key];
+              const emoji = base?.emoji ?? "•";
+              const label = base?.label ?? key;
+              let hint = "";
+              if (key === "ate_well") hint = done ? "Refeições equilibradas" : "Registre suas refeições";
+              if (key === "worked_on_goals") hint = done ? "Avançou hoje" : "Conclua uma tarefa do plano";
+              if (key === "slept_well") hint = done ? "Boa noite de sono" : "Registre seu sono";
+              if (key === "drank_water") hint = `${answers.water_cups ?? 0} copos`;
+              return (
+                <div key={key} style={{
+                  display: "flex", alignItems: "center", gap: 8,
+                  fontSize: 12.5, color: done ? "#e0d6ff" : "#9e96b5",
+                  opacity: done ? 1 : 0.55,
+                }}>
+                  <span style={{ fontSize: 14 }}>{done ? "✅" : "⬜"}</span>
+                  <span>{emoji} {label}</span>
+                  {hint ? <span style={{ fontSize: 10, color: "#9e96b5", marginLeft: "auto" }}>{hint}</span> : null}
+                </div>
+              );
+            })}
+          </div>
+        </section>
 
         {/* ── Gratidão ── */}
         <section>
