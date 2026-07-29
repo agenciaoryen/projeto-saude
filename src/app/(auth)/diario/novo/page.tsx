@@ -155,7 +155,7 @@ export default function NovoDiarioPage() {
       body: JSON.stringify({ date: entryDate, title: title.trim(), content: htmlContent.trim() || content.trim(), mood, photos }),
     });
     if (!res.ok) { toast.error(t("erro_salvar_entrada")); setSaving(false); return; }
-    toast.success(t("entrada_salva"));
+    toast.success(t("entrada_salva"), { duration: 3000, dismissible: true });
     router.push("/diario");
     router.refresh();
   };
@@ -175,7 +175,16 @@ export default function NovoDiarioPage() {
   const handlePaste = (e: React.ClipboardEvent) => {
     e.preventDefault();
     const text = e.clipboardData.getData("text/plain");
-    document.execCommand("insertText", false, text);
+    const sel = window.getSelection();
+    if (!sel || !sel.rangeCount) return;
+    const range = sel.getRangeAt(0);
+    range.deleteContents();
+    range.insertNode(document.createTextNode(text));
+    range.collapse(false);
+    sel.removeAllRanges();
+    sel.addRange(range);
+    // Trigger React state update
+    (e.target as HTMLElement).dispatchEvent(new Event("input", { bubbles: true }));
   };
 
   return (
