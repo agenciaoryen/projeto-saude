@@ -94,17 +94,21 @@ export default function NovoDiarioPage() {
         if (rect) {
           const screenH = window.innerHeight;
           const screenW = window.innerWidth;
-          const menuH = 260;
-          const menuW = 220;
-          let top = rect.bottom + 6;
-          // If too close to bottom, flip above
-          if (top + menuH > screenH - 40) top = rect.top - menuH - 6;
-          // Clamp to screen
-          if (top < 60) top = 60;
-          let left = rect.left;
-          if (left + menuW > screenW - 16) left = screenW - menuW - 16;
-          if (left < 8) left = 8;
-          setSlashPos({ x: left, y: top });
+          const isMobile = screenW < 768;
+          if (isMobile) {
+            // Fixed position above keyboard on mobile — most reliable
+            setSlashPos({ x: 12, y: screenH - 380 });
+          } else {
+            const menuH = 260;
+            const menuW = 220;
+            let top = rect.bottom + 6;
+            if (top + menuH > screenH - 40) top = rect.top - menuH - 6;
+            if (top < 60) top = 60;
+            let left = rect.left;
+            if (left + menuW > screenW - 16) left = screenW - menuW - 16;
+            if (left < 8) left = 8;
+            setSlashPos({ x: left, y: top });
+          }
         }
         return;
       }
@@ -313,7 +317,7 @@ export default function NovoDiarioPage() {
         {/* Emoji picker */}
         {emojiPickerOpen && (
           <div style={{
-            position: "fixed", bottom: 160, left: "50%", transform: "translateX(-50%)", zIndex: 50,
+            position: "fixed", bottom: 300, left: "50%", transform: "translateX(-50%)", zIndex: 50,
             background: "#1a1530", border: "1px solid rgba(167,139,250,0.25)", borderRadius: 14,
             padding: 8, boxShadow: "0 8px 24px rgba(0,0,0,0.5)", display: "flex", flexWrap: "wrap", gap: 4,
             maxWidth: 320,
