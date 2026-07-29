@@ -123,7 +123,7 @@ export default function NovoDiarioPage() {
       const path = await uploadToCloud(compressed, "diary");
       const url = photoUrl(path);
       if (url) {
-        insertHtmlAtCursor(`<img src="${url}" alt="" contenteditable="false" style="max-width:100%;max-height:160px;border-radius:10px;margin:6px 0;display:block;object-fit:cover" /><br/>`);
+        insertHtmlAtCursor(`<div contenteditable="false" style="margin:8px 0"><img src="${url}" alt="" style="max-width:100%;max-height:180px;border-radius:10px;display:block;object-fit:cover" /></div><div><br/></div>`);
       }
     } catch { toast.error("Erro ao inserir foto"); }
   }, []);
