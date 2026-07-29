@@ -5,7 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useTranslation } from "@/lib/useTranslation";
-import { ArrowLeft, Plus, X, Camera } from "lucide-react";
+import { ArrowLeft, Plus, X, Camera, Lock } from "lucide-react";
 import type { DiaryEntry } from "@/types";
 import { photoUrl, compressImage, uploadToCloud } from "@/lib/photo-storage";
 
@@ -38,6 +38,7 @@ export default function DiarioEntryPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [locked, setLocked] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const [pinVerified, setPinVerified] = useState(false);
@@ -57,6 +58,7 @@ export default function DiarioEntryPage() {
           setContent(data.content || "");
           setMood(data.mood ?? null);
           setPhotos(data.photos || []);
+          setLocked(data.locked || false);
         }
         setLoading(false);
       })
@@ -76,7 +78,7 @@ export default function DiarioEntryPage() {
     const res = await fetch("/api/diary", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, date: entryDate, title: title.trim(), content: content.trim(), mood, photos }),
+      body: JSON.stringify({ id, date: entryDate, title: title.trim(), content: content.trim(), mood, photos, locked }),
     });
     if (!res.ok) { toast.error(t("erro_salvar_entrada")); setSaving(false); return; }
     toast.success(t("entrada_atualizada"));
@@ -189,8 +191,9 @@ export default function DiarioEntryPage() {
               </button>
             ) : (
               <div>
-                <h1 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#e0d6ff" }}>
+                <h1 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#e0d6ff", display: "flex", alignItems: "center", gap: 8 }}>
                   {entry.title || t("diario_title")}
+                  {entry.locked && <Lock size={14} style={{ color: "#FF4D4D", flexShrink: 0 }} />}
                 </h1>
                 <p style={{ margin: "2px 0 0", fontSize: 13, color: "#9e96b5" }}>{formatDisplayDate(entry.date)}</p>
               </div>
@@ -201,10 +204,22 @@ export default function DiarioEntryPage() {
             style={{ position: "absolute", top: 0, left: 0, opacity: 0, width: 180, height: 28, cursor: "pointer" }} />
 
           {editing ? (
-            <Button onClick={handleSave} disabled={saving}
-              style={{ height: 38, paddingInline: 18, borderRadius: 12, background: "#7C5CFF", border: 0, color: "#fff", fontSize: 13, fontWeight: 600 }}>
-              {saving ? t("salvando") : t("salvar")}
-            </Button>
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <button type="button" onClick={() => setLocked(!locked)}
+                style={{
+                  height: 38, width: 38, borderRadius: 12,
+                  background: locked ? "rgba(255,77,77,0.15)" : "#1a1530",
+                  border: `1px solid ${locked ? "rgba(255,77,77,0.3)" : "rgba(167,139,250,0.2)"}`,
+                  cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+                  color: locked ? "#FF4D4D" : "#9e96b5",
+                }}>
+                {locked ? <Lock size={15} /> : <Lock size={15} style={{ opacity: 0.4 }} />}
+              </button>
+              <Button onClick={handleSave} disabled={saving}
+                style={{ height: 38, paddingInline: 18, borderRadius: 12, background: "#7C5CFF", border: 0, color: "#fff", fontSize: 13, fontWeight: 600 }}>
+                {saving ? t("salvando") : t("salvar")}
+              </Button>
+            </div>
           ) : (
             <div style={{ display: "flex", gap: 8 }}>
               <Button onClick={() => setEditing(true)}
