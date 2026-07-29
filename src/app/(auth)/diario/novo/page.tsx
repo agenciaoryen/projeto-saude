@@ -92,23 +92,23 @@ export default function NovoDiarioPage() {
         slashSavedSel.current = { node, offset: slashIdx };
         const rect = range.getClientRects()[0];
         if (rect) {
-          const screenH = window.innerHeight;
-          const screenW = window.innerWidth;
-          const isMobile = screenW < 768;
-          if (isMobile) {
-            // Fixed position above keyboard on mobile — most reliable
-            setSlashPos({ x: 12, y: screenH - 380 });
-          } else {
+          // Use rAF so position is read after any pending scroll/layout
+          requestAnimationFrame(() => {
             const menuH = 260;
             const menuW = 220;
-            let top = rect.bottom + 6;
-            if (top + menuH > screenH - 40) top = rect.top - menuH - 6;
-            if (top < 60) top = 60;
-            let left = rect.left;
-            if (left + menuW > screenW - 16) left = screenW - menuW - 16;
+            const screenH = window.innerHeight;
+            const screenW = window.innerWidth;
+            // Re-read rect after layout
+            const r2 = range.getClientRects()[0];
+            const r = r2 || rect;
+            let top = r.bottom + 6;
+            if (top + menuH > screenH - 20) top = r.top - menuH - 6;
+            if (top < 70) top = 70;
+            let left = r.left;
+            if (left + menuW > screenW - 12) left = screenW - menuW - 12;
             if (left < 8) left = 8;
             setSlashPos({ x: left, y: top });
-          }
+          });
         }
         return;
       }
