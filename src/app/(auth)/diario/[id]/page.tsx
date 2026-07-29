@@ -5,7 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useTranslation } from "@/lib/useTranslation";
-import { ArrowLeft, X, Camera, Mic, Video, FileText } from "lucide-react";
+import { ArrowLeft, Plus, X, Camera } from "lucide-react";
 import type { DiaryEntry } from "@/types";
 import { photoUrl, compressImage, uploadToCloud } from "@/lib/photo-storage";
 
@@ -39,17 +39,8 @@ export default function DiarioEntryPage() {
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [cameraMenuOpen, setCameraMenuOpen] = useState(false);
-  const [recording, setRecording] = useState(false);
-  const [recordingTime, setRecordingTime] = useState(0);
   const dateInputRef = useRef<HTMLInputElement>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
-  const audioInputRef = useRef<HTMLInputElement>(null);
-  const videoInputRef = useRef<HTMLInputElement>(null);
-  const pdfInputRef = useRef<HTMLInputElement>(null);
-  const cameraCaptureRef = useRef<HTMLInputElement>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
 
   useEffect(() => {
     fetch(`/api/diary?id=${id}`)
@@ -110,105 +101,8 @@ export default function DiarioEntryPage() {
     setUploading(false);
   }, []);
 
-  const handleAudioAdd = useCallback(async (file: File) => {
-    setUploading(true);
-    try {
-      const reader = new FileReader();
-      const base64 = await new Promise<string>((resolve, reject) => {
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-      const path = await uploadToCloud(base64, "diary");
-      setPhotos((prev) => [...prev, path]);
-    } catch { toast.error("Erro ao processar áudio"); }
-    setUploading(false);
-  }, []);
-
   const removePhoto = (idx: number) => {
     setPhotos((prev) => prev.filter((_, i) => i !== idx));
-  };
-
-  const isAudio = (path: string) => /\.(mp3|m4a|wav|ogg|webm|aac|flac)$/i.test(path);
-  const isVideo = (path: string) => /\.(mp4|mov|webm|avi|mkv)$/i.test(path);
-  const isPdf = (path: string) => /\.pdf$/i.test(path);
-  const isPhoto = (path: string) => !isAudio(path) && !isVideo(path) && !isPdf(path);
-
-  const handleVideoAdd = useCallback(async (file: File) => {
-    setUploading(true);
-    try {
-      const reader = new FileReader();
-      const base64 = await new Promise<string>((resolve, reject) => {
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-      const path = await uploadToCloud(base64, "diary");
-      setPhotos((prev) => [...prev, path]);
-    } catch { toast.error("Erro ao processar vídeo"); }
-    setUploading(false);
-  }, []);
-
-  const handlePdfAdd = useCallback(async (file: File) => {
-    setUploading(true);
-    try {
-      const reader = new FileReader();
-      const base64 = await new Promise<string>((resolve, reject) => {
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-      const path = await uploadToCloud(base64, "diary");
-      setPhotos((prev) => [...prev, path]);
-    } catch { toast.error("Erro ao processar PDF"); }
-    setUploading(false);
-  }, []);
-
-  const startRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
-        ? "audio/webm;codecs=opus" : MediaRecorder.isTypeSupported("audio/webm")
-          ? "audio/webm" : "audio/mp4";
-      const recorder = new MediaRecorder(stream, { mimeType });
-      mediaRecorderRef.current = recorder;
-      audioChunksRef.current = [];
-      setRecordingTime(0);
-      const startTime = Date.now();
-      const timerInterval = setInterval(() => setRecordingTime(Math.floor((Date.now() - startTime) / 1000)), 500);
-      recorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunksRef.current.push(e.data); };
-      recorder.onstop = async () => {
-        clearInterval(timerInterval);
-        stream.getTracks().forEach(t => t.stop());
-        const blob = new Blob(audioChunksRef.current, { type: mimeType });
-        if (blob.size === 0) { setRecording(false); setRecordingTime(0); return; }
-        const reader = new FileReader();
-        const base64 = await new Promise<string>((resolve) => {
-          reader.onload = () => resolve(reader.result as string);
-          reader.readAsDataURL(blob);
-        });
-        try {
-          const path = await uploadToCloud(base64, "diary");
-          setPhotos((prev) => [...prev, path]);
-        } catch { toast.error("Erro ao salvar áudio"); }
-      };
-      recorder.start(1000);
-      setRecording(true);
-    } catch { audioInputRef.current?.click(); }
-  };
-
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
-      mediaRecorderRef.current.stop();
-    }
-    setRecording(false);
-    setRecordingTime(0);
-  };
-
-  const menuItemStyle: React.CSSProperties = {
-    display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10,
-    border: 0, background: "transparent", cursor: "pointer", fontFamily: "inherit",
-    fontSize: 13, color: "#e0d6ff", fontWeight: 600, textAlign: "left", width: "100%",
   };
 
   if (loading) {
@@ -339,79 +233,39 @@ export default function DiarioEntryPage() {
               }}
             />
 
-            {/* Media strip in edit mode */}
+            {/* Photo strip in edit mode */}
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
-              {photos.map((p, i) => isAudio(p) ? (
-                <div key={p} style={{
-                  height: 44, borderRadius: 12, overflow: "hidden",
-                  border: "1.5px solid rgba(167,139,250,0.25)",
-                  background: "rgba(124,92,255,0.06)",
-                  flexShrink: 0, display: "flex", alignItems: "center", gap: 6,
-                  padding: "0 8px 0 4px", position: "relative",
-                }}>
-                  <span style={{ fontSize: 14, flexShrink: 0 }}>🎙️</span>
-                  <span style={{ fontSize: 10, color: "#9e96b5", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    Áudio {i + 1}
-                  </span>
-                  <button type="button" onClick={() => removePhoto(i)}
-                    style={{ width: 20, height: 20, borderRadius: "50%", background: "rgba(0,0,0,0.5)", border: 0, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
-                    <X size={10} />
-                  </button>
-                </div>
-              ) : (
+              {photos.map((p, i) => (
                 <div key={p} style={{
                   width: 72, height: 72, borderRadius: 14, overflow: "hidden",
                   border: "2px solid rgba(167,139,250,0.3)", position: "relative", flexShrink: 0,
                 }}>
                   <img src={photoUrl(p)!} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                   <button type="button" onClick={() => removePhoto(i)}
-                    style={{ position: "absolute", top: 4, right: 4, width: 22, height: 22, borderRadius: "50%", background: "rgba(0,0,0,0.6)", border: 0, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+                    style={{
+                      position: "absolute", top: 4, right: 4, width: 22, height: 22,
+                      borderRadius: "50%", background: "rgba(0,0,0,0.6)", border: 0,
+                      color: "#fff", display: "flex", alignItems: "center", justifyContent: "center",
+                      cursor: "pointer",
+                    }}>
                     <X size={12} />
                   </button>
                 </div>
               ))}
-
-              {/* Camera menu */}
-              <div style={{ position: "relative" }}>
-                <button type="button" onClick={() => setCameraMenuOpen(!cameraMenuOpen)}
-                  style={{ width: 72, height: 72, borderRadius: 14, border: "1.5px dashed rgba(167,139,250,0.3)", background: "rgba(124,92,255,0.06)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#A78BFA", flexDirection: "column", gap: 2 }}>
-                  <Camera size={20} />
-                  <span style={{ fontSize: 9, color: "#9e96b5" }}>Câmera</span>
-                </button>
-                {cameraMenuOpen && (
-                  <div style={{ position: "absolute", bottom: 80, left: 0, zIndex: 20, background: "#1a1530", border: "1px solid rgba(167,139,250,0.25)", borderRadius: 14, padding: 6, boxShadow: "0 8px 24px rgba(0,0,0,0.4)", display: "flex", flexDirection: "column", gap: 2, minWidth: 200 }}>
-                    <button type="button" onClick={() => { setCameraMenuOpen(false); photoInputRef.current?.click(); }} style={menuItemStyle}><span style={{ fontSize: 16 }}>🖼️</span> Fototeca</button>
-                    <button type="button" onClick={() => { setCameraMenuOpen(false); cameraCaptureRef.current?.click(); }} style={menuItemStyle}><span style={{ fontSize: 16 }}>📸</span> Tirar foto</button>
-                    <button type="button" onClick={() => { setCameraMenuOpen(false); videoInputRef.current?.click(); }} style={menuItemStyle}><span style={{ fontSize: 16 }}>🎬</span> Gravar vídeo</button>
-                    <button type="button" onClick={() => { setCameraMenuOpen(false); photoInputRef.current?.click(); }} style={menuItemStyle}><span style={{ fontSize: 16 }}>📁</span> Escolher arquivo</button>
-                  </div>
-                )}
-                {cameraMenuOpen && <div style={{ position: "fixed", inset: 0, zIndex: 19 }} onClick={() => setCameraMenuOpen(false)} />}
-              </div>
-
-              {/* Audio button */}
-              <div style={{ position: "relative" }}>
-                <button type="button" onClick={() => { if (recording) stopRecording(); else startRecording(); }}
-                  style={{ width: recording ? 88 : 72, height: recording ? 88 : 72, borderRadius: 14,
-                    border: recording ? "2px solid #FF4D4D" : "1.5px dashed rgba(167,139,250,0.3)",
-                    background: recording ? "rgba(255,77,77,0.15)" : "rgba(124,92,255,0.06)",
-                    display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
-                    color: recording ? "#FF4D4D" : "#A78BFA", flexDirection: "column", gap: 2 }}>
-                  <Mic size={20} />
-                  <span style={{ fontSize: 9, color: recording ? "#FF4D4D" : "#9e96b5" }}>{recording ? `${recordingTime}s` : "Áudio"}</span>
-                </button>
-              </div>
-
-              <input ref={photoInputRef} type="file" accept="image/*" style={{ display: "none" }}
+              <button type="button" onClick={() => photoInputRef.current?.click()} disabled={uploading}
+                style={{
+                  width: 72, height: 72, borderRadius: 14,
+                  border: "1.5px dashed rgba(167,139,250,0.3)",
+                  background: "rgba(124,92,255,0.06)", display: "flex",
+                  alignItems: "center", justifyContent: "center",
+                  cursor: "pointer", color: "#A78BFA", flexDirection: "column", gap: 2,
+                }}>
+                <Camera size={18} />
+                <span style={{ fontSize: 9, color: "#9e96b5" }}>{uploading ? "..." : "Foto"}</span>
+              </button>
+              <input ref={photoInputRef} type="file" accept="image/*"
+                style={{ display: "none" }}
                 onChange={(e) => { if (e.target.files?.[0]) handlePhotoAdd(e.target.files[0]); e.target.value = ""; }} />
-              <input ref={cameraCaptureRef} type="file" accept="image/*" capture="environment" style={{ display: "none" }}
-                onChange={(e) => { if (e.target.files?.[0]) handlePhotoAdd(e.target.files[0]); e.target.value = ""; }} />
-              <input ref={audioInputRef} type="file" accept="audio/*" style={{ display: "none" }}
-                onChange={(e) => { if (e.target.files?.[0]) handleAudioAdd(e.target.files[0]); e.target.value = ""; }} />
-              <input ref={videoInputRef} type="file" accept="video/*" style={{ display: "none" }}
-                onChange={(e) => { if (e.target.files?.[0]) handleVideoAdd(e.target.files[0]); e.target.value = ""; }} />
-              <input ref={pdfInputRef} type="file" accept=".pdf,application/pdf" style={{ display: "none" }}
-                onChange={(e) => { if (e.target.files?.[0]) handlePdfAdd(e.target.files[0]); e.target.value = ""; }} />
             </div>
 
             {/* Cancel */}
@@ -467,67 +321,18 @@ export default function DiarioEntryPage() {
               </p>
             )}
 
-            {/* Media display (photos + audio + video + pdf) */}
+            {/* Photos display */}
             {entry.photos && entry.photos.length > 0 && (
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {/* Videos */}
-                {entry.photos.filter(isVideo).map((p) => {
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 8 }}>
+                {entry.photos.map((p) => {
                   const src = photoUrl(p);
                   return src ? (
-                    <div key={p} style={{
-                      background: "#1a1530", border: "1px solid rgba(167,139,250,0.2)",
-                      borderRadius: 14, overflow: "hidden",
-                    }}>
-                      <video src={src} controls style={{ width: "100%", maxHeight: 360, display: "block" }} />
-                    </div>
+                    <img key={p} src={src} alt="" style={{
+                      width: "100%", aspectRatio: "1", objectFit: "cover",
+                      borderRadius: 14, border: "1px solid rgba(167,139,250,0.2)",
+                    }} />
                   ) : null;
                 })}
-                {/* Audio files — download link */}
-                {entry.photos.filter(isAudio).map((p, i) => {
-                  const src = photoUrl(p);
-                  return src ? (
-                    <a key={p} href={src} target="_blank" rel="noopener noreferrer"
-                      style={{
-                        display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
-                        background: "#1a1530", border: "1px solid rgba(167,139,250,0.2)",
-                        borderRadius: 14, textDecoration: "none",
-                      }}>
-                      <span style={{ fontSize: 20 }}>🎙️</span>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: "#e0d6ff", flex: 1 }}>Áudio {i + 1}</span>
-                      <span style={{ fontSize: 11, color: "#A78BFA" }}>▶ Ouvir</span>
-                    </a>
-                  ) : null;
-                })}
-                {/* PDFs */}
-                {entry.photos.filter(isPdf).map((p) => {
-                  const src = photoUrl(p);
-                  return src ? (
-                    <a key={p} href={src} target="_blank" rel="noopener noreferrer"
-                      style={{
-                        display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
-                        background: "#1a1530", border: "1px solid rgba(167,139,250,0.2)",
-                        borderRadius: 14, textDecoration: "none",
-                      }}>
-                      <span style={{ fontSize: 24 }}>📄</span>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: "#e0d6ff", flex: 1 }}>Ver documento</span>
-                      <span style={{ fontSize: 11, color: "#A78BFA" }}>Abrir ↗</span>
-                    </a>
-                  ) : null;
-                })}
-                {/* Photos */}
-                {entry.photos.filter(isPhoto).length > 0 && (
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 8 }}>
-                    {entry.photos.filter(isPhoto).map((p) => {
-                      const src = photoUrl(p);
-                      return src ? (
-                        <img key={p} src={src} alt="" style={{
-                          width: "100%", aspectRatio: "1", objectFit: "cover",
-                          borderRadius: 14, border: "1px solid rgba(167,139,250,0.2)",
-                        }} />
-                      ) : null;
-                    })}
-                  </div>
-                )}
               </div>
             )}
           </>

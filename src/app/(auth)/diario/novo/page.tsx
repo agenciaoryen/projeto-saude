@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useTranslation } from "@/lib/useTranslation";
-import { compressImage, uploadToCloud, uploadFile, photoUrl } from "@/lib/photo-storage";
+import { compressImage, uploadToCloud, photoUrl } from "@/lib/photo-storage";
 import { ChevronLeft, ChevronDown, Plus, X, ArrowRight, Camera } from "lucide-react";
 
 const MOODS = [1, 2, 3, 4, 5] as const;
@@ -34,22 +34,9 @@ export default function NovoDiarioPage() {
   const [mood, setMood] = useState<number | null>(null);
   const [moodOpen, setMoodOpen] = useState(false);
   const [photos, setPhotos] = useState<string[]>([]);
-  const [audios, setAudios] = useState<string[]>([]);
-  const [videos, setVideos] = useState<string[]>([]);
-  const [pdfs, setPdfs] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
-  const [recording, setRecording] = useState(false);
-  const [recordingTime, setRecordingTime] = useState(0);
-  const [audioMenuOpen, setAudioMenuOpen] = useState(false);
-  const [cameraMenuOpen, setCameraMenuOpen] = useState(false);
   const dateInputRef = useRef<HTMLInputElement>(null);
-  const cameraCaptureRef = useRef<HTMLInputElement>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
-  const audioInputRef = useRef<HTMLInputElement>(null);
-  const videoInputRef = useRef<HTMLInputElement>(null);
-  const pdfInputRef = useRef<HTMLInputElement>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
 
   const selectedMoodEmoji = mood ? MOOD_EMOJI[mood] : "😶";
 
@@ -74,7 +61,7 @@ export default function NovoDiarioPage() {
     const res = await fetch("/api/diary", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ date: entryDate, title: title.trim(), content: content.trim(), mood, photos: [...photos, ...audios, ...videos, ...pdfs] }),
+      body: JSON.stringify({ date: entryDate, title: title.trim(), content: content.trim(), mood, photos }),
     });
     if (!res.ok) { toast.error(t("erro_salvar_entrada")); setSaving(false); return; }
     toast.success(t("entrada_salva"));
@@ -90,99 +77,9 @@ export default function NovoDiarioPage() {
     } catch { toast.error("Erro ao processar imagem"); }
   }, []);
 
-  const handleAudioAdd = useCallback(async (file: File) => {
-    try {
-      const reader = new FileReader();
-      const base64 = await new Promise<string>((resolve, reject) => {
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-      const path = await uploadToCloud(base64, "diary");
-      setAudios((prev) => [...prev, path]);
-    } catch { toast.error("Erro ao processar áudio"); }
-  }, []);
-
   const removePhoto = useCallback((path: string) => {
     setPhotos((prev) => prev.filter((p) => p !== path));
   }, []);
-
-  const removeAudio = useCallback((path: string) => {
-    setAudios((prev) => prev.filter((a) => a !== path));
-  }, []);
-
-  const isAudioFile = (path: string) => /\.(mp3|m4a|wav|ogg|webm|aac|flac)$/i.test(path);
-
-  const menuItemStyle: React.CSSProperties = {
-    display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10,
-    border: 0, background: "transparent", cursor: "pointer", fontFamily: "inherit",
-    fontSize: 13, color: "#e0d6ff", fontWeight: 600, textAlign: "left", width: "100%",
-  };
-
-  const handleVideoAdd = useCallback(async (file: File) => {
-    if (file.size > 30 * 1024 * 1024) {
-      toast.error("Vídeo muito grande. Máximo: 30 MB.");
-      return;
-    }
-    try {
-      const path = await uploadFile(file, "diary");
-      setVideos((prev) => [...prev, path]);
-    } catch { toast.error("Erro ao enviar vídeo"); }
-  }, []);
-
-  const handlePdfAdd = useCallback(async (file: File) => {
-    if (pdfs.length >= 3) { toast.error("Máximo 3 PDFs por entrada"); return; }
-    try {
-      const reader = new FileReader();
-      const base64 = await new Promise<string>((resolve, reject) => {
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-      const path = await uploadToCloud(base64, "diary");
-      setPdfs((prev) => [...prev, path]);
-    } catch { toast.error("Erro ao processar PDF"); }
-  }, [pdfs.length]);
-
-  const startRecording = async () => {
-    if (recording) return;
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      // Let the browser pick its default format — most reliable
-      const recorder = new MediaRecorder(stream);
-      (mediaRecorderRef as any).current = recorder;
-      audioChunksRef.current = [];
-      setRecordingTime(0);
-      const startTime = Date.now();
-      const timerInterval = setInterval(() => setRecordingTime(Math.floor((Date.now() - startTime) / 1000)), 500);
-      recorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunksRef.current.push(e.data); };
-      recorder.onstop = async () => {
-        clearInterval(timerInterval);
-        stream.getTracks().forEach(t => t.stop());
-        if (audioChunksRef.current.length === 0) { setRecording(false); setRecordingTime(0); return; }
-        const blob = new Blob(audioChunksRef.current, { type: recorder.mimeType });
-        const reader = new FileReader();
-        reader.onload = async () => {
-          try {
-            const path = await uploadToCloud(reader.result as string, "diary");
-            setAudios((prev) => [...prev, path]);
-          } catch { toast.error("Erro ao enviar áudio"); }
-        };
-        reader.readAsDataURL(blob);
-      };
-      recorder.start(1000);
-      setRecording(true);
-    } catch {
-      audioInputRef.current?.click();
-    }
-  };
-
-  const stopRecording = () => {
-    const rec = mediaRecorderRef.current as MediaRecorder | null;
-    if (rec && rec.state !== "inactive") rec.stop();
-    setRecording(false);
-    setRecordingTime(0);
-  };
 
   const handlePaste = (e: React.ClipboardEvent) => {
     e.preventDefault();
@@ -287,7 +184,7 @@ export default function NovoDiarioPage() {
         />
       </div>
 
-      {/* Photos */}
+      {/* Photo strip */}
       <div style={{ padding: "20px 24px 0" }}>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
           {photos.map((p) => (
@@ -307,159 +204,18 @@ export default function NovoDiarioPage() {
               </button>
             </div>
           ))}
-          {/* Recording indicator */}
-          {recording && (
-            <div style={{
-              height: 44, borderRadius: 12,
-              border: "2px solid #FF4D4D",
-              background: "rgba(255,77,77,0.12)",
-              flexShrink: 0, display: "flex", alignItems: "center", gap: 8,
-              padding: "0 14px", animation: "pulse 1s infinite",
+          <button type="button" onClick={() => photoInputRef.current?.click()}
+            style={{
+              width: 72, height: 72, borderRadius: 14,
+              border: "1.5px dashed rgba(167,139,250,0.3)",
+              background: "rgba(124,92,255,0.06)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              cursor: "pointer", color: "#A78BFA",
             }}>
-              <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#FF4D4D", flexShrink: 0 }} />
-              <span style={{ fontSize: 12, fontWeight: 600, color: "#FF4D4D" }}>
-                Gravando {recordingTime}s
-              </span>
-              <button type="button" onClick={stopRecording}
-                style={{
-                  width: 28, height: 28, borderRadius: "50%", background: "#FF4D4D",
-                  border: 0, color: "#fff", display: "flex", alignItems: "center",
-                  justifyContent: "center", cursor: "pointer", fontSize: 14,
-                }}>
-                ■
-              </button>
-            </div>
-          )}
-          {/* Audio clips — shown as download links (cross-browser safe) */}
-          {audios.map((a, i) => (
-            <a key={a} href={photoUrl(a)!} target="_blank" rel="noopener noreferrer"
-              style={{
-                height: 40, borderRadius: 10, overflow: "hidden",
-                border: "1.5px solid rgba(167,139,250,0.25)",
-                background: "rgba(124,92,255,0.06)",
-                flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 8,
-                padding: "0 10px 0 8px", textDecoration: "none",
-              }}
-              onClick={(e) => { if (e.shiftKey) { e.preventDefault(); removeAudio(a); } }}>
-              <span style={{ fontSize: 16, flexShrink: 0 }}>🎙️</span>
-              <span style={{ fontSize: 11, fontWeight: 600, color: "#e0d6ff" }}>Áudio {i + 1}</span>
-              <span style={{ fontSize: 9, color: "#A78BFA" }}>▶ Ouvir</span>
-            </a>
-          ))}
-          {/* Video — download link (cross-browser safe) */}
-          {videos.map((v, i) => (
-            <a key={v} href={photoUrl(v)!} target="_blank" rel="noopener noreferrer"
-              style={{
-                height: 40, borderRadius: 10, overflow: "hidden",
-                border: "1.5px solid rgba(167,139,250,0.25)",
-                background: "rgba(124,92,255,0.06)",
-                flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 8,
-                padding: "0 10px 0 8px", textDecoration: "none",
-              }}>
-              <span style={{ fontSize: 16, flexShrink: 0 }}>🎬</span>
-              <span style={{ fontSize: 11, fontWeight: 600, color: "#e0d6ff" }}>Vídeo {i + 1}</span>
-              <span style={{ fontSize: 9, color: "#A78BFA" }}>▶ Ver</span>
-            </a>
-          ))}
-          {/* PDFs */}
-          {pdfs.map((p) => (
-            <div key={p} style={{
-              height: 40, borderRadius: 10, overflow: "hidden",
-              border: "1.5px solid rgba(167,139,250,0.2)",
-              background: "rgba(124,92,255,0.04)",
-              flexShrink: 0, display: "flex", alignItems: "center", gap: 8,
-              padding: "0 10px", position: "relative",
-            }}>
-              <FileText size={14} style={{ color: "#A78BFA", flexShrink: 0 }} />
-              <span style={{ fontSize: 10, color: "#9e96b5", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 100 }}>
-                PDF
-              </span>
-              <button type="button" onClick={() => setPdfs(prev => prev.filter(pdf => pdf !== p))}
-                style={{
-                  width: 18, height: 18, borderRadius: "50%", background: "rgba(0,0,0,0.5)",
-                  border: 0, color: "#fff", display: "flex", alignItems: "center",
-                  justifyContent: "center", cursor: "pointer", flexShrink: 0,
-                }}>
-                <X size={10} />
-              </button>
-            </div>
-          ))}
-          {/* Camera button with menu */}
-          <div style={{ position: "relative" }}>
-            <button type="button"
-              onClick={() => setCameraMenuOpen(!cameraMenuOpen)}
-              style={{
-                width: 72, height: 72, borderRadius: 14,
-                border: "1.5px dashed rgba(167,139,250,0.3)",
-                background: "rgba(124,92,255,0.06)", display: "flex",
-                alignItems: "center", justifyContent: "center",
-                cursor: "pointer", color: "#A78BFA", flexDirection: "column", gap: 2,
-              }}>
-              <Camera size={20} />
-              <span style={{ fontSize: 9, color: "#9e96b5" }}>Câmera</span>
-            </button>
-            {cameraMenuOpen && (
-              <div style={{
-                position: "absolute", bottom: 80, left: 0, zIndex: 20,
-                background: "#1a1530", border: "1px solid rgba(167,139,250,0.25)",
-                borderRadius: 14, padding: 6, boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
-                display: "flex", flexDirection: "column", gap: 2, minWidth: 200,
-              }}>
-                <button type="button" onClick={() => { setCameraMenuOpen(false); photoInputRef.current?.click(); }}
-                  style={menuItemStyle}>
-                  <span style={{ fontSize: 16 }}>🖼️</span> Fototeca
-                </button>
-                <button type="button" onClick={() => { setCameraMenuOpen(false); cameraCaptureRef.current?.click(); }}
-                  style={menuItemStyle}>
-                  <span style={{ fontSize: 16 }}>📸</span> Tirar foto
-                </button>
-                <button type="button" onClick={() => { setCameraMenuOpen(false); videoInputRef.current?.click(); }}
-                  style={menuItemStyle}>
-                  <span style={{ fontSize: 16 }}>🎬</span> Gravar vídeo
-                </button>
-                <button type="button" onClick={() => { setCameraMenuOpen(false); photoInputRef.current?.click(); }}
-                  style={menuItemStyle}>
-                  <span style={{ fontSize: 16 }}>📁</span> Escolher arquivo
-                </button>
-              </div>
-            )}
-            {cameraMenuOpen && <div style={{ position: "fixed", inset: 0, zIndex: 19 }} onClick={() => setCameraMenuOpen(false)} />}
-          </div>
+            <Plus size={22} />
+          </button>
           <input ref={photoInputRef} type="file" accept="image/*" style={{ display: "none" }}
             onChange={(e) => { if (e.target.files?.[0]) handlePhotoAdd(e.target.files[0]); e.target.value = ""; }} />
-          <input ref={cameraCaptureRef} type="file" accept="image/*" capture="environment" style={{ display: "none" }}
-            onChange={(e) => { if (e.target.files?.[0]) handlePhotoAdd(e.target.files[0]); e.target.value = ""; }} />
-          {/* Audio button — tap hold to record, short tap to upload */}
-          <div style={{ position: "relative" }}>
-            <button type="button"
-              onClick={() => { if (!recording) audioInputRef.current?.click(); }}
-              onMouseDown={(e) => { e.preventDefault(); startRecording(); }}
-              onMouseUp={() => { if (recording) stopRecording(); }}
-              onMouseLeave={() => { if (recording) stopRecording(); }}
-              onTouchStart={() => { startRecording(); }}
-              onTouchEnd={() => { if (recording) stopRecording(); }}
-              style={{
-                width: recording ? 88 : 72, height: recording ? 88 : 72, borderRadius: 14,
-                border: recording ? "2px solid #FF4D4D" : "1.5px dashed rgba(167,139,250,0.3)",
-                background: recording ? "rgba(255,77,77,0.15)" : "rgba(124,92,255,0.06)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                cursor: "pointer", color: recording ? "#FF4D4D" : "#A78BFA",
-                flexDirection: "column", gap: 2, userSelect: "none", transition: "all .15s ease",
-              }}>
-              <Mic size={20} />
-              <span style={{ fontSize: 9, color: recording ? "#FF4D4D" : "#9e96b5", fontWeight: 600 }}>
-                {recording ? `${recordingTime}s` : "Áudio"}
-              </span>
-            </button>
-          </div>
-          <input ref={photoInputRef} type="file" accept="image/*" style={{ display: "none" }}
-            onChange={(e) => { if (e.target.files?.[0]) handlePhotoAdd(e.target.files[0]); e.target.value = ""; }} />
-          <input ref={audioInputRef} type="file" accept="audio/*" style={{ display: "none" }}
-            onChange={(e) => { if (e.target.files?.[0]) handleAudioAdd(e.target.files[0]); e.target.value = ""; }} />
-          <input ref={videoInputRef} type="file" accept="video/*" style={{ display: "none" }}
-            onChange={(e) => { if (e.target.files?.[0]) handleVideoAdd(e.target.files[0]); e.target.value = ""; }} />
-          <input ref={pdfInputRef} type="file" accept=".pdf,application/pdf" style={{ display: "none" }}
-            onChange={(e) => { if (e.target.files?.[0]) handlePdfAdd(e.target.files[0]); e.target.value = ""; }} />
         </div>
       </div>
 
