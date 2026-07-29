@@ -482,17 +482,20 @@ export default function DiarioEntryPage() {
                     </div>
                   ) : null;
                 })}
-                {/* Audio files */}
-                {entry.photos.filter(isAudio).map((p) => {
+                {/* Audio files — download link */}
+                {entry.photos.filter(isAudio).map((p, i) => {
                   const src = photoUrl(p);
                   return src ? (
-                    <div key={p} style={{
-                      background: "#1a1530", border: "1px solid rgba(167,139,250,0.2)",
-                      borderRadius: 14, padding: "12px 14px", display: "flex", alignItems: "center", gap: 10,
-                    }}>
+                    <a key={p} href={src} target="_blank" rel="noopener noreferrer"
+                      style={{
+                        display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
+                        background: "#1a1530", border: "1px solid rgba(167,139,250,0.2)",
+                        borderRadius: 14, textDecoration: "none",
+                      }}>
                       <span style={{ fontSize: 20 }}>🎙️</span>
-                      <audio src={src} controls preload="metadata" style={{ flex: 1, height: 32 }} />
-                    </div>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: "#e0d6ff", flex: 1 }}>Áudio {i + 1}</span>
+                      <span style={{ fontSize: 11, color: "#A78BFA" }}>▶ Ouvir</span>
+                    </a>
                   ) : null;
                 })}
                 {/* PDFs */}

@@ -120,17 +120,10 @@ export default function NovoDiarioPage() {
   };
 
   const handleVideoAdd = useCallback(async (file: File) => {
-    // Check duration for videos (max 10 min)
-    const video = document.createElement("video");
-    video.preload = "metadata";
-    video.src = URL.createObjectURL(file);
-    await new Promise<void>((resolve) => { video.onloadedmetadata = () => resolve(); });
-    if (video.duration > 600) {
-      toast.error("Vídeo muito longo. Máximo: 10 minutos.");
-      URL.revokeObjectURL(video.src);
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("Vídeo muito grande. Máximo: 10 MB.");
       return;
     }
-    URL.revokeObjectURL(video.src);
     try {
       const reader = new FileReader();
       const base64 = await new Promise<string>((resolve, reject) => {
@@ -344,40 +337,36 @@ export default function NovoDiarioPage() {
               </button>
             </div>
           )}
-          {/* Audio clips */}
-          {audios.map((a) => (
-            <div key={a} style={{
-              height: 44, borderRadius: 12, overflow: "hidden",
-              border: "1.5px solid rgba(167,139,250,0.25)",
-              background: "rgba(124,92,255,0.06)",
-              flexShrink: 0, display: "flex", alignItems: "center", gap: 6,
-              padding: "0 8px 0 4px", position: "relative",
-            }}>
-              <audio src={photoUrl(a)!} controls preload="metadata" style={{ height: 28, width: 160 }} />
-              <button type="button" onClick={() => removeAudio(a)}
-                style={{
-                  width: 20, height: 20, borderRadius: "50%", background: "rgba(0,0,0,0.5)",
-                  border: 0, color: "#fff", display: "flex", alignItems: "center",
-                  justifyContent: "center", cursor: "pointer", flexShrink: 0,
-                }}>
-                <X size={10} />
-              </button>
-            </div>
+          {/* Audio clips — shown as download links (cross-browser safe) */}
+          {audios.map((a, i) => (
+            <a key={a} href={photoUrl(a)!} target="_blank" rel="noopener noreferrer"
+              style={{
+                height: 40, borderRadius: 10, overflow: "hidden",
+                border: "1.5px solid rgba(167,139,250,0.25)",
+                background: "rgba(124,92,255,0.06)",
+                flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 8,
+                padding: "0 10px 0 8px", textDecoration: "none",
+              }}
+              onClick={(e) => { if (e.shiftKey) { e.preventDefault(); removeAudio(a); } }}>
+              <span style={{ fontSize: 16, flexShrink: 0 }}>🎙️</span>
+              <span style={{ fontSize: 11, fontWeight: 600, color: "#e0d6ff" }}>Áudio {i + 1}</span>
+              <span style={{ fontSize: 9, color: "#A78BFA" }}>▶ Ouvir</span>
+            </a>
           ))}
-          {/* Video */}
-          {videos.map((v) => (
-            <div key={v} style={{ position: "relative", flexShrink: 0 }}>
-              <video src={photoUrl(v)!} controls style={{ height: 100, borderRadius: 12, maxWidth: 200 }} />
-              <button type="button" onClick={() => setVideos(prev => prev.filter(p => p !== v))}
-                style={{
-                  position: "absolute", top: 4, right: 4, width: 22, height: 22,
-                  borderRadius: "50%", background: "rgba(0,0,0,0.6)", border: 0,
-                  color: "#fff", display: "flex", alignItems: "center", justifyContent: "center",
-                  cursor: "pointer",
-                }}>
-                <X size={12} />
-              </button>
-            </div>
+          {/* Video — download link (cross-browser safe) */}
+          {videos.map((v, i) => (
+            <a key={v} href={photoUrl(v)!} target="_blank" rel="noopener noreferrer"
+              style={{
+                height: 40, borderRadius: 10, overflow: "hidden",
+                border: "1.5px solid rgba(167,139,250,0.25)",
+                background: "rgba(124,92,255,0.06)",
+                flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 8,
+                padding: "0 10px 0 8px", textDecoration: "none",
+              }}>
+              <span style={{ fontSize: 16, flexShrink: 0 }}>🎬</span>
+              <span style={{ fontSize: 11, fontWeight: 600, color: "#e0d6ff" }}>Vídeo {i + 1}</span>
+              <span style={{ fontSize: 9, color: "#A78BFA" }}>▶ Ver</span>
+            </a>
           ))}
           {/* PDFs */}
           {pdfs.map((p) => (
