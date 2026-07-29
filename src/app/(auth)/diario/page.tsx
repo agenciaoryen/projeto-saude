@@ -3,7 +3,8 @@
 import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "@/lib/useTranslation";
-import { Plus, ImageIcon, BookOpen, Sparkles, ChevronDown } from "lucide-react";
+import { toast } from "sonner";
+import { Plus, ImageIcon, BookOpen, Sparkles, ChevronDown, Lock } from "lucide-react";
 import { photoUrl } from "@/lib/photo-storage";
 import { getLocalDate } from "@/lib/utils";
 import type { DiaryEntry } from "@/types";
@@ -37,7 +38,12 @@ export default function DiarioPage() {
   const [loading, setLoading] = useState(true);
   const [fabOpen, setFabOpen] = useState(false);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [pinPrompt, setPinPrompt] = useState<string | null>(null); // entry id to unlock
+  const [pinInput, setPinInput] = useState("");
   const today = getLocalDate();
+
+  const getPin = () => { try { return localStorage.getItem("diary_pin") || ""; } catch { return ""; } };
+  const pinSet = getPin();
 
   useEffect(() => {
     fetch("/api/diary")
@@ -243,7 +249,17 @@ export default function DiarioPage() {
                     <button
                       key={entry.id}
                       type="button"
-                      onClick={() => router.push(`/diario/${entry.id}`)}
+                      onClick={() => {
+                        if (entry.locked && !pinSet) {
+                          // No PIN set yet — ask to create one
+                          setPinPrompt("setup");
+                        } else if (entry.locked) {
+                          setPinPrompt(entry.id);
+                          setPinInput("");
+                        } else {
+                          router.push(`/diario/${entry.id}`);
+                        }
+                      }}
                       className="w-full text-left transition-colors hover:bg-white/[0.04]"
                       style={{
                         display: "grid", gridTemplateColumns: "52px 1fr",
@@ -277,7 +293,11 @@ export default function DiarioPage() {
                                 </h3>
                               )}
                             </div>
-                            {isEmpty ? (
+                            {entry.locked ? (
+                              <p className="m-0 text-[12.5px]" style={{ color: "#FF4D4D", display: "flex", alignItems: "center", gap: 4 }}>
+                                <Lock size={10} /> Registro privado
+                              </p>
+                            ) : isEmpty ? (
                               <p className="m-0 text-[12.5px] italic" style={{ color: "#9e96b5" }}>
                                 Você marcou seu humor, mas não escreveu nada nesse dia.
                               </p>
@@ -349,6 +369,65 @@ export default function DiarioPage() {
             </button>
           </>
         )}
+      {/* ── PIN modals ─────────────────────────────────── */}
+      {pinPrompt === "setup" && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(0,0,0,0.8)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          <div style={{ width: "100%", maxWidth: 300, background: "#1a1530", borderRadius: 24, padding: 28, border: "1px solid rgba(167,139,250,0.2)", textAlign: "center" }}>
+            <span style={{ fontSize: 40 }}>🔐</span>
+            <h3 style={{ margin: "12px 0 4px", fontSize: 18, fontWeight: 700, color: "#e0d6ff" }}>Criar PIN</h3>
+            <p style={{ margin: "0 0 16px", fontSize: 13, color: "#9e96b5" }}>4 dígitos para acessar registros privados</p>
+            <input type="password" maxLength={4} inputMode="numeric" pattern="[0-9]*" autoFocus
+              value={pinInput} onChange={e => setPinInput(e.target.value.replace(/\D/g, "").slice(0, 4))}
+              style={{ width: 120, padding: "12px 16px", borderRadius: 12, border: "1px solid rgba(167,139,250,0.3)", background: "#0B0B10", color: "#e0d6ff", fontSize: 24, textAlign: "center", fontFamily: "monospace", letterSpacing: 8, outline: "none", marginBottom: 16 }} />
+            <div style={{ display: "flex", gap: 10 }}>
+              <button type="button" onClick={() => setPinPrompt(null)}
+                style={{ flex: 1, padding: 12, borderRadius: 12, border: "1px solid rgba(167,139,250,0.2)", background: "transparent", color: "#9e96b5", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+                Cancelar
+              </button>
+              <button type="button" onClick={() => {
+                if (pinInput.length === 4) {
+                  localStorage.setItem("diary_pin", pinInput);
+                  setPinPrompt(null); setPinInput("");
+                }
+              }} disabled={pinInput.length !== 4}
+                style={{ flex: 1, padding: 12, borderRadius: 12, border: 0, background: pinInput.length === 4 ? "#7C5CFF" : "#1e1840", color: "#fff", fontSize: 14, fontWeight: 700, cursor: pinInput.length === 4 ? "pointer" : "not-allowed", fontFamily: "inherit" }}>
+                Salvar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {pinPrompt && pinPrompt !== "setup" && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(0,0,0,0.8)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          <div style={{ width: "100%", maxWidth: 300, background: "#1a1530", borderRadius: 24, padding: 28, border: "1px solid rgba(167,139,250,0.2)", textAlign: "center" }}>
+            <span style={{ fontSize: 40 }}>🔒</span>
+            <h3 style={{ margin: "12px 0 4px", fontSize: 18, fontWeight: 700, color: "#e0d6ff" }}>Registro privado</h3>
+            <p style={{ margin: "0 0 16px", fontSize: 13, color: "#9e96b5" }}>Digite seu PIN para acessar</p>
+            <input type="password" maxLength={4} inputMode="numeric" pattern="[0-9]*" autoFocus
+              value={pinInput} onChange={e => setPinInput(e.target.value.replace(/\D/g, "").slice(0, 4))}
+              onKeyDown={e => {
+                if (e.key === "Enter" && pinInput.length === 4 && pinInput === getPin()) {
+                  router.push(`/diario/${pinPrompt}`); setPinPrompt(null); setPinInput("");
+                }
+              }}
+              style={{ width: 120, padding: "12px 16px", borderRadius: 12, border: "1px solid rgba(167,139,250,0.3)", background: "#0B0B10", color: "#e0d6ff", fontSize: 24, textAlign: "center", fontFamily: "monospace", letterSpacing: 8, outline: "none", marginBottom: 16 }} />
+            <div style={{ display: "flex", gap: 10 }}>
+              <button type="button" onClick={() => { setPinPrompt(null); setPinInput(""); }}
+                style={{ flex: 1, padding: 12, borderRadius: 12, border: "1px solid rgba(167,139,250,0.2)", background: "transparent", color: "#9e96b5", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+                Cancelar
+              </button>
+              <button type="button" onClick={() => {
+                if (pinInput === getPin()) { router.push(`/diario/${pinPrompt}`); setPinPrompt(null); setPinInput(""); }
+                else { setPinInput(""); toast.error("PIN incorreto"); }
+              }} disabled={pinInput.length !== 4}
+                style={{ flex: 1, padding: 12, borderRadius: 12, border: 0, background: pinInput.length === 4 ? "#7C5CFF" : "#1e1840", color: "#fff", fontSize: 14, fontWeight: 700, cursor: pinInput.length === 4 ? "pointer" : "not-allowed", fontFamily: "inherit" }}>
+                Entrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
         <button type="button" onClick={() => setFabOpen(!fabOpen)}
           style={{
             width: 56, height: 56, borderRadius: "50%",

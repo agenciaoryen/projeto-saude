@@ -40,6 +40,8 @@ export default function DiarioEntryPage() {
   const [editing, setEditing] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
+  const [pinVerified, setPinVerified] = useState(false);
+  const [pinInput, setPinInput] = useState("");
   const dateInputRef = useRef<HTMLInputElement>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const contentEditRef = useRef<HTMLDivElement>(null);
@@ -128,6 +130,38 @@ export default function DiarioEntryPage() {
         <div style={{ fontSize: 40 }}>📔</div>
         <p style={{ color: "#9e96b5" }}>{t("entrada_nao_encontrada")}</p>
         <Button onClick={() => router.push("/diario")} style={{ borderRadius: 12, background: "#7C5CFF" }}>{t("voltar_diario")}</Button>
+      </div>
+    );
+  }
+
+  const diaryPin = () => { try { return localStorage.getItem("diary_pin") || ""; } catch { return ""; } };
+  const needsPin = entry.locked && !pinVerified;
+  if (needsPin) {
+    return (
+      <div style={{ minHeight: "100dvh", background: "#0F0F14", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16, padding: 20 }}>
+        <span style={{ fontSize: 48 }}>🔒</span>
+        <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#e0d6ff" }}>Registro privado</h2>
+        <p style={{ margin: 0, fontSize: 13, color: "#9e96b5" }}>Digite seu PIN para acessar</p>
+        <input type="password" maxLength={4} inputMode="numeric" pattern="[0-9]*" autoFocus
+          value={pinInput} onChange={e => setPinInput(e.target.value.replace(/\D/g, "").slice(0, 4))}
+          onKeyDown={e => {
+            if (e.key === "Enter" && pinInput.length === 4) {
+              if (pinInput === diaryPin()) setPinVerified(true);
+              else { setPinInput(""); toast.error("PIN incorreto"); }
+            }
+          }}
+          style={{ width: 120, padding: "12px 16px", borderRadius: 12, border: "1px solid rgba(167,139,250,0.3)", background: "#1a1530", color: "#e0d6ff", fontSize: 24, textAlign: "center", fontFamily: "monospace", letterSpacing: 8, outline: "none" }} />
+        <div style={{ display: "flex", gap: 10 }}>
+          <Button onClick={() => router.push("/diario")}
+            style={{ borderRadius: 12, background: "transparent", border: "1px solid rgba(167,139,250,0.2)", color: "#9e96b5" }}>{t("voltar_diario")}</Button>
+          <Button onClick={() => {
+            if (pinInput === diaryPin()) setPinVerified(true);
+            else { setPinInput(""); toast.error("PIN incorreto"); }
+          }} disabled={pinInput.length !== 4}
+            style={{ borderRadius: 12, background: pinInput.length === 4 ? "#7C5CFF" : "#1e1840", color: "#fff" }}>
+            Entrar
+          </Button>
+        </div>
       </div>
     );
   }
