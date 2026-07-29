@@ -161,11 +161,9 @@ export default function NovoDiarioPage() {
     if (recording) return;
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      // Try formats in order of cross-browser compatibility
-      const mimeType = ["audio/mp4", "audio/aac", "audio/webm;codecs=opus", "audio/webm", "audio/ogg;codecs=opus"]
-        .find(t => MediaRecorder.isTypeSupported(t)) || "";
-      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : {});
-      mediaRecorderRef.current = recorder as any;
+      // Let the browser pick its default format — most reliable
+      const recorder = new MediaRecorder(stream);
+      (mediaRecorderRef as any).current = recorder;
       audioChunksRef.current = [];
       setRecordingTime(0);
       const startTime = Date.now();
@@ -175,15 +173,13 @@ export default function NovoDiarioPage() {
         clearInterval(timerInterval);
         stream.getTracks().forEach(t => t.stop());
         if (audioChunksRef.current.length === 0) { setRecording(false); setRecordingTime(0); return; }
-        const blob = new Blob(audioChunksRef.current, { type: recorder.mimeType || "audio/webm" });
+        const blob = new Blob(audioChunksRef.current, { type: recorder.mimeType });
         const reader = new FileReader();
         reader.onload = async () => {
-          const base64 = reader.result as string;
           try {
-            const path = await uploadToCloud(base64, "diary");
+            const path = await uploadToCloud(reader.result as string, "diary");
             setAudios((prev) => [...prev, path]);
-            toast.success("Áudio salvo!");
-          } catch { toast.error("Erro ao salvar áudio"); }
+          } catch { toast.error("Erro ao enviar áudio"); }
         };
         reader.readAsDataURL(blob);
       };
@@ -357,9 +353,7 @@ export default function NovoDiarioPage() {
               flexShrink: 0, display: "flex", alignItems: "center", gap: 6,
               padding: "0 8px 0 4px", position: "relative",
             }}>
-              <audio src={photoUrl(a)!} controls preload="metadata" crossOrigin="anonymous" style={{ height: 28, width: 160 }}>
-                <a href={photoUrl(a)!} target="_blank" rel="noopener">Ouvir áudio</a>
-              </audio>
+              <audio src={photoUrl(a)!} controls preload="metadata" style={{ height: 28, width: 160 }} />
               <button type="button" onClick={() => removeAudio(a)}
                 style={{
                   width: 20, height: 20, borderRadius: "50%", background: "rgba(0,0,0,0.5)",
