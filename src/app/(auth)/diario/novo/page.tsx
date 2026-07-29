@@ -47,7 +47,7 @@ export default function NovoDiarioPage() {
 
   const SLASH_COMMANDS = [
     { id: "foto", label: "Inserir foto", emoji: "📷", action: () => photoInputRef.current?.click() },
-    { id: "hora", label: "Inserir horário", emoji: "🕐", action: () => insertHtmlAtCursor(`<span style="color:#A78BFA;font-weight:700;font-size:13px;background:rgba(167,139,250,0.12);padding:1px 6px;border-radius:6px;white-space:nowrap">🕐 ${new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span> `) },
+    { id: "hora", label: "Inserir horário", emoji: "🕐", action: () => insertHtmlAtCursor(`<span contenteditable="false" style="color:#A78BFA;font-weight:700;font-size:13px;background:rgba(167,139,250,0.12);padding:1px 6px;border-radius:6px;white-space:nowrap;user-select:none">🕐 ${new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>&#8203;`) },
     { id: "emoji", label: "Inserir emoji", emoji: "😊", action: () => { setEmojiPickerOpen(true); } },
   ];
 
@@ -92,10 +92,19 @@ export default function NovoDiarioPage() {
         slashSavedSel.current = { node, offset: slashIdx };
         const rect = range.getClientRects()[0];
         if (rect) {
-          // Position above if near bottom of screen
-          const top = rect.bottom + 4;
-          const screenH = typeof window !== "undefined" ? window.innerHeight : 800;
-          setSlashPos({ x: Math.min(rect.left, (typeof window !== "undefined" ? window.innerWidth : 400) - 220), y: top > screenH - 300 ? rect.top - 270 : top });
+          const screenH = window.innerHeight;
+          const screenW = window.innerWidth;
+          const menuH = 260;
+          const menuW = 220;
+          let top = rect.bottom + 6;
+          // If too close to bottom, flip above
+          if (top + menuH > screenH - 40) top = rect.top - menuH - 6;
+          // Clamp to screen
+          if (top < 60) top = 60;
+          let left = rect.left;
+          if (left + menuW > screenW - 16) left = screenW - menuW - 16;
+          if (left < 8) left = 8;
+          setSlashPos({ x: left, y: top });
         }
         return;
       }
@@ -110,7 +119,7 @@ export default function NovoDiarioPage() {
       const path = await uploadToCloud(compressed, "diary");
       const url = photoUrl(path);
       if (url) {
-        insertHtmlAtCursor(`<img src="${url}" alt="" style="max-width:100%;max-height:200px;border-radius:10px;margin:4px 0;display:block" /><br/>`);
+        insertHtmlAtCursor(`<img src="${url}" alt="" contenteditable="false" style="max-width:100%;max-height:160px;border-radius:10px;margin:6px 0;display:block;object-fit:cover" /><br/>`);
       }
     } catch { toast.error("Erro ao inserir foto"); }
   }, []);
