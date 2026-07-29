@@ -308,13 +308,18 @@ export default function DiarioEntryPage() {
             )}
 
             {entry.content ? (
-              <div style={{ marginBottom: 16 }}>
-                {entry.content.split("\n").map((line, i) => (
-                  <p key={i} style={{ margin: "0 0 8px", fontSize: 14, color: "#e0d6ff", lineHeight: 1.7 }}>
-                    {line || " "}
-                  </p>
-                ))}
-              </div>
+              entry.content.includes("<") ? (
+                <div style={{ marginBottom: 16, fontSize: 14, color: "#e0d6ff", lineHeight: 1.7 }}
+                  dangerouslySetInnerHTML={{ __html: entry.content }} />
+              ) : (
+                <div style={{ marginBottom: 16 }}>
+                  {entry.content.split("\n").map((line, i) => (
+                    <p key={i} style={{ margin: "0 0 8px", fontSize: 14, color: "#e0d6ff", lineHeight: 1.7 }}>
+                      {line || " "}
+                    </p>
+                  ))}
+                </div>
+              )
             ) : (
               <p style={{ color: "#9e96b5", fontStyle: "italic", textAlign: "center", padding: 32 }}>
                 {t("sem_conteudo")}

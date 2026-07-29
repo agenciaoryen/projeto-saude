@@ -47,14 +47,14 @@ export default function NovoDiarioPage() {
 
   const SLASH_COMMANDS = [
     { id: "foto", label: "Inserir foto", emoji: "📷", action: () => photoInputRef.current?.click() },
-    { id: "hora", label: "Inserir horário", emoji: "🕐", action: () => insertAtCursor(new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })) },
+    { id: "hora", label: "Inserir horário", emoji: "🕐", action: () => insertHtmlAtCursor(`<span style="color:#A78BFA;font-weight:700;font-size:13px;background:rgba(167,139,250,0.12);padding:1px 6px;border-radius:6px;white-space:nowrap">🕐 ${new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span> `) },
     { id: "emoji", label: "Inserir emoji", emoji: "😊", action: () => { setEmojiPickerOpen(true); } },
   ];
 
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
   const EMOJI_LIST = ["😊","😂","❤️","🙏","😢","😡","😴","🥰","😰","🤔","💪","🔥","✨","🌟","🎉","💀","👍","👎","🤝","📝"];
 
-  const insertAtCursor = (text: string) => {
+  const insertHtmlAtCursor = (html: string) => {
     const el = contentRef.current;
     if (!el) return;
     el.focus();
@@ -62,7 +62,8 @@ export default function NovoDiarioPage() {
     if (sel && sel.rangeCount > 0) {
       const range = sel.getRangeAt(0);
       range.deleteContents();
-      range.insertNode(document.createTextNode(text));
+      const frag = range.createContextualFragment(html);
+      range.insertNode(frag);
       range.collapse(false);
       sel.removeAllRanges();
       sel.addRange(range);
@@ -71,7 +72,8 @@ export default function NovoDiarioPage() {
   };
 
   const handleContentInput = (e: React.FormEvent<HTMLDivElement>) => {
-    setContent((e.target as HTMLElement).innerText);
+    const el = e.target as HTMLElement;
+    setContent(el.innerText);
     const sel = window.getSelection();
     if (!sel || !sel.rangeCount) return;
     const range = sel.getRangeAt(0);
@@ -87,16 +89,31 @@ export default function NovoDiarioPage() {
       if (!query.includes(" ") && !query.includes("\n")) {
         setSlashQuery(query);
         setSlashOpen(true);
-        // Save position to replace later
         slashSavedSel.current = { node, offset: slashIdx };
-        // Position menu near cursor
         const rect = range.getClientRects()[0];
-        if (rect) setSlashPos({ x: rect.left, y: rect.bottom + 4 });
+        if (rect) {
+          // Position above if near bottom of screen
+          const top = rect.bottom + 4;
+          const screenH = typeof window !== "undefined" ? window.innerHeight : 800;
+          setSlashPos({ x: Math.min(rect.left, (typeof window !== "undefined" ? window.innerWidth : 400) - 220), y: top > screenH - 300 ? rect.top - 270 : top });
+        }
         return;
       }
     }
     setSlashOpen(false);
   };
+
+  // Handle inline photo insertion
+  const handlePhotoForSlash = useCallback(async (file: File) => {
+    try {
+      const compressed = await compressImage(file);
+      const path = await uploadToCloud(compressed, "diary");
+      const url = photoUrl(path);
+      if (url) {
+        insertHtmlAtCursor(`<img src="${url}" alt="" style="max-width:100%;max-height:200px;border-radius:10px;margin:4px 0;display:block" /><br/>`);
+      }
+    } catch { toast.error("Erro ao inserir foto"); }
+  }, []);
 
   const selectedMoodEmoji = mood ? MOOD_EMOJI[mood] : "😶";
 
@@ -116,12 +133,13 @@ export default function NovoDiarioPage() {
   };
 
   const handleSave = async () => {
-    if (!content.trim()) { toast.error(t("escreva_algo")); return; }
+    const htmlContent = contentRef.current?.innerHTML || "";
+    if (!htmlContent.trim() && !content.trim()) { toast.error(t("escreva_algo")); return; }
     setSaving(true);
     const res = await fetch("/api/diary", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ date: entryDate, title: title.trim(), content: content.trim(), mood, photos }),
+      body: JSON.stringify({ date: entryDate, title: title.trim(), content: htmlContent.trim() || content.trim(), mood, photos }),
     });
     if (!res.ok) { toast.error(t("erro_salvar_entrada")); setSaving(false); return; }
     toast.success(t("entrada_salva"));
@@ -286,7 +304,7 @@ export default function NovoDiarioPage() {
         {/* Emoji picker */}
         {emojiPickerOpen && (
           <div style={{
-            position: "fixed", bottom: 100, left: "50%", transform: "translateX(-50%)", zIndex: 50,
+            position: "fixed", bottom: 160, left: "50%", transform: "translateX(-50%)", zIndex: 50,
             background: "#1a1530", border: "1px solid rgba(167,139,250,0.25)", borderRadius: 14,
             padding: 8, boxShadow: "0 8px 24px rgba(0,0,0,0.5)", display: "flex", flexWrap: "wrap", gap: 4,
             maxWidth: 320,
@@ -339,7 +357,7 @@ export default function NovoDiarioPage() {
             <Plus size={22} />
           </button>
           <input ref={photoInputRef} type="file" accept="image/*" style={{ display: "none" }}
-            onChange={(e) => { if (e.target.files?.[0]) handlePhotoAdd(e.target.files[0]); e.target.value = ""; }} />
+            onChange={(e) => { if (e.target.files?.[0]) handlePhotoForSlash(e.target.files[0]); e.target.value = ""; }} />
         </div>
       </div>
 

@@ -258,7 +258,7 @@ function EditCheckInView({ answers, setAnswers, enabledKeys, context, gender, on
                       : "oklch(0.14 0.012 270)",
                     backdropFilter: "blur(8px)",
                     color: active
-                      ? pos ? "#e0d6ff" : "oklch(.35 .09 30)"
+                      ? pos ? "#e0d6ff" : "#ffb3b3"
                       : "var(--foreground)",
                     outline: active
                       ? `2px solid ${pos ? "oklch(0.5 0.12 270 / .35)" : "oklch(.6 .1 30 / .35)"}`
