@@ -43,7 +43,22 @@ export default function DiarioPage() {
   const today = getLocalDate();
 
   const getPin = () => { try { return localStorage.getItem("diary_pin") || ""; } catch { return ""; } };
+  const savePin = (pin: string) => {
+    try { localStorage.setItem("diary_pin", pin); } catch {}
+    // Also sync to server
+    fetch("/api/preferences", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ context: { diary_pin: pin } }) }).catch(() => {});
+  };
   const pinSet = getPin();
+
+  // Load PIN from server on mount
+  useEffect(() => {
+    fetch("/api/preferences").then(r => r.json()).then(d => {
+      const serverPin = d?.context?.diary_pin;
+      if (serverPin && !getPin()) {
+        try { localStorage.setItem("diary_pin", serverPin); } catch {}
+      }
+    }).catch(() => {});
+  }, []);
 
   useEffect(() => {
     fetch("/api/diary")
@@ -386,7 +401,7 @@ export default function DiarioPage() {
               </button>
               <button type="button" onClick={() => {
                 if (pinInput.length === 4) {
-                  localStorage.setItem("diary_pin", pinInput);
+                  savePin(pinInput);
                   setPinPrompt(null); setPinInput("");
                 }
               }} disabled={pinInput.length !== 4}
@@ -411,6 +426,16 @@ export default function DiarioPage() {
                 }
               }}
               style={{ width: 120, padding: "12px 16px", borderRadius: 12, border: "1px solid rgba(167,139,250,0.3)", background: "#0B0B10", color: "#e0d6ff", fontSize: 24, textAlign: "center", fontFamily: "monospace", letterSpacing: 8, outline: "none", marginBottom: 16 }} />
+            <button type="button" onClick={() => {
+              if (confirm("Resetar seu PIN?\n\nVocê poderá criar um novo PIN na próxima vez que acessar um registro privado.")) {
+                try { localStorage.removeItem("diary_pin"); } catch {}
+                fetch("/api/preferences", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ context: { diary_pin: null } }) }).catch(() => {});
+                setPinPrompt("setup"); setPinInput("");
+              }
+            }}
+              style={{ background: "none", border: 0, color: "#FF5C5C", cursor: "pointer", fontSize: 11, fontFamily: "inherit", marginBottom: 12, textDecoration: "underline" }}>
+              Esqueci o PIN
+            </button>
             <div style={{ display: "flex", gap: 10 }}>
               <button type="button" onClick={() => { setPinPrompt(null); setPinInput(""); }}
                 style={{ flex: 1, padding: 12, borderRadius: 12, border: "1px solid rgba(167,139,250,0.2)", background: "transparent", color: "#9e96b5", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
