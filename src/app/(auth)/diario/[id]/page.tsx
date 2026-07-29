@@ -39,8 +39,10 @@ export default function DiarioEntryPage() {
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const dateInputRef = useRef<HTMLInputElement>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
+  const contentEditRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetch(`/api/diary?id=${id}`)
@@ -58,6 +60,13 @@ export default function DiarioEntryPage() {
       })
       .catch(() => setLoading(false));
   }, [id]);
+
+  // Populate contentEditable with HTML when entering edit mode
+  useEffect(() => {
+    if (editing && contentEditRef.current) {
+      contentEditRef.current.innerHTML = content || "";
+    }
+  }, [editing]);
 
   const handleSave = async () => {
     if (!content.trim()) { toast.error(t("escreva_algo")); return; }
@@ -218,18 +227,17 @@ export default function DiarioEntryPage() {
               onBlur={(e) => e.target.style.borderBottomColor = "rgba(167,139,250,0.2)"}
             />
 
-            {/* Content — área de texto ampla */}
-            <textarea
-              placeholder="Escreva o que está pensando e sentindo..."
-              rows={12}
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
+            {/* Content — editor rico */}
+            <div
+              ref={contentEditRef}
+              contentEditable suppressContentEditableWarning role="textbox" aria-multiline="true"
+              aria-label="Conteúdo do diário"
+              data-placeholder="Escreva o que está pensando e sentindo..."
+              onInput={(e) => setContent((e.target as HTMLElement).innerHTML)}
               style={{
-                width: "100%", boxSizing: "border-box", padding: 0,
-                border: 0,
-                background: "transparent", color: "#e0d6ff", fontSize: 15,
-                fontFamily: "inherit", lineHeight: 1.75, resize: "vertical",
-                marginBottom: 16, outline: "none",
+                outline: "none", fontSize: 15, fontFamily: "inherit", lineHeight: 1.75,
+                minHeight: 200, color: "#e0d6ff", marginBottom: 16, padding: 0,
+                border: 0, background: "transparent",
               }}
             />
 
@@ -310,6 +318,10 @@ export default function DiarioEntryPage() {
             {entry.content ? (
               entry.content.includes("<") ? (
                 <div style={{ marginBottom: 16, fontSize: 14, color: "#e0d6ff", lineHeight: 1.7 }}
+                  onClick={(e) => {
+                    const img = (e.target as HTMLElement).closest("img");
+                    if (img) setLightboxSrc((img as HTMLImageElement).src);
+                  }}
                   dangerouslySetInnerHTML={{ __html: entry.content }} />
               ) : (
                 <div style={{ marginBottom: 16 }}>
@@ -342,6 +354,17 @@ export default function DiarioEntryPage() {
             )}
           </>
         )}
+      {/* Lightbox */}
+      {lightboxSrc && (
+        <div onClick={() => setLightboxSrc(null)}
+          style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(0,0,0,0.9)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, cursor: "pointer" }}>
+          <img src={lightboxSrc} alt="" style={{ maxWidth: "100%", maxHeight: "90dvh", borderRadius: 14, objectFit: "contain" }} />
+          <button type="button" onClick={() => setLightboxSrc(null)}
+            style={{ position: "absolute", top: 16, right: 16, width: 36, height: 36, borderRadius: "50%", background: "rgba(255,255,255,0.15)", border: 0, color: "#fff", fontSize: 18, cursor: "pointer" }}>
+            ✕
+          </button>
+        </div>
+      )}
       </div>
     </div>
   );
