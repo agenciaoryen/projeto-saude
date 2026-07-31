@@ -505,7 +505,7 @@ export default function AgendaPage() {
   });
 
   return (
-    <div style={{ height: "100dvh", background: "#0B0B10", paddingBottom: 100, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+    <div style={{ minHeight: "100dvh", background: "#0B0B10", paddingBottom: 100, display: "flex", flexDirection: "column" }}>
       <div style={{ maxWidth: 480, margin: "0 auto", padding: "0 20px", width: "100%", display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}>
 
         {/* ── Title + Date navigation ─────────────────────────── */}
