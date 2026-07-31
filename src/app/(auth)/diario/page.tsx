@@ -38,7 +38,7 @@ export default function DiarioPage() {
   const [loading, setLoading] = useState(true);
   const [fabOpen, setFabOpen] = useState(false);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
-  const [pinPrompt, setPinPrompt] = useState<string | null>(null); // entry id to unlock
+  const [pinPrompt, setPinPrompt] = useState<string | null>(null); // entry id, "setup", or "remove"
   const [pinInput, setPinInput] = useState("");
   const today = getLocalDate();
 
@@ -139,11 +139,7 @@ export default function DiarioPage() {
           </div>
           <button type="button" onClick={() => {
             if (pinSet) {
-              if (confirm("Remover PIN? Os registros ficarão visíveis.")) {
-                try { localStorage.removeItem("diary_pin"); } catch {}
-                fetch("/api/preferences", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ context: { diary_pin: null } }) }).catch(() => {});
-                window.location.reload();
-              }
+              setPinPrompt("remove"); setPinInput("");
             } else {
               setPinPrompt("setup"); setPinInput("");
             }
@@ -409,6 +405,36 @@ export default function DiarioPage() {
           </>
         )}
       {/* ── PIN modals ─────────────────────────────────── */}
+      {pinPrompt === "remove" && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(0,0,0,0.8)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          <div style={{ width: "100%", maxWidth: 300, background: "#1a1530", borderRadius: 24, padding: 28, border: "1px solid rgba(167,139,250,0.2)", textAlign: "center" }}>
+            <span style={{ fontSize: 40 }}>🔓</span>
+            <h3 style={{ margin: "12px 0 4px", fontSize: 18, fontWeight: 700, color: "#e0d6ff" }}>Remover PIN</h3>
+            <p style={{ margin: "0 0 16px", fontSize: 13, color: "#9e96b5" }}>Digite o PIN atual para remover</p>
+            <input type="password" maxLength={4} inputMode="numeric" pattern="[0-9]*" autoFocus
+              value={pinInput} onChange={e => setPinInput(e.target.value.replace(/\D/g, "").slice(0, 4))}
+              style={{ width: 120, padding: "12px 16px", borderRadius: 12, border: "1px solid rgba(167,139,250,0.3)", background: "#0B0B10", color: "#e0d6ff", fontSize: 24, textAlign: "center", fontFamily: "monospace", letterSpacing: 8, outline: "none", marginBottom: 16 }} />
+            <div style={{ display: "flex", gap: 10 }}>
+              <button type="button" onClick={() => { setPinPrompt(null); setPinInput(""); }}
+                style={{ flex: 1, padding: 12, borderRadius: 12, border: "1px solid rgba(167,139,250,0.2)", background: "transparent", color: "#9e96b5", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+                Cancelar
+              </button>
+              <button type="button" onClick={() => {
+                if (pinInput === getPin()) {
+                  try { localStorage.removeItem("diary_pin"); } catch {}
+                  fetch("/api/preferences", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ context: { diary_pin: null } }) }).catch(() => {});
+                  window.location.reload();
+                } else {
+                  setPinInput(""); toast.error("PIN incorreto");
+                }
+              }} disabled={pinInput.length !== 4}
+                style={{ flex: 1, padding: 12, borderRadius: 12, border: 0, background: pinInput.length === 4 ? "#FF5C5C" : "#1e1840", color: "#fff", fontSize: 14, fontWeight: 700, cursor: pinInput.length === 4 ? "pointer" : "not-allowed", fontFamily: "inherit" }}>
+                Remover
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {pinPrompt === "setup" && (
         <div style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(0,0,0,0.8)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
           <div style={{ width: "100%", maxWidth: 300, background: "#1a1530", borderRadius: 24, padding: 28, border: "1px solid rgba(167,139,250,0.2)", textAlign: "center" }}>
@@ -436,7 +462,7 @@ export default function DiarioPage() {
           </div>
         </div>
       )}
-      {pinPrompt && pinPrompt !== "setup" && (
+      {pinPrompt && pinPrompt !== "setup" && pinPrompt !== "remove" && (
         <div style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(0,0,0,0.8)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
           <div style={{ width: "100%", maxWidth: 300, background: "#1a1530", borderRadius: 24, padding: 28, border: "1px solid rgba(167,139,250,0.2)", textAlign: "center" }}>
             <span style={{ fontSize: 40 }}>🔒</span>
