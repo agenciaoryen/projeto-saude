@@ -81,7 +81,6 @@ export async function POST(req: NextRequest) {
       content: body.content ?? "",
       mood: body.mood ?? null,
       photos: body.photos ?? [],
-      locked: body.locked ?? false,
     };
 
     const admin = getSupabaseAdmin();
