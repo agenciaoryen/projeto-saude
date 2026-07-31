@@ -129,11 +129,37 @@ export default function DiarioPage() {
     >
       {/* Header */}
       <div className="px-6 pt-6 pb-2">
-        <p className="text-xs uppercase tracking-wider font-semibold text-muted-foreground">Suas memórias</p>
-        <h1 className="mt-1 text-[36px] font-bold tracking-tight leading-[1.05]">Diário</h1>
-        <p className="mt-1.5 text-sm text-muted-foreground">
-          {entries.length} {entries.length === 1 ? "registro" : "registros"}
-        </p>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div>
+            <p className="text-xs uppercase tracking-wider font-semibold text-muted-foreground">Suas memórias</p>
+            <h1 className="mt-1 text-[36px] font-bold tracking-tight leading-[1.05]">Diário</h1>
+            <p className="mt-1.5 text-sm text-muted-foreground">
+              {entries.length} {entries.length === 1 ? "registro" : "registros"}
+            </p>
+          </div>
+          <button type="button" onClick={() => {
+            if (pinSet) {
+              if (confirm("Remover PIN? Os registros ficarão visíveis.")) {
+                try { localStorage.removeItem("diary_pin"); } catch {}
+                fetch("/api/preferences", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ context: { diary_pin: null } }) }).catch(() => {});
+                window.location.reload();
+              }
+            } else {
+              setPinPrompt("setup"); setPinInput("");
+            }
+          }}
+            style={{
+              padding: "8px 14px", borderRadius: 9999,
+              border: pinSet ? "1px solid rgba(255,77,77,0.3)" : "1px solid rgba(167,139,250,0.2)",
+              background: pinSet ? "rgba(255,77,77,0.1)" : "transparent",
+              cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 600,
+              color: pinSet ? "#FF4D4D" : "#A78BFA", display: "flex", alignItems: "center", gap: 6,
+              whiteSpace: "nowrap",
+            }}>
+            <Lock size={12} />
+            {pinSet ? "PIN ativo" : "Criar PIN"}
+          </button>
+        </div>
       </div>
 
       {/* Year quick-jump pills */}
@@ -265,10 +291,8 @@ export default function DiarioPage() {
                       key={entry.id}
                       type="button"
                       onClick={() => {
-                        if (entry.locked && !pinSet) {
-                          // No PIN set yet — ask to create one
-                          setPinPrompt("setup");
-                        } else if (entry.locked) {
+                        if (pinSet) {
+                          // PIN is set — all entries require verification
                           setPinPrompt(entry.id);
                           setPinInput("");
                         } else {
@@ -308,7 +332,7 @@ export default function DiarioPage() {
                                 </h3>
                               )}
                             </div>
-                            {entry.locked ? (
+                            {pinSet ? (
                               <p className="m-0 text-[12.5px]" style={{ color: "#FF4D4D", display: "flex", alignItems: "center", gap: 4 }}>
                                 <Lock size={10} /> Registro privado
                               </p>

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useTranslation } from "@/lib/useTranslation";
 import { compressImage, uploadToCloud, photoUrl } from "@/lib/photo-storage";
-import { ChevronLeft, ChevronDown, Plus, X, ArrowRight, Camera, Lock, Unlock } from "lucide-react";
+import { ChevronLeft, ChevronDown, Plus, X, ArrowRight, Camera } from "lucide-react";
 
 const MOODS = [1, 2, 3, 4, 5] as const;
 const MOOD_EMOJI: Record<number, string> = { 1: "😔", 2: "😕", 3: "😐", 4: "🙂", 5: "😊" };
@@ -35,7 +35,6 @@ export default function NovoDiarioPage() {
   const [moodOpen, setMoodOpen] = useState(false);
   const [photos, setPhotos] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
-  const [locked, setLocked] = useState(false);
   const dateInputRef = useRef<HTMLInputElement>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -153,7 +152,7 @@ export default function NovoDiarioPage() {
     const res = await fetch("/api/diary", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ date: entryDate, title: title.trim(), content: htmlContent.trim() || content.trim(), mood, photos, locked }),
+      body: JSON.stringify({ date: entryDate, title: title.trim(), content: htmlContent.trim() || content.trim(), mood, photos }),
     });
     if (!res.ok) { toast.error(t("erro_salvar_entrada")); setSaving(false); return; }
     toast.success(t("entrada_salva"), { duration: 3000, dismissible: true });
@@ -202,22 +201,8 @@ export default function NovoDiarioPage() {
         <ChevronLeft size={18} />
       </button>
 
-      {/* Lock toggle */}
-      <button type="button" onClick={() => setLocked(!locked)}
-        style={{
-          position: "absolute", top: 16, right: 16, zIndex: 10,
-          height: 36, width: 36, borderRadius: "50%",
-          background: locked ? "rgba(255,77,77,0.15)" : "#1a1530",
-          border: `1px solid ${locked ? "rgba(255,77,77,0.3)" : "rgba(167,139,250,0.2)"}`,
-          cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
-          color: locked ? "#FF4D4D" : "#9e96b5", backdropFilter: "blur(8px)",
-        }}
-        title={locked ? "Registro privado" : "Registro público"}>
-        {locked ? <Lock size={15} /> : <Unlock size={15} />}
-      </button>
-
       {/* Floating mood picker */}
-      <div style={{ position: "absolute", top: 16, right: 64, zIndex: 10 }}>
+      <div style={{ position: "absolute", top: 16, right: 16, zIndex: 10 }}>
         <button type="button" onClick={() => setMoodOpen(!moodOpen)}
           style={{
             height: 36, paddingInline: 14, borderRadius: 9999,
