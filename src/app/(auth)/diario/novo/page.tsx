@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useMemo, useCallback } from "react";
+import { useState, useRef, useMemo, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -145,19 +145,74 @@ export default function NovoDiarioPage() {
     }
   };
 
+  // ── Auto-draft ────────────────────────────────────────────
+  const DRAFT_KEY = "diary_draft";
+  const saveDraft = () => {
+    const htmlContent = contentRef.current?.innerHTML || "";
+    if (!htmlContent.trim() && !title.trim() && !mood) return;
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({
+        date: entryDate, title, content: htmlContent, mood, photos,
+        savedAt: Date.now(),
+      }));
+    } catch {}
+  };
+  const clearDraft = () => { try { localStorage.removeItem(DRAFT_KEY); } catch {} };
+  const loadDraft = (): any => {
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch { return null; }
+  };
+
+  // Auto-save draft every 10 seconds
+  useEffect(() => {
+    const interval = setInterval(saveDraft, 10000);
+    return () => clearInterval(interval);
+  }, [title, content, mood, photos, entryDate]);
+
+  // Load draft on mount
+  useEffect(() => {
+    const draft = loadDraft();
+    if (draft && draft.content) {
+      setEntryDate(draft.date || entryDate);
+      setTitle(draft.title || "");
+      setMood(draft.mood ?? null);
+      setPhotos(draft.photos || []);
+      // Content will be loaded into contentEditable via the ref in a moment
+      setTimeout(() => {
+        if (contentRef.current) contentRef.current.innerHTML = draft.content || "";
+      }, 100);
+      toast("Rascunho restaurado", { duration: 2000 });
+    }
+  }, []);
+
   const handleSave = async () => {
     const htmlContent = contentRef.current?.innerHTML || "";
     if (!htmlContent.trim() && !content.trim()) { toast.error(t("escreva_algo")); return; }
     setSaving(true);
-    const res = await fetch("/api/diary", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ date: entryDate, title: title.trim(), content: htmlContent.trim() || content.trim(), mood, photos }),
-    });
-    if (!res.ok) { toast.error(t("erro_salvar_entrada")); setSaving(false); return; }
-    toast.success(t("entrada_salva"), { duration: 3000, dismissible: true });
-    router.push("/diario");
-    router.refresh();
+    try {
+      const res = await fetch("/api/diary", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ date: entryDate, title: title.trim(), content: htmlContent.trim() || content.trim(), mood, photos }),
+      });
+      if (!res.ok) {
+        const err = await res.text();
+        console.error("Save error:", err);
+        toast.error("Erro ao salvar. Tente de novo.");
+        setSaving(false);
+        return;
+      }
+      clearDraft();
+      toast.success(t("entrada_salva"), { duration: 3000, dismissible: true });
+      router.push("/diario");
+      router.refresh();
+    } catch (e) {
+      console.error("Save exception:", e);
+      toast.error("Erro ao salvar. Verifique sua conexão.");
+      setSaving(false);
+    }
   };
 
   const handlePhotoAdd = useCallback(async (file: File) => {
@@ -190,7 +245,7 @@ export default function NovoDiarioPage() {
   return (
     <div style={{ minHeight: "100dvh", background: "#0F0F14", paddingBottom: 100 }}>
       {/* Floating back */}
-      <button type="button" onClick={() => router.back()}
+      <button type="button" onClick={() => { saveDraft(); router.back(); }}
         style={{
           position: "absolute", top: 16, left: 16, zIndex: 10,
           width: 36, height: 36, borderRadius: "50%",
