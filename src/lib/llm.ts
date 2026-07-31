@@ -1,47 +1,54 @@
 /**
- * Shared LLM call — currently DeepSeek, with fallback-ready structure.
+ * Shared LLM call — Claude (Anthropic).
  * Supports text-only and multimodal (image) messages.
  */
 
 type ContentBlock =
   | { type: "text"; text: string }
-  | { type: "image_url"; image_url: { url: string } };
+  | { type: "image"; source: { type: "base64"; media_type: string; data: string } };
+
+/** Convert a data: URL (OpenAI format) to Anthropic image block */
+export function toImageBlock(dataUrl: string): ContentBlock {
+  const match = dataUrl.match(/^data:(image\/\w+);base64,(.+)$/);
+  if (!match) throw new Error("Invalid data URL");
+  return {
+    type: "image",
+    source: { type: "base64", media_type: match[1], data: match[2] },
+  };
+}
 
 export async function callLLM(
   systemPrompt: string,
   userMessage: string | ContentBlock[],
   options?: { maxTokens?: number; temperature?: number }
 ): Promise<string> {
-  const apiKey = process.env.DEEPSEEK_API_KEY || process.env.ANTHROPIC_API_KEY || "";
+  const apiKey = process.env.ANTHROPIC_API_KEY || "";
   const maxTokens = options?.maxTokens ?? 500;
-  const temperature = options?.temperature ?? 0.7;
 
   const userContent = typeof userMessage === "string"
-    ? userMessage
+    ? [{ type: "text" as const, text: userMessage }]
     : userMessage;
 
-  const response = await fetch("https://api.deepseek.com/v1/chat/completions", {
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Authorization": `Bearer ${apiKey}`,
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
     },
     body: JSON.stringify({
-      model: "deepseek-chat",
+      model: "claude-haiku-4-5-20251001",
       max_tokens: maxTokens,
-      temperature,
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userContent },
-      ],
+      system: systemPrompt,
+      messages: [{ role: "user", content: userContent }],
     }),
   });
 
   if (!response.ok) {
     const err = await response.text();
-    throw new Error(`LLM API error (${response.status}): ${err.slice(0, 200)}`);
+    throw new Error(`Claude API error (${response.status}): ${err.slice(0, 200)}`);
   }
 
   const data = await response.json();
-  return data.choices?.[0]?.message?.content || "";
+  return data.content?.[0]?.text || "";
 }

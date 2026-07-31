@@ -1,6 +1,6 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
-import { callLLM } from "@/lib/llm";
+import { callLLM, toImageBlock } from "@/lib/llm";
 
 const EXPENSE_IDS = ["moradia", "alimentacao", "transporte", "saude_beleza", "educacao", "lazer", "pessoal", "servicos_fin", "comunicacao", "doacoes", "pet", "personalizada"];
 const INCOME_IDS = ["salario", "freelance", "investimentos", "presente", "outros"];
@@ -54,7 +54,7 @@ NUNCA use markdown, apenas o JSON puro.`;
 
     const text = await callLLM(systemPrompt, [
       { type: "text", text: "Analise este recibo e retorne o JSON." },
-      { type: "image_url", image_url: { url: imageDataUrl } },
+      toImageBlock(imageDataUrl),
     ], { maxTokens: 256, temperature: 0.1 });
 
     try {

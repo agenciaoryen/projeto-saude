@@ -1,7 +1,7 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
-import { callLLM } from "@/lib/llm";
+import { callLLM, toImageBlock } from "@/lib/llm";
 
 const SYSTEM_JSON = `Você é um analisador nutricional. Retorne APENAS um JSON válido, sem texto adicional.
 
@@ -40,10 +40,10 @@ ${hasMultiple ? `ATENÇÃO: Você receberá ${photos.length} fotos da MESMA refe
     : `Analise ${hasMultiple ? `estas ${photos.length} fotos da refeição` : "esta refeição"}. ${hasMultiple ? "Fotos de itens DIFERENTES = somar tudo. Fotos do MESMO item = contar uma vez." : ""} Retorne APENAS o JSON.`;
 
   // Send images as multimodal content blocks
-  const imageBlocks: Array<{ type: "image_url"; image_url: { url: string } }> = photos.map(p => ({
-    type: "image_url" as const,
-    image_url: { url: p.startsWith("data:") ? p : `data:image/jpeg;base64,${p}` },
-  }));
+  const imageBlocks = photos.map(p => {
+    const dataUrl = p.startsWith("data:") ? p : `data:image/jpeg;base64,${p}`;
+    return toImageBlock(dataUrl);
+  });
 
   return callLLM(system, [{ type: "text", text: textPrompt }, ...imageBlocks], { maxTokens: 400, temperature: 0.3 });
 }
