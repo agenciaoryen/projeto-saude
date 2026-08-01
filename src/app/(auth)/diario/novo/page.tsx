@@ -175,10 +175,11 @@ export default function NovoDiarioPage() {
   const DRAFT_KEY = "diary_draft";
   const saveDraft = () => {
     const htmlContent = contentRef.current?.innerHTML || "";
-    if (!htmlContent.trim() && !title.trim() && !mood) return;
+    const d = latestRef.current;
+    if (!htmlContent.trim() && !d.title.trim() && !d.mood) return;
     try {
       localStorage.setItem(DRAFT_KEY, JSON.stringify({
-        date: entryDate, title, content: htmlContent, mood, photos,
+        date: d.entryDate, title: d.title, content: htmlContent, mood: d.mood, photos: d.photos,
         savedAt: Date.now(),
       }));
     } catch {}
@@ -191,11 +192,20 @@ export default function NovoDiarioPage() {
     } catch { return null; }
   };
 
-  // Auto-save draft every 10 seconds
+  // Auto-save draft every 10 seconds (stable interval, reads fresh values via refs)
+  const latestRef = useRef({ title, mood, photos, entryDate });
+  latestRef.current = { title, mood, photos, entryDate };
   useEffect(() => {
-    const interval = setInterval(saveDraft, 10000);
+    const interval = setInterval(() => {
+      const htmlContent = contentRef.current?.innerHTML || "";
+      const { title, mood, photos, entryDate } = latestRef.current;
+      if (!htmlContent.trim() && !title.trim() && !mood) return;
+      try {
+        localStorage.setItem(DRAFT_KEY, JSON.stringify({ date: entryDate, title, content: htmlContent, mood, photos, savedAt: Date.now() }));
+      } catch {}
+    }, 10000);
     return () => clearInterval(interval);
-  }, [title, content, mood, photos, entryDate]);
+  }, []); // Run once — uses refs for latest values
 
   // Load draft on mount
   useEffect(() => {
