@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
-import { Home, BarChart3, CalendarDays, User } from "lucide-react";
+import { Home, BarChart3, CalendarDays, User, Heart } from "lucide-react";
 import { MayaAvatar } from "@/components/MayaAvatar";
 
 const NAV_ITEMS = [
@@ -12,6 +12,7 @@ const NAV_ITEMS = [
   { href: "/analise",      icon: BarChart3,   label: "Análise", slug: "analise" },
   { href: "/agenda",       icon: CalendarDays, label: "Plano",  slug: "agenda" },
   { href: "/perfil",       icon: User,        label: "Perfil",  slug: "perfil" },
+  { href: "/comunidade",   icon: Heart,       label: "Comunidade", slug: "comunidade" },
 ];
 
 // Screens where the bottom nav should be hidden
@@ -47,6 +48,7 @@ export function BottomNav() {
     if (slug === "analise") return pathname.startsWith("/analise");
     if (slug === "agenda") return pathname.startsWith("/agenda") || pathname.startsWith("/planejamento");
     if (slug === "perfil") return pathname.startsWith("/perfil");
+    if (slug === "comunidade") return pathname.startsWith("/comunidade");
     return false;
   };
 
