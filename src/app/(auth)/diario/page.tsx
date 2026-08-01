@@ -342,7 +342,7 @@ export default function DiarioPage() {
                                   display: "-webkit-box", WebkitLineClamp: entry.title ? 2 : 3,
                                   WebkitBoxOrient: "vertical", color: "#9e96b5",
                                 } as React.CSSProperties}>
-                                {entry.content}
+                                {entry.content?.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").replace(/&#8203;/g, "") || ""}
                               </p>
                             )}
                             {photoCount > 1 && (
