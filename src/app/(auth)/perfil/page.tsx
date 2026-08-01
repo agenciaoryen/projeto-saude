@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { BellRing, BellOff } from "lucide-react";
+import { BellRing, BellOff, Shield } from "lucide-react";
 import { useTranslation } from "@/lib/useTranslation";
 import { LANG_OPTIONS } from "@/lib/i18n";
 import { compressImage, uploadToCloud, photoUrl } from "@/lib/photo-storage";
@@ -159,6 +159,7 @@ export default function PerfilPage() {
   const [memberSince, setMemberSince] = useState("");
   const [cropImage, setCropImage] = useState<string | null>(null);
   const [pushState, setPushState] = useState<"unknown" | "granted" | "denied" | "loading" | "unsupported">("unknown");
+  const [isAdmin, setIsAdmin] = useState(false);
 
   // ── Push notifications ────────────────────────────────────────────────────────
 
@@ -226,6 +227,9 @@ export default function PerfilPage() {
       })
       .catch(() => setLoading(false));
   }, []);
+
+  // Check admin
+  useEffect(() => { fetch("/api/preferences").then(r => r.json()).then(d => { if (d?.context?.is_admin) setIsAdmin(true); }).catch(() => {}); }, []);
 
   useEffect(() => {
     if (isFirstRender.current) { isFirstRender.current = false; return; }
@@ -600,6 +604,17 @@ export default function PerfilPage() {
             </button>
           </div>
         </div>
+
+        {/* Admin */}
+        {isAdmin && (
+          <div style={{ marginTop: 16 }}>
+            <button type="button" onClick={() => router.push("/admin")}
+              style={{ width: "100%", padding: "14px 16px", borderRadius: 14, border: "1px solid rgba(255,77,77,0.3)", background: "rgba(255,77,77,0.08)", cursor: "pointer", display: "flex", alignItems: "center", gap: 10, fontFamily: "inherit" }}>
+              <Shield size={18} style={{ color: "#FF4D4D" }} />
+              <span style={{ fontSize: 14, fontWeight: 600, color: "#FF4D4D" }}>Painel Admin</span>
+            </button>
+          </div>
+        )}
 
         {/* Logout */}
         <div style={{ marginTop: 8, marginBottom: 20 }}>
