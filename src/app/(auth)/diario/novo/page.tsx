@@ -176,13 +176,20 @@ export default function NovoDiarioPage() {
   const saveDraft = () => {
     const htmlContent = contentRef.current?.innerHTML || "";
     const d = latestRef.current;
-    if (!htmlContent.trim() && !d.title.trim() && !d.mood) return;
+    // Always save if there's any content, title, mood, or photos
+    const hasContent = htmlContent.trim() || d.title.trim() || d.mood || d.photos.length > 0;
+    if (!hasContent) return;
     try {
       localStorage.setItem(DRAFT_KEY, JSON.stringify({
         date: d.entryDate, title: d.title, content: htmlContent, mood: d.mood, photos: d.photos,
         savedAt: Date.now(),
       }));
     } catch {}
+  };
+
+  const saveDraftAndGoBack = () => {
+    saveDraft();
+    router.back();
   };
   const clearDraft = () => { try { localStorage.removeItem(DRAFT_KEY); } catch {} };
   const loadDraft = (): any => {
@@ -281,7 +288,7 @@ export default function NovoDiarioPage() {
   return (
     <div style={{ minHeight: "100dvh", background: "#0F0F14", paddingBottom: 100 }}>
       {/* Floating back */}
-      <button type="button" onClick={() => { saveDraft(); router.back(); }}
+      <button type="button" onClick={saveDraftAndGoBack}
         style={{
           position: "absolute", top: 16, left: 16, zIndex: 10,
           width: 36, height: 36, borderRadius: "50%",
