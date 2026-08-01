@@ -38,6 +38,7 @@ export default function NovoDiarioPage() {
   const dateInputRef = useRef<HTMLInputElement>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+  const titleRef = useRef<HTMLDivElement>(null);
 
   // ── Slash commands ──────────────────────────────────────────
   const [slashOpen, setSlashOpen] = useState(false);
@@ -217,13 +218,14 @@ export default function NovoDiarioPage() {
   // Load draft on mount
   useEffect(() => {
     const draft = loadDraft();
-    if (draft && draft.content) {
+    if (draft && (draft.content || draft.title)) {
       setEntryDate(draft.date || entryDate);
       setTitle(draft.title || "");
       setMood(draft.mood ?? null);
       setPhotos(draft.photos || []);
-      // Content will be loaded into contentEditable via the ref in a moment
+      // Restore title and content into contentEditable divs
       setTimeout(() => {
+        if (titleRef.current) titleRef.current.innerText = draft.title || "";
         if (contentRef.current) contentRef.current.innerHTML = draft.content || "";
       }, 100);
       toast("Rascunho restaurado", { duration: 2000 });
@@ -357,6 +359,7 @@ export default function NovoDiarioPage() {
       {/* Title */}
       <div style={{ padding: "0 24px 12px" }}>
         <div
+          ref={titleRef}
           contentEditable suppressContentEditableWarning role="textbox" aria-label="Título"
           data-placeholder="Título (opcional)"
           onInput={(e) => setTitle((e.target as HTMLElement).innerText)}
