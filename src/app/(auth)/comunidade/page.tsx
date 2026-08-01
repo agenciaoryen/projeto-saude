@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Heart, MessageCircle, Plus, X, Send, User, Flag } from "lucide-react";
+import { Heart, MessageCircle, Plus, X, Send, User, Flag, Trash2, Settings } from "lucide-react";
 import { toast } from "sonner";
 import { photoUrl, compressImage, uploadToCloud } from "@/lib/photo-storage";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,7 @@ interface Post {
   category: string; content: string; photo: string | null;
   created_at: string; comment_count: number; like_count: number; liked_by_me: boolean;
 }
-interface Comment { id: string; display_name: string; display_emoji: string | null; content: string; created_at: string; }
+interface Comment { id: string; user_id: string; display_name: string; display_emoji: string | null; content: string; created_at: string; }
 
 const CATEGORIES = [
   { key: "vitoria", label: "🏆 Vitória", desc: "Algo que conseguiu fazer" },
@@ -52,6 +52,55 @@ export default function ComunidadePage() {
   const [comments, setComments] = useState<Comment[]>([]);
   const [commentText, setCommentText] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [myUserId, setMyUserId] = useState("");
+  const [showProfile, setShowProfile] = useState(false);
+  const [profileName, setProfileName] = useState("");
+  const [profileEmoji, setProfileEmoji] = useState("");
+
+  // Load profile and user ID
+  useEffect(() => {
+    fetch("/api/profile").then(r => r.json()).then(d => {
+      if (d.id) setMyUserId(d.id);
+    }).catch(() => {});
+    fetch("/api/preferences").then(r => r.json()).then(d => {
+      const ctx = d?.context || {};
+      setProfileName(ctx.community_name || "");
+      setProfileEmoji(ctx.community_emoji || "");
+    }).catch(() => {});
+  }, []);
+
+  const saveProfile = async () => {
+    await fetch("/api/preferences", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ context: { community_name: profileName || "Anônimo", community_emoji: profileEmoji || null } }),
+    });
+    setShowProfile(false);
+    toast.success("Perfil atualizado!");
+  };
+
+  const deletePost = async (postId: string) => {
+    if (!confirm("Excluir esta publicação?")) return;
+    await fetch(`/api/community/posts/${postId}`, { method: "DELETE" });
+    setPosts(prev => prev.filter(p => p.id !== postId));
+    toast.success("Publicação excluída");
+  };
+
+  const deleteComment = async (commentId: string) => {
+    // Simple inline delete via a direct fetch
+    await fetch(`/api/community/comments/${commentId}`, { method: "DELETE" });
+    setComments(prev => prev.filter(c => c.id !== commentId));
+    if (expandedComments) {
+      setPosts(prev => prev.map(p => p.id === expandedComments ? { ...p, comment_count: p.comment_count - 1 } : p));
+    }
+  };
+
+  const reportPost = async (postId: string) => {
+    await fetch("/api/community/report", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ post_id: postId }),
+    });
+    toast.success("Denúncia enviada. Obrigado.");
+  };
 
   const fetchPosts = async () => {
     try {
@@ -129,11 +178,33 @@ export default function ComunidadePage() {
           <h1 style={{ margin: 0, fontSize: 24, fontWeight: 800, color: "#e0d6ff" }}>Comunidade</h1>
           <p style={{ margin: "2px 0 0", fontSize: 13, color: "#9e96b5" }}>O que te fez bem hoje?</p>
         </div>
-        <button type="button" onClick={() => setShowCreate(!showCreate)}
-          style={{ width: 44, height: 44, borderRadius: "50%", background: "#7C5CFF", border: 0, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 14px rgba(124,92,255,0.4)" }}>
-          {showCreate ? <X size={20} color="#fff" /> : <Plus size={22} color="#fff" />}
-        </button>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button type="button" onClick={() => setShowProfile(!showProfile)}
+            style={{ width: 44, height: 44, borderRadius: "50%", background: "#1a1530", border: "1px solid rgba(167,139,250,0.2)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#A78BFA", fontSize: 18 }}>
+            {profileEmoji || <User size={20} style={{ color: "#A78BFA" }} />}
+          </button>
+          <button type="button" onClick={() => setShowCreate(!showCreate)}
+            style={{ width: 44, height: 44, borderRadius: "50%", background: "#7C5CFF", border: 0, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 14px rgba(124,92,255,0.4)" }}>
+            {showCreate ? <X size={20} color="#fff" /> : <Plus size={22} color="#fff" />}
+          </button>
+        </div>
       </div>
+
+      {/* Profile editor */}
+      {showProfile && (
+        <div style={{ padding: "8px 20px 0" }}>
+          <div style={{ background: "#1a1530", borderRadius: 14, padding: 14, border: "1px solid rgba(167,139,250,0.15)", display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+            <input value={profileEmoji} onChange={e => setProfileEmoji(e.target.value)} maxLength={4}
+              placeholder="😊" style={{ width: 48, padding: "8px 4px", borderRadius: 10, border: "1px solid rgba(167,139,250,0.2)", background: "#0B0B10", color: "#e0d6ff", fontSize: 20, textAlign: "center", fontFamily: "inherit", outline: "none" }} />
+            <input value={profileName} onChange={e => setProfileName(e.target.value)} maxLength={20}
+              placeholder="Seu nome público" style={{ flex: 1, minWidth: 120, padding: "8px 12px", borderRadius: 10, border: "1px solid rgba(167,139,250,0.2)", background: "#0B0B10", color: "#e0d6ff", fontSize: 13, fontFamily: "inherit", outline: "none" }} />
+            <button type="button" onClick={saveProfile}
+              style={{ padding: "8px 14px", borderRadius: 10, background: "#7C5CFF", border: 0, color: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
+              Salvar
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Create post form */}
       {showCreate && (
@@ -218,7 +289,13 @@ export default function ComunidadePage() {
                     style={{ background: "none", border: 0, cursor: "pointer", display: "flex", alignItems: "center", gap: 4, color: "#9e96b5", fontFamily: "inherit", fontSize: 12, fontWeight: 600, padding: 0 }}>
                     <MessageCircle size={15} /> {post.comment_count || 0}
                   </button>
-                  <button type="button" onClick={() => { if (confirm("Denunciar este conteúdo?")) toast.success("Denúncia enviada"); }}
+                  {post.user_id === myUserId && (
+                    <button type="button" onClick={() => deletePost(post.id)}
+                      style={{ background: "none", border: 0, cursor: "pointer", color: "#5a5470", padding: 0 }}>
+                      <Trash2 size={12} />
+                    </button>
+                  )}
+                  <button type="button" onClick={() => { if (confirm("Denunciar esta publicação?")) reportPost(post.id); }}
                     style={{ background: "none", border: 0, cursor: "pointer", color: "#5a5470", marginLeft: "auto", padding: 0 }}>
                     <Flag size={12} />
                   </button>
@@ -233,6 +310,12 @@ export default function ComunidadePage() {
                           <span style={{ fontSize: 11, fontWeight: 600, color: "#A78BFA" }}>{c.display_name}</span>
                           <p style={{ margin: "2px 0 0", fontSize: 12, color: "#e0d6ff", lineHeight: 1.4 }}>{c.content}</p>
                         </div>
+                        {c.user_id === myUserId && (
+                          <button type="button" onClick={() => deleteComment(c.id)}
+                            style={{ background: "none", border: 0, cursor: "pointer", color: "#5a5470", padding: 0, flexShrink: 0 }}>
+                            <Trash2 size={10} />
+                          </button>
+                        )}
                       </div>
                     ))}
                     <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
