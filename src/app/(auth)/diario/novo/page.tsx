@@ -45,22 +45,28 @@ export default function NovoDiarioPage() {
   const [slashQuery, setSlashQuery] = useState("");
   const [slashPos, setSlashPos] = useState({ x: 0, y: 0 });
   const slashSavedSel = useRef<{ node: Node | null; offset: number }>({ node: null, offset: 0 });
+  const linkInsertPos = useRef<{ node: Node; offset: number } | null>(null);
 
   const [linkSearchOpen, setLinkSearchOpen] = useState(false);
   const [linkQuery, setLinkQuery] = useState("");
   const [linkResults, setLinkResults] = useState<any[]>([]);
 
+  const [allEntries, setAllEntries] = useState<any[]>([]);
   const searchLinks = async (q: string) => {
-    if (q.length < 2) { setLinkResults([]); return; }
     try {
-      const res = await fetch(`/api/diary?limit=20`);
-      const data = await res.json();
-      if (Array.isArray(data)) {
-        setLinkResults(data.filter((e: any) =>
-          (e.title || "").toLowerCase().includes(q.toLowerCase()) ||
-          (e.content || "").toLowerCase().includes(q.toLowerCase())
-        ).slice(0, 5));
+      if (allEntries.length === 0) {
+        const res = await fetch(`/api/diary?limit=50`);
+        const data = await res.json();
+        if (Array.isArray(data)) setAllEntries(data);
       }
+      const source = allEntries.length > 0 ? allEntries : [];
+      if (!q) { setLinkResults(source.slice(0, 20)); return; }
+      const ql = q.toLowerCase();
+      setLinkResults(source.filter((e: any) =>
+        (e.title || "").toLowerCase().includes(ql) ||
+        (e.content || "").toLowerCase().includes(ql) ||
+        (e.date || "").includes(ql)
+      ).slice(0, 20));
     } catch { setLinkResults([]); }
   };
 
@@ -68,7 +74,16 @@ export default function NovoDiarioPage() {
     { id: "foto", label: "Inserir foto", emoji: "📷", action: () => photoInputRef.current?.click() },
     { id: "hora", label: "Inserir horário", emoji: "🕐", action: () => insertHtmlAtCursor(`<span contenteditable="false" style="color:#A78BFA;font-weight:700;font-size:13px;background:rgba(167,139,250,0.12);padding:1px 6px;border-radius:6px;white-space:nowrap;user-select:none">🕐 ${new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>&#8203;`) },
     { id: "emoji", label: "Inserir emoji", emoji: "😊", action: () => { setEmojiPickerOpen(true); } },
-    { id: "link", label: "Vincular registro", emoji: "🔗", action: () => { setSlashOpen(false); setLinkSearchOpen(true); setLinkQuery(""); setLinkResults([]); } },
+    { id: "link", label: "Vincular registro", emoji: "🔗", action: () => {
+      setSlashOpen(false);
+      // Save cursor position before opening search popup
+      const sel = window.getSelection();
+      if (sel && sel.rangeCount > 0) {
+        const r = sel.getRangeAt(0);
+        linkInsertPos.current = { node: r.startContainer, offset: r.startOffset };
+      }
+      setLinkSearchOpen(true); setLinkQuery(""); searchLinks("");
+    } },
   ];
 
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
@@ -468,6 +483,19 @@ export default function NovoDiarioPage() {
                       onClick={() => {
                         setLinkSearchOpen(false);
                         const title = entry.title || dateStr;
+                        // Restore cursor to where /link was typed
+                        const el = contentRef.current;
+                        if (el && linkInsertPos.current) {
+                          el.focus();
+                          const sel = window.getSelection();
+                          if (sel) {
+                            const range = document.createRange();
+                            range.setStart(linkInsertPos.current.node, linkInsertPos.current.offset);
+                            range.collapse(true);
+                            sel.removeAllRanges();
+                            sel.addRange(range);
+                          }
+                        }
                         insertHtmlAtCursor(`<a href="/diario/${entry.id}" contenteditable="false" style="color:#A78BFA;font-weight:600;text-decoration:underline;cursor:pointer" onclick="event.preventDefault();window.location.href='/diario/${entry.id}'">📔 ${title}</a>&nbsp;`);
                       }}
                       style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10, border: 0, background: "transparent", cursor: "pointer", fontFamily: "inherit", textAlign: "left", width: "100%", color: "#e0d6ff" }}>
@@ -481,8 +509,10 @@ export default function NovoDiarioPage() {
                     </button>
                   );
                 })}
-                {linkQuery.length >= 2 && linkResults.length === 0 && (
-                  <p style={{ textAlign: "center", color: "#9e96b5", fontSize: 12, padding: 16 }}>Nenhum registro encontrado</p>
+                {linkResults.length === 0 && (
+                  <p style={{ textAlign: "center", color: "#9e96b5", fontSize: 12, padding: 16 }}>
+                    {linkQuery ? "Nenhum registro encontrado" : allEntries.length === 0 ? "Carregando..." : "Nenhum registro"}
+                  </p>
                 )}
               </div>
             </div>
