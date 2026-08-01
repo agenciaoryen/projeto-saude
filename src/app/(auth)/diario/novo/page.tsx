@@ -126,7 +126,9 @@ export default function NovoDiarioPage() {
     // Find if we're right after a "/"
     const before = text.slice(0, offset);
     const slashIdx = before.lastIndexOf("/");
-    if (slashIdx >= 0 && (slashIdx === 0 || before[slashIdx - 1] === " " || before[slashIdx - 1] === "\n")) {
+    const prevChar = before[slashIdx - 1];
+    const isSeparator = slashIdx === 0 || prevChar === " " || prevChar === "\n" || prevChar === " ";
+    if (slashIdx >= 0 && isSeparator) {
       const query = before.slice(slashIdx + 1);
       if (!query.includes(" ") && !query.includes("\n")) {
         setSlashQuery(query);
