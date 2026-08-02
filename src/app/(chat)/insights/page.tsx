@@ -160,7 +160,7 @@ export default function MayaChatPage() {
       } catch { return []; }
     };
 
-    fetch("/api/maya/messages")
+    fetch(`/api/maya/messages?_=${Date.now()}`, { cache: "no-store" })
       .then((r) => r.json())
       .then((data) => {
         const serverMsgs: Message[] = Array.isArray(data) ? data.map((m: any) => ({
