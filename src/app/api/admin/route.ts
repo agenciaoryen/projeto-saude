@@ -10,9 +10,8 @@ export async function GET(req: NextRequest) {
 
   // Check admin flag
   const admin = getSupabaseAdmin();
-  const { data: prefs } = await admin.from("user_preferences").select("context").eq("user_id", session.user.id).maybeSingle();
-  const ctx = (prefs?.context || {}) as Record<string, unknown>;
-  if (!ctx.is_admin) return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
+  const { data: role } = await admin.from("user_roles").select("is_admin").eq("user_id", session.user.id).maybeSingle();
+  if (!role?.is_admin) return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
 
   const { searchParams } = new URL(req.url);
   const type = searchParams.get("type") || "stats";

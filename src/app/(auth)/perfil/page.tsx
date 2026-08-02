@@ -229,7 +229,7 @@ export default function PerfilPage() {
   }, []);
 
   // Check admin
-  useEffect(() => { fetch("/api/preferences").then(r => r.json()).then(d => { if (d?.context?.is_admin) setIsAdmin(true); }).catch(() => {}); }, []);
+  useEffect(() => { fetch("/api/admin").then(r => { if (r.ok) setIsAdmin(true); }).catch(() => {}); }, []);
 
   useEffect(() => {
     if (isFirstRender.current) { isFirstRender.current = false; return; }
