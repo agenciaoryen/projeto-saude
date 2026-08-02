@@ -134,21 +134,37 @@ export default function NovoDiarioPage() {
         setSlashQuery(query);
         setSlashOpen(true);
         slashSavedSel.current = { node, offset: slashIdx };
-        const rect = range.getClientRects()[0];
-        if (rect) {
-          // Use rAF so position is read after any pending scroll/layout
+        // Insert a temporary marker at cursor to get exact screen position
+        const marker = document.createElement("span");
+        marker.id = "__slash_marker";
+        marker.style.display = "inline-block";
+        marker.style.width = "1px";
+        marker.style.height = "1px";
+        marker.textContent = "​"; // zero-width space
+        const r2 = range.cloneRange();
+        r2.collapse(true);
+        r2.insertNode(marker);
+        const markerRect = marker.getBoundingClientRect();
+        marker.remove();
+        if (markerRect.top > 0) {
           requestAnimationFrame(() => {
             const menuH = 260;
             const menuW = 220;
             const screenH = window.innerHeight;
             const screenW = window.innerWidth;
-            // Re-read rect after layout
-            const r2 = range.getClientRects()[0];
-            const r = r2 || rect;
-            let top = r.bottom + 6;
-            if (top + menuH > screenH - 20) top = r.top - menuH - 6;
+            // Calculate best position: prefer below, flip above if needed
+            const spaceBelow = screenH - markerRect.bottom;
+            const spaceAbove = markerRect.top;
+            let top: number;
+            if (spaceBelow >= menuH + 16) {
+              top = markerRect.bottom + 6; // fits below
+            } else {
+              top = markerRect.top - menuH - 6; // flip above
+            }
+            // Clamp within safe area
             if (top < 70) top = 70;
-            let left = r.left;
+            if (top + menuH > screenH - 20) top = screenH - menuH - 20;
+            let left = markerRect.left;
             if (left + menuW > screenW - 12) left = screenW - menuW - 12;
             if (left < 8) left = 8;
             setSlashPos({ x: left, y: top });
