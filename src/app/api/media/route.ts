@@ -21,7 +21,8 @@ export async function GET(request: Request) {
   // Security: only allow paths for this user's content
   const bucket = path.startsWith("meals/") ? "meals" :
                  path.startsWith("diary/") ? "diary" :
-                 path.startsWith("avatars/") ? "avatars" : null;
+                 path.startsWith("avatars/") ? "avatars" :
+                 path.startsWith("porques/") ? "porques" : null;
   if (!bucket) {
     return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
   }
