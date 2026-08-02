@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Heart, MessageCircle, Plus, X, Send, User, Flag, Trash2, Edit3, Users, Sparkles } from "lucide-react";
 import { toast } from "sonner";
@@ -63,6 +63,7 @@ export default function ComunidadePage() {
   const [likedUsers, setLikedUsers] = useState<{ user_id: string; display_name: string }[]>([]);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
+  const sentinelRef = useRef<HTMLDivElement>(null);
   const [profileName, setProfileName] = useState("");
   const [profileEmoji, setProfileEmoji] = useState("");
 
@@ -148,6 +149,15 @@ export default function ComunidadePage() {
     }
     setLoadingMore(false);
   };
+
+  // Infinite scroll — observe sentinel
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting && hasMore && !loadingMore) loadMore(); }, { rootMargin: "400px" });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [hasMore, loadingMore]);
 
   const fetchPosts = async () => {
     try {
@@ -481,14 +491,10 @@ export default function ComunidadePage() {
           </div>
         )}
 
-        {/* Infinite scroll trigger */}
-        {hasMore && posts.length >= 20 && (
-          <div style={{ textAlign: "center", padding: 16 }}>
-            <button type="button" onClick={loadMore} disabled={loadingMore}
-              style={{ padding: "10px 20px", borderRadius: 9999, border: "1px solid rgba(167,139,250,0.2)", background: "transparent", color: "#A78BFA", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", opacity: loadingMore ? 0.5 : 1 }}>
-              {loadingMore ? "Carregando..." : "Ver mais"}
-            </button>
-          </div>
+        {/* Infinite scroll sentinel */}
+        <div ref={sentinelRef} style={{ height: 1 }} />
+        {loadingMore && (
+          <p style={{ textAlign: "center", color: "#9e96b5", fontSize: 11, padding: 12 }}>Carregando...</p>
         )}
       </div>
     </div>
