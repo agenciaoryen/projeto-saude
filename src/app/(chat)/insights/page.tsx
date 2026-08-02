@@ -152,40 +152,36 @@ export default function MayaChatPage() {
     const cache = loadProfileCache();
     if (cache?.name) setUserName(cache.name);
 
-    // Load from server first, fallback to localStorage
+    // Load from server + localStorage, merge both (newest wins per date)
+    const loadLocal = (): Message[] => {
+      try {
+        const cached = localStorage.getItem(CHAT_CACHE_KEY);
+        return cached ? JSON.parse(cached) : [];
+      } catch { return []; }
+    };
+
     fetch("/api/maya/messages")
       .then((r) => r.json())
       .then((data) => {
-        if (Array.isArray(data) && data.length > 0) {
-          const msgs = data.map((m: any) => ({
-            role: m.role,
-            content: m.content,
-            time: new Date(m.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
-            date: m.created_at.slice(0, 10),
-          }));
-          setMessages(msgs);
-        } else {
-          // Fallback to localStorage
-          try {
-            const cached = localStorage.getItem(CHAT_CACHE_KEY);
-            if (cached) {
-              const parsed = JSON.parse(cached);
-              if (Array.isArray(parsed) && parsed.length > 0) {
-                setMessages(parsed);
-              }
-            }
-          } catch { /* noop */ }
-        }
+        const serverMsgs: Message[] = Array.isArray(data) ? data.map((m: any) => ({
+          role: m.role, content: m.content,
+          time: new Date(m.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
+          date: m.created_at.slice(0, 10),
+        })) : [];
+
+        // Merge: server + localStorage, dedup by content+time
+        const local = loadLocal();
+        const seen = new Set(serverMsgs.map(m => m.content + m.time));
+        const merged = [...serverMsgs, ...local.filter(m => !seen.has(m.content + m.time))];
+        merged.sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
+        setMessages(merged);
+        // Save merged back to localStorage
+        if (merged.length > 0) localStorage.setItem(CHAT_CACHE_KEY, JSON.stringify(merged.slice(-50)));
         setHydrated(true);
       })
       .catch(() => {
-        try {
-          const cached = localStorage.getItem(CHAT_CACHE_KEY);
-          if (cached) {
-            const parsed = JSON.parse(cached);
-            if (Array.isArray(parsed) && parsed.length > 0) setMessages(parsed);
-          }
-        } catch { /* noop */ }
+        const local = loadLocal();
+        if (local.length > 0) setMessages(local);
         setHydrated(true);
       });
 
@@ -273,7 +269,7 @@ export default function MayaChatPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages: [{ role: "assistant", content: parts[i] }] }),
-      }).catch(() => {});
+      }).catch((e) => { console.error("Failed to persist message", e); });
       if (i < parts.length - 1) {
         await new Promise((r) => setTimeout(r, 400));
       }
@@ -310,7 +306,7 @@ export default function MayaChatPage() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ messages: [{ role: "user", content: trimmed }] }),
-    }).catch(() => {});
+    }).catch((e) => { console.error("Failed to persist message", e); });
 
     try {
       const contextMsgs = updated.slice(-20).map(({ role, content, date, time }) => ({ role, content, date, time }));
