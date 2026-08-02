@@ -184,25 +184,17 @@ export default function MayaChatPage() {
           date: m.created_at.slice(0, 10),
         })) : [];
 
-        // Merge: server + localStorage
-        const local = loadLocal();
-        const seen = new Set(serverMsgs.map(m => m.content + m.time));
-        const merged = [...serverMsgs, ...local.filter(m => !seen.has(m.content + m.time))];
-        merged.sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
-        console.log("[chat] server msgs:", serverMsgs.length, "local:", local.length, "merged:", merged.length);
-        setMessages(merged);
-        // Save merged back to localStorage
-        if (merged.length > 0) localStorage.setItem(CHAT_CACHE_KEY, JSON.stringify(merged.slice(-50)));
-        // Sync any local-only messages to server (e.g., sent while offline)
-        const onlyLocal = local.filter(m => !seen.has(m.content + m.time));
-        if (onlyLocal.length > 0) {
-          persistWithRetry(onlyLocal.map(m => ({ role: m.role, content: m.content })));
-        }
+        // Use server messages directly — most reliable
+        serverMsgs.sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
+        setMessages(serverMsgs);
+        // Keep localStorage as backup only
+        if (serverMsgs.length > 0) localStorage.setItem(CHAT_CACHE_KEY, JSON.stringify(serverMsgs.slice(-50)));
         setHydrated(true);
       })
       .catch(() => {
+        // Server unreachable — use localStorage as fallback
         const local = loadLocal();
-        if (local.length > 0) setMessages(local);
+        setMessages(local);
         setHydrated(true);
       });
 
