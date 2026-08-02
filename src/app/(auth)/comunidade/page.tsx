@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Heart, MessageCircle, Plus, X, Send, User, Flag, Trash2, Settings, Sparkles } from "lucide-react";
+import { Heart, MessageCircle, Plus, X, Send, User, Flag, Trash2, Edit3, Users, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { photoUrl, compressImage, uploadToCloud } from "@/lib/photo-storage";
 import { Button } from "@/components/ui/button";
@@ -57,6 +57,12 @@ export default function ComunidadePage() {
   const [inspireLoading, setInspireLoading] = useState(false);
   const [myUserId, setMyUserId] = useState("");
   const [showProfile, setShowProfile] = useState(false);
+  const [editingPost, setEditingPost] = useState<string | null>(null);
+  const [editContent, setEditContent] = useState("");
+  const [showLikes, setShowLikes] = useState<string | null>(null);
+  const [likedUsers, setLikedUsers] = useState<{ user_id: string; display_name: string }[]>([]);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   const [profileName, setProfileName] = useState("");
   const [profileEmoji, setProfileEmoji] = useState("");
 
@@ -115,6 +121,32 @@ export default function ComunidadePage() {
       else { toast.error("Tente de novo"); setInspireOpen(false); }
     } catch { toast.error("Erro ao buscar"); setInspireOpen(false); }
     setInspireLoading(false);
+  };
+
+  const startEdit = (post: Post) => { setEditingPost(post.id); setEditContent(post.content); };
+  const saveEdit = async (postId: string) => {
+    await fetch(`/api/community/posts/${postId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content: editContent }) });
+    setPosts(prev => prev.map(p => p.id === postId ? { ...p, content: editContent } : p));
+    setEditingPost(null);
+  };
+
+  const viewLikes = async (postId: string) => {
+    setShowLikes(postId);
+    const res = await fetch(`/api/community/posts/${postId}`);
+    if (res.ok) { const d = await res.json(); setLikedUsers(d.likes || []); }
+  };
+
+  const loadMore = async () => {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    const lastPost = posts[posts.length - 1];
+    const res = await fetch(`/api/community/posts?limit=20&before=${lastPost?.created_at}`);
+    if (res.ok) {
+      const newPosts = await res.json();
+      if (newPosts.length < 20) setHasMore(false);
+      setPosts(prev => [...prev, ...newPosts]);
+    }
+    setLoadingMore(false);
   };
 
   const fetchPosts = async () => {
@@ -363,17 +395,39 @@ export default function ComunidadePage() {
                     style={{ background: "none", border: 0, cursor: "pointer", display: "flex", alignItems: "center", gap: 4, color: "#9e96b5", fontFamily: "inherit", fontSize: 12, fontWeight: 600, padding: 0 }}>
                     <MessageCircle size={15} /> {post.comment_count || 0}
                   </button>
-                  {post.user_id === myUserId && (
+                  <button type="button" onClick={() => viewLikes(post.id)}
+                    style={{ background: "none", border: 0, cursor: "pointer", display: "flex", alignItems: "center", gap: 4, color: "#9e96b5", fontFamily: "inherit", fontSize: 12, fontWeight: 600, padding: 0 }}>
+                    <Users size={14} />
+                  </button>
+                  {post.user_id === myUserId && (<>
+                    <button type="button" onClick={() => startEdit(post)}
+                      style={{ background: "none", border: 0, cursor: "pointer", color: "#5a5470", padding: 0 }}>
+                      <Edit3 size={12} />
+                    </button>
                     <button type="button" onClick={() => deletePost(post.id)}
                       style={{ background: "none", border: 0, cursor: "pointer", color: "#5a5470", padding: 0 }}>
                       <Trash2 size={12} />
                     </button>
-                  )}
+                  </>)}
                   <button type="button" onClick={() => { if (confirm("Denunciar esta publicação?")) reportPost(post.id); }}
                     style={{ background: "none", border: 0, cursor: "pointer", color: "#5a5470", marginLeft: "auto", padding: 0 }}>
                     <Flag size={12} />
                   </button>
                 </div>
+                {/* Edit mode */}
+                {editingPost === post.id && (
+                  <div style={{ marginTop: 8 }}>
+                    <textarea value={editContent} onChange={e => setEditContent(e.target.value)}
+                      rows={3} style={{ ...modalInputStyle, marginBottom: 8 }} autoFocus />
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <button type="button" onClick={() => setEditingPost(null)}
+                        style={{ padding: "6px 12px", borderRadius: 8, border: "1px solid rgba(167,139,250,0.2)", background: "transparent", color: "#9e96b5", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Cancelar</button>
+                      <button type="button" onClick={() => saveEdit(post.id)}
+                        style={{ padding: "6px 12px", borderRadius: 8, border: 0, background: "#7C5CFF", color: "#fff", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Salvar</button>
+                    </div>
+                  </div>
+                )}
+
                 {/* Comments */}
                 {expandedComments === post.id && (
                   <div style={{ borderTop: "1px solid rgba(167,139,250,0.08)", marginTop: 8, paddingTop: 8 }}>
@@ -406,6 +460,35 @@ export default function ComunidadePage() {
               </div>
             );
           })
+        )}
+        {/* Likes modal */}
+        {showLikes && (
+          <div onClick={() => setShowLikes(null)} style={{ position: "fixed", inset: 0, zIndex: 60, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+            <div onClick={e => e.stopPropagation()} style={{ width: "100%", maxWidth: 300, background: "#1a1530", borderRadius: 20, padding: 20, border: "1px solid rgba(167,139,250,0.2)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+                <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#e0d6ff" }}>❤️ Curtidas</h3>
+                <button type="button" onClick={() => setShowLikes(null)} style={{ background: "none", border: 0, color: "#9e96b5", fontSize: 18, cursor: "pointer" }}>✕</button>
+              </div>
+              {likedUsers.length === 0 ? (
+                <p style={{ color: "#9e96b5", fontSize: 13, textAlign: "center" }}>Nenhuma curtida ainda</p>
+              ) : likedUsers.map(u => (
+                <div key={u.user_id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 0", borderBottom: "1px solid rgba(167,139,250,0.05)" }}>
+                  <span style={{ fontSize: 16 }}>💬</span>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: "#e0d6ff" }}>{u.display_name}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Infinite scroll trigger */}
+        {hasMore && posts.length >= 20 && (
+          <div style={{ textAlign: "center", padding: 16 }}>
+            <button type="button" onClick={loadMore} disabled={loadingMore}
+              style={{ padding: "10px 20px", borderRadius: 9999, border: "1px solid rgba(167,139,250,0.2)", background: "transparent", color: "#A78BFA", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", opacity: loadingMore ? 0.5 : 1 }}>
+              {loadingMore ? "Carregando..." : "Ver mais"}
+            </button>
+          </div>
         )}
       </div>
     </div>
