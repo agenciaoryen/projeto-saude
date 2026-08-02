@@ -184,11 +184,12 @@ export default function MayaChatPage() {
           date: m.created_at.slice(0, 10),
         })) : [];
 
-        // Merge: server + localStorage, dedup by content+time
+        // Merge: server + localStorage
         const local = loadLocal();
         const seen = new Set(serverMsgs.map(m => m.content + m.time));
         const merged = [...serverMsgs, ...local.filter(m => !seen.has(m.content + m.time))];
         merged.sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
+        console.log("[chat] server msgs:", serverMsgs.length, "local:", local.length, "merged:", merged.length);
         setMessages(merged);
         // Save merged back to localStorage
         if (merged.length > 0) localStorage.setItem(CHAT_CACHE_KEY, JSON.stringify(merged.slice(-50)));
