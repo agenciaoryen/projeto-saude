@@ -70,11 +70,13 @@ export default function ComunidadePage() {
   }, []);
 
   const saveProfile = async () => {
-    await fetch("/api/preferences", {
+    await fetch("/api/community/profile", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ context: { community_name: profileName || "Anônimo", community_emoji: profileEmoji || null } }),
+      body: JSON.stringify({ display_name: profileName || "Anônimo", display_emoji: profileEmoji || null }),
     });
     setShowProfile(false);
+    // Update local posts too
+    setPosts(prev => prev.map(p => p.user_id === myUserId ? { ...p, display_name: profileName || "Anônimo", display_emoji: profileEmoji || null } : p));
     toast.success("Perfil atualizado!");
   };
 

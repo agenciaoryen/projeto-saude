@@ -9,10 +9,10 @@ import { MayaAvatar } from "@/components/MayaAvatar";
 const NAV_ITEMS = [
   { href: "/dashboard",    icon: Home,        label: "Início", slug: "dashboard" },
   { href: "/insights",     icon: null,        label: "Maya",   slug: "insights" },
+  { href: "/comunidade",   icon: Heart,       label: "Comunidade", slug: "comunidade" },
   { href: "/analise",      icon: BarChart3,   label: "Análise", slug: "analise" },
   { href: "/agenda",       icon: CalendarDays, label: "Plano",  slug: "agenda" },
   { href: "/perfil",       icon: User,        label: "Perfil",  slug: "perfil" },
-  { href: "/comunidade",   icon: Heart,       label: "Comunidade", slug: "comunidade" },
 ];
 
 // Screens where the bottom nav should be hidden
