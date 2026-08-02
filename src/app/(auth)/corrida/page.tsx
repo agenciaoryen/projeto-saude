@@ -204,9 +204,9 @@ export default function CorridaPage() {
         </div>
       )}
 
-      {/* Action button */}
+      {/* Action button — floating over map */}
       {!showHistory && (
-        <div style={{ padding: "16px", display: "flex", justifyContent: "center", gap: 12, background: "#0B0B10" }}>
+        <div style={{ position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)", zIndex: 20 }}>
           {!running ? (
             <button type="button" onClick={startRun}
               style={{ width: 72, height: 72, borderRadius: "50%", background: "#7C5CFF", border: 0, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 20px rgba(124,92,255,0.5)" }}>
