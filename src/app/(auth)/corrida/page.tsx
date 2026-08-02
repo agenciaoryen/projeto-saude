@@ -45,15 +45,26 @@ export default function CorridaPage() {
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
 
   // Init map
-  useEffect(() => {
+  useEffect(() => { (async () => {
     if (!mapContainer.current || mapRef.current) return;
     const tk = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
     if (!tk) return;
     mapboxgl.accessToken = tk;
+    // Try to get user's actual location for initial center
+    let initCenter: [number, number] = [-46.6333, -23.5505]; // fallback: São Paulo
+    if (navigator.geolocation) {
+      try {
+        const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000, maximumAge: 600000 });
+        });
+        initCenter = [pos.coords.longitude, pos.coords.latitude];
+      } catch { /* use fallback */ }
+    }
+
     const map = new mapboxgl.Map({
       container: mapContainer.current,
       style: "mapbox://styles/mapbox/dark-v11",
-      center: [-46.6333, -23.5505], // São Paulo
+      center: initCenter,
       zoom: 14,
     });
     map.addControl(new mapboxgl.GeolocateControl({ positionOptions: { enableHighAccuracy: true }, trackUserLocation: true, showUserHeading: true }));
@@ -66,7 +77,7 @@ export default function CorridaPage() {
     });
     mapRef.current = map;
     return () => { map.remove(); mapRef.current = null; };
-  }, []);
+  })(); }, []);
 
   // Load history
   useEffect(() => { fetch("/api/running?limit=20").then(r => r.json()).then(d => { if (Array.isArray(d)) setHistory(d); }).catch(() => {}); }, []);
