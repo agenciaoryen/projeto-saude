@@ -65,10 +65,16 @@ export async function POST(req: NextRequest) {
   const { userId, flag, value } = await req.json();
   if (!userId || !flag) return NextResponse.json({ error: "userId e flag obrigatórios" }, { status: 400 });
 
-  const { data: targetPrefs } = await admin.from("user_preferences").select("context").eq("user_id", userId).maybeSingle();
+  const { data: targetPrefs } = await admin.from("user_preferences").select("*").eq("user_id", userId).maybeSingle();
   const targetCtx = (targetPrefs?.context || {}) as Record<string, unknown>;
   targetCtx[flag] = value;
 
-  await admin.from("user_preferences").upsert({ user_id: userId, context: targetCtx }, { onConflict: "user_id" });
+  await admin.from("user_preferences").upsert({
+    user_id: userId,
+    context: targetCtx,
+    enabled_questions: targetPrefs?.enabled_questions || [],
+    onboarding_completed: targetPrefs?.onboarding_completed ?? true,
+    updated_at: new Date().toISOString(),
+  }, { onConflict: "user_id" });
   return NextResponse.json({ ok: true });
 }
