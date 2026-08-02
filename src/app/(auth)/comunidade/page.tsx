@@ -270,7 +270,10 @@ export default function ComunidadePage() {
                     {post.display_emoji || <User size={18} style={{ color: "#A78BFA" }} />}
                   </div>
                   <div style={{ flex: 1 }}>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: "#e0d6ff" }}>{post.display_name}</span>
+                    <span onClick={(e) => { e.stopPropagation(); router.push(`/comunidade/perfil/${post.user_id}`); }}
+                      style={{ fontSize: 13, fontWeight: 700, color: "#A78BFA", cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 2 }}>
+                      {post.display_name}
+                    </span>
                     <span style={{ fontSize: 10, color: "#9e96b5", marginLeft: 8 }}>{catCfg?.label || "💬"}</span>
                   </div>
                   <span style={{ fontSize: 10, color: "#5a5470" }}>{timeAgo(post.created_at)}</span>

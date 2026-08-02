@@ -75,7 +75,7 @@ export default function OnboardingPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           enabled_questions: enabled,
-          context: { ...answers, gender, language },
+          context: { ...answers, gender, language, community_name: `Anônimo${Math.floor(1000 + Math.random() * 9000)}` },
           onboarding_completed: true,
         }),
       });
