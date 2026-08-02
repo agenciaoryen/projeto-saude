@@ -34,7 +34,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const rnd = Math.floor(1000 + Math.random() * 9000);
     displayName = `Anônimo${rnd}`;
     ctx.community_name = displayName;
-    await admin.from("user_preferences").upsert({ user_id: session.user.id, context: ctx }, { onConflict: "user_id" });
+    await admin.from("user_preferences").upsert({
+      user_id: session.user.id,
+      context: ctx,
+      enabled_questions: (prefs as any)?.enabled_questions || [],
+      onboarding_completed: (prefs as any)?.onboarding_completed ?? true,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "user_id" });
   }
 
   const { data, error } = await admin.from("community_comments").insert({

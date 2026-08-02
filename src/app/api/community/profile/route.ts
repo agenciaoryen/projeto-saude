@@ -28,7 +28,16 @@ export async function POST(req: NextRequest) {
 
   ctx.community_name = display_name;
   ctx.community_emoji = display_emoji || null;
-  await admin.from("user_preferences").upsert({ user_id: userId, context: ctx }, { onConflict: "user_id" });
+
+  // Preserve existing columns when upserting
+  const existing = prefs || {};
+  await admin.from("user_preferences").upsert({
+    user_id: userId,
+    context: ctx,
+    enabled_questions: (existing as any).enabled_questions || [],
+    onboarding_completed: (existing as any).onboarding_completed ?? true,
+    updated_at: new Date().toISOString(),
+  }, { onConflict: "user_id" });
 
   // Update all existing posts and comments with new display name
   await admin.from("community_posts").update({ display_name, display_emoji: display_emoji || null }).eq("user_id", userId);
