@@ -29,11 +29,18 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const admin = getSupabaseAdmin();
   const { data: prefs } = await admin.from("user_preferences").select("context").eq("user_id", session.user.id).maybeSingle();
   const ctx = (prefs?.context || {}) as Record<string, unknown>;
+  let displayName = (ctx.community_name as string) || "";
+  if (!displayName || displayName === "Anônimo") {
+    const rnd = Math.floor(1000 + Math.random() * 9000);
+    displayName = `Anônimo${rnd}`;
+    ctx.community_name = displayName;
+    await admin.from("user_preferences").upsert({ user_id: session.user.id, context: ctx }, { onConflict: "user_id" });
+  }
 
   const { data, error } = await admin.from("community_comments").insert({
     post_id: id,
     user_id: session.user.id,
-    display_name: (ctx.community_name as string) || "Anônimo",
+    display_name: displayName,
     display_emoji: (ctx.community_emoji as string) || null,
     content: body.content.trim(),
   }).select().single();

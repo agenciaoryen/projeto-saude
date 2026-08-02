@@ -54,11 +54,19 @@ export async function POST(req: NextRequest) {
 
   const admin = getSupabaseAdmin();
 
-  // Get user's community display preferences
+  // Get or create community display name
   const { data: prefs } = await admin.from("user_preferences").select("context").eq("user_id", session.user.id).maybeSingle();
   const ctx = (prefs?.context || {}) as Record<string, unknown>;
-  const displayName = (ctx.community_name as string) || "Anônimo";
+  let displayName = (ctx.community_name as string) || "";
   const displayEmoji = (ctx.community_emoji as string) || null;
+
+  // Auto-generate unique anonymous name on first post
+  if (!displayName || displayName === "Anônimo") {
+    const rnd = Math.floor(1000 + Math.random() * 9000);
+    displayName = `Anônimo${rnd}`;
+    ctx.community_name = displayName;
+    await admin.from("user_preferences").upsert({ user_id: session.user.id, context: ctx }, { onConflict: "user_id" });
+  }
 
   const { data, error } = await admin.from("community_posts").insert({
     user_id: session.user.id,
