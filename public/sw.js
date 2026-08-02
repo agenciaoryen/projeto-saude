@@ -1,11 +1,21 @@
-// Service Worker — handles push notifications for sleep reminders
+// Service Worker v2 — handles push notifications + forces fresh page loads
+const CACHE_VERSION = "v2";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE_VERSION).map(k => caches.delete(k))))
+  );
   event.waitUntil(clients.claim());
+});
+
+// Don't cache API calls — always go to network
+self.addEventListener("fetch", (event) => {
+  const url = new URL(event.request.url);
+  if (url.pathname.startsWith("/api/")) return; // let network handle API
 });
 
 self.addEventListener("push", (event) => {
