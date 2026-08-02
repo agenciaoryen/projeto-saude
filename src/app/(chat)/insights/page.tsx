@@ -13,7 +13,22 @@ interface Message {
   time: string;
   date: string;
   seen?: boolean;
+  synced?: boolean; // false = not yet saved to server
   action?: { label: string; href: string };
+}
+
+async function persistWithRetry(messages: Array<{ role: string; content: string }>, retries = 3): Promise<boolean> {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const res = await fetch("/api/maya/messages", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages }),
+      });
+      if (res.ok) return true;
+    } catch {}
+    if (i < retries - 1) await new Promise(r => setTimeout(r, 1500 * (i + 1)));
+  }
+  return false;
 }
 
 const CHAT_CACHE_KEY = "maya_chat";
@@ -177,6 +192,11 @@ export default function MayaChatPage() {
         setMessages(merged);
         // Save merged back to localStorage
         if (merged.length > 0) localStorage.setItem(CHAT_CACHE_KEY, JSON.stringify(merged.slice(-50)));
+        // Sync any local-only messages to server (e.g., sent while offline)
+        const onlyLocal = local.filter(m => !seen.has(m.content + m.time));
+        if (onlyLocal.length > 0) {
+          persistWithRetry(onlyLocal.map(m => ({ role: m.role, content: m.content })));
+        }
         setHydrated(true);
       })
       .catch(() => {
@@ -265,11 +285,7 @@ export default function MayaChatPage() {
       current = [...current, { role: "assistant", content: parts[i], time: formatTime(), date: formatDate() }];
       setMessages(current);
       // Persist assistant message to server
-      fetch("/api/maya/messages", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: [{ role: "assistant", content: parts[i] }] }),
-      }).catch((e) => { console.error("Failed to persist message", e); });
+      persistWithRetry([{ role: "assistant", content: parts[i] }]);
       if (i < parts.length - 1) {
         await new Promise((r) => setTimeout(r, 400));
       }
@@ -301,12 +317,8 @@ export default function MayaChatPage() {
     setInput("");
     setSending(true);
 
-    // Persist user message to server
-    fetch("/api/maya/messages", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ messages: [{ role: "user", content: trimmed }] }),
-    }).catch((e) => { console.error("Failed to persist message", e); });
+    // Persist with retry (3 attempts)
+    persistWithRetry([{ role: "user", content: trimmed }])
 
     try {
       const contextMsgs = updated.slice(-20).map(({ role, content, date, time }) => ({ role, content, date, time }));
