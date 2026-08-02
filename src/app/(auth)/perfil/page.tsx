@@ -605,6 +605,15 @@ export default function PerfilPage() {
           </div>
         </div>
 
+        {/* Corrida */}
+        <div style={{ marginTop: 16 }}>
+          <button type="button" onClick={() => router.push("/corrida")}
+            style={{ width: "100%", padding: "14px 16px", borderRadius: 14, border: "1px solid rgba(167,139,250,0.2)", background: "#1a1530", cursor: "pointer", display: "flex", alignItems: "center", gap: 10, fontFamily: "inherit" }}>
+            <span style={{ fontSize: 18 }}>🏃</span>
+            <span style={{ fontSize: 14, fontWeight: 600, color: "#e0d6ff" }}>Corrida</span>
+          </button>
+        </div>
+
         {/* Admin */}
         {isAdmin && (
           <div style={{ marginTop: 16 }}>
