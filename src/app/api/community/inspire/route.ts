@@ -56,8 +56,14 @@ export async function GET() {
     ? "Vi que seu humor não está dos melhores. Separei algumas coisas que a comunidade compartilhou e que talvez te façam bem."
     : "Separei algumas inspirações da comunidade que combinam com seu momento.";
 
+  const fallbackMessage = candidates.length === 0
+    ? (userName
+      ? `${userName}, ainda não encontrei nada que combine com seu momento. Mas a comunidade está crescendo — que tal ser o primeiro a compartilhar algo hoje?`
+      : "Ainda não encontrei nada que combine com seu momento. Mas a comunidade está crescendo — que tal ser o primeiro a compartilhar algo hoje?")
+    : undefined;
+
   return NextResponse.json({
-    message: greeting ? `${greeting}, ${moodContext.charAt(0).toLowerCase() + moodContext.slice(1)}` : moodContext,
+    message: fallbackMessage || (greeting ? `${greeting}, ${moodContext.charAt(0).toLowerCase() + moodContext.slice(1)}` : moodContext),
     posts: candidates,
   });
 }
