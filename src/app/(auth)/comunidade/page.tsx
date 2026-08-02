@@ -297,9 +297,19 @@ export default function ComunidadePage() {
                     <span style={{ fontSize: 10, color: "#9e96b5" }}>{catCfg?.label || ""}</span>
                   </div>
                   <p style={{ margin: 0, fontSize: 13, color: "#e0d6ff", lineHeight: 1.5 }}>{p.content}</p>
-                  <div style={{ marginTop: 6, display: "flex", alignItems: "center", gap: 4 }}>
-                    <Heart size={12} style={{ color: "#FF4D4D" }} />
-                    <span style={{ fontSize: 10, color: "#9e96b5" }}>{p.like_count || 0}</span>
+                  <div style={{ marginTop: 6, display: "flex", alignItems: "center", gap: 12 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                      <Heart size={12} style={{ color: "#FF4D4D" }} />
+                      <span style={{ fontSize: 10, color: "#9e96b5" }}>{p.like_count || 0}</span>
+                    </div>
+                    <button type="button" onClick={async (e) => { e.stopPropagation();
+                      await fetch("/api/community/inspire", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ post_id: p.id, helpful: true }) });
+                      toast.success("Obrigado pelo feedback!");
+                    }} style={{ background: "none", border: 0, cursor: "pointer", fontSize: 14, padding: 0 }} title="Ajudou">👍</button>
+                    <button type="button" onClick={async (e) => { e.stopPropagation();
+                      await fetch("/api/community/inspire", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ post_id: p.id, helpful: false }) });
+                      toast.success("Obrigado pelo feedback!");
+                    }} style={{ background: "none", border: 0, cursor: "pointer", fontSize: 14, padding: 0, opacity: 0.4 }} title="Não ajudou">👎</button>
                   </div>
                 </div>
               );
