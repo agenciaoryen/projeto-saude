@@ -221,9 +221,22 @@ export default function MayaChatPage() {
       .catch(() => {});
   }, []);
 
+  // Save to localStorage on every change + before page unload
+  useEffect(() => {
+    if (!hydrated || messages.length === 0) return;
+    const save = () => localStorage.setItem(CHAT_CACHE_KEY, JSON.stringify(messages.slice(-50)));
+    save();
+    window.addEventListener("beforeunload", save);
+    document.addEventListener("visibilitychange", () => { if (document.hidden) save(); });
+    return () => {
+      window.removeEventListener("beforeunload", save);
+      document.removeEventListener("visibilitychange", () => {});
+    };
+  }, [messages, hydrated]);
+
   useEffect(() => {
     if (hydrated && messages.length > 0) {
-      localStorage.setItem(CHAT_CACHE_KEY, JSON.stringify(messages.slice(-50)));
+      // Already handled above
     }
   }, [messages, hydrated]);
 

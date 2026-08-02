@@ -43,11 +43,13 @@ export async function POST(req: NextRequest) {
     const avatarUrl = urlData.publicUrl;
 
     // Store avatar URL in user_preferences (DB) — NOT in JWT metadata
-    const { data: prefs } = await admin
+    const { data: prefs, error: prefsErr } = await admin
       .from("user_preferences")
       .select("context, enabled_questions, onboarding_completed")
       .eq("user_id", user.id)
-      .single();
+      .maybeSingle(); // don't crash if no record yet
+
+    if (prefsErr && prefsErr.code !== "PGRST116") throw prefsErr;
 
     const context = { ...((prefs?.context as Record<string, unknown>) || {}), avatar_url: avatarUrl };
 
