@@ -3,10 +3,10 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ArrowLeft, Trash2, Shield, Users, FileText, Heart, MessageCircle, CalendarCheck, BookOpen } from "lucide-react";
+import { ArrowLeft, Trash2, Shield, Users, FileText, Heart, MessageCircle, CalendarCheck, BookOpen, MapPin } from "lucide-react";
 
 interface Report { id: string; post_id: string; reason: string | null; created_at: string; community_posts: { id: string; content: string; display_name: string; created_at: string } | null; }
-interface Stats { users: number; active7d: number; posts: number; comments: number; checkins: number; diary: number; }
+interface Stats { users: number; active7d: number; posts: number; comments: number; checkins: number; diary: number; mapboxLoads: number; }
 
 export default function AdminPage() {
   const router = useRouter();
@@ -85,6 +85,7 @@ export default function AdminPage() {
           <StatCard icon={<MessageCircle size={16} />} label="Comentários" value={stats.comments} color="#FF9F43" />
           <StatCard icon={<CalendarCheck size={16} />} label="Check-ins" value={stats.checkins} color="#7C5CFF" />
           <StatCard icon={<BookOpen size={16} />} label="Diários" value={stats.diary} color="#5EEAD4" />
+          <StatCard icon={<MapPin size={16} />} label="Mapbox (mês)" value={stats.mapboxLoads} color="#FF9F43" />
         </div>
       )}
 

@@ -31,6 +31,10 @@ export async function GET(req: NextRequest) {
   const { count: totalComments } = await admin.from("community_comments").select("*", { count: "exact", head: true }).then(r => ({ count: r.count ?? 0 }));
   const { count: totalCheckins } = await admin.from("check_ins").select("*", { count: "exact", head: true }).then(r => ({ count: r.count ?? 0 }));
   const { count: totalDiary } = await admin.from("diary_entries").select("*", { count: "exact", head: true }).then(r => ({ count: r.count ?? 0 }));
+  // Mapbox usage this month
+  const monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
+  const { count: mapboxLoads } = await admin.from("mapbox_usage").select("*", { count: "exact", head: true }).gte("created_at", monthStart.toISOString()).then(r => ({ count: r.count ?? 0 }));
+
   const { count: activeUsers7d } = await admin.from("check_ins")
     .select("*", { count: "exact", head: true })
     .gte("date", new Date(Date.now() - 7 * 86400000).toISOString().split("T")[0])
@@ -43,6 +47,7 @@ export async function GET(req: NextRequest) {
     comments: totalComments || 0,
     checkins: totalCheckins || 0,
     diary: totalDiary || 0,
+    mapboxLoads: mapboxLoads || 0,
   });
 }
 
