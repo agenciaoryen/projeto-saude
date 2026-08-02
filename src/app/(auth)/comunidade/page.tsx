@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Heart, MessageCircle, Plus, X, Send, User, Flag, Trash2, Settings } from "lucide-react";
+import { Heart, MessageCircle, Plus, X, Send, User, Flag, Trash2, Settings, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { photoUrl, compressImage, uploadToCloud } from "@/lib/photo-storage";
 import { Button } from "@/components/ui/button";
@@ -52,6 +52,9 @@ export default function ComunidadePage() {
   const [comments, setComments] = useState<Comment[]>([]);
   const [commentText, setCommentText] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [inspireOpen, setInspireOpen] = useState(false);
+  const [inspireData, setInspireData] = useState<{ message: string; posts: any[] } | null>(null);
+  const [inspireLoading, setInspireLoading] = useState(false);
   const [myUserId, setMyUserId] = useState("");
   const [showProfile, setShowProfile] = useState(false);
   const [profileName, setProfileName] = useState("");
@@ -102,6 +105,16 @@ export default function ComunidadePage() {
       body: JSON.stringify({ post_id: postId }),
     });
     toast.success("Denúncia enviada. Obrigado.");
+  };
+
+  const handleInspire = async () => {
+    setInspireLoading(true); setInspireOpen(true);
+    try {
+      const res = await fetch("/api/community/inspire");
+      if (res.ok) { setInspireData(await res.json()); }
+      else { toast.error("Tente de novo"); setInspireOpen(false); }
+    } catch { toast.error("Erro ao buscar"); setInspireOpen(false); }
+    setInspireLoading(false);
   };
 
   const fetchPosts = async () => {
@@ -245,6 +258,52 @@ export default function ComunidadePage() {
                 {saving ? "Publicando..." : "Publicar"}
               </Button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Maya inspire button */}
+      <div style={{ padding: "0 20px 12px" }}>
+        <button type="button" onClick={handleInspire} disabled={inspireLoading}
+          style={{ width: "100%", padding: "14px 16px", borderRadius: 16, border: "1px solid rgba(167,139,250,0.2)", background: "linear-gradient(135deg, rgba(124,92,255,0.12) 0%, rgba(167,139,250,0.06) 100%)", cursor: "pointer", display: "flex", alignItems: "center", gap: 10, fontFamily: "inherit", opacity: inspireLoading ? 0.6 : 1 }}>
+          <span style={{ fontSize: 22 }}>✨</span>
+          <span style={{ flex: 1, textAlign: "left", fontSize: 13, fontWeight: 600, color: "#A78BFA" }}>
+            {inspireLoading ? "Buscando inspirações..." : "Maya, me inspira"}
+          </span>
+          <Sparkles size={16} style={{ color: "#A78BFA" }} />
+        </button>
+      </div>
+
+      {/* Inspire result modal */}
+      {inspireOpen && inspireData && (
+        <div onClick={() => setInspireOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 60, background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          <div onClick={e => e.stopPropagation()} style={{ width: "100%", maxWidth: 400, maxHeight: "80dvh", overflowY: "auto", background: "#1a1530", borderRadius: 24, padding: 24, border: "1px solid rgba(167,139,250,0.2)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ fontSize: 28 }}>✨</span>
+                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "#e0d6ff" }}>Maya</h3>
+              </div>
+              <button type="button" onClick={() => setInspireOpen(false)} style={{ background: "none", border: 0, color: "#9e96b5", fontSize: 18, cursor: "pointer" }}>✕</button>
+            </div>
+            <p style={{ margin: "0 0 20px", fontSize: 14, color: "#e0d6ff", lineHeight: 1.6 }}>{inspireData.message}</p>
+            {inspireData.posts.map((p: any) => {
+              const catCfg = CATEGORIES.find((c: any) => c.key === p.category);
+              return (
+                <div key={p.id} onClick={() => { setInspireOpen(false); router.push(`/comunidade/perfil/${p.id}`); }}
+                  style={{ background: "rgba(124,92,255,0.06)", borderRadius: 14, padding: 14, marginBottom: 8, border: "1px solid rgba(167,139,250,0.1)", cursor: "default" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                    <span style={{ fontSize: 14 }}>{p.display_emoji || "💬"}</span>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: "#A78BFA" }}>{p.display_name}</span>
+                    <span style={{ fontSize: 10, color: "#9e96b5" }}>{catCfg?.label || ""}</span>
+                  </div>
+                  <p style={{ margin: 0, fontSize: 13, color: "#e0d6ff", lineHeight: 1.5 }}>{p.content}</p>
+                  <div style={{ marginTop: 6, display: "flex", alignItems: "center", gap: 4 }}>
+                    <Heart size={12} style={{ color: "#FF4D4D" }} />
+                    <span style={{ fontSize: 10, color: "#9e96b5" }}>{p.like_count || 0}</span>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
