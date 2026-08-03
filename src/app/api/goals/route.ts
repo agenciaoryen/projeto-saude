@@ -28,7 +28,8 @@ export async function POST(req: Request) {
 
   const body = await req.json();
   const { title, description, why_it_matters, type, area, target_date,
-          guardian_name, guardian_contact, reward, punishment, first_stage } = body;
+          guardian_name, guardian_contact, reward, punishment, first_stage,
+          source } = body;
 
   if (!title || !why_it_matters || !type || !area) {
     return NextResponse.json({ error: "Campos obrigatórios ausentes" }, { status: 400 });
@@ -57,6 +58,7 @@ export async function POST(req: Request) {
       guardian_contact: guardian_contact || null,
       reward: reward || null,
       punishment: punishment || null,
+      source: source || "metas",
     })
     .select()
     .single();

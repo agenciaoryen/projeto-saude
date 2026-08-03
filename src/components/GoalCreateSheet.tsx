@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
+import type { GoalArea } from "@/types";
 
 const AREAS = [
   { id: "saude", emoji: "💚", label: "Saúde" },
@@ -16,10 +17,16 @@ const AREAS = [
 
 type Step = 1 | 2 | 3;
 
-export function GoalCreateSheet({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
+export function GoalCreateSheet({ onClose, onCreated, initialArea, source }: {
+  onClose: () => void;
+  onCreated: () => void;
+  initialArea?: GoalArea;
+  source?: string;
+}) {
   const [step, setStep] = useState<Step>(1);
   const [title, setTitle] = useState("");
-  const [area, setArea] = useState("saude");
+  const [area, setArea] = useState(initialArea ?? "saude");
+  const isPresetArea = !!initialArea;
   const [why, setWhy] = useState("");
   const [type, setType] = useState<"destino" | "direcao">("direcao");
   const [guardianName, setGuardianName] = useState("");
@@ -43,6 +50,7 @@ export function GoalCreateSheet({ onClose, onCreated }: { onClose: () => void; o
         reward: reward.trim() || null,
         punishment: punishment.trim() || null,
         first_stage_title: firstStage.trim(),
+        source: source || "metas",
       }),
     });
     if (res.ok) {
@@ -62,22 +70,43 @@ export function GoalCreateSheet({ onClose, onCreated }: { onClose: () => void; o
           {step === 1 ? "Nova meta" : step === 2 ? "Tipo da meta" : "Compromisso"}
         </h2>
         <p style={{ margin: "0 0 20px", fontSize: 12, color: "#9e96b5" }}>
-          {step === 1 ? "O que você quer conquistar?" : step === 2 ? "Como você prefere definir?" : "Opcional — ajuda a manter o foco"}
+          {step === 1
+            ? (isPresetArea ? "O que você quer conquistar?" : "O que você quer conquistar?")
+            : step === 2 ? "Como você prefere definir?" : "Opcional — ajuda a manter o foco"}
         </p>
 
         {step === 1 && (
           <>
+            {/* Pre-selected area chip */}
+            {isPresetArea && (
+              <div style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                padding: "5px 10px", borderRadius: 9999,
+                background: "rgba(124,92,255,0.1)", border: "1px solid rgba(124,92,255,0.25)",
+                marginBottom: 12,
+              }}>
+                <span style={{ fontSize: 14 }}>{AREAS.find(a => a.id === area)?.emoji ?? "💰"}</span>
+                <span style={{ fontSize: 11, fontWeight: 600, color: "#A78BFA" }}>
+                  {AREAS.find(a => a.id === area)?.label ?? "Finanças"}
+                </span>
+              </div>
+            )}
             <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Título da meta" autoFocus style={inputS} />
-            <p style={{ fontSize: 10, color: "#A78BFA", margin: "12px 0 6px", fontWeight: 600, textTransform: "uppercase", letterSpacing: ".08em" }}>Área da vida</p>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6 }}>
-              {AREAS.map(a => (
-                <button key={a.id} type="button" onClick={() => setArea(a.id)}
-                  style={{ padding: "10px 4px", borderRadius: 12, border: area === a.id ? "2px solid #7C5CFF" : "1px solid rgba(167,139,250,0.15)", background: area === a.id ? "rgba(124,92,255,0.1)" : "#0B0B10", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 3, fontFamily: "inherit" }}>
-                  <span style={{ fontSize: 18 }}>{a.emoji}</span>
-                  <span style={{ fontSize: 9, fontWeight: 600, color: area === a.id ? "#A78BFA" : "#9e96b5" }}>{a.label}</span>
-                </button>
-              ))}
-            </div>
+            {/* Show area grid only when not preset */}
+            {!isPresetArea && (
+              <>
+                <p style={{ fontSize: 10, color: "#A78BFA", margin: "12px 0 6px", fontWeight: 600, textTransform: "uppercase", letterSpacing: ".08em" }}>Área da vida</p>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6 }}>
+                  {AREAS.map(a => (
+                    <button key={a.id} type="button" onClick={() => setArea(a.id)}
+                      style={{ padding: "10px 4px", borderRadius: 12, border: area === a.id ? "2px solid #7C5CFF" : "1px solid rgba(167,139,250,0.15)", background: area === a.id ? "rgba(124,92,255,0.1)" : "#0B0B10", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 3, fontFamily: "inherit" }}>
+                      <span style={{ fontSize: 18 }}>{a.emoji}</span>
+                      <span style={{ fontSize: 9, fontWeight: 600, color: area === a.id ? "#A78BFA" : "#9e96b5" }}>{a.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
             <textarea value={why} onChange={e => setWhy(e.target.value)} placeholder="Por que isso importa?" rows={2} style={{ ...inputS, marginTop: 12, resize: "none", height: 60 }} />
           </>
         )}

@@ -201,6 +201,7 @@ export interface Goal {
   punishment: string | null;
   reward_claimed: boolean;
   punishment_applied: boolean;
+  source?: string;       // "metas" | "financas" — onde a meta foi criada
   created_at: string;
   updated_at: string;
   stages?: GoalStage[];
