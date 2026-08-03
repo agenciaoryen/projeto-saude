@@ -3,19 +3,26 @@ import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { NextRequest, NextResponse } from "next/server";
 
 // GET — load user's chat messages
-export async function GET() {
+export async function GET(req: NextRequest) {
   const supabase = await createServerSupabaseClient();
   const { data: { session } } = await supabase.auth.getSession();
   const user = session?.user ?? null;
   if (!user) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
 
+  const { searchParams } = new URL(req.url);
+  const before = searchParams.get("before"); // cursor: load messages older than this
+
   const admin = getSupabaseAdmin();
-  const { data, error } = await admin
+  let query = admin
     .from("chat_messages")
     .select("id, role, content, created_at")
     .eq("user_id", user.id)
     .order("created_at", { ascending: false })
     .limit(200);
+
+  if (before) query = query.lt("created_at", before);
+
+  const { data, error } = await query;
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 

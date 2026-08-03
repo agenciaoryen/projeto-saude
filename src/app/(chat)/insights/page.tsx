@@ -382,12 +382,36 @@ export default function MayaChatPage() {
       </div>
 
       {/* Messages */}
-      {hydrated && messages.length > 0 && (
+      <div ref={messagesRef} className="flex-1 overflow-y-auto px-3 py-3">
+        {/* Load older messages */}
+        {hydrated && messages.length >= 200 && (
+          <div style={{ textAlign: "center", padding: "8px 0" }}>
+            <button type="button" onClick={async () => {
+              const oldest = messages[0];
+              if (!oldest?.date) return;
+              const res = await fetch(`/api/maya/messages?before=${oldest.date}T${oldest.time}:00`);
+              if (res.ok) {
+                const older: Message[] = (await res.json()).map((m: any) => ({
+                  role: m.role, content: m.content,
+                  time: new Date(m.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
+                  date: m.created_at.slice(0, 10),
+                }));
+                if (older.length > 0) {
+                  older.sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
+                  setMessages(prev => [...older, ...prev]);
+                }
+              }
+            }}
+              style={{ padding: "8px 16px", borderRadius: 9999, border: "1px solid rgba(167,139,250,0.2)", background: "transparent", color: "#A78BFA", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+              ↑ Mensagens anteriores
+            </button>
+          </div>
+        )}
+        {hydrated && messages.length > 0 && (
         <div style={{ background: "#1a1530", color: "#A78BFA", padding: "2px 12px", fontSize: 10, textAlign: "center" }}>
-          {messages.length} mensagens carregadas — primeira: "{messages[0]?.content?.slice(0, 40)}..."
+          {messages.length} msgs — última: "{messages[messages.length-1]?.content?.slice(0, 40)}..."
         </div>
       )}
-      <div ref={messagesRef} className="flex-1 overflow-y-auto px-3 py-3">
         {hydrated && messages.length === 0 && welcomeMessage && (
           <div className="flex justify-center pt-12">
             <div
