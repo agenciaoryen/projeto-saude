@@ -555,16 +555,22 @@ export default function MayaChatPage() {
       </div>
 
       {/* ── Messages ── */}
-      <div
-        ref={messagesRef}
-        onScroll={handleScroll}
-        className="flex-1 min-h-0 overflow-y-auto px-3 pt-3 pb-1"
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          overflowAnchor: "none", // prevent browser from fighting our scroll
-        }}
-      >
+      {/* Absolutely positioned to the bottom of the flex area.
+           This is the key: when the textarea grows, the flex area shrinks,
+           but the messages stay anchored to the BOTTOM via CSS positioning.
+           No JavaScript scroll manipulation needed. */}
+      <div className="flex-1 min-h-0 relative overflow-hidden">
+        <div
+          ref={messagesRef}
+          onScroll={handleScroll}
+          className="absolute bottom-0 left-0 right-0 overflow-y-auto px-3 pt-3 pb-1"
+          style={{
+            maxHeight: "100%",
+            display: "flex",
+            flexDirection: "column",
+            overflowAnchor: "none",
+          }}
+        >
         {/* Sentinel for loading older messages */}
         <div ref={sentinelRef} style={{ height: 1, flexShrink: 0 }} />
 
@@ -696,6 +702,7 @@ export default function MayaChatPage() {
         {/* Bottom sentinel — ResizeObserver uses this to scroll to bottom */}
         <div ref={bottomRef} style={{ flexShrink: 0 }} />
       </div>
+      </div>
 
       {/* ── Input bar ── */}
       <div
@@ -731,10 +738,13 @@ export default function MayaChatPage() {
             style={{ background: "var(--maya-primary)" }}
             onTouchStart={(e) => {
               e.preventDefault();
+              // Synchronously refocus textarea — keyboard never leaves on iOS
+              textareaRef.current?.focus();
               sendMessage();
             }}
             onMouseDown={(e) => {
               e.preventDefault();
+              textareaRef.current?.focus();
               sendMessage();
             }}
             disabled={!input.trim() || busy}
