@@ -261,11 +261,19 @@ export default function MayaChatPage() {
     }
   }, [messages, typing, viewportH]);
 
+  // Resize textarea + compensate scroll so messages stay visually static while typing
   useEffect(() => {
     const ta = textareaRef.current;
+    const msgEl = messagesRef.current;
     if (ta) {
+      const prevHeight = ta.offsetHeight;
       ta.style.height = "auto";
-      ta.style.height = Math.min(ta.scrollHeight, 100) + "px";
+      const newHeight = Math.min(ta.scrollHeight, 100);
+      ta.style.height = newHeight + "px";
+      // Offset messages scroll by the height delta so text doesn't "bob" up/down
+      if (msgEl) {
+        msgEl.scrollTop += newHeight - prevHeight;
+      }
     }
   }, [input]);
 
@@ -552,7 +560,6 @@ export default function MayaChatPage() {
             style={{
               background: "oklch(0.12 0.012 270)",
               borderColor: "oklch(0.28 0.02 270 / 0.5)",
-              transition: "height 150ms ease-out",
               color: "#e0d6ff",
             }}
           />
