@@ -19,9 +19,11 @@ export async function GET() {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  return NextResponse.json(data || [], {
-    headers: { "Cache-Control": "no-store, max-age=0" },
-  });
+  const response = NextResponse.json(data || []);
+  response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+  response.headers.set("Pragma", "no-cache");
+  response.headers.set("Expires", "0");
+  return response;
 }
 
 // POST — save a batch of new messages
