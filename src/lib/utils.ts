@@ -41,13 +41,14 @@ export function formatLocalDate(d: Date): string {
   return spDate(d.getTime());
 }
 
-/** Returns the Monday date (YYYY-MM-DD) of the current week in São Paulo timezone. */
-export function getWeekMondayDate(): string {
+/** Returns the Monday date (YYYY-MM-DD) of the current week in São Paulo timezone.
+ *  Pass offsetWeeks to get a different week (e.g. 1 = next Monday, -1 = previous Monday). */
+export function getWeekMondayDate(offsetWeeks?: number): string {
   const today = getLocalDate();
   const d = new Date(today + "T12:00:00");
   const dow = d.getDay(); // 0=Sun,1=Mon,...,6=Sat
   const daysToMonday = dow === 0 ? -6 : 1 - dow;
-  d.setDate(d.getDate() + daysToMonday);
+  d.setDate(d.getDate() + daysToMonday + (offsetWeeks ?? 0) * 7);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 

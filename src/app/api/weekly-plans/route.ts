@@ -39,12 +39,12 @@ export async function POST(req: Request) {
   if (!session) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
 
   const body = await req.json();
-  const { main_focus, main_focus_2, main_focus_3, linked_goal_id, focus_goal_ids } = body;
+  const { main_focus, main_focus_2, main_focus_3, linked_goal_id, focus_goal_ids, week_start } = body;
 
   if (!main_focus) return NextResponse.json({ error: "Foco principal obrigatório" }, { status: 400 });
 
   const admin = getSupabaseAdmin();
-  const weekStart = getWeekMondayDate();
+  const weekStart = week_start || getWeekMondayDate();
 
   const { data: plan, error } = await admin
     .from("weekly_plans")

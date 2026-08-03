@@ -9,14 +9,14 @@ export async function POST(req: Request) {
   if (!session) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
 
   const body = await req.json();
-  const { title, area, task_type, linked_goal_id, linked_action_id, day_of_week, scheduled_time, stone_rank } = body;
+  const { title, area, task_type, linked_goal_id, linked_action_id, day_of_week, scheduled_time, stone_rank, week_start } = body;
 
   if (!title || area === undefined || day_of_week === undefined) {
     return NextResponse.json({ error: "Campos obrigatórios: title, area, day_of_week" }, { status: 400 });
   }
 
   const admin = getSupabaseAdmin();
-  const weekStart = getWeekMondayDate();
+  const weekStart = week_start || getWeekMondayDate();
 
   // Ensure a plan exists for this week
   const { data: plan, error: planErr } = await admin

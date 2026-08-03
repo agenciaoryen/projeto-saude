@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   Check, Star, Sparkles, Plus, Clock, Pencil, Trash2, X,
 } from "lucide-react";
+import { toast } from "sonner";
 import type { Goal, GoalStage, GoalAction, WeeklyPlan, WeeklyReview, WeeklyTask, TaskArea } from "@/types";
 import { useTranslation } from "@/lib/useTranslation";
 import { t as tFn, type Lang } from "@/lib/i18n";
@@ -83,13 +84,14 @@ function StarRating({ value, onChange }: { value: number; onChange: (v: number) 
 // ── Focus editor (pedras principais) ──────────────────────────────────────────
 
 function FocusModal({
-  initial, goals, onClose, onSaved, lang = "pt",
+  initial, goals, onClose, onSaved, lang = "pt", weekStart,
 }: {
   initial: { f1: string; f2: string; f3: string; focusGoalIds: string[] };
   goals: GoalFull[];
   onClose: () => void;
   onSaved: () => void;
   lang?: Lang;
+  weekStart: string;
 }) {
   const [f1, setF1] = useState(initial.f1);
   const [f2, setF2] = useState(initial.f2);
@@ -111,6 +113,7 @@ function FocusModal({
         main_focus_2: f2.trim() || null,
         main_focus_3: f3.trim() || null,
         focus_goal_ids: selectedGoals,
+        week_start: weekStart,
       }),
     });
     setSaving(false);
@@ -201,13 +204,14 @@ function FocusModal({
 // ── Add Task Sheet ─────────────────────────────────────────────────────────────
 
 function AddTaskSheet({
-  goals, initialDay, onClose, onSaved, lang,
+  goals, initialDay, onClose, onSaved, lang, weekStart,
 }: {
   goals: GoalFull[];
   initialDay?: number;
   onClose: () => void;
   onSaved: (task: WeeklyTask) => void;
   lang: Lang;
+  weekStart: string;
 }) {
   const [title, setTitle]           = useState("");
   const [area, setArea]             = useState<TaskArea | "">("");
@@ -241,6 +245,7 @@ function AddTaskSheet({
         linked_action_id: linkedActionId || null,
         day_of_week: day,
         scheduled_time: time || null,
+        week_start: weekStart,
       }),
     });
     if (res.ok) {
@@ -457,7 +462,7 @@ function AddTaskSheet({
 
 // ── Review modal ──────────────────────────────────────────────────────────────
 
-function ReviewModal({ onClose, onSaved, lang = "pt" }: { onClose: () => void; onSaved: () => void; lang?: Lang }) {
+function ReviewModal({ onClose, onSaved, lang = "pt", weekStart }: { onClose: () => void; onSaved: () => void; lang?: Lang; weekStart: string }) {
   const [biggestWin, setBiggestWin]   = useState("");
   const [blockedLesson, setBlockedLesson] = useState("");
   const [mainLearning, setMainLearning]   = useState("");
@@ -470,7 +475,7 @@ function ReviewModal({ onClose, onSaved, lang = "pt" }: { onClose: () => void; o
     await fetch("/api/weekly-plans/review", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ biggest_win: biggestWin, blocked_lesson: blockedLesson, main_learning: mainLearning, week_score: weekScore }),
+      body: JSON.stringify({ biggest_win: biggestWin, blocked_lesson: blockedLesson, main_learning: mainLearning, week_score: weekScore, week_start: weekStart }),
     });
     setSaving(false);
     onSaved();
@@ -532,21 +537,347 @@ function ReviewModal({ onClose, onSaved, lang = "pt" }: { onClose: () => void; o
 
 // ── Task row (Bento style) ────────────────────────────────────────────────────
 
-function TaskRow({ task, onToggle, onDelete }: {
-  task: WeeklyTask; onToggle: () => void; onDelete: () => void;
+// ── Edit Task Sheet ───────────────────────────────────────────────────────────
+
+function EditTaskSheet({
+  task, goals, onClose, onSaved, onDeleted, lang,
+}: {
+  task: WeeklyTask;
+  goals: GoalFull[];
+  onClose: () => void;
+  onSaved: (task: WeeklyTask) => void;
+  onDeleted: (taskId: string) => void;
+  lang: Lang;
+}) {
+  const [title, setTitle]           = useState(task.title);
+  const [area, setArea]             = useState<TaskArea>(task.area);
+  const [day, setDay]               = useState<number>(task.day_of_week);
+  const [time, setTime]             = useState(task.scheduled_time?.slice(0, 5) ?? "");
+  const [taskType, setTaskType]     = useState<"crescimento" | "manutencao">(task.task_type);
+  const [linkedGoalId, setLinkedGoalId]     = useState(task.linked_goal_id ?? "");
+  const [linkedActionId, setLinkedActionId] = useState(task.linked_action_id ?? "");
+  const [showMore, setShowMore]     = useState(false);
+  const [saving, setSaving]         = useState(false);
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
+
+  const selectedGoal = goals.find((g) => g.id === linkedGoalId);
+  const availableActions = selectedGoal
+    ? (selectedGoal.goal_stages ?? []).flatMap((s) =>
+        (s.goal_actions ?? []).filter((a) => a.status === "pendente" || a.id === linkedActionId)
+      )
+    : [];
+
+  const canSave = title.trim().length >= 2;
+
+  const save = async () => {
+    if (!canSave) return;
+    setSaving(true);
+    const res = await fetch(`/api/weekly-plans/tasks/${task.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: title.trim(),
+        area,
+        task_type: taskType,
+        linked_goal_id: linkedGoalId || null,
+        linked_action_id: linkedActionId || null,
+        day_of_week: day,
+        scheduled_time: time || null,
+      }),
+    });
+    if (res.ok) {
+      const updated = await res.json();
+      onSaved(updated);
+      onClose();
+    }
+    setSaving(false);
+  };
+
+  const deleteTask = async () => {
+    await fetch(`/api/weekly-plans/tasks/${task.id}`, { method: "DELETE" });
+    onDeleted(task.id);
+    onClose();
+  };
+
+  const inputStyle: React.CSSProperties = {
+    width: "100%", boxSizing: "border-box", padding: "12px 14px",
+    borderRadius: 12, border: "1.5px solid oklch(.82 .03 160)",
+    background: "oklch(.98 .005 160)", fontFamily: "inherit",
+    fontSize: 14, color: "oklch(.2 .02 160)", outline: "none",
+  };
+
+  return (
+    <>
+      <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 60, background: "oklch(.1 .02 160 / .4)", backdropFilter: "blur(4px)" }} />
+      <div style={{
+        position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 70,
+        borderRadius: "24px 24px 0 0", background: "#fff",
+        padding: "20px 20px calc(env(safe-area-inset-bottom) + 28px)",
+        boxShadow: "0 -8px 40px oklch(.2 .04 160 / .15)",
+        maxHeight: "92dvh", overflowY: "auto",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+          <div>
+            <div style={{ width: 36, height: 4, borderRadius: 9999, background: "oklch(.85 .02 160)", marginBottom: 14 }} />
+            <h2 style={{ margin: 0, fontSize: 19, fontWeight: 800, color: "oklch(.2 .02 160)" }}>Editar tarefa</h2>
+          </div>
+          <button type="button" onClick={onClose} style={{ border: 0, background: "oklch(.93 .02 160)", borderRadius: 10, padding: 8, cursor: "pointer" }}>
+            <X size={18} style={{ color: "oklch(.45 .06 160)" }} />
+          </button>
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+
+          {/* Dia */}
+          <div>
+            <p style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 700, letterSpacing: ".07em", textTransform: "uppercase", color: "oklch(.55 .04 160)" }}>
+              Dia da semana
+            </p>
+            <div style={{ display: "flex", gap: 6 }}>
+              {DAY_KEYS.map((dk, i) => (
+                <button key={i} type="button" onClick={() => setDay(i)} style={{
+                  flex: 1, padding: "9px 2px", borderRadius: 10, border: 0, cursor: "pointer",
+                  background: day === i ? "oklch(.5 .12 160)" : "oklch(.93 .02 160)",
+                  fontFamily: "inherit", fontSize: 11, fontWeight: 700,
+                  color: day === i ? "#fff" : "oklch(.45 .06 160)",
+                  transition: "all .12s ease",
+                }}>
+                  {tFn(lang, dk)}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Título */}
+          <div>
+            <p style={{ margin: "0 0 6px", fontSize: 11, fontWeight: 700, letterSpacing: ".07em", textTransform: "uppercase", color: "oklch(.55 .04 160)" }}>
+              Título
+            </p>
+            <input
+              autoFocus
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              style={inputStyle}
+              onFocus={(e) => { (e.target as HTMLInputElement).style.borderColor = "oklch(.5 .12 160)"; }}
+              onBlur={(e) => { (e.target as HTMLInputElement).style.borderColor = "oklch(.82 .03 160)"; }}
+            />
+          </div>
+
+          {/* Horário */}
+          <div>
+            <p style={{ margin: "0 0 6px", fontSize: 11, fontWeight: 700, letterSpacing: ".07em", textTransform: "uppercase", color: "oklch(.55 .04 160)" }}>
+              Horário
+            </p>
+            <div style={{ ...inputStyle, display: "flex", alignItems: "center", gap: 8, padding: 0, overflow: "hidden" }}>
+              <Clock size={15} style={{ color: "oklch(.6 .04 160)", marginLeft: 14, flexShrink: 0 }} />
+              <input
+                type="time"
+                value={time}
+                onChange={(e) => setTime(e.target.value)}
+                style={{
+                  flex: 1, padding: "12px 14px 12px 6px", border: "none",
+                  background: "transparent", fontFamily: "inherit",
+                  fontSize: 14, color: "oklch(.2 .02 160)", outline: "none",
+                }}
+              />
+            </div>
+          </div>
+
+          {/* More options toggle */}
+          <button type="button" onClick={() => setShowMore(!showMore)} style={{
+            width: "100%", padding: "10px 14px", borderRadius: 12, border: 0, cursor: "pointer",
+            background: showMore ? "oklch(.95 .04 160)" : "oklch(.98 .005 160)",
+            fontFamily: "inherit", fontSize: 12, fontWeight: 600, color: "oklch(.45 .06 160)",
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+          }}>
+            {showMore ? "▲" : "▼"} Mais opções
+          </button>
+
+          {showMore && (
+            <>
+              {/* Área */}
+              <div>
+                <p style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 700, letterSpacing: ".07em", textTransform: "uppercase", color: "oklch(.55 .04 160)" }}>
+                  Área da vida
+                </p>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 7 }}>
+                  {ALL_AREAS.map((a) => {
+                    const conf = AREA_CONFIG[a];
+                    const sel = area === a;
+                    return (
+                      <button key={a} type="button" onClick={() => setArea(a)} style={{
+                        padding: "10px 6px", borderRadius: 12, border: sel ? `2px solid ${ac(conf.hue)}` : "2px solid oklch(.88 .02 160)",
+                        background: sel ? al(conf.hue) : "#fff", cursor: "pointer",
+                        display: "flex", flexDirection: "column", alignItems: "center", gap: 3,
+                        transition: "all .12s ease",
+                      }}>
+                        <span style={{ fontSize: 18 }}>{conf.emoji}</span>
+                        <span style={{ fontSize: 10, fontWeight: 700, color: sel ? ac(conf.hue) : "oklch(.45 .04 160)" }}>
+                          {tFn(lang, conf.labelKey)}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Tipo */}
+              <div>
+                <p style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 700, letterSpacing: ".07em", textTransform: "uppercase", color: "oklch(.55 .04 160)" }}>
+                  Tipo
+                </p>
+                <div style={{ display: "flex", gap: 8 }}>
+                  {([
+                    { val: "manutencao", labelKey: "plan_manutencao", descKey: "plan_manutencao_desc" },
+                    { val: "crescimento", labelKey: "plan_crescimento", descKey: "plan_crescimento_desc" },
+                  ] as const).map(({ val, labelKey, descKey }) => (
+                    <button key={val} type="button" onClick={() => { setTaskType(val); if (val === "manutencao") { setLinkedGoalId(""); setLinkedActionId(""); } }} style={{
+                      flex: 1, padding: "12px 10px", borderRadius: 13,
+                      border: taskType === val ? "2px solid oklch(.5 .12 160)" : "2px solid oklch(.88 .02 160)",
+                      background: taskType === val ? "oklch(.95 .05 160)" : "#fff",
+                      cursor: "pointer", textAlign: "left",
+                      transition: "all .12s ease",
+                    }}>
+                      <p style={{ margin: "0 0 2px", fontSize: 13, fontWeight: 700, color: "oklch(.25 .02 160)" }}>{val === "manutencao" ? "🔄" : "🚀"} {tFn(lang, labelKey)}</p>
+                      <p style={{ margin: 0, fontSize: 11, color: "oklch(.55 .04 160)" }}>{tFn(lang, descKey)}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Meta vinculada (só se crescimento) */}
+              {taskType === "crescimento" && goals.length > 0 && (
+                <div>
+                  <p style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 700, letterSpacing: ".07em", textTransform: "uppercase", color: "oklch(.55 .04 160)" }}>
+                    Vincular a uma meta
+                  </p>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    {goals.map((g) => {
+                      const conf = AREA_CONFIG[g.area] ?? AREA_CONFIG.outros;
+                      const sel = linkedGoalId === g.id;
+                      return (
+                        <button key={g.id} type="button"
+                          onClick={() => { setLinkedGoalId(sel ? "" : g.id); setLinkedActionId(""); }}
+                          style={{
+                            display: "flex", alignItems: "center", gap: 10, padding: "10px 12px",
+                            borderRadius: 12, border: sel ? `2px solid ${ac(conf.hue)}` : "2px solid oklch(.88 .02 160)",
+                            background: sel ? al(conf.hue) : "#fff", cursor: "pointer", textAlign: "left",
+                            transition: "all .12s ease",
+                          }}>
+                          <span style={{ fontSize: 16 }}>{conf.emoji}</span>
+                          <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: "oklch(.25 .02 160)" }}>{g.title}</span>
+                          {sel && <Check size={14} style={{ color: ac(conf.hue), flexShrink: 0 }} />}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {availableActions.length > 0 && (
+                    <div style={{ marginTop: 10 }}>
+                      <p style={{ margin: "0 0 6px", fontSize: 11, fontWeight: 700, letterSpacing: ".07em", textTransform: "uppercase", color: "oklch(.55 .04 160)" }}>
+                        Vincular a uma ação
+                      </p>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                        {availableActions.map((a) => {
+                          const sel = linkedActionId === a.id;
+                          return (
+                            <button key={a.id} type="button" onClick={() => setLinkedActionId(sel ? "" : a.id)} style={{
+                              display: "flex", alignItems: "center", gap: 10, padding: "10px 12px",
+                              borderRadius: 12, border: sel ? "2px solid oklch(.5 .12 160)" : "2px solid oklch(.88 .02 160)",
+                              background: sel ? "oklch(.95 .05 160)" : "#fff", cursor: "pointer", textAlign: "left",
+                              transition: "all .12s ease",
+                            }}>
+                              <span style={{ fontSize: 13, flex: 1, color: "oklch(.3 .04 160)" }}>{a.title}</span>
+                              {sel && <Check size={14} style={{ color: "oklch(.5 .12 160)", flexShrink: 0 }} />}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        <div style={{ display: "flex", gap: 10, marginTop: 24 }}>
+          <button
+            type="button"
+            onClick={() => setShowConfirmDelete(true)}
+            style={{
+              padding: "15px 18px", borderRadius: 14, border: 0, cursor: "pointer",
+              background: "oklch(.92 .02 10)", fontFamily: "inherit", fontSize: 15, fontWeight: 700,
+              color: "oklch(.45 .15 15)",
+            }}>
+            <Trash2 size={16} />
+          </button>
+          <button type="button" onClick={save} disabled={!canSave || saving} style={{
+            flex: 1, padding: "15px 20px", borderRadius: 14, border: 0,
+            cursor: (!canSave || saving) ? "not-allowed" : "pointer",
+            background: (!canSave || saving) ? "oklch(.88 .02 160)" : "oklch(.5 .12 160)",
+            fontFamily: "inherit", fontSize: 15, fontWeight: 700,
+            color: (!canSave || saving) ? "oklch(.6 .02 160)" : "#fff",
+            transition: "all .15s ease",
+          }}>
+            {saving ? "Salvando..." : "Salvar"}
+          </button>
+        </div>
+      </div>
+
+      {/* Confirm delete */}
+      {showConfirmDelete && (
+        <>
+          <div onClick={() => setShowConfirmDelete(false)} style={{ position: "fixed", inset: 0, zIndex: 80, background: "oklch(.1 .02 160 / .5)", backdropFilter: "blur(4px)" }} />
+          <div style={{
+            position: "fixed", top: "50%", left: "50%", transform: "translate(-50%, -50%)", zIndex: 90,
+            background: "#fff", borderRadius: 20, padding: 24, maxWidth: 320, width: "calc(100% - 40px)",
+            boxShadow: "0 8px 40px oklch(.2 .04 160 / .2)", textAlign: "center",
+          }}>
+            <p style={{ margin: "0 0 6px", fontSize: 16, fontWeight: 700, color: "oklch(.2 .02 160)" }}>Excluir tarefa?</p>
+            <p style={{ margin: "0 0 20px", fontSize: 13, color: "oklch(.55 .04 160)", lineHeight: 1.5 }}>
+              "{task.title}" será removida permanentemente.
+            </p>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button type="button" onClick={() => setShowConfirmDelete(false)} style={{
+                flex: 1, padding: "12px 16px", borderRadius: 14, border: "1.5px solid oklch(.82 .03 160)",
+                background: "#fff", cursor: "pointer", fontFamily: "inherit", fontSize: 14, fontWeight: 600,
+                color: "oklch(.45 .06 160)",
+              }}>
+                Cancelar
+              </button>
+              <button type="button" onClick={deleteTask} style={{
+                flex: 1, padding: "12px 16px", borderRadius: 14, border: 0, cursor: "pointer",
+                background: "oklch(.45 .15 15)", fontFamily: "inherit", fontSize: 14, fontWeight: 700, color: "#fff",
+              }}>
+                Excluir
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+    </>
+  );
+}
+
+// ── Task row (Bento style) ────────────────────────────────────────────────────
+
+function TaskRow({ task, onToggle, onDelete, onEdit }: {
+  task: WeeklyTask; onToggle: () => void; onDelete: () => void; onEdit: () => void;
 }) {
   const conf = AREA_CONFIG[task.area] ?? AREA_CONFIG.outros;
   const done = task.status === "concluida";
   const isHabit = task.task_type === "manutencao";
   const hue = conf.hue;
   return (
-    <div style={{
+    <div onClick={onEdit} style={{
       display: "flex", alignItems: "center", gap: 10,
       padding: "10px 12px", borderRadius: 12,
       background: done ? "oklch(.97 .015 160)" : "#fff",
       border: `1px solid oklch(.5 .12 ${hue} / .12)`,
+      cursor: "pointer",
     }}>
-      <button type="button" onClick={onToggle} style={{
+      <button type="button" onClick={(e) => { e.stopPropagation(); onToggle(); }} style={{
         width: 20, height: 20, flexShrink: 0, cursor: "pointer",
         borderRadius: isHabit ? 9999 : 6,
         background: done ? `oklch(.45 .12 ${hue})` : "transparent",
@@ -588,7 +919,7 @@ function TaskRow({ task, onToggle, onDelete }: {
           )}
         </div>
       </div>
-      <button type="button" onClick={onDelete} style={{
+      <button type="button" onClick={(e) => { e.stopPropagation(); onDelete(); }} style={{
         border: 0, background: "none", cursor: "pointer", padding: 4, flexShrink: 0,
         color: "oklch(.75 .03 160)",
       }}>
@@ -640,7 +971,7 @@ function Pedra({ rank, size, text, linkedGoal }: {
 
 // ── Areas radar SVG ───────────────────────────────────────────────────────────
 
-function AreasRadar({ counts }: { counts: Record<string, number> }) {
+function AreasRadar({ counts, totals }: { counts: Record<string, number>; totals: Record<string, number> }) {
   const AREAS_RADAR = [
     { key: "saude",           label: "Saúde",    emoji: "💚", hue: 160 },
     { key: "carreira",        label: "Carreira", emoji: "💼", hue: 220 },
@@ -653,12 +984,19 @@ function AreasRadar({ counts }: { counts: Record<string, number> }) {
     { key: "outros",          label: "Outros",   emoji: "⚪", hue: 200 },
   ];
   const N = AREAS_RADAR.length;
-  const MAX = 5;
+  const MAX = 100; // percentage
   const cx = 140, cy = 140, R = 92;
 
-  const pt = (i: number, v: number): [number, number] => {
+  // Calculate progress % per area (0-100)
+  const progress = AREAS_RADAR.map((a) => {
+    const total = totals[a.key] ?? 0;
+    const done = counts[a.key] ?? 0;
+    return total > 0 ? Math.round((done / total) * 100) : 0;
+  });
+
+  const pt = (i: number, pct: number): [number, number] => {
     const a = -Math.PI / 2 + (i * 2 * Math.PI) / N;
-    const r = R * (Math.min(v, MAX) / MAX);
+    const r = R * (Math.min(pct, MAX) / MAX);
     return [cx + r * Math.cos(a), cy + r * Math.sin(a)];
   };
   const ringPt = (i: number, ratio: number): [number, number] => {
@@ -670,9 +1008,10 @@ function AreasRadar({ counts }: { counts: Record<string, number> }) {
     return [cx + (R + 22) * Math.cos(a), cy + (R + 22) * Math.sin(a)];
   };
 
-  const polyPoints = AREAS_RADAR.map((a, i) => pt(i, counts[a.key] ?? 0).join(",")).join(" ");
-  const covered = AREAS_RADAR.filter((a) => (counts[a.key] ?? 0) > 0).length;
-  const uncovered = AREAS_RADAR.filter((a) => (counts[a.key] ?? 0) === 0).map((a) => a.label);
+  const polyPoints = AREAS_RADAR.map((_, i) => pt(i, progress[i]).join(",")).join(" ");
+  const covered = AREAS_RADAR.filter((_, i) => progress[i] > 0).length;
+  const fullDone = AREAS_RADAR.filter((_, i) => progress[i] >= 100).length;
+  const uncovered = AREAS_RADAR.filter((_, i) => progress[i] === 0).map((a) => a.label);
 
   return (
     <div style={{
@@ -757,14 +1096,14 @@ function WeekHeat({ tasks, selectedDay, onSelect }: {
         return (
           <button key={i} type="button" onClick={() => onSelect(i)} style={{
             background: sel ? "oklch(.5 .12 160 / .12)" : "transparent",
-            border: sel ? "1.5px solid oklch(.5 .12 160 / .5)" : "1.5px solid transparent",
+            border: day.today ? "1.5px solid oklch(.5 .12 160 / .5)" : "1.5px solid transparent",
             borderRadius: 12, padding: "8px 2px 6px", cursor: "pointer",
             display: "flex", flexDirection: "column", alignItems: "center", gap: 5,
             fontFamily: "inherit",
           }}>
             <span style={{
               fontSize: 10, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase",
-              color: day.today ? "oklch(.35 .14 160)" : sel ? "oklch(.4 .12 160)" : "oklch(.55 .03 160)",
+              color: day.today ? "oklch(.35 .14 160)" : "oklch(.55 .03 160)",
             }}>{day.d}</span>
             <div style={{ display: "flex", flexDirection: "column", gap: 2, alignItems: "center" }}>
               {Array.from({ length: Math.max(day.count, 1) }).slice(0, 5).map((_, j) => (
@@ -796,10 +1135,40 @@ export default function PlanejamentoPage() {
   const [loading, setLoading] = useState(true);
   const [tasks, setTasks]     = useState<WeeklyTask[]>([]);
 
+  // ── Week navigation ──
+  const [weekOffset, setWeekOffset] = useState(0); // 0=current, 1=next, -1=prev
+  const currentWeekStart = useCallback(() => {
+    const today = new Date();
+    const d = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const dow = d.getDay();
+    const daysToMonday = dow === 0 ? -6 : 1 - dow;
+    d.setDate(d.getDate() + daysToMonday + weekOffset * 7);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }, [weekOffset]);
+
+  const weekLabelForOffset = useCallback((offset: number) => {
+    const today = new Date();
+    const d = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const dow = d.getDay();
+    const daysToMonday = dow === 0 ? -6 : 1 - dow;
+    d.setDate(d.getDate() + daysToMonday + offset * 7);
+    const mon = new Date(d);
+    const sun = new Date(d);
+    sun.setDate(mon.getDate() + 6);
+    const MONTHS = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
+    const fmt = (dt: Date) => `${dt.getDate()} ${MONTHS[dt.getMonth()]}`;
+    return `${fmt(mon)} – ${fmt(sun)}`;
+  }, []);
+
+  const weekStartStr = currentWeekStart();
+
   const [showFocus, setShowFocus]     = useState(false);
   const [showReview, setShowReview]   = useState(false);
   const [showAddTask, setShowAddTask] = useState(false);
   const [addTaskDay, setAddTaskDay]   = useState<number>(0);
+  const [showEditTask, setShowEditTask] = useState(false);
+  const [editTaskId, setEditTaskId]   = useState<string | null>(null);
+  const editTask = tasks.find((t) => t.id === editTaskId) ?? null;
   const [selectedDay, setSelectedDay] = useState<number>(() => {
     const d = new Date().getDay();
     return d === 0 ? 6 : d - 1;
@@ -809,33 +1178,89 @@ export default function PlanejamentoPage() {
   const openAdd = (day?: number) => { setAddTaskDay(day ?? todayDow()); setShowAddTask(true); };
 
   const load = useCallback(async () => {
-    const [goalsRes, planRes] = await Promise.all([
-      fetch("/api/goals").then((r) => r.json()),
-      fetch("/api/weekly-plans").then((r) => r.json()),
-    ]);
-    if (Array.isArray(goalsRes)) setGoals(goalsRes.filter((g: GoalFull) => g.status === "ativa"));
-    if (planRes && typeof planRes === "object") {
-      setPlan(planRes as PlanData);
-      setTasks((planRes as PlanData).current?.weekly_tasks ?? []);
+    const weekParam = weekStartStr;
+    try {
+      const [goalsRes, planRes] = await Promise.all([
+        fetch("/api/goals").then((r) => r.json()),
+        fetch(`/api/weekly-plans?week=${weekParam}`).then((r) => r.json()),
+      ]);
+      if (Array.isArray(goalsRes)) setGoals(goalsRes.filter((g: GoalFull) => g.status === "ativa"));
+      if (planRes && typeof planRes === "object") {
+        setPlan(planRes as PlanData);
+        setTasks((planRes as PlanData).current?.weekly_tasks ?? []);
+      } else {
+        setPlan(null);
+        setTasks([]);
+      }
+    } catch {
+      toast.error("Erro ao carregar planejamento");
     }
     setLoading(false);
-  }, []);
+  }, [weekStartStr]);
 
   useEffect(() => { load(); }, [load]);
 
   const toggleTask = async (taskId: string, current: string) => {
     const next = current === "concluida" ? "pendente" : "concluida";
     setTasks((prev) => prev.map((t) => t.id === taskId ? { ...t, status: next as WeeklyTask["status"] } : t));
-    await fetch(`/api/weekly-plans/tasks/${taskId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: next }),
-    });
+    try {
+      await fetch(`/api/weekly-plans/tasks/${taskId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: next }),
+      });
+    } catch {
+      // Revert on error
+      setTasks((prev) => prev.map((t) => t.id === taskId ? { ...t, status: current as WeeklyTask["status"] } : t));
+      toast.error("Erro ao atualizar tarefa");
+    }
   };
 
-  const deleteTask = async (taskId: string) => {
+  const deleteTask = async (taskId: string, withUndo = true) => {
+    const deleted = tasks.find((t) => t.id === taskId);
     setTasks((prev) => prev.filter((t) => t.id !== taskId));
-    await fetch(`/api/weekly-plans/tasks/${taskId}`, { method: "DELETE" });
+
+    if (withUndo && deleted) {
+      const toastId = toast(`"${deleted.title}" removida`, {
+        action: {
+          label: "Desfazer",
+          onClick: async () => {
+            // Re-create the task
+            try {
+              const res = await fetch("/api/weekly-plans/tasks", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  title: deleted.title,
+                  area: deleted.area,
+                  task_type: deleted.task_type,
+                  linked_goal_id: deleted.linked_goal_id,
+                  linked_action_id: deleted.linked_action_id,
+                  day_of_week: deleted.day_of_week,
+                  scheduled_time: deleted.scheduled_time,
+                  week_start: weekStartStr,
+                }),
+              });
+              if (res.ok) {
+                const restored = await res.json();
+                setTasks((prev) => [...prev, restored]);
+                toast.success("Tarefa restaurada");
+              }
+            } catch {
+              toast.error("Erro ao restaurar tarefa");
+            }
+          },
+        },
+        duration: 5000,
+      });
+    }
+
+    // Actually delete from server
+    try {
+      await fetch(`/api/weekly-plans/tasks/${taskId}`, { method: "DELETE" });
+    } catch {
+      toast.error("Erro ao remover tarefa");
+    }
   };
 
   const currentPlan   = plan?.current ?? null;
@@ -881,16 +1306,60 @@ export default function PlanejamentoPage() {
       paddingBottom: 110,
     }}>
 
-      {/* ═ GREETING ═ */}
+      {/* ═ HEADER WITH WEEK NAV ═ */}
       <div style={{ padding: "22px 20px 4px" }}>
         <p style={{ margin: 0, fontSize: 12, color: "oklch(.55 .03 160)", letterSpacing: ".05em", textTransform: "uppercase", fontWeight: 600 }}>
-          Maya sugeriu este plano · Semana {getISOWeek()}
+          Maya sugeriu este plano · {weekLabelForOffset(weekOffset)}
         </p>
-        <h1 style={{ margin: "4px 0 4px", fontSize: 30, fontWeight: 700, letterSpacing: "-0.025em", lineHeight: 1.05, color: "oklch(.2 .02 160)" }}>
-          Suas Pedras
-        </h1>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <h1 style={{ margin: "4px 0 4px", flex: 1, fontSize: 30, fontWeight: 700, letterSpacing: "-0.025em", lineHeight: 1.05, color: "oklch(.2 .02 160)" }}>
+            Suas Pedras
+          </h1>
+          {/* Week navigation arrows */}
+          <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
+            <button
+              type="button"
+              onClick={() => { setWeekOffset(w => w - 1); setSelectedDay(0); }}
+              aria-label="Semana anterior"
+              style={{
+                width: 34, height: 34, borderRadius: 10, border: 0, cursor: "pointer",
+                background: "oklch(.93 .02 160)", display: "flex", alignItems: "center", justifyContent: "center",
+                transition: "background .15s ease",
+              }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="oklch(.45 .06 160)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="m15 18-6-6 6-6" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              onClick={() => { setWeekOffset(w => w + 1); setSelectedDay(0); }}
+              aria-label="Próxima semana"
+              disabled={weekOffset >= 2}
+              style={{
+                width: 34, height: 34, borderRadius: 10, border: 0, cursor: weekOffset >= 2 ? "not-allowed" : "pointer",
+                background: "oklch(.93 .02 160)", display: "flex", alignItems: "center", justifyContent: "center",
+                opacity: weekOffset >= 2 ? 0.4 : 1,
+                transition: "background .15s ease",
+              }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="oklch(.45 .06 160)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="m9 18 6-6-6-6" />
+              </svg>
+            </button>
+            {weekOffset !== 0 && (
+              <button
+                type="button"
+                onClick={() => { setWeekOffset(0); setSelectedDay(0); }}
+                style={{
+                  marginLeft: 4, padding: "6px 10px", borderRadius: 10, border: 0, cursor: "pointer",
+                  background: "oklch(.5 .12 160)", fontFamily: "inherit", fontSize: 10, fontWeight: 700, color: "#fff",
+                }}>
+                Hoje
+              </button>
+            )}
+          </div>
+        </div>
         <p style={{ margin: 0, fontFamily: "var(--font-mono, ui-monospace)", fontSize: 11, color: "oklch(.55 .03 160)" }}>
-          {weekRange()} · {doneTasks} de {totalTasks} ✓
+          {weekLabelForOffset(weekOffset)} · {doneTasks} de {totalTasks} ✓
         </p>
       </div>
 
@@ -972,6 +1441,7 @@ export default function PlanejamentoPage() {
                     task={t}
                     onToggle={() => toggleTask(t.id, t.status)}
                     onDelete={() => deleteTask(t.id)}
+                    onEdit={() => { setEditTaskId(t.id); setShowEditTask(true); }}
                   />
                 ))}
               </div>
@@ -1150,6 +1620,7 @@ export default function PlanejamentoPage() {
           onClose={() => setShowFocus(false)}
           onSaved={load}
           lang={lang}
+          weekStart={weekStartStr}
         />
       )}
 
@@ -1160,10 +1631,22 @@ export default function PlanejamentoPage() {
           onClose={() => setShowAddTask(false)}
           onSaved={(task) => setTasks((prev) => [...prev, task])}
           lang={lang}
+          weekStart={weekStartStr}
         />
       )}
 
-      {showReview && <ReviewModal onClose={() => setShowReview(false)} onSaved={load} lang={lang} />}
+      {showEditTask && editTask && (
+        <EditTaskSheet
+          task={editTask}
+          goals={goals}
+          onClose={() => { setShowEditTask(false); setEditTaskId(null); }}
+          onSaved={(updated) => setTasks((prev) => prev.map((t) => t.id === updated.id ? updated : t))}
+          onDeleted={(taskId) => setTasks((prev) => prev.filter((t) => t.id !== taskId))}
+          lang={lang}
+        />
+      )}
+
+      {showReview && <ReviewModal onClose={() => setShowReview(false)} onSaved={load} lang={lang} weekStart={weekStartStr} />}
 
       <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
     </div>

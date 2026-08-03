@@ -9,14 +9,14 @@ export async function POST(req: Request) {
   if (!session) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
 
   const body = await req.json();
-  const { biggest_win, blocked_lesson, main_learning, week_score } = body;
+  const { biggest_win, blocked_lesson, main_learning, week_score, week_start } = body;
 
   if (!biggest_win || !week_score) {
     return NextResponse.json({ error: "Campos obrigatórios ausentes" }, { status: 400 });
   }
 
   const admin = getSupabaseAdmin();
-  const weekStart = getWeekMondayDate();
+  const weekStart = week_start || getWeekMondayDate();
 
   // Find current week's plan
   const { data: plan } = await admin
