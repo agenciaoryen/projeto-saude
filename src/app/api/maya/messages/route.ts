@@ -14,7 +14,7 @@ export async function GET() {
     .from("chat_messages")
     .select("id, role, content, created_at")
     .eq("user_id", user.id)
-    .order("created_at", { ascending: true })
+    .order("created_at", { ascending: false })
     .limit(200);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
