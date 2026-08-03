@@ -1137,15 +1137,18 @@ function WeekHeat({ tasks, selectedDay, onSelect, weekOffset }: {
         const sel = i === selectedDay;
         return (
           <button key={i} type="button" onClick={() => onSelect(i)} aria-label={`${DAY_NAMES_FULL[i]} — ${day.done}/${day.count} tarefas`} style={{
-            background: sel ? "oklch(.5 .12 160 / .12)" : "transparent",
+            background: "transparent",
             border: day.today ? "1.5px solid oklch(.5 .12 160 / .5)" : "1.5px solid transparent",
             borderRadius: 12, padding: "8px 2px 6px", cursor: "pointer",
             display: "flex", flexDirection: "column", alignItems: "center", gap: 5,
             fontFamily: "inherit",
           }}>
             <span style={{
-              fontSize: 10, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase",
-              color: day.today ? "oklch(.35 .14 160)" : "oklch(.55 .03 160)",
+              fontSize: 10, fontWeight: day.today ? 700 : sel ? 600 : 500, letterSpacing: ".08em", textTransform: "uppercase",
+              color: day.today ? "oklch(.35 .14 160)" : sel ? "oklch(.4 .06 160)" : "oklch(.55 .03 160)",
+              textDecoration: sel && !day.today ? "underline" : "none",
+              textUnderlineOffset: 3,
+              textDecorationColor: "oklch(.5 .12 160 / .4)",
             }}>{day.d}</span>
             <div style={{ display: "flex", flexDirection: "column", gap: 2, alignItems: "center" }}>
               {Array.from({ length: Math.max(day.count, 1) }).slice(0, 5).map((_, j) => (
