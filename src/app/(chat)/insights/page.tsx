@@ -376,7 +376,7 @@ export default function MayaChatPage() {
         <div className="min-w-0">
           <p className="text-sm font-semibold leading-tight">Maya</p>
           <p className="text-[11px] leading-tight" style={{ color: "oklch(0.55 0.03 270)" }}>
-            {typing ? t("maya_typing") : t("maya_subtitle")}
+            {typing ? t("maya_typing") : hydrated ? `${messages.length} msgs` : "carregando..."}
           </p>
         </div>
       </div>
