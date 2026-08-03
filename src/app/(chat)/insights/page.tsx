@@ -180,14 +180,15 @@ export default function MayaChatPage() {
     fetch("/api/maya/messages", { cache: "no-store" })
       .then((r) => r.json())
       .then((data) => {
-        const serverMsgs: Message[] = Array.isArray(data) ? data.map((m: any) => ({
-          role: m.role, content: m.content,
-          time: new Date(m.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
-          date: m.created_at.slice(0, 10),
-        })) : [];
+        const serverMsgs: Message[] = Array.isArray(data) ? data
+          .sort((a: any, b: any) => a.created_at.localeCompare(b.created_at))
+          .map((m: any) => ({
+            role: m.role, content: m.content,
+            time: new Date(m.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
+            date: m.created_at.slice(0, 10),
+          })) : [];
 
-        // Use server messages directly — most reliable
-        serverMsgs.sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
+        // Already sorted by created_at from API
         setMessages(serverMsgs);
         // Keep localStorage as backup only
         if (serverMsgs.length > 0) localStorage.setItem(CHAT_CACHE_KEY, JSON.stringify(serverMsgs.slice(-50)));
@@ -281,8 +282,8 @@ export default function MayaChatPage() {
       setTyping(false);
       current = [...current, { role: "assistant", content: parts[i], time: formatTime(), date: formatDate() }];
       setMessages(current);
-      // Persist assistant message to server
-      persistWithRetry([{ role: "assistant", content: parts[i] }]);
+      // Persist assistant message to server (awaited so DB order is correct)
+      await persistWithRetry([{ role: "assistant", content: parts[i] }]);
       if (i < parts.length - 1) {
         await new Promise((r) => setTimeout(r, 400));
       }
@@ -308,13 +309,14 @@ export default function MayaChatPage() {
     if (!oldest?.date) return;
     const res = await fetch(`/api/maya/messages?before=${oldest.date}T${oldest.time}:00`);
     if (res.ok) {
-      const older: Message[] = (await res.json()).map((m: any) => ({
-        role: m.role, content: m.content,
-        time: new Date(m.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
-        date: m.created_at.slice(0, 10),
-      }));
+      const older: Message[] = (await res.json())
+        .sort((a: any, b: any) => a.created_at.localeCompare(b.created_at))
+        .map((m: any) => ({
+          role: m.role, content: m.content,
+          time: new Date(m.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
+          date: m.created_at.slice(0, 10),
+        }));
       if (older.length > 0) {
-        older.sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
         setMessages(prev => [...older, ...prev]);
       }
       setShowLoadMore(older.length >= 200);
@@ -343,8 +345,8 @@ export default function MayaChatPage() {
     setInput("");
     setSending(true);
 
-    // Persist with retry (3 attempts)
-    persistWithRetry([{ role: "user", content: trimmed }])
+    // Persist user message first (awaited) so DB order is correct
+    await persistWithRetry([{ role: "user", content: trimmed }]);
 
     try {
       const contextMsgs = updated.slice(-20).map(({ role, content, date, time }) => ({ role, content, date, time }));
@@ -407,7 +409,7 @@ export default function MayaChatPage() {
         <div className="min-w-0">
           <p className="text-sm font-semibold leading-tight">Maya</p>
           <p className="text-[11px] leading-tight" style={{ color: "oklch(0.55 0.03 270)" }}>
-            {typing ? t("maya_typing") : hydrated ? `${messages.length} msgs` : "carregando..."}
+            {typing ? t("maya_typing") : hydrated ? "Online" : "carregando..."}
           </p>
         </div>
       </div>
