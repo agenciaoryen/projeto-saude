@@ -122,7 +122,13 @@ function loadProfileCache() {
 }
 
 function Ticks({ status }: { status: "sent" | "delivered" | "read" }) {
-  const color = status === "read" ? "var(--maya-secondary)" : "var(--muted-foreground)";
+  // White tones on the purple bubble — good contrast like WhatsApp
+  const color =
+    status === "read"
+      ? "rgba(255,255,255,0.9)"
+      : status === "delivered"
+        ? "rgba(255,255,255,0.5)"
+        : "rgba(255,255,255,0.35)";
   const Tick = (
     <svg
       width="14" height="11" viewBox="0 0 18 13"
@@ -419,8 +425,26 @@ export default function MayaChatPage() {
     setSending(true);
     sendingRef.current = true;
 
+    // Keep keyboard open — refocus textarea after clearing
+    requestAnimationFrame(() => {
+      textareaRef.current?.focus();
+    });
+
     // Persist user message first so DB order is correct
     await persistWithRetry([{ role: "user", content: trimmed }]);
+
+    // Mark as "read" immediately — Maya received the message
+    // (before the API call, before the typing indicator)
+    setMessages((prev) => {
+      const updated2 = [...prev];
+      for (let i = updated2.length - 1; i >= 0; i--) {
+        if (updated2[i].role === "user") {
+          updated2[i] = { ...updated2[i], seen: true };
+          break;
+        }
+      }
+      return updated2;
+    });
 
     try {
       const contextMsgs = updated.slice(-20).map(({ role, content, date, time }) => ({
@@ -556,9 +580,12 @@ export default function MayaChatPage() {
           </div>
         )}
 
-        {/* ── Spacer: pushes messages to the bottom when content < container ── */}
-        {/* This is the key fix for the "bounce" issue — it absorbs height changes */}
-        <div style={{ marginTop: "auto", flexShrink: 0 }} />
+        {/* ── Spacer: pushes messages to the bottom ── */}
+        {/* flex: 1 1 0 = grows to fill, shrinks to 0 when content overflows.
+             minHeight: 0 allows it to collapse completely.
+             This absorbs height changes from textarea expansion/keyboard
+             without displacing messages. */}
+        <div style={{ flex: "1 1 0", minHeight: 0 }} />
 
         {/* Welcome message (empty state) */}
         {hydrated && messages.length === 0 && welcomeMessage && (
