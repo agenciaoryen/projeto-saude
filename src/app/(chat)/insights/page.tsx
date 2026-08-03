@@ -6,6 +6,9 @@ import { useTranslation } from "@/lib/useTranslation";
 import { Send, ArrowLeft } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { MayaAvatar } from "@/components/MayaAvatar";
+import { useViewportHeight } from "@/hooks/useViewportHeight";
+import { useChatScroll } from "@/hooks/useChatScroll";
+import { useAutoResizeTextarea } from "@/hooks/useAutoResizeTextarea";
 
 interface Message {
   role: "user" | "assistant";
@@ -13,20 +16,28 @@ interface Message {
   time: string;
   date: string;
   seen?: boolean;
-  synced?: boolean; // false = not yet saved to server
+  synced?: boolean;
   action?: { label: string; href: string };
 }
 
-async function persistWithRetry(messages: Array<{ role: string; content: string }>, retries = 3): Promise<boolean> {
+// ── Helpers ──────────────────────────────────────────────────────────
+
+async function persistWithRetry(
+  messages: Array<{ role: string; content: string }>,
+  retries = 3,
+): Promise<boolean> {
   for (let i = 0; i < retries; i++) {
     try {
       const res = await fetch("/api/maya/messages", {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages }),
       });
       if (res.ok) return true;
-    } catch {}
-    if (i < retries - 1) await new Promise(r => setTimeout(r, 1500 * (i + 1)));
+    } catch {
+      /* retry */
+    }
+    if (i < retries - 1) await new Promise((r) => setTimeout(r, 1500 * (i + 1)));
   }
   return false;
 }
@@ -42,7 +53,10 @@ function formatDate(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-const PT_DAYS = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
+const PT_DAYS = [
+  "Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira",
+  "Quinta-feira", "Sexta-feira", "Sábado",
+];
 
 function getDateLabel(dateStr: string): string {
   const today = new Date();
@@ -55,12 +69,18 @@ function getDateLabel(dateStr: string): string {
   return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
+// ── Sub-components ────────────────────────────────────────────────────
+
 function DateSeparator({ label }: { label: string }) {
   return (
     <div className="flex items-center justify-center my-4">
       <span
         className="px-3 py-1 rounded-full text-[12px] font-medium select-none"
-        style={{ background: "oklch(0.22 0.02 270)", color: "oklch(0.65 0.05 270)", boxShadow: "0 1px 2px rgba(0,0,0,.12)" }}
+        style={{
+          background: "var(--muted)",
+          color: "var(--muted-foreground)",
+          boxShadow: "0 1px 2px rgba(0,0,0,.12)",
+        }}
       >
         {label}
       </span>
@@ -95,31 +115,66 @@ function loadProfileCache() {
   try {
     const raw = localStorage.getItem("user_profile");
     if (raw) return JSON.parse(raw);
-  } catch { /* noop */ }
+  } catch {
+    /* noop */
+  }
   return null;
 }
 
-// WhatsApp-style SVG ticks
 function Ticks({ status }: { status: "sent" | "delivered" | "read" }) {
-  const color = status === "read" ? "#A78BFA" : "oklch(0.55 0.03 270)";
+  const color = status === "read" ? "var(--maya-secondary)" : "var(--muted-foreground)";
   const Tick = (
-    <svg width="14" height="11" viewBox="0 0 18 13" fill="none" stroke="currentColor"
-         strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      width="14" height="11" viewBox="0 0 18 13"
+      fill="none" stroke="currentColor"
+      strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"
+    >
       <path d="M1.5 6.6 6 11l11-9.5" />
     </svg>
   );
   return (
     <span style={{ display: "inline-flex", alignItems: "center", color }}>
       {Tick}
-      {status !== "sent" && <span style={{ marginLeft: -9, display: "inline-flex" }}>{Tick}</span>}
+      {status !== "sent" && (
+        <span style={{ marginLeft: -9, display: "inline-flex" }}>{Tick}</span>
+      )}
     </span>
   );
 }
+
+function TypingIndicator() {
+  return (
+    <div className="flex justify-start mb-1.5 maya-chat-msg">
+      <div
+        className="rounded-[8px] px-3.5 py-2"
+        style={{
+          background: "var(--card)",
+          boxShadow: "0 1px 0.5px rgba(11,20,26,.13)",
+        }}
+      >
+        <div className="flex items-center gap-1">
+          <span className="size-2 rounded-full bg-[var(--maya-secondary)]/60 animate-bounce [animation-delay:0ms]" />
+          <span className="size-2 rounded-full bg-[var(--maya-secondary)]/60 animate-bounce [animation-delay:150ms]" />
+          <span className="size-2 rounded-full bg-[var(--maya-secondary)]/60 animate-bounce [animation-delay:300ms]" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Main Page ─────────────────────────────────────────────────────────
 
 export default function MayaChatPage() {
   const { t } = useTranslation();
   const router = useRouter();
   const searchParams = useSearchParams();
+
+  // ── Hooks ──
+  const { viewportH, keyboardOpen } = useViewportHeight();
+  const messagesRef = useRef<HTMLDivElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  // ── State ──
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState(() => searchParams.get("draft") ?? "");
   const [sending, setSending] = useState(false);
@@ -127,106 +182,81 @@ export default function MayaChatPage() {
   const [hydrated, setHydrated] = useState(false);
   const [showLoadMore, setShowLoadMore] = useState(false);
   const [userName, setUserName] = useState("");
-  const [viewportH, setViewportH] = useState(0);
-  const [keyboardOpen, setKeyboardOpen] = useState(false);
-  const bottomRef = useRef<HTMLDivElement>(null);
+
+  // ── Refs ──
   const sentinelRef = useRef<HTMLDivElement>(null);
-  const messagesRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const sendingRef = useRef(false);
-  const fullHeightRef = useRef(0);
   const nudgeActionRef = useRef<{ label: string; href: string } | null>(null);
 
-  useEffect(() => {
-    fullHeightRef.current = window.innerHeight;
+  // ── Chat scroll management ──
+  const { handleScroll } = useChatScroll({
+    containerRef: messagesRef,
+    bottomRef,
+    messageCount: messages.length,
+    typing,
+    hydrated,
+  });
 
-    const onViewportChange = () => {
-      const vv = window.visualViewport;
-      if (!vv) return;
-      window.scrollTo(0, 0);
-      const h = vv.height;
-      setViewportH(h);
-      setKeyboardOpen(fullHeightRef.current - h > 80);
-    };
+  // ── Textarea auto-resize ──
+  useAutoResizeTextarea(textareaRef, input);
 
-    window.visualViewport?.addEventListener("resize", onViewportChange);
-    window.visualViewport?.addEventListener("scroll", onViewportChange);
-    onViewportChange();
-
-    return () => {
-      window.visualViewport?.removeEventListener("resize", onViewportChange);
-      window.visualViewport?.removeEventListener("scroll", onViewportChange);
-    };
-  }, []);
-
+  // ── Focus textarea if draft param ──
   useEffect(() => {
     if (searchParams.get("draft")) {
       setTimeout(() => textareaRef.current?.focus(), 300);
     }
   }, [searchParams]);
 
+  // ── Load messages + profile (unified) ──
   useEffect(() => {
+    // Profile from localStorage (instant, for greeting)
     const cache = loadProfileCache();
     if (cache?.name) setUserName(cache.name);
 
-    // Load from server + localStorage, merge both (newest wins per date)
-    const loadLocal = (): Message[] => {
-      try {
-        const cached = localStorage.getItem(CHAT_CACHE_KEY);
-        return cached ? JSON.parse(cached) : [];
-      } catch { return []; }
-    };
-
+    // Load messages from server
     fetch("/api/maya/messages", { cache: "no-store" })
       .then((r) => r.json())
       .then((data) => {
-        const serverMsgs: Message[] = Array.isArray(data) ? data
-          .sort((a: any, b: any) => a.created_at.localeCompare(b.created_at))
-          .map((m: any) => ({
-            role: m.role, content: m.content,
-            time: new Date(m.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
-            date: m.created_at.slice(0, 10),
-          })) : [];
+        const serverMsgs: Message[] = Array.isArray(data)
+          ? data
+              .sort((a: Message, b: Message) =>
+                (a as unknown as { created_at: string }).created_at?.localeCompare?.(
+                  (b as unknown as { created_at: string }).created_at,
+                ) ?? 0,
+              )
+              .map((m: unknown) => {
+                const msg = m as { role: string; content: string; created_at: string };
+                return {
+                  role: msg.role as "user" | "assistant",
+                  content: msg.content,
+                  time: new Date(msg.created_at).toLocaleTimeString("pt-BR", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  }),
+                  date: msg.created_at.slice(0, 10),
+                };
+              })
+          : [];
 
-        // Already sorted by created_at from API
         setMessages(serverMsgs);
-        // Keep localStorage as backup only
-        if (serverMsgs.length > 0) localStorage.setItem(CHAT_CACHE_KEY, JSON.stringify(serverMsgs.slice(-50)));
+        if (serverMsgs.length > 0) {
+          localStorage.setItem(CHAT_CACHE_KEY, JSON.stringify(serverMsgs.slice(-50)));
+        }
         setHydrated(true);
       })
       .catch(() => {
         // Server unreachable — use localStorage as fallback
-        const local = loadLocal();
-        setMessages(local);
+        try {
+          const cached = localStorage.getItem(CHAT_CACHE_KEY);
+          if (cached) setMessages(JSON.parse(cached));
+        } catch {
+          /* noop */
+        }
         setHydrated(true);
       });
 
-      });
-
-  // Load proactive nudge — separate effect
-  useEffect(() => {
-    fetch("/api/maya/nudge")
-      .then(r => r.json())
-      .then(data => {
-        if (data.nudges?.length > 0) {
-          const nudge = data.nudges[0];
-          if (nudge.action) nudgeActionRef.current = nudge.action;
-          fetch("/api/maya/nudge", { method: "POST" })
-            .then(() => {
-              const now = formatTime();
-              const todayDate = formatDate();
-              setMessages(prev => {
-                if (prev.some(m => m.content === nudge.message)) return prev;
-                return [...prev, { role: "assistant", content: nudge.message, time: now, date: todayDate, action: nudge.action }];
-              });
-            })
-            .catch(() => {});
-        }
-      })
-      .catch(() => {});
-  }, []);
-
-  useEffect(() => {
+    // Also fetch fresh profile from API
     fetch("/api/profile")
       .then((r) => r.json())
       .then((data) => {
@@ -235,139 +265,205 @@ export default function MayaChatPage() {
       .catch(() => {});
   }, []);
 
-  // Save to localStorage on every change + before page unload
+  // ── Load proactive nudge ──
+  useEffect(() => {
+    fetch("/api/maya/nudge")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.nudges?.length > 0) {
+          const nudge = data.nudges[0];
+          if (nudge.action) nudgeActionRef.current = nudge.action;
+          fetch("/api/maya/nudge", { method: "POST" })
+            .then(() => {
+              const now = formatTime();
+              const today = formatDate();
+              setMessages((prev) => {
+                if (prev.some((m) => m.content === nudge.message)) return prev;
+                return [
+                  ...prev,
+                  {
+                    role: "assistant",
+                    content: nudge.message,
+                    time: now,
+                    date: today,
+                    action: nudge.action,
+                  },
+                ];
+              });
+            })
+            .catch(() => {});
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  // ── Save to localStorage on changes + page hide ──
   useEffect(() => {
     if (!hydrated || messages.length === 0) return;
-    const save = () => localStorage.setItem(CHAT_CACHE_KEY, JSON.stringify(messages.slice(-50)));
+    const save = () =>
+      localStorage.setItem(CHAT_CACHE_KEY, JSON.stringify(messages.slice(-50)));
     save();
     window.addEventListener("beforeunload", save);
-    document.addEventListener("visibilitychange", () => { if (document.hidden) save(); });
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) save();
+    });
     return () => {
       window.removeEventListener("beforeunload", save);
-      document.removeEventListener("visibilitychange", () => {});
+      document.removeEventListener("visibilitychange", save);
     };
   }, [messages, hydrated]);
 
-  useEffect(() => {
-    if (hydrated && messages.length > 0) {
-      // Already handled above
-    }
-  }, [messages, hydrated]);
+  // ── Deliver AI response in parts (simulated streaming) ──
+  const deliverParts = useCallback(
+    async (parts: string[], baseMessages: Message[]) => {
+      sendingRef.current = true;
+      let current = [...baseMessages];
 
-  // Resize textarea on input change
-  useEffect(() => {
-    const ta = textareaRef.current;
-    if (ta) {
-      ta.style.height = "auto";
-      ta.style.height = Math.min(ta.scrollHeight, 100) + "px";
-    }
-  }, [input]);
-
-  // Scroll to bottom when messages change or typing toggles
-  useEffect(() => {
-    // scrollIntoView is more reliable than scrollTop = scrollHeight
-    if (bottomRef.current) {
-      bottomRef.current.scrollIntoView({ block: "end", behavior: "instant" });
-    }
-  }, [messages, typing]);
-
-  const deliverParts = useCallback(async (parts: string[], baseMessages: Message[]) => {
-    sendingRef.current = true;
-    let current = [...baseMessages];
-
-    for (let i = 0; i < parts.length; i++) {
-      setTyping(true);
-      await new Promise((r) => setTimeout(r, typingDelayFor(parts[i])));
-      setTyping(false);
-      current = [...current, { role: "assistant", content: parts[i], time: formatTime(), date: formatDate() }];
-      setMessages(current);
-      // Persist assistant message to server (fire-and-forget)
-      persistWithRetry([{ role: "assistant", content: parts[i] }]);
-      if (i < parts.length - 1) {
-        await new Promise((r) => setTimeout(r, 400));
-      }
-    }
-
-    setMessages(prev => {
-      const updated = [...prev];
-      for (let i = updated.length - 1; i >= 0; i--) {
-        if (updated[i].role === "user") {
-          updated[i] = { ...updated[i], seen: true };
-          break;
+      for (let i = 0; i < parts.length; i++) {
+        setTyping(true);
+        await new Promise((r) => setTimeout(r, typingDelayFor(parts[i])));
+        setTyping(false);
+        current = [
+          ...current,
+          {
+            role: "assistant" as const,
+            content: parts[i],
+            time: formatTime(),
+            date: formatDate(),
+          },
+        ];
+        setMessages(current);
+        // Fire-and-forget persist
+        persistWithRetry([{ role: "assistant", content: parts[i] }]);
+        if (i < parts.length - 1) {
+          await new Promise((r) => setTimeout(r, 400));
         }
       }
-      return updated;
-    });
 
-    sendingRef.current = false;
-  }, []);
+      // Mark last user message as seen
+      setMessages((prev) => {
+        const updated = [...prev];
+        for (let i = updated.length - 1; i >= 0; i--) {
+          if (updated[i].role === "user") {
+            updated[i] = { ...updated[i], seen: true };
+            break;
+          }
+        }
+        return updated;
+      });
 
+      sendingRef.current = false;
+    },
+    [],
+  );
+
+  // ── Load older messages ──
   const loadOlder = async () => {
     if (messages.length === 0) return;
     const oldest = messages[0];
     if (!oldest?.date) return;
-    const res = await fetch(`/api/maya/messages?before=${oldest.date}T${oldest.time}:00`);
+    const res = await fetch(
+      `/api/maya/messages?before=${oldest.date}T${oldest.time}:00`,
+    );
     if (res.ok) {
       const older: Message[] = (await res.json())
-        .sort((a: any, b: any) => a.created_at.localeCompare(b.created_at))
-        .map((m: any) => ({
-          role: m.role, content: m.content,
-          time: new Date(m.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
+        .sort((a: { created_at: string }, b: { created_at: string }) =>
+          a.created_at.localeCompare(b.created_at),
+        )
+        .map((m: { role: string; content: string; created_at: string }) => ({
+          role: m.role as "user" | "assistant",
+          content: m.content,
+          time: new Date(m.created_at).toLocaleTimeString("pt-BR", {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
           date: m.created_at.slice(0, 10),
         }));
       if (older.length > 0) {
-        setMessages(prev => [...older, ...prev]);
+        setMessages((prev) => [...older, ...prev]);
       }
       setShowLoadMore(older.length >= 200);
     }
   };
 
+  // ── IntersectionObserver for "load older" sentinel ──
   useEffect(() => {
     const el = sentinelRef.current;
     if (!el) return;
     const obs = new IntersectionObserver(([e]) => {
-      if (e.isIntersecting && hydrated && messages.length >= 200) setShowLoadMore(true);
+      if (e.isIntersecting && hydrated && messages.length >= 200) {
+        setShowLoadMore(true);
+      }
     });
     obs.observe(el);
     return () => obs.disconnect();
   }, [hydrated, messages.length]);
 
+  // ── Send message ──
   const sendMessage = useCallback(async () => {
     const trimmed = input.trim();
     if (!trimmed || sending || sendingRef.current) return;
 
     const now = formatTime();
     const nowDate = formatDate();
-    const userMsg: Message = { role: "user", content: trimmed, time: now, date: nowDate, seen: false };
+    const userMsg: Message = {
+      role: "user",
+      content: trimmed,
+      time: now,
+      date: nowDate,
+      seen: false,
+    };
     const updated = [...messages, userMsg];
     setMessages(updated);
     setInput("");
     setSending(true);
+    sendingRef.current = true;
 
-    // Persist user message first (awaited) so DB order is correct
+    // Persist user message first so DB order is correct
     await persistWithRetry([{ role: "user", content: trimmed }]);
 
     try {
-      const contextMsgs = updated.slice(-20).map(({ role, content, date, time }) => ({ role, content, date, time }));
+      const contextMsgs = updated.slice(-20).map(({ role, content, date, time }) => ({
+        role,
+        content,
+        date,
+        time,
+      }));
       const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
       const localHour = new Date().getHours();
       const localDate = formatDate();
       const res = await fetch("/api/maya", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: contextMsgs, timezone: tz, localHour, localDate }),
+        body: JSON.stringify({
+          messages: contextMsgs,
+          timezone: tz,
+          localHour,
+          localDate,
+        }),
       });
-      if (!res.ok) throw new Error();
+      if (!res.ok) throw new Error("API error");
       const data = await res.json();
       const parts = splitIntoParts(data.reply);
       setSending(false);
+      sendingRef.current = false;
       deliverParts(parts, updated);
     } catch {
       setSending(false);
-      setMessages([...updated, { role: "assistant", content: t("maya_error"), time: formatTime(), date: formatDate() }]);
+      sendingRef.current = false;
+      setMessages([
+        ...updated,
+        {
+          role: "assistant",
+          content: t("maya_error"),
+          time: formatTime(),
+          date: formatDate(),
+        },
+      ]);
     }
   }, [input, sending, messages, t, deliverParts]);
 
+  // ── Keyboard handler ──
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -375,23 +471,27 @@ export default function MayaChatPage() {
     }
   };
 
+  // ── Derived ──
   const welcomeMessage = t("maya_welcome");
   const busy = sending || typing;
+  const containerHeight =
+    viewportH > 200 ? `${viewportH}px` : "100dvh";
 
+  // ── Render ──
   return (
     <div
       className="flex flex-col"
       style={{
-        height: viewportH > 200 ? `${viewportH}px` : "100dvh",
-        background: "oklch(0.12 0.012 270)",
+        height: containerHeight,
+        background: "var(--background)",
       }}
     >
-      {/* Header */}
+      {/* ── Header ── */}
       <div
-        className="shrink-0 flex items-center gap-3 px-4 py-2.5 safe-top"
+        className="shrink-0 flex items-center gap-3 px-4 py-2.5"
         style={{
-          background: "oklch(0.14 0.012 270)",
-          borderBottom: "1px solid oklch(0.28 0.02 270 / 0.5)",
+          background: "var(--chat)",
+          borderBottom: "1px solid var(--border)",
         }}
       >
         <button
@@ -407,31 +507,67 @@ export default function MayaChatPage() {
 
         <div className="min-w-0">
           <p className="text-sm font-semibold leading-tight">Maya</p>
-          <p className="text-[11px] leading-tight" style={{ color: "oklch(0.55 0.03 270)" }}>
-            {typing ? t("maya_typing") : hydrated ? "Online" : "carregando..."}
+          <p
+            className="text-[11px] leading-tight"
+            style={{ color: "var(--muted-foreground)" }}
+          >
+            {typing
+              ? t("maya_typing")
+              : hydrated
+                ? "Online"
+                : "carregando..."}
           </p>
         </div>
       </div>
 
-      {/* Messages */}
-      <div ref={messagesRef} className="flex-1 overflow-y-auto px-3 pt-3 pb-1">
+      {/* ── Messages ── */}
+      <div
+        ref={messagesRef}
+        onScroll={handleScroll}
+        className="flex-1 min-h-0 overflow-y-auto px-3 pt-3 pb-1"
+        style={{
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
         {/* Sentinel for loading older messages */}
-        <div ref={sentinelRef} style={{ height: 1 }} />
+        <div ref={sentinelRef} style={{ height: 1, flexShrink: 0 }} />
+
+        {/* "Load older" button */}
         {showLoadMore && (
           <div style={{ textAlign: "center", padding: "8px 0" }}>
-            <button type="button" onClick={loadOlder}
-              style={{ padding: "6px 14px", borderRadius: 9999, border: "1px solid rgba(167,139,250,0.2)", background: "transparent", color: "#A78BFA", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+            <button
+              type="button"
+              onClick={loadOlder}
+              style={{
+                padding: "6px 14px",
+                borderRadius: 9999,
+                border: "1px solid rgba(167,139,250,0.2)",
+                background: "transparent",
+                color: "var(--maya-secondary)",
+                fontSize: 11,
+                fontWeight: 600,
+                cursor: "pointer",
+                fontFamily: "inherit",
+              }}
+            >
               ↑ Mensagens anteriores
             </button>
           </div>
         )}
+
+        {/* ── Spacer: pushes messages to the bottom when content < container ── */}
+        {/* This is the key fix for the "bounce" issue — it absorbs height changes */}
+        <div style={{ marginTop: "auto", flexShrink: 0 }} />
+
+        {/* Welcome message (empty state) */}
         {hydrated && messages.length === 0 && welcomeMessage && (
-          <div className="flex justify-center pt-12">
+          <div className="flex justify-center pt-12 maya-chat-msg">
             <div
               className="rounded-[8px] px-4 py-3 text-sm text-center max-w-sm"
               style={{
-                background: "oklch(0.16 0.012 270)",
-                color: "#e0d6ff",
+                background: "var(--card)",
+                color: "var(--maya-text)",
                 boxShadow: "0 2px 8px oklch(0.3 0.03 270 / 0.3)",
               }}
             >
@@ -440,102 +576,106 @@ export default function MayaChatPage() {
           </div>
         )}
 
+        {/* Message bubbles */}
         {messages.map((msg, i) => {
           const isAssistant = msg.role === "assistant";
-          const status: "sent" | "delivered" | "read" = msg.seen ? "read" : "delivered";
+          const status: "sent" | "delivered" | "read" = msg.seen
+            ? "read"
+            : "delivered";
           const prevMsg = i > 0 ? messages[i - 1] : null;
 
           let separatorLabel: string | null = null;
           if (!msg.date) {
-            // undated message (old cache): show "Mensagens anteriores" before first undated cluster
-            if (!prevMsg || prevMsg.date != null) separatorLabel = "Mensagens anteriores";
+            if (!prevMsg || prevMsg.date != null) {
+              separatorLabel = "Mensagens anteriores";
+            }
           } else {
-            // dated message: show label on date change
             const prevDate = prevMsg?.date ?? null;
             if (msg.date !== prevDate) separatorLabel = getDateLabel(msg.date);
           }
 
           return (
-            <div key={i}>
+            <div key={i} className="maya-chat-msg">
               {separatorLabel && <DateSeparator label={separatorLabel} />}
-            <div
-              className={`flex ${isAssistant ? "justify-start" : "justify-end"} mb-1.5`}
-            >
               <div
-                className="max-w-[80%] rounded-[8px] px-3 pt-1.5 pb-2 text-[14px] leading-[1.32] whitespace-pre-line"
-                style={{
-                  background: isAssistant ? "oklch(0.16 0.012 270)" : "#7C5CFF",
-                  color: isAssistant ? "#e0d6ff" : "#fff",
-                  boxShadow: "0 1px 0.5px rgba(11,20,26,.13)",
-                }}
+                className={`flex ${isAssistant ? "justify-start" : "justify-end"} mb-1.5`}
               >
-                {msg.content}
-                {msg.action && (
-                  <a
-                    href={msg.action.href}
-                    onClick={(e) => { e.preventDefault(); router.push(msg.action!.href); }}
-                    style={{
-                      display: "inline-flex", alignItems: "center", gap: 4,
-                      marginTop: 8, padding: "6px 12px", borderRadius: 8,
-                      background: "#7C5CFF", color: "#fff",
-                      fontSize: 12, fontWeight: 600, textDecoration: "none",
-                    }}>
-                    {msg.action.label} →
-                  </a>
-                )}
-                {/* Time + ticks only for user messages — AI messages just show content */}
-                {!isAssistant && (
-                  <span
-                    className="text-[11px] leading-none whitespace-nowrap"
-                    style={{
-                      float: "right",
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 3,
-                      margin: "8px -4px -5px 8px",
-                      color: "rgba(255,255,255,0.7)",
-                    }}
-                  >
-                    {msg.time}
-                    <Ticks status={status} />
-                  </span>
-                )}
+                <div
+                  className="max-w-[80%] rounded-[8px] px-3 pt-1.5 pb-2 text-[14px] leading-[1.32] whitespace-pre-line"
+                  style={{
+                    background: isAssistant
+                      ? "var(--card)"
+                      : "var(--maya-primary)",
+                    color: isAssistant
+                      ? "var(--maya-text)"
+                      : "#fff",
+                    boxShadow: "0 1px 0.5px rgba(11,20,26,.13)",
+                  }}
+                >
+                  {msg.content}
+                  {msg.action && (
+                    <a
+                      href={msg.action.href}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        router.push(msg.action!.href);
+                      }}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 4,
+                        marginTop: 8,
+                        padding: "6px 12px",
+                        borderRadius: 8,
+                        background: "var(--maya-primary)",
+                        color: "#fff",
+                        fontSize: 12,
+                        fontWeight: 600,
+                        textDecoration: "none",
+                      }}
+                    >
+                      {msg.action.label} →
+                    </a>
+                  )}
+                  {/* Time + ticks for user messages only */}
+                  {!isAssistant && (
+                    <span
+                      className="text-[11px] leading-none whitespace-nowrap"
+                      style={{
+                        float: "right",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 3,
+                        margin: "8px -4px -5px 8px",
+                        color: "rgba(255,255,255,0.7)",
+                      }}
+                    >
+                      {msg.time}
+                      <Ticks status={status} />
+                    </span>
+                  )}
+                </div>
               </div>
-            </div>
             </div>
           );
         })}
 
-        {typing && (
-          <div className="flex justify-start mb-1.5">
-            <div
-              className="rounded-[8px] px-3.5 py-2"
-              style={{
-                background: "oklch(0.16 0.012 270)",
-                boxShadow: "0 1px 0.5px rgba(11,20,26,.13)",
-              }}
-            >
-              <div className="flex items-center gap-1">
-                <span className="size-2 rounded-full bg-[#A78BFA]/60 animate-bounce [animation-delay:0ms]" />
-                <span className="size-2 rounded-full bg-[#A78BFA]/60 animate-bounce [animation-delay:150ms]" />
-                <span className="size-2 rounded-full bg-[#A78BFA]/60 animate-bounce [animation-delay:300ms]" />
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Typing indicator */}
+        {typing && <TypingIndicator />}
 
-        <div ref={bottomRef} />
+        {/* Bottom sentinel */}
+        <div ref={bottomRef} style={{ flexShrink: 0 }} />
       </div>
 
-      {/* Input bar */}
+      {/* ── Input bar ── */}
       <div
         className="shrink-0 px-3 pt-2.5"
         style={{
-          background: "oklch(0.14 0.012 270)",
-          borderTop: "1px solid oklch(0.28 0.02 270 / 0.5)",
+          background: "var(--chat)",
+          borderTop: "1px solid var(--border)",
           paddingBottom: keyboardOpen
             ? "calc(8px + env(safe-area-inset-bottom, 0px))"
-            : "calc(80px + env(safe-area-inset-bottom, 0px))",
+            : "calc(32px + env(safe-area-inset-bottom, 16px))",
         }}
       >
         <div className="flex items-end gap-2">
@@ -544,27 +684,20 @@ export default function MayaChatPage() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            onBlur={() => {
-              setTimeout(() => {
-                setViewportH(0);
-                setKeyboardOpen(false);
-              }, 150);
-            }}
-            placeholder="Falar com Maya..."
+            placeholder={t("maya_placeholder")}
             disabled={busy}
             rows={1}
             className="maya-chat-input flex-1 resize-none rounded-xl border px-4 py-2.5 text-sm focus:outline-none focus:ring-2 disabled:opacity-50"
             style={{
-              background: "oklch(0.12 0.012 270)",
-              borderColor: "oklch(0.38 0.03 270 / 0.55)",
-              color: "#e0d6ff",
+              background: "var(--background)",
+              borderColor: "var(--border)",
+              color: "var(--maya-text)",
             }}
-            placeholder="Falar com Maya..."
           />
           <Button
             size="icon"
             className="rounded-full size-10 shrink-0"
-            style={{ background: "#7C5CFF" }}
+            style={{ background: "var(--maya-primary)" }}
             onClick={sendMessage}
             disabled={!input.trim() || busy}
           >

@@ -24,6 +24,9 @@
   --color-chart-2: var(--chart-2);
   --color-chart-1: var(--chart-1);
   --color-chat: var(--chat);
+  --color-maya-primary: var(--maya-primary);
+  --color-maya-secondary: var(--maya-secondary);
+  --color-maya-text: var(--maya-text);
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -76,6 +79,9 @@
   --chart-4: oklch(0.7 0.12 175);
   --chart-5: oklch(0.5 0.14 290);
   --chat: oklch(0.14 0.012 270);
+  --maya-primary: #7C5CFF;
+  --maya-secondary: #A78BFA;
+  --maya-text: #e0d6ff;
   --radius: 0.75rem;
   --sidebar: oklch(0.14 0.012 270);
   --sidebar-foreground: oklch(0.94 0.008 270);
@@ -113,6 +119,9 @@
   --chart-4: oklch(0.7 0.12 175);
   --chart-5: oklch(0.5 0.14 290);
   --chat: oklch(0.14 0.012 270);
+  --maya-primary: #7C5CFF;
+  --maya-secondary: #A78BFA;
+  --maya-text: #e0d6ff;
   --sidebar: oklch(0.14 0.012 270);
   --sidebar-foreground: oklch(0.94 0.008 270);
   --sidebar-primary: oklch(0.58 0.18 270);
@@ -171,8 +180,16 @@
   50% { transform: scale(.95); opacity: .75; }
 }
 
-/* Maya chat input placeholder — visible on dark bg */
+/* Maya chat input — placeholder visible on dark bg + smooth resize */
 .maya-chat-input::placeholder {
   color: oklch(0.55 0.04 270 / 0.55);
   opacity: 1;
+}
+.maya-chat-input {
+  transition: height 120ms ease-out;
+  max-height: 120px;
+}
+/* Disable browser scroll anchoring on chat messages to prevent bounce */
+.maya-chat-msg {
+  overflow-anchor: none;
 }
