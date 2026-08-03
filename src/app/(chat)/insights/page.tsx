@@ -198,14 +198,16 @@ export default function MayaChatPage() {
         setHydrated(true);
       });
 
-    // Load proactive nudge
+      });
+
+  // Load proactive nudge — separate effect
+  useEffect(() => {
     fetch("/api/maya/nudge")
       .then(r => r.json())
       .then(data => {
         if (data.nudges?.length > 0) {
           const nudge = data.nudges[0];
           if (nudge.action) nudgeActionRef.current = nudge.action;
-          // Save nudge as chat message and mark as read
           fetch("/api/maya/nudge", { method: "POST" })
             .then(() => {
               const now = formatTime();
