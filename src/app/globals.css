@@ -170,3 +170,9 @@
   0%, 100% { transform: scale(1); opacity: 1; }
   50% { transform: scale(.95); opacity: .75; }
 }
+
+/* Maya chat input placeholder — visible on dark bg */
+.maya-chat-input::placeholder {
+  color: oklch(0.55 0.04 270 / 0.55);
+  opacity: 1;
+}

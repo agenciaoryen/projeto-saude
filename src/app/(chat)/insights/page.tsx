@@ -254,26 +254,12 @@ export default function MayaChatPage() {
     }
   }, [messages, hydrated]);
 
-  // Scroll to bottom when messages/typing/viewport change
-  useEffect(() => {
-    if (messagesRef.current) {
-      messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
-    }
-  }, [messages, typing, viewportH]);
-
-  // Resize textarea + compensate scroll so messages stay visually static while typing
+  // Resize textarea on input change (CSS handles scroll anchoring)
   useEffect(() => {
     const ta = textareaRef.current;
-    const msgEl = messagesRef.current;
     if (ta) {
-      const prevHeight = ta.offsetHeight;
       ta.style.height = "auto";
-      const newHeight = Math.min(ta.scrollHeight, 100);
-      ta.style.height = newHeight + "px";
-      // Offset messages scroll by the height delta so text doesn't "bob" up/down
-      if (msgEl) {
-        msgEl.scrollTop += newHeight - prevHeight;
-      }
+      ta.style.height = Math.min(ta.scrollHeight, 100) + "px";
     }
   }, [input]);
 
@@ -419,8 +405,9 @@ export default function MayaChatPage() {
         </div>
       </div>
 
-      {/* Messages */}
-      <div ref={messagesRef} className="flex-1 overflow-y-auto px-3 py-3" style={{ scrollBehavior: "smooth" }}>
+      {/* Messages — flex-end wrapper keeps content anchored to bottom via CSS, no JS scroll jumps */}
+      <div ref={messagesRef} className="flex-1 overflow-y-auto px-3 py-3">
+        <div className="flex flex-col justify-end min-h-full">
         {/* Sentinel for loading older messages */}
         <div ref={sentinelRef} style={{ height: 1 }} />
         {showLoadMore && (
@@ -489,20 +476,23 @@ export default function MayaChatPage() {
                     {msg.action.label} →
                   </a>
                 )}
-                <span
-                  className="text-[11px] leading-none whitespace-nowrap"
-                  style={{
-                    float: "right",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 3,
-                    margin: "8px -4px -5px 8px",
-                    color: isAssistant ? "oklch(0.55 0.03 270)" : "rgba(255,255,255,0.7)",
-                  }}
-                >
-                  {msg.time}
-                  {!isAssistant && <Ticks status={status} />}
-                </span>
+                {/* Time + ticks only for user messages — AI messages just show content */}
+                {!isAssistant && (
+                  <span
+                    className="text-[11px] leading-none whitespace-nowrap"
+                    style={{
+                      float: "right",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 3,
+                      margin: "8px -4px -5px 8px",
+                      color: "rgba(255,255,255,0.7)",
+                    }}
+                  >
+                    {msg.time}
+                    <Ticks status={status} />
+                  </span>
+                )}
               </div>
             </div>
             </div>
@@ -528,6 +518,7 @@ export default function MayaChatPage() {
         )}
 
         <div ref={bottomRef} />
+        </div>
       </div>
 
       {/* Input bar */}
@@ -556,12 +547,13 @@ export default function MayaChatPage() {
             placeholder="Falar com Maya..."
             disabled={busy}
             rows={1}
-            className="flex-1 resize-none rounded-xl border px-4 py-2.5 text-sm placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 disabled:opacity-50"
+            className="maya-chat-input flex-1 resize-none rounded-xl border px-4 py-2.5 text-sm focus:outline-none focus:ring-2 disabled:opacity-50"
             style={{
               background: "oklch(0.12 0.012 270)",
-              borderColor: "oklch(0.28 0.02 270 / 0.5)",
+              borderColor: "oklch(0.38 0.03 270 / 0.55)",
               color: "#e0d6ff",
             }}
+            placeholder="Falar com Maya..."
           />
           <Button
             size="icon"
