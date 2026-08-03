@@ -31,35 +31,6 @@ async function persistWithRetry(messages: Array<{ role: string; content: string 
   return false;
 }
 
-  const loadOlder = async () => {
-    if (messages.length === 0) return;
-    const oldest = messages[0];
-    if (!oldest?.date) return;
-    const res = await fetch(`/api/maya/messages?before=${oldest.date}T${oldest.time}:00`);
-    if (res.ok) {
-      const older: Message[] = (await res.json()).map((m: any) => ({
-        role: m.role, content: m.content,
-        time: new Date(m.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
-        date: m.created_at.slice(0, 10),
-      }));
-      if (older.length > 0) {
-        older.sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
-        setMessages(prev => [...older, ...prev]);
-      }
-      setShowLoadMore(older.length >= 200);
-    }
-  };
-
-  useEffect(() => {
-    const el = sentinelRef.current;
-    if (!el) return;
-    const obs = new IntersectionObserver(([e]) => {
-      if (e.isIntersecting && hydrated && messages.length >= 200) setShowLoadMore(true);
-    });
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, [hydrated, messages.length]);
-
 const CHAT_CACHE_KEY = "maya_chat";
 
 function formatTime(): string {
@@ -330,6 +301,35 @@ export default function MayaChatPage() {
 
     sendingRef.current = false;
   }, []);
+
+  const loadOlder = async () => {
+    if (messages.length === 0) return;
+    const oldest = messages[0];
+    if (!oldest?.date) return;
+    const res = await fetch(`/api/maya/messages?before=${oldest.date}T${oldest.time}:00`);
+    if (res.ok) {
+      const older: Message[] = (await res.json()).map((m: any) => ({
+        role: m.role, content: m.content,
+        time: new Date(m.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
+        date: m.created_at.slice(0, 10),
+      }));
+      if (older.length > 0) {
+        older.sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
+        setMessages(prev => [...older, ...prev]);
+      }
+      setShowLoadMore(older.length >= 200);
+    }
+  };
+
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(([e]) => {
+      if (e.isIntersecting && hydrated && messages.length >= 200) setShowLoadMore(true);
+    });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [hydrated, messages.length]);
 
   const sendMessage = useCallback(async () => {
     const trimmed = input.trim();
