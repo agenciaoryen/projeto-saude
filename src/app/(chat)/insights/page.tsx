@@ -382,7 +382,7 @@ export default function MayaChatPage() {
     <div
       className="flex flex-col"
       style={{
-        height: viewportH > 0 ? `${viewportH}px` : "100dvh",
+        height: viewportH > 200 ? `${viewportH}px` : "100dvh",
         background: "oklch(0.12 0.012 270)",
       }}
     >
