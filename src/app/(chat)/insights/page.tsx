@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/lib/useTranslation";
 import { Send, ArrowLeft } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -206,6 +205,15 @@ export default function MayaChatPage() {
 
   // ── Textarea auto-resize (also scrolls messages on growth) ──
   useAutoResizeTextarea(textareaRef, input, messagesRef);
+
+  // ── Keep messages visible when typing or keyboard changes viewport ──
+  // Direct scrollTop — no ResizeObserver, no rAF timing issues.
+  // Fires on every keystroke AND viewport change (keyboard open/close).
+  useEffect(() => {
+    const mc = messagesRef.current;
+    if (!mc) return;
+    mc.scrollTop = mc.scrollHeight;
+  }, [input, viewportH]);
 
   // ── Focus textarea if draft param ──
   useEffect(() => {
@@ -716,11 +724,11 @@ export default function MayaChatPage() {
               color: "var(--maya-text)",
             }}
           />
-          <Button
-            size="icon"
-            className="rounded-full size-10 shrink-0"
-            style={{ background: "var(--maya-primary)" }}
+          <button
+            type="button"
             tabIndex={-1}
+            className="rounded-full size-10 shrink-0 inline-flex items-center justify-center border-0 cursor-pointer disabled:opacity-50 disabled:cursor-default"
+            style={{ background: "var(--maya-primary)" }}
             onTouchStart={(e) => {
               e.preventDefault();
               sendMessage();
@@ -732,7 +740,7 @@ export default function MayaChatPage() {
             disabled={!input.trim() || busy}
           >
             <Send className="size-4" color="#fff" />
-          </Button>
+          </button>
         </div>
       </div>
     </div>
