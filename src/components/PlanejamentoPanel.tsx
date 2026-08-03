@@ -266,10 +266,11 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
         {DAY_NAMES.map((d, i) => {
           const today = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1;
           const dt = tasks.filter((t: any) => t.day_of_week === i);
+          const isToday = i === today;
           return (
             <button key={i} type="button" onClick={() => setSelectedDay(i)}
-              style={{ padding: "8px 2px 6px", borderRadius: 10, border: selectedDay === i ? "1.5px solid rgba(167,139,250,0.4)" : "1.5px solid transparent", background: selectedDay === i ? "rgba(124,92,255,0.1)" : "transparent", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 4, fontFamily: "inherit" }}>
-              <span style={{ fontSize: 10, fontWeight: i === today ? 700 : 500, color: i === today ? "#A78BFA" : "#9e96b5", textTransform: "uppercase" }}>{d}</span>
+              style={{ padding: "8px 2px 6px", borderRadius: 10, border: isToday ? "1.5px solid rgba(167,139,250,0.4)" : "1.5px solid transparent", background: "transparent", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 4, fontFamily: "inherit" }}>
+              <span style={{ fontSize: 10, fontWeight: isToday ? 700 : 500, color: isToday ? "#A78BFA" : "#9e96b5", textTransform: "uppercase" }}>{d}</span>
               <div style={{ display: "flex", gap: 1.5 }}>{dt.slice(0,4).map((t: any, j: number) => (
                 <span key={j} style={{ width: 4, height: 4, borderRadius: "50%", background: t.status === "concluida" ? "#7C5CFF" : "rgba(167,139,250,0.2)" }} />
               ))}</div>
