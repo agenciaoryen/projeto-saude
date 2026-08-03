@@ -254,7 +254,7 @@ export default function MayaChatPage() {
     }
   }, [messages, hydrated]);
 
-  // Resize textarea on input change (CSS handles scroll anchoring)
+  // Resize textarea on input change
   useEffect(() => {
     const ta = textareaRef.current;
     if (ta) {
@@ -262,6 +262,15 @@ export default function MayaChatPage() {
       ta.style.height = Math.min(ta.scrollHeight, 100) + "px";
     }
   }, [input]);
+
+  // Scroll to bottom when messages change or typing toggles
+  useEffect(() => {
+    requestAnimationFrame(() => {
+      if (messagesRef.current) {
+        messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
+      }
+    });
+  }, [messages, typing]);
 
   const deliverParts = useCallback(async (parts: string[], baseMessages: Message[]) => {
     sendingRef.current = true;
@@ -405,9 +414,8 @@ export default function MayaChatPage() {
         </div>
       </div>
 
-      {/* Messages — flex-end wrapper keeps content anchored to bottom via CSS, no JS scroll jumps */}
+      {/* Messages */}
       <div ref={messagesRef} className="flex-1 overflow-y-auto px-3 py-3">
-        <div className="flex flex-col justify-end min-h-full">
         {/* Sentinel for loading older messages */}
         <div ref={sentinelRef} style={{ height: 1 }} />
         {showLoadMore && (
@@ -518,7 +526,6 @@ export default function MayaChatPage() {
         )}
 
         <div ref={bottomRef} />
-        </div>
       </div>
 
       {/* Input bar */}
