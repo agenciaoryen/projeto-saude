@@ -60,7 +60,7 @@ interface MayaInput {
 function timeAwarenessBlock(hour: number, currentDate?: string): string {
   const PT_DAYS = ["domingo", "segunda-feira", "terça-feira", "quarta-feira", "quinta-feira", "sexta-feira", "sábado"];
   const dateHeader = currentDate
-    ? `Data e hora atual: ${currentDate} (${PT_DAYS[new Date(currentDate + "T12:00:00").getDay()]}) às ${hour}h.\nIMPORTANTE: mensagens no histórico marcadas com [data] são de sessões anteriores — não as trate como se fossem de agora.`
+    ? `Data e hora atual: ${currentDate} (${PT_DAYS[new Date(currentDate + "T12:00:00").getDay()]}) às ${hour}h.\nIMPORTANTE: NUNCA inclua datas ou horários nas suas respostas. O usuário sabe que dia é hoje.`
     : "";
 
   if (hour >= 0 && hour < 6) {

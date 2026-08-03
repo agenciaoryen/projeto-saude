@@ -149,12 +149,10 @@ export async function POST(request: Request) {
 	      currentDate = now.toLocaleDateString("en-CA", { timeZone: clientTz });
 	    }
 
-    // Annotate messages from past sessions so Maya understands the timeline
+    // Send messages WITHOUT date annotations — the LLM learns to mimic [date] format
     const anthropicMessages = messages.map((m) => ({
       role: m.role,
-      content: m.date && m.date !== currentDate
-        ? `[${m.date}${m.time ? " " + m.time : ""}] ${m.content}`
-        : m.content,
+      content: m.content,
     }));
 
     const systemPrompt = buildMayaSystemPrompt({
