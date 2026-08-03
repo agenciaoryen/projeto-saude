@@ -11,10 +11,13 @@ interface UseChatScrollOptions {
 }
 
 /**
- * Manages scroll behavior for a chat interface:
- * - Auto-scrolls to bottom on new messages
- * - Maintains scroll position during container resize (keyboard, textarea growth)
- * - Tracks whether the user has manually scrolled up
+ * Chat scroll management:
+ * - ResizeObserver fires BEFORE paint → no flash/bounce
+ * - When container SHRINKS (textarea grows, keyboard opens): ALWAYS scroll to
+ *   bottom, regardless of isAtBottomRef. The user didn't scroll — the layout
+ *   changed. And if they tapped the input, they want to type, not read history.
+ * - When content GROWS (new message, typing indicator): scroll only if user
+ *   is already at the bottom (respects reading history).
  */
 export function useChatScroll({
   containerRef,
@@ -39,10 +42,7 @@ export function useChatScroll({
     [bottomRef],
   );
 
-  // ── ResizeObserver: mantém scroll no bottom quando o container muda de altura ──
-  // Dispara ANTES do paint — elimina o flash/bounce quando o textarea expande
-  // ou o teclado abre/fecha. Usa scrollIntoView por ser mais confiável que
-  // scrollTop puro (lida corretamente com flex spacers).
+  // ── ResizeObserver ───────────────────────────────────────────────
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -52,24 +52,28 @@ export function useChatScroll({
     const ro = new ResizeObserver(() => {
       const newClientHeight = el.clientHeight;
 
-      // Container encolheu (teclado abriu, textarea foi pra 3ª+ linha)
-      // → mantém última mensagem visível SEMPRE que o usuário está no bottom
-      if (newClientHeight < prevClientHeight && isAtBottomRef.current) {
-        bottomRef.current?.scrollIntoView({ block: "end", behavior: "instant" });
+      if (newClientHeight < prevClientHeight) {
+        // Container SHRUNK (textarea grew to 3rd+ line, keyboard opened).
+        // Always scroll to bottom — layout changed, user didn't scroll.
+        scrollToBottom("instant");
+      } else if (newClientHeight > prevClientHeight) {
+        // Container GREW (keyboard closed, textarea shrunk).
+        // If user was at bottom, keep them there.
+        if (isAtBottomRef.current) {
+          scrollToBottom("instant");
+        }
       }
-      // Conteúdo cresceu (nova msg, typing indicator) → segue se estiver no bottom
-      else if (isAtBottomRef.current) {
-        bottomRef.current?.scrollIntoView({ block: "end", behavior: "instant" });
-      }
+      // If same height but content grew (scrollHeight increased) —
+      // handled by the messageCount/typing effects below.
 
       prevClientHeight = newClientHeight;
     });
 
     ro.observe(el);
     return () => ro.disconnect();
-  }, [containerRef, bottomRef]);
+  }, [containerRef, scrollToBottom]);
 
-  // ── Scroll to bottom on new messages ──
+  // ── Scroll on new messages ──────────────────────────────────────
   useEffect(() => {
     if (!hydrated) return;
 
@@ -81,14 +85,14 @@ export function useChatScroll({
     prevMessageCountRef.current = messageCount;
   }, [messageCount, hydrated, scrollToBottom]);
 
-  // ── Scroll to bottom when typing indicator appears ──
+  // ── Scroll when typing indicator appears ────────────────────────
   useEffect(() => {
     if (typing && isAtBottomRef.current) {
       scrollToBottom("instant");
     }
   }, [typing, scrollToBottom]);
 
-  // ── Initial scroll to bottom after hydration ──
+  // ── Initial scroll after hydration ──────────────────────────────
   useEffect(() => {
     if (hydrated) {
       requestAnimationFrame(() => {
@@ -97,7 +101,7 @@ export function useChatScroll({
     }
   }, [hydrated, scrollToBottom]);
 
-  // ── Track scroll position on user scroll ──
+  // ── Track user scroll position ──────────────────────────────────
   const handleScroll = useCallback(() => {
     isAtBottomRef.current = checkAtBottom();
   }, [checkAtBottom]);

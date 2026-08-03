@@ -425,8 +425,12 @@ export default function MayaChatPage() {
     setSending(true);
     sendingRef.current = true;
 
-    // Keyboard stays open because send button uses onMouseDown+preventDefault
-    // (focus never leaves the textarea)
+    // Safety net: keep keyboard open after send
+    // (onTouchStart + onMouseDown on the button handle the primary case,
+    // but this catches any edge case where focus still gets lost)
+    requestAnimationFrame(() => {
+      textareaRef.current?.focus();
+    });
 
     // Persist user message first so DB order is correct
     await persistWithRetry([{ role: "user", content: trimmed }]);
@@ -543,154 +547,142 @@ export default function MayaChatPage() {
       </div>
 
       {/* ── Messages ── */}
-      {/* Outer: scrollable container. Inner: min-height 100% + flex-end = pin to bottom.
-           This is the proven pattern for chat UIs — when the container shrinks
-           (keyboard opens, textarea grows), flex-end keeps content anchored to the
-           bottom without any spacer hacks. */}
       <div
         ref={messagesRef}
         onScroll={handleScroll}
         className="flex-1 min-h-0 overflow-y-auto px-3 pt-3 pb-1"
+        style={{ display: "flex", flexDirection: "column" }}
       >
-        <div
-          style={{
-            minHeight: "100%",
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "flex-end",
-          }}
-        >
-          {/* Sentinel for loading older messages */}
-          <div ref={sentinelRef} style={{ height: 1, flexShrink: 0 }} />
+        {/* Sentinel for loading older messages */}
+        <div ref={sentinelRef} style={{ height: 1, flexShrink: 0 }} />
 
-          {/* "Load older" button */}
-          {showLoadMore && (
-            <div style={{ textAlign: "center", padding: "8px 0" }}>
-              <button
-                type="button"
-                onClick={loadOlder}
-                style={{
-                  padding: "6px 14px",
-                  borderRadius: 9999,
-                  border: "1px solid rgba(167,139,250,0.2)",
-                  background: "transparent",
-                  color: "var(--maya-secondary)",
-                  fontSize: 11,
-                  fontWeight: 600,
-                  cursor: "pointer",
-                  fontFamily: "inherit",
-                }}
-              >
-                ↑ Mensagens anteriores
-              </button>
+        {/* "Load older" button */}
+        {showLoadMore && (
+          <div style={{ textAlign: "center", padding: "8px 0" }}>
+            <button
+              type="button"
+              onClick={loadOlder}
+              style={{
+                padding: "6px 14px",
+                borderRadius: 9999,
+                border: "1px solid rgba(167,139,250,0.2)",
+                background: "transparent",
+                color: "var(--maya-secondary)",
+                fontSize: 11,
+                fontWeight: 600,
+                cursor: "pointer",
+                fontFamily: "inherit",
+              }}
+            >
+              ↑ Mensagens anteriores
+            </button>
+          </div>
+        )}
+
+        {/* Welcome message (empty state) */}
+        {hydrated && messages.length === 0 && welcomeMessage && (
+          <div className="flex justify-center pt-12 maya-chat-msg">
+            <div
+              className="rounded-[8px] px-4 py-3 text-sm text-center max-w-sm"
+              style={{
+                background: "var(--card)",
+                color: "var(--maya-text)",
+                boxShadow: "0 2px 8px oklch(0.3 0.03 270 / 0.3)",
+              }}
+            >
+              <div className="whitespace-pre-line">{welcomeMessage}</div>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* Welcome message (empty state) */}
-          {hydrated && messages.length === 0 && welcomeMessage && (
-            <div className="flex justify-center pt-12 maya-chat-msg">
-              <div
-                className="rounded-[8px] px-4 py-3 text-sm text-center max-w-sm"
-                style={{
-                  background: "var(--card)",
-                  color: "var(--maya-text)",
-                  boxShadow: "0 2px 8px oklch(0.3 0.03 270 / 0.3)",
-                }}
-              >
-                <div className="whitespace-pre-line">{welcomeMessage}</div>
-              </div>
-            </div>
-          )}
+        {/* Message bubbles */}
+        {messages.map((msg, i) => {
+          const isAssistant = msg.role === "assistant";
+          const status: "sent" | "delivered" | "read" = msg.seen
+            ? "read"
+            : "delivered";
+          const prevMsg = i > 0 ? messages[i - 1] : null;
 
-          {/* Message bubbles */}
-          {messages.map((msg, i) => {
-            const isAssistant = msg.role === "assistant";
-            const status: "sent" | "delivered" | "read" = msg.seen
-              ? "read"
-              : "delivered";
-            const prevMsg = i > 0 ? messages[i - 1] : null;
-
-            let separatorLabel: string | null = null;
-            if (!msg.date) {
-              if (!prevMsg || prevMsg.date != null) {
-                separatorLabel = "Mensagens anteriores";
-              }
-            } else {
-              const prevDate = prevMsg?.date ?? null;
-              if (msg.date !== prevDate)
-                separatorLabel = getDateLabel(msg.date);
+          let separatorLabel: string | null = null;
+          if (!msg.date) {
+            if (!prevMsg || prevMsg.date != null) {
+              separatorLabel = "Mensagens anteriores";
             }
+          } else {
+            const prevDate = prevMsg?.date ?? null;
+            if (msg.date !== prevDate)
+              separatorLabel = getDateLabel(msg.date);
+          }
 
-            return (
-              <div key={i} className="maya-chat-msg">
-                {separatorLabel && <DateSeparator label={separatorLabel} />}
+          return (
+            <div key={i} className="maya-chat-msg">
+              {separatorLabel && <DateSeparator label={separatorLabel} />}
+              <div
+                className={`flex ${isAssistant ? "justify-start" : "justify-end"} mb-1.5`}
+              >
                 <div
-                  className={`flex ${isAssistant ? "justify-start" : "justify-end"} mb-1.5`}
+                  className="max-w-[80%] rounded-[8px] px-3 pt-1.5 pb-2 text-[14px] leading-[1.32] whitespace-pre-line"
+                  style={{
+                    background: isAssistant
+                      ? "var(--card)"
+                      : "var(--maya-primary)",
+                    color: isAssistant ? "var(--maya-text)" : "#fff",
+                    boxShadow: "0 1px 0.5px rgba(11,20,26,.13)",
+                  }}
                 >
-                  <div
-                    className="max-w-[80%] rounded-[8px] px-3 pt-1.5 pb-2 text-[14px] leading-[1.32] whitespace-pre-line"
-                    style={{
-                      background: isAssistant
-                        ? "var(--card)"
-                        : "var(--maya-primary)",
-                      color: isAssistant ? "var(--maya-text)" : "#fff",
-                      boxShadow: "0 1px 0.5px rgba(11,20,26,.13)",
-                    }}
-                  >
-                    {msg.content}
-                    {msg.action && (
-                      <a
-                        href={msg.action.href}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          router.push(msg.action!.href);
-                        }}
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: 4,
-                          marginTop: 8,
-                          padding: "6px 12px",
-                          borderRadius: 8,
-                          background: "var(--maya-primary)",
-                          color: "#fff",
-                          fontSize: 12,
-                          fontWeight: 600,
-                          textDecoration: "none",
-                        }}
-                      >
-                        {msg.action.label} →
-                      </a>
-                    )}
-                    {/* Time + ticks for user messages only */}
-                    {!isAssistant && (
-                      <span
-                        className="text-[11px] leading-none whitespace-nowrap"
-                        style={{
-                          float: "right",
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: 3,
-                          margin: "8px -4px -5px 8px",
-                          color: "rgba(255,255,255,0.7)",
-                        }}
-                      >
-                        {msg.time}
-                        <Ticks status={status} />
-                      </span>
-                    )}
-                  </div>
+                  {msg.content}
+                  {msg.action && (
+                    <a
+                      href={msg.action.href}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        router.push(msg.action!.href);
+                      }}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 4,
+                        marginTop: 8,
+                        padding: "6px 12px",
+                        borderRadius: 8,
+                        background: "var(--maya-primary)",
+                        color: "#fff",
+                        fontSize: 12,
+                        fontWeight: 600,
+                        textDecoration: "none",
+                      }}
+                    >
+                      {msg.action.label} →
+                    </a>
+                  )}
+                  {/* Time + ticks for user messages only */}
+                  {!isAssistant && (
+                    <span
+                      className="text-[11px] leading-none whitespace-nowrap"
+                      style={{
+                        float: "right",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 3,
+                        margin: "8px -4px -5px 8px",
+                        color: "rgba(255,255,255,0.7)",
+                      }}
+                    >
+                      {msg.time}
+                      <Ticks status={status} />
+                    </span>
+                  )}
                 </div>
               </div>
-            );
-          })}
+            </div>
+          );
+        })}
 
-          {/* Typing indicator */}
-          {typing && <TypingIndicator />}
+        {/* Typing indicator */}
+        {typing && <TypingIndicator />}
 
-          {/* Bottom sentinel */}
-          <div ref={bottomRef} />
-        </div>
+        {/* Bottom sentinel — ResizeObserver uses this to scroll to bottom */}
+        <div ref={bottomRef} style={{ flexShrink: 0 }} />
       </div>
 
       {/* ── Input bar ── */}
@@ -724,8 +716,12 @@ export default function MayaChatPage() {
             size="icon"
             className="rounded-full size-10 shrink-0"
             style={{ background: "var(--maya-primary)" }}
+            onTouchStart={(e) => {
+              e.preventDefault(); // prevent textarea blur on mobile
+              sendMessage();
+            }}
             onMouseDown={(e) => {
-              e.preventDefault(); // prevent textarea blur → keyboard stays open
+              e.preventDefault(); // prevent textarea blur on desktop
               sendMessage();
             }}
             disabled={!input.trim() || busy}
