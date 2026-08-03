@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/lib/useTranslation";
 import { Send, ArrowLeft } from "lucide-react";
@@ -254,14 +254,11 @@ export default function MayaChatPage() {
     }
   }, [messages, hydrated]);
 
-  useEffect(() => {
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        if (messagesRef.current) {
-          messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
-        }
-      });
-    });
+  // Scroll to bottom BEFORE paint — prevents visual flash/jump
+  useLayoutEffect(() => {
+    if (messagesRef.current) {
+      messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
+    }
   }, [messages, typing, viewportH]);
 
   useEffect(() => {
@@ -282,8 +279,8 @@ export default function MayaChatPage() {
       setTyping(false);
       current = [...current, { role: "assistant", content: parts[i], time: formatTime(), date: formatDate() }];
       setMessages(current);
-      // Persist assistant message to server (awaited so DB order is correct)
-      await persistWithRetry([{ role: "assistant", content: parts[i] }]);
+      // Persist assistant message to server (fire-and-forget)
+      persistWithRetry([{ role: "assistant", content: parts[i] }]);
       if (i < parts.length - 1) {
         await new Promise((r) => setTimeout(r, 400));
       }
@@ -415,7 +412,7 @@ export default function MayaChatPage() {
       </div>
 
       {/* Messages */}
-      <div ref={messagesRef} className="flex-1 overflow-y-auto px-3 py-3">
+      <div ref={messagesRef} className="flex-1 overflow-y-auto px-3 py-3" style={{ scrollBehavior: "smooth" }}>
         {/* Sentinel for loading older messages */}
         <div ref={sentinelRef} style={{ height: 1 }} />
         {showLoadMore && (
@@ -555,6 +552,7 @@ export default function MayaChatPage() {
             style={{
               background: "oklch(0.12 0.012 270)",
               borderColor: "oklch(0.28 0.02 270 / 0.5)",
+              transition: "height 150ms ease-out",
               color: "#e0d6ff",
             }}
           />
