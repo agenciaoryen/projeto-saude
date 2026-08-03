@@ -265,11 +265,10 @@ export default function MayaChatPage() {
 
   // Scroll to bottom when messages change or typing toggles
   useEffect(() => {
-    requestAnimationFrame(() => {
-      if (messagesRef.current) {
-        messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
-      }
-    });
+    // scrollIntoView is more reliable than scrollTop = scrollHeight
+    if (bottomRef.current) {
+      bottomRef.current.scrollIntoView({ block: "end", behavior: "instant" });
+    }
   }, [messages, typing]);
 
   const deliverParts = useCallback(async (parts: string[], baseMessages: Message[]) => {
@@ -415,7 +414,7 @@ export default function MayaChatPage() {
       </div>
 
       {/* Messages */}
-      <div ref={messagesRef} className="flex-1 overflow-y-auto px-3 py-3">
+      <div ref={messagesRef} className="flex-1 overflow-y-auto px-3 pt-3 pb-1">
         {/* Sentinel for loading older messages */}
         <div ref={sentinelRef} style={{ height: 1 }} />
         {showLoadMore && (
