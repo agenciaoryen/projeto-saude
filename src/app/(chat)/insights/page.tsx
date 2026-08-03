@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/lib/useTranslation";
 import { Send, ArrowLeft } from "lucide-react";
@@ -254,8 +254,8 @@ export default function MayaChatPage() {
     }
   }, [messages, hydrated]);
 
-  // Scroll to bottom BEFORE paint — prevents visual flash/jump
-  useLayoutEffect(() => {
+  // Scroll to bottom when messages/typing/viewport change
+  useEffect(() => {
     if (messagesRef.current) {
       messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
     }
