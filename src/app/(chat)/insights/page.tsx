@@ -382,6 +382,11 @@ export default function MayaChatPage() {
       </div>
 
       {/* Messages */}
+      {hydrated && messages.length > 0 && (
+        <div style={{ background: "#1a1530", color: "#A78BFA", padding: "2px 12px", fontSize: 10, textAlign: "center" }}>
+          {messages.length} mensagens carregadas — primeira: "{messages[0]?.content?.slice(0, 40)}..."
+        </div>
+      )}
       <div ref={messagesRef} className="flex-1 overflow-y-auto px-3 py-3">
         {hydrated && messages.length === 0 && welcomeMessage && (
           <div className="flex justify-center pt-12">
