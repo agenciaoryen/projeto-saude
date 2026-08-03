@@ -602,7 +602,7 @@ export default function FinancasPage() {
         type="button"
         onClick={() => setShowAddType(true)}
         style={{
-          position: "fixed", bottom: 24, right: 20, zIndex: 40,
+          position: "fixed", bottom: 100, right: 20, zIndex: 40,
           width: 56, height: 56, borderRadius: "50%", border: 0, cursor: "pointer",
           background: ACCENT,
           display: "flex", alignItems: "center", justifyContent: "center",

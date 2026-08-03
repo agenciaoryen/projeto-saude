@@ -150,7 +150,7 @@ export function TransactionModal({
             <input
               value={desc}
               onChange={(e) => setDesc(e.target.value)}
-              placeholder={tFn(lang, "fin_descricao_ph")}
+              placeholder={tFn(lang, type === "despesa" ? "fin_descricao_ph" : "fin_descricao_ph_receita")}
               style={inputStyle}
             />
           </div>

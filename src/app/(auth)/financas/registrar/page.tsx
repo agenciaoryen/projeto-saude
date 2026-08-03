@@ -258,7 +258,7 @@ export default function FinancasRegistrarPage() {
             <input
               value={draft.description}
               onChange={(e) => setDraft((p) => ({ ...p, description: e.target.value }))}
-              placeholder={tFn(lang, "fin_descricao_ph")}
+              placeholder={tFn(lang, draft.type === "despesa" ? "fin_descricao_ph" : "fin_descricao_ph_receita")}
               style={inputS}
             />
           </div>
