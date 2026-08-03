@@ -25,6 +25,8 @@ const AREA_CONFIG: Record<string, { emoji: string; hue: number; labelKey: string
 };
 
 const DAY_KEYS = ["dia_seg", "dia_ter", "dia_qua", "dia_qui", "dia_sex", "dia_sab", "dia_dom"];
+const DAY_NAMES_SHORT = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
+const DAY_NAMES_FULL = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"];
 const ALL_AREAS = Object.keys(AREA_CONFIG) as TaskArea[];
 
 function ac(hue: number, l = 0.5, c = 0.12) { return `oklch(${l} ${c} ${hue})`; }
@@ -462,7 +464,7 @@ function AddTaskSheet({
 
 // ── Review modal ──────────────────────────────────────────────────────────────
 
-function ReviewModal({ onClose, onSaved, lang = "pt", weekStart }: { onClose: () => void; onSaved: () => void; lang?: Lang; weekStart: string }) {
+function ReviewModal({ onClose, onSaved, lang = "pt", weekStart, tasks }: { onClose: () => void; onSaved: () => void; lang?: Lang; weekStart: string; tasks: WeeklyTask[] }) {
   const [biggestWin, setBiggestWin]   = useState("");
   const [blockedLesson, setBlockedLesson] = useState("");
   const [mainLearning, setMainLearning]   = useState("");
@@ -521,6 +523,44 @@ function ReviewModal({ onClose, onSaved, lang = "pt", weekStart }: { onClose: ()
             <StarRating value={weekScore} onChange={setWeekScore} />
           </div>
         </div>
+
+          {/* ── Week tasks summary ── */}
+          {tasks.length > 0 && (
+            <div style={{ marginTop: 16, padding: "12px 14px", borderRadius: 14, background: "oklch(.97 .01 160)", border: "1px solid oklch(.5 .12 160 / .08)" }}>
+              <p style={{ margin: "0 0 8px", fontSize: 10, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "oklch(.45 .06 160)" }}>
+                Suas tarefas ({tasks.filter(t => t.status === "concluida").length}/{tasks.length} concluídas)
+              </p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4, maxHeight: 140, overflowY: "auto" }}>
+                {tasks.map((t) => {
+                  const done = t.status === "concluida";
+                  const areaConf = AREA_CONFIG[t.area] ?? AREA_CONFIG.outros;
+                  return (
+                    <div key={t.id} style={{
+                      display: "flex", alignItems: "center", gap: 8, padding: "4px 0",
+                      opacity: done ? 0.5 : 1,
+                    }}>
+                      <span style={{
+                        width: 14, height: 14, borderRadius: 4, flexShrink: 0,
+                        background: done ? `oklch(.45 .12 ${areaConf.hue})` : "transparent",
+                        border: done ? "none" : `1.5px solid oklch(.5 .12 ${areaConf.hue} / .3)`,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                      }}>
+                        {done && (
+                          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round">
+                            <path d="m5 12 5 5 9-10" />
+                          </svg>
+                        )}
+                      </span>
+                      <span style={{ fontSize: 12, color: done ? "oklch(.55 .03 160)" : "oklch(.25 .02 160)", textDecoration: done ? "line-through" : "none", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {t.title}
+                      </span>
+                      <span style={{ fontSize: 10, color: "oklch(.6 .04 160)", flexShrink: 0 }}>{DAY_NAMES_SHORT[t.day_of_week]}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
         <button type="button" onClick={save} disabled={saving || !biggestWin.trim()} style={{
           marginTop: 24, width: "100%", padding: "15px 20px", borderRadius: 14, border: 0,
@@ -1025,10 +1065,10 @@ function AreasRadar({ counts, totals }: { counts: Record<string, number>; totals
     }}>
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
         <p style={{ margin: 0, fontSize: 10.5, fontWeight: 700, letterSpacing: ".12em", textTransform: "uppercase", color: "oklch(.35 .14 180)" }}>
-          Roda das áreas
+          Progresso das áreas
         </p>
         <span style={{ fontSize: 10.5, color: "oklch(.55 .03 160)" }}>
-          {covered} de {AREAS_RADAR.length} cobertas
+          {fullDone} de {AREAS_RADAR.length} concluídas
         </span>
       </div>
       <div style={{ display: "flex", justifyContent: "center", marginTop: 6 }}>
@@ -1046,14 +1086,15 @@ function AreasRadar({ counts, totals }: { counts: Record<string, number>; totals
             fill="oklch(.5 .12 180 / .22)"
             stroke="oklch(.35 .14 180)" strokeWidth="1.8" strokeLinejoin="round" />
           {AREAS_RADAR.map((a, i) => {
-            const v = counts[a.key] ?? 0;
-            if (v === 0) return null;
-            const [x, y] = pt(i, v);
-            return <circle key={a.key} cx={x} cy={y} r="3" fill="#fff" stroke="oklch(.35 .14 180)" strokeWidth="1.5" />;
+            const pct = progress[i];
+            if (pct === 0) return null;
+            const [x, y] = pt(i, pct);
+            return <circle key={a.key} cx={x} cy={y} r={pct >= 100 ? 3.5 : 3} fill={pct >= 100 ? "oklch(.35 .14 180)" : "#fff"} stroke="oklch(.35 .14 180)" strokeWidth="1.5" />;
           })}
           {AREAS_RADAR.map((a, i) => {
             const [lx, ly] = lblPt(i);
-            const isZero = (counts[a.key] ?? 0) === 0;
+            const pct = progress[i];
+            const isZero = pct === 0;
             return (
               <g key={a.key + "lbl"} transform={`translate(${lx} ${ly})`}>
                 <text textAnchor="middle" dominantBaseline="middle" dy="-6"
@@ -1272,6 +1313,10 @@ export default function PlanejamentoPage() {
   const totalTasks    = tasks.length;
 
   const taskCountsByArea = ALL_AREAS.reduce<Record<string, number>>((acc, a) => {
+    acc[a] = tasks.filter((t) => t.area === a && t.status === "concluida").length;
+    return acc;
+  }, {});
+  const taskTotalByArea = ALL_AREAS.reduce<Record<string, number>>((acc, a) => {
     acc[a] = tasks.filter((t) => t.area === a).length;
     return acc;
   }, {});
@@ -1285,7 +1330,7 @@ export default function PlanejamentoPage() {
       return a.position - b.position;
     });
   const doneSelectedDay = selectedDayTasks.filter((t) => t.status === "concluida").length;
-  const DAY_NAMES = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"];
+  const DAY_NAMES = DAY_NAMES_FULL;
 
   if (loading) {
     return (
@@ -1371,7 +1416,9 @@ export default function PlanejamentoPage() {
             <p style={{ margin: 0, fontSize: 10.5, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", color: "oklch(.45 .12 220)" }}>
               Pedras da semana
             </p>
-            <button type="button" onClick={() => setShowFocus(true)} style={{
+            <button type="button" onClick={() => setShowFocus(true)} aria-label={
+              focuses.length > 0 ? "Editar pedras da semana" : "Definir pedras da semana"
+            } style={{
               background: "transparent", border: 0, padding: 0, cursor: "pointer", fontFamily: "inherit",
               fontSize: 11, fontWeight: 600, color: "oklch(.45 .12 220)",
               display: "inline-flex", alignItems: "center", gap: 4,
@@ -1411,7 +1458,7 @@ export default function PlanejamentoPage() {
         {/* ═ RADAR ═ */}
         {tasks.length > 0 && (
           <div style={{ marginBottom: 20 }}>
-            <AreasRadar counts={taskCountsByArea} />
+            <AreasRadar counts={taskCountsByArea} totals={taskTotalByArea} />
           </div>
         )}
 
@@ -1646,7 +1693,7 @@ export default function PlanejamentoPage() {
         />
       )}
 
-      {showReview && <ReviewModal onClose={() => setShowReview(false)} onSaved={load} lang={lang} weekStart={weekStartStr} />}
+      {showReview && <ReviewModal onClose={() => setShowReview(false)} onSaved={load} lang={lang} weekStart={weekStartStr} tasks={tasks} />}
 
       <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
     </div>

@@ -2,32 +2,11 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { Plus, Star, ChevronDown, Clock, X, Check } from "lucide-react";
-
-const AREA_CONFIG: Record<string, { emoji: string; hue: number }> = {
-  saude: { emoji: "💚", hue: 160 }, carreira: { emoji: "💼", hue: 220 },
-  financas: { emoji: "💰", hue: 85 }, relacionamentos: { emoji: "❤️", hue: 15 },
-  desenvolvimento: { emoji: "🧠", hue: 270 }, familia: { emoji: "🏡", hue: 40 },
-  lazer: { emoji: "🌊", hue: 185 }, espiritualidade: { emoji: "✨", hue: 300 },
-  outros: { emoji: "⚪", hue: 200 },
-};
-
-const ALL_AREAS = Object.keys(AREA_CONFIG);
-
-const AREAS_LABELS: Record<string, string> = {
-  saude: "Saúde", carreira: "Carreira", financas: "Finanças",
-  relacionamentos: "Relac.", desenvolvimento: "Mente", familia: "Família",
-  lazer: "Lazer", espiritualidade: "Espirit.", outros: "Outros",
-};
-const DAY_NAMES = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
-const DAY_FULL = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"];
-
-function weekRange(dateStr?: string) {
-  const now = dateStr ? new Date(dateStr + "T12:00:00") : new Date();
-  const mon = new Date(now); mon.setDate(now.getDate() - ((now.getDay() + 6) % 7));
-  const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
-  const M = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
-  return `${mon.getDate()} ${M[mon.getMonth()]} – ${sun.getDate()} ${M[sun.getMonth()]}`;
-}
+import type { TaskArea } from "@/types";
+import {
+  AREA_CONFIG, ALL_AREAS, AREA_LABELS, DAY_NAMES, DAY_FULL,
+  weekRangeFromDate as weekRange,
+} from "@/lib/planejamento-constants";
 
 // ── Mini Radar ──────────────────────────────────────────────────
 
@@ -305,7 +284,7 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
         <div style={{ background: "#1a1530", borderRadius: 16, border: "1px solid rgba(167,139,250,0.1)", padding: "10px 14px", marginBottom: 8 }}>
           <p style={{ margin: "0 0 6px", fontSize: 11, fontWeight: 600, color: "#A78BFA" }}>📋 Em aberto</p>
           {openTasks.map((task: any) => {
-            const area = AREA_CONFIG[task.area] || AREA_CONFIG.outros;
+            const area = AREA_CONFIG[task.area as TaskArea] || AREA_CONFIG.outros;
             const done = task.status === "concluida";
             return (
               <div key={task.id}
@@ -351,7 +330,7 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
           <p style={{ color: "#9e96b5", fontSize: 12, textAlign: "center", padding: 8, margin: 0 }}>Nenhuma tarefa</p>
         ) : (
           selectedDayTasks.map((task: any) => {
-            const area = AREA_CONFIG[task.area] || AREA_CONFIG.outros;
+            const area = AREA_CONFIG[task.area as TaskArea] || AREA_CONFIG.outros;
             const done = task.status === "concluida";
             return (
               <div key={task.id}
@@ -452,7 +431,7 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
                   style={{ padding: "8px 4px", borderRadius: 10, border: newTaskArea === a ? "2px solid #7C5CFF" : "1px solid rgba(167,139,250,0.15)", background: newTaskArea === a ? "rgba(124,92,255,0.1)" : "#0B0B10", cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6 }}>
                   <span style={{ fontSize: 16 }}>{area?.emoji}</span>
                   <span style={{ fontSize: 10, fontWeight: 600, color: newTaskArea === a ? "#A78BFA" : "#9e96b5" }}>{
-                    (AREAS_LABELS as any)[a] || a
+                    (AREA_LABELS as Record<string, string>)[a] || a
                   }</span>
                 </button>
                 );
@@ -606,7 +585,7 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
                     <button key={a} type="button" onClick={() => setPlanEditArea(a)}
                       style={{ padding: "6px 4px", borderRadius: 8, border: planEditArea === a ? "1.5px solid #7C5CFF" : "1px solid rgba(167,139,250,0.12)", background: planEditArea === a ? "rgba(124,92,255,0.1)" : "#0B0B10", cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 4 }}>
                       <span style={{ fontSize: 12 }}>{area?.emoji}</span>
-                      <span style={{ fontSize: 9, fontWeight: 600, color: planEditArea === a ? "#A78BFA" : "#9e96b5" }}>{(AREAS_LABELS as any)[a] || a}</span>
+                      <span style={{ fontSize: 9, fontWeight: 600, color: planEditArea === a ? "#A78BFA" : "#9e96b5" }}>{(AREA_LABELS as Record<string, string>)[a] || a}</span>
                     </button>
                     );
                   })}
