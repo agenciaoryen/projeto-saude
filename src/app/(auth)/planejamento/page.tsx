@@ -1121,21 +1121,22 @@ function AreasRadar({ counts, totals }: { counts: Record<string, number>; totals
 
 // ── Week heat strip ───────────────────────────────────────────────────────────
 
-function WeekHeat({ tasks, selectedDay, onSelect }: {
-  tasks: WeeklyTask[]; selectedDay: number; onSelect: (d: number) => void;
+function WeekHeat({ tasks, selectedDay, onSelect, weekOffset }: {
+  tasks: WeeklyTask[]; selectedDay: number; onSelect: (d: number) => void; weekOffset: number;
 }) {
   const DAY_LABELS = ["seg", "ter", "qua", "qui", "sex", "sáb", "dom"];
   const todayDow = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1;
+  const isCurrentWeek = weekOffset === 0;
   const days = DAY_LABELS.map((d, i) => {
     const dt = tasks.filter((t) => t.day_of_week === i);
-    return { d, count: dt.length, done: dt.filter((t) => t.status === "concluida").length, today: i === todayDow };
+    return { d, count: dt.length, done: dt.filter((t) => t.status === "concluida").length, today: isCurrentWeek && i === todayDow };
   });
   return (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 4, padding: "0 10px" }}>
       {days.map((day, i) => {
         const sel = i === selectedDay;
         return (
-          <button key={i} type="button" onClick={() => onSelect(i)} style={{
+          <button key={i} type="button" onClick={() => onSelect(i)} aria-label={`${DAY_FULL[i]} — ${day.done}/${day.count} tarefas`} style={{
             background: sel ? "oklch(.5 .12 160 / .12)" : "transparent",
             border: day.today ? "1.5px solid oklch(.5 .12 160 / .5)" : "1.5px solid transparent",
             borderRadius: 12, padding: "8px 2px 6px", cursor: "pointer",
@@ -1241,8 +1242,13 @@ export default function PlanejamentoPage() {
 
   useEffect(() => { load(); }, [load]);
 
+  const [togglingIds, setTogglingIds] = useState<Set<string>>(new Set());
+
   const toggleTask = async (taskId: string, current: string) => {
+    // Prevent double-tap / race condition
+    if (togglingIds.has(taskId)) return;
     const next = current === "concluida" ? "pendente" : "concluida";
+    setTogglingIds((prev) => new Set(prev).add(taskId));
     setTasks((prev) => prev.map((t) => t.id === taskId ? { ...t, status: next as WeeklyTask["status"] } : t));
     try {
       await fetch(`/api/weekly-plans/tasks/${taskId}`, {
@@ -1254,6 +1260,12 @@ export default function PlanejamentoPage() {
       // Revert on error
       setTasks((prev) => prev.map((t) => t.id === taskId ? { ...t, status: current as WeeklyTask["status"] } : t));
       toast.error("Erro ao atualizar tarefa");
+    } finally {
+      setTogglingIds((prev) => {
+        const next2 = new Set(prev);
+        next2.delete(taskId);
+        return next2;
+      });
     }
   };
 
@@ -1472,7 +1484,7 @@ export default function PlanejamentoPage() {
           <p style={{ margin: "0 14px 12px", fontSize: 10.5, fontWeight: 700, letterSpacing: ".12em", textTransform: "uppercase", color: "oklch(.4 .12 160)" }}>
             Sua semana
           </p>
-          <WeekHeat tasks={tasks} selectedDay={selectedDay} onSelect={setSelectedDay} />
+          <WeekHeat tasks={tasks} selectedDay={selectedDay} onSelect={setSelectedDay} weekOffset={weekOffset} />
           <div style={{ padding: "14px 14px 0", borderTop: "1px solid oklch(.5 .12 160 / .08)", marginTop: 12 }}>
             <p style={{ margin: "0 0 10px", fontSize: 11, fontWeight: 700, color: "oklch(.25 .02 160)", letterSpacing: "-0.005em" }}>
               {DAY_NAMES[selectedDay]}{" "}·{" "}
@@ -1616,6 +1628,10 @@ export default function PlanejamentoPage() {
               sun.setDate(mon.getDate() + 6);
               const label = `${mon.getDate()} ${MONTHS[mon.getMonth()]}–${sun.getDate()} ${MONTHS[sun.getMonth()]}`;
               const rev = (h as { weekly_reviews?: WeeklyReview[] }).weekly_reviews?.[0];
+              const histTasks = ((h as unknown as { weekly_tasks?: WeeklyTask[] }).weekly_tasks ?? []) as WeeklyTask[];
+              const histDone = histTasks.filter((t: WeeklyTask) => t.status === "concluida").length;
+              const histTotal = histTasks.length;
+              const histPct = histTotal > 0 ? Math.round((histDone / histTotal) * 100) : 0;
               return (
                 <div key={h.id} style={{
                   display: "flex", alignItems: "center", gap: 12,
@@ -1626,9 +1642,27 @@ export default function PlanejamentoPage() {
                     <p style={{ margin: 0, fontSize: 11, fontWeight: 600, color: "oklch(.55 .03 160)" }}>
                       {label}
                     </p>
-                    <p style={{ margin: "2px 0 0", fontSize: 13, color: "oklch(.25 .02 160)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    <p style={{ margin: "2px 0 4px", fontSize: 13, color: "oklch(.25 .02 160)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {h.main_focus || "Sem foco registrado"}
                     </p>
+                    {histTotal > 0 && (
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <div style={{
+                          flex: "0 1 120px", height: 4, borderRadius: 9999,
+                          background: "oklch(.5 .12 160 / .12)", overflow: "hidden",
+                        }}>
+                          <div style={{
+                            height: "100%", borderRadius: 9999,
+                            width: `${histPct}%`,
+                            background: histPct >= 100 ? "oklch(.45 .12 160)" : "oklch(.5 .12 160 / .6)",
+                            minWidth: histPct > 0 ? 4 : 0,
+                          }} />
+                        </div>
+                        <span style={{ fontSize: 9.5, fontWeight: 600, color: "oklch(.55 .03 160)", whiteSpace: "nowrap" }}>
+                          {histDone}/{histTotal} feitas
+                        </span>
+                      </div>
+                    )}
                   </div>
                   {rev && (
                     <div style={{ display: "flex", gap: 1, flexShrink: 0 }}>

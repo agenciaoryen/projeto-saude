@@ -204,8 +204,8 @@ export default function MayaChatPage() {
     hydrated,
   });
 
-  // ── Textarea auto-resize ──
-  useAutoResizeTextarea(textareaRef, input);
+  // ── Textarea auto-resize (also scrolls messages on growth) ──
+  useAutoResizeTextarea(textareaRef, input, messagesRef);
 
   // ── Focus textarea if draft param ──
   useEffect(() => {
@@ -551,7 +551,11 @@ export default function MayaChatPage() {
         ref={messagesRef}
         onScroll={handleScroll}
         className="flex-1 min-h-0 overflow-y-auto px-3 pt-3 pb-1"
-        style={{ display: "flex", flexDirection: "column" }}
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          overflowAnchor: "none", // prevent browser from fighting our scroll
+        }}
       >
         {/* Sentinel for loading older messages */}
         <div ref={sentinelRef} style={{ height: 1, flexShrink: 0 }} />
@@ -716,12 +720,13 @@ export default function MayaChatPage() {
             size="icon"
             className="rounded-full size-10 shrink-0"
             style={{ background: "var(--maya-primary)" }}
+            tabIndex={-1}
             onTouchStart={(e) => {
-              e.preventDefault(); // prevent textarea blur on mobile
+              e.preventDefault();
               sendMessage();
             }}
             onMouseDown={(e) => {
-              e.preventDefault(); // prevent textarea blur on desktop
+              e.preventDefault();
               sendMessage();
             }}
             disabled={!input.trim() || busy}

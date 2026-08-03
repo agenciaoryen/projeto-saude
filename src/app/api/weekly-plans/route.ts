@@ -24,7 +24,7 @@ export async function GET(req: Request) {
 
   const { data: history } = await admin
     .from("weekly_plans")
-    .select(`*, weekly_reviews(*), weekly_focus_goals(goal_id)`)
+    .select(`*, weekly_reviews(*), weekly_focus_goals(goal_id), weekly_tasks(*)`)
     .eq("user_id", session.user.id)
     .neq("week_start", weekStart)
     .order("week_start", { ascending: false })
