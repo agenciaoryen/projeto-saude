@@ -1136,7 +1136,7 @@ function WeekHeat({ tasks, selectedDay, onSelect, weekOffset }: {
       {days.map((day, i) => {
         const sel = i === selectedDay;
         return (
-          <button key={i} type="button" onClick={() => onSelect(i)} aria-label={`${DAY_FULL[i]} — ${day.done}/${day.count} tarefas`} style={{
+          <button key={i} type="button" onClick={() => onSelect(i)} aria-label={`${DAY_NAMES_FULL[i]} — ${day.done}/${day.count} tarefas`} style={{
             background: sel ? "oklch(.5 .12 160 / .12)" : "transparent",
             border: day.today ? "1.5px solid oklch(.5 .12 160 / .5)" : "1.5px solid transparent",
             borderRadius: 12, padding: "8px 2px 6px", cursor: "pointer",
