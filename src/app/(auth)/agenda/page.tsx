@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo, useCallback, useRef } from "react";
+import { useEffect, useState, useMemo, useCallback, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   ChevronLeft, ChevronRight, Calendar, Sun, List,
@@ -62,34 +62,47 @@ function PriorityBadge({ priority }: { priority: EisenhowerPriority }) {
 type ViewMode = "dia" | "semana" | "lista" | "metas";
 type ActiveModule = "agenda" | "metas" | "planejamento";
 
-export default function AgendaPage() {
+function parseTab(raw: string | null): ViewMode {
+  if (raw === "semana" || raw === "metas" || raw === "lista") return raw;
+  return "dia";
+}
+
+function tabToModule(tab: ViewMode): ActiveModule {
+  if (tab === "semana") return "planejamento";
+  if (tab === "metas") return "metas";
+  return "agenda";
+}
+
+export default function AgendaPageWrapper() {
+  return (
+    <Suspense fallback={<div style={{ minHeight: "100dvh", background: "#0B0B10" }} />}>
+      <AgendaPage />
+    </Suspense>
+  );
+}
+
+function AgendaPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const rawTab = searchParams.get("tab");
+  const initialTab = parseTab(rawTab);
+
   const today = getLocalDate();
   const [selectedDate, setSelectedDate] = useState(today);
-  // Default tab from URL or "dia"
-  const getInitialTab = (): ViewMode => {
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      const tab = params.get("tab");
-      if (tab === "semana" || tab === "metas" || tab === "lista") return tab;
-    }
-    return "dia";
-  };
-  const [viewMode, setViewMode] = useState<ViewMode>(getInitialTab);
-  const [activeModule, setActiveModule] = useState<ActiveModule>(() => {
-    const tab = getInitialTab();
-    if (tab === "semana") return "planejamento";
-    if (tab === "metas") return "metas";
-    return "agenda";
-  });
+  const [viewMode, setViewMode] = useState<ViewMode>(initialTab);
+  const [activeModule, setActiveModule] = useState<ActiveModule>(tabToModule(initialTab));
+
+  // Sync when URL param changes (client-side navigation reuses component)
+  useEffect(() => {
+    const tab = parseTab(rawTab);
+    setViewMode(tab);
+    setActiveModule(tabToModule(tab));
+  }, [rawTab]);
 
   // Sync: segmented control ↔ module
   const switchView = (mode: ViewMode) => {
     setViewMode(mode);
-    if (mode === "semana") setActiveModule("planejamento");
-    else if (mode === "metas") setActiveModule("metas");
-    else setActiveModule("agenda");
-    // Update URL without navigation
+    setActiveModule(tabToModule(mode));
     const url = new URL(window.location.href);
     if (mode === "dia") url.searchParams.delete("tab");
     else url.searchParams.set("tab", mode);
