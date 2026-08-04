@@ -759,6 +759,7 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
                       headers: { "Content-Type": "application/json" },
                       body: JSON.stringify({ [stoneField]: planEditTitle.trim(), week_start: currentWeekStart }),
                     });
+                    fetchPlan(); // Refresh to show updated stones
                   }
                   setEditingPlanTask(null);
                 }
