@@ -86,6 +86,13 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
   useEffect(() => { setNow(new Date()); const i = setInterval(() => setNow(new Date()), 60000); return () => clearInterval(i); }, []);
   const clientTodayDow = now ? (now.getDay() === 0 ? 6 : now.getDay() - 1) : -1;
 
+  // Compute the Monday of the week containing selectedDate (or today)
+  const currentWeekStart = useMemo(() => {
+    const d = selectedDate ? new Date(selectedDate + "T12:00:00") : new Date();
+    const mon = new Date(d); mon.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+    return `${mon.getFullYear()}-${String(mon.getMonth() + 1).padStart(2, "0")}-${String(mon.getDate()).padStart(2, "0")}`;
+  }, [selectedDate]);
+
   // Add task form
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [newTaskArea, setNewTaskArea] = useState("saude");
@@ -117,12 +124,7 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
 
   const fetchPlan = async () => {
     try {
-      // Calculate week from selectedDate
-      const d = selectedDate ? new Date(selectedDate + "T12:00:00") : new Date();
-      const mon = new Date(d); mon.setDate(d.getDate() - ((d.getDay() + 6) % 7));
-      const weekStart = `${mon.getFullYear()}-${String(mon.getMonth() + 1).padStart(2, "0")}-${String(mon.getDate()).padStart(2, "0")}`;
-
-      const res = await fetch(`/api/weekly-plans?week=${weekStart}`);
+      const res = await fetch(`/api/weekly-plans?week=${currentWeekStart}`);
       if (res.ok) {
         const data = await res.json();
         setPlan(data);
@@ -174,6 +176,7 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
         title: newTaskTitle.trim(), area: newTaskArea, day_of_week: newTaskDay,
         task_type: newTaskType, scheduled_time: newTaskTime || null,
         stone_rank: newIsStone ? newStoneRank : null,
+        week_start: currentWeekStart,
       }),
     });
     if (res.ok) {
@@ -186,7 +189,7 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
       const stoneField = newStoneRank === 1 ? "main_focus" : newStoneRank === 2 ? "main_focus_2" : "main_focus_3";
       await fetch("/api/weekly-plans", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ [stoneField]: newTaskTitle.trim() }),
+        body: JSON.stringify({ [stoneField]: newTaskTitle.trim(), week_start: currentWeekStart }),
       });
     }
 
@@ -198,7 +201,7 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
     if (!reviewWin.trim()) return;
     await fetch("/api/weekly-plans/review", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ biggest_win: reviewWin, blocked_lesson: reviewBlock, main_learning: reviewLearn, week_score: reviewScore }),
+      body: JSON.stringify({ biggest_win: reviewWin, blocked_lesson: reviewBlock, main_learning: reviewLearn, week_score: reviewScore, week_start: currentWeekStart }),
     });
     setShowReview(false); fetchPlan();
   };
