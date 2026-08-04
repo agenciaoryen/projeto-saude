@@ -374,7 +374,7 @@ function MetasPreview({ loading }: { loading: boolean }) {
       label="Metas"
       preview={preview}
       sub={sub}
-      href="/metas"
+      href="/agenda"
       accent="#f59e0b"
       loading={loading || !ready}
     />

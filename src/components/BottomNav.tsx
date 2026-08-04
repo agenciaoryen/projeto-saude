@@ -19,7 +19,6 @@ const NAV_ITEMS = [
 const HIDE_ON = [
   "/diario/novo",
   "/check-in",
-  "/metas/nova",
   "/metas/coach",
   "/nutricao/registrar",
   "/financas/registrar",

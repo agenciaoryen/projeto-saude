@@ -408,7 +408,7 @@ export default function FinancasPage() {
                       const done = stages.filter((s) => s.status === "concluida").length;
                       const pct = stages.length > 0 ? Math.round((done / stages.length) * 100) : 0;
                       return (
-                        <button key={g.id} type="button" onClick={() => router.push(`/metas/${g.id}`)} style={{
+                        <button key={g.id} type="button" onClick={() => router.push("/agenda")} style={{
                           display: "flex", alignItems: "center", gap: 10, padding: "11px 12px",
                           borderRadius: 13, border: `1px solid ${BORDER}`,
                           background: CARD, cursor: "pointer", textAlign: "left",

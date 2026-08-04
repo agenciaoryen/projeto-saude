@@ -99,7 +99,7 @@ export function MetasPanel() {
             );
           })}
           {activeGoals.length > 5 && (
-            <button type="button" onClick={() => router.push("/metas")}
+            <button type="button" onClick={() => router.push("/agenda")}
               style={{ width: "100%", padding: "10px 0", borderRadius: 12, border: 0, cursor: "pointer", background: "rgba(124,92,255,0.08)", color: "#A78BFA", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}
               disabled>
               {activeGoals.length} metas ativas

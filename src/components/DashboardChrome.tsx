@@ -5,12 +5,12 @@ import { BottomNav } from "@/components/BottomNav";
 import { MayaAvatar } from "@/components/MayaAvatar";
 import { ArrowLeft } from "lucide-react";
 
-const FULLBLEED_ROUTES = ["/dashboard", "/diario", "/diario/novo", "/check-in", "/historico", "/nutricao", "/nutricao/registrar", "/sono", "/metas", "/perfil", "/financas", "/financas/registrar", "/analise", "/agenda"];
-const FULLBLEED_PREFIXES = ["/metas", "/financas", "/check-in", "/diario"];
+const FULLBLEED_ROUTES = ["/dashboard", "/diario", "/diario/novo", "/check-in", "/historico", "/nutricao", "/nutricao/registrar", "/sono", "/perfil", "/financas", "/financas/registrar", "/analise", "/agenda"];
+const FULLBLEED_PREFIXES = ["/financas", "/check-in", "/diario"];
 
 // Routes that DON'T show bottom nav — the header appears on these
 const NO_BOTTOM_NAV = [
-  "/check-in", "/metas/nova", "/metas/coach",
+  "/check-in", "/metas/coach",
   "/nutricao/registrar", "/financas/registrar",
 ];
 const NO_BOTTOM_NAV_PREFIXES = ["/insights"];
