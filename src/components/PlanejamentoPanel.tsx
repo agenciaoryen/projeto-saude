@@ -74,6 +74,10 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
   const [selectedDay, setSelectedDay] = useState(() => { const d = new Date().getDay(); return d === 0 ? 6 : d - 1; });
   const [showAddTask, setShowAddTask] = useState(false);
   const [showReview, setShowReview] = useState(false);
+  // Client-only current time
+  const [now, setNow] = useState<Date | null>(null);
+  useEffect(() => { setNow(new Date()); const i = setInterval(() => setNow(new Date()), 60000); return () => clearInterval(i); }, []);
+  const clientTodayDow = now ? (now.getDay() === 0 ? 6 : now.getDay() - 1) : -1;
 
   // Add task form
   const [newTaskTitle, setNewTaskTitle] = useState("");
@@ -327,6 +331,13 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
           <p style={{ margin: 0, fontSize: 11, fontWeight: 600, color: "#9e96b5" }}>{DAY_FULL[selectedDay]}</p>
         </div>
+        {/* Current time indicator (today only) */}
+        {selectedDay === clientTodayDow && now && (
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, padding: "5px 10px", borderRadius: 8, background: "rgba(255,80,80,0.08)", border: "1px solid rgba(255,80,80,0.2)" }}>
+            <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#FF5050", flexShrink: 0, boxShadow: "0 0 0 3px rgba(255,80,80,0.25)", animation: "pulse 2s ease-in-out infinite" }} />
+            <span style={{ fontSize: 10, fontWeight: 600, color: "#FF7070" }}>Agora · {now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>
+          </div>
+        )}
         {selectedDayTasks.length === 0 ? (
           <p style={{ color: "#9e96b5", fontSize: 12, textAlign: "center", padding: 8, margin: 0 }}>Nenhuma tarefa</p>
         ) : (
@@ -777,6 +788,7 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
           </div>
         </div>
       )}
+      <style>{`@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }`}</style>
     </div>
   );
 }

@@ -1220,6 +1220,14 @@ export default function PlanejamentoPage() {
   const [showEditTask, setShowEditTask] = useState(false);
   const [editTaskId, setEditTaskId]   = useState<string | null>(null);
   const editTask = tasks.find((t) => t.id === editTaskId) ?? null;
+  // Client-only current time (avoids hydration mismatch)
+  const [now, setNow] = useState<Date | null>(null);
+  useEffect(() => {
+    setNow(new Date());
+    const interval = setInterval(() => setNow(new Date()), 60000);
+    return () => clearInterval(interval);
+  }, []);
+  const clientTodayDow = now ? (now.getDay() === 0 ? 6 : now.getDay() - 1) : -1;
   const [selectedDay, setSelectedDay] = useState<number>(() => {
     const d = new Date().getDay();
     return d === 0 ? 6 : d - 1;
@@ -1357,7 +1365,10 @@ export default function PlanejamentoPage() {
     return (
       <div style={{ minHeight: "100dvh", background: "oklch(.98 .004 160)", display: "flex", alignItems: "center", justifyContent: "center" }}>
         <div style={{ width: 36, height: 36, borderRadius: "50%", border: "3px solid oklch(.5 .12 160)", borderTopColor: "transparent", animation: "spin .8s linear infinite" }} />
-        <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+        <style>{`
+        @keyframes spin { to { transform: rotate(360deg) } }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+      `}</style>
       </div>
     );
   }
@@ -1501,6 +1512,24 @@ export default function PlanejamentoPage() {
                 {selectedDayTasks.length} {selectedDayTasks.length === 1 ? "item" : "itens"} · {doneSelectedDay} {doneSelectedDay === 1 ? "feito" : "feitos"}
               </span>
             </p>
+            {/* ── Current time indicator (today only) ── */}
+            {weekOffset === 0 && selectedDay === clientTodayDow && now && (
+              <div style={{
+                display: "flex", alignItems: "center", gap: 10, marginBottom: 10,
+                padding: "6px 12px", borderRadius: 10,
+                background: "oklch(.97 .03 15 / .6)", border: "1px solid oklch(.65 .2 25 / .25)",
+              }}>
+                <div style={{
+                  width: 8, height: 8, borderRadius: "50%",
+                  background: "oklch(.55 .22 25)", flexShrink: 0,
+                  boxShadow: "0 0 0 3px oklch(.55 .22 25 / .2)",
+                  animation: "pulse 2s ease-in-out infinite",
+                }} />
+                <span style={{ fontSize: 11, fontWeight: 600, color: "oklch(.45 .15 25)" }}>
+                  Agora · {now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                </span>
+              </div>
+            )}
             {selectedDayTasks.length > 0 && (
               <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
                 {selectedDayTasks.map((t) => (
@@ -1738,7 +1767,10 @@ export default function PlanejamentoPage() {
 
       {showReview && <ReviewModal onClose={() => setShowReview(false)} onSaved={load} lang={lang} weekStart={weekStartStr} tasks={tasks} />}
 
-      <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg) } }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+      `}</style>
     </div>
   );
 }
