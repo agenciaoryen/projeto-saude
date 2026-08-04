@@ -262,7 +262,7 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
       <p style={{ margin: "0 0 6px", fontSize: 11, color: "#9e96b5", fontFamily: "monospace" }}>{weekRange(selectedDate)} · {doneTasks}/{tasks.length} ✓</p>
 
       {/* Day selector */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 3, marginBottom: 12 }}>
+      <div suppressHydrationWarning style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 3, marginBottom: 12 }}>
         {DAY_NAMES.map((d, i) => {
           const today = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1;
           const dt = tasks.filter((t: any) => t.day_of_week === i);

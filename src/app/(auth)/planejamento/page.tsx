@@ -1125,14 +1125,20 @@ function WeekHeat({ tasks, selectedDay, onSelect, weekOffset }: {
   tasks: WeeklyTask[]; selectedDay: number; onSelect: (d: number) => void; weekOffset: number;
 }) {
   const DAY_LABELS = ["seg", "ter", "qua", "qui", "sex", "sáb", "dom"];
-  const todayDow = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1;
+  // Client-only today to avoid hydration mismatch (server UTC vs client UTC-3)
+  const [clientToday, setClientToday] = useState<number | null>(null);
+  useEffect(() => {
+    const d = new Date().getDay();
+    setClientToday(d === 0 ? 6 : d - 1);
+  }, []);
+  const todayDow = clientToday;
   const isCurrentWeek = weekOffset === 0;
   const days = DAY_LABELS.map((d, i) => {
     const dt = tasks.filter((t) => t.day_of_week === i);
     return { d, count: dt.length, done: dt.filter((t) => t.status === "concluida").length, today: isCurrentWeek && i === todayDow };
   });
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 4, padding: "0 10px" }}>
+    <div suppressHydrationWarning style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 4, padding: "0 10px" }}>
       {days.map((day, i) => {
         const sel = i === selectedDay;
         return (
@@ -1367,7 +1373,7 @@ export default function PlanejamentoPage() {
     }}>
 
       {/* ═ HEADER WITH WEEK NAV ═ */}
-      <div style={{ padding: "22px 20px 4px" }}>
+      <div suppressHydrationWarning style={{ padding: "22px 20px 4px" }}>
         <p style={{ margin: 0, fontSize: 12, color: "oklch(.55 .03 160)", letterSpacing: ".05em", textTransform: "uppercase", fontWeight: 600 }}>
           Maya sugeriu este plano · {weekLabelForOffset(weekOffset)}
         </p>
