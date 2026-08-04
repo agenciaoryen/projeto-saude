@@ -182,6 +182,10 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
     if (res.ok) {
       const task = await res.json();
       setTasks((prev: any[]) => [...prev, task]);
+    } else {
+      const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+      console.error("addTask error:", err);
+      alert(`Erro ao criar tarefa:\n${err.error || err.message || JSON.stringify(err)}\nweek: ${currentWeekStart}`);
     }
 
     // Define as pedra da semana
