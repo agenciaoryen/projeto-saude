@@ -173,7 +173,7 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
     const res = await fetch("/api/weekly-plans/tasks", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        title: newTaskTitle.trim(), area: newTaskArea, day_of_week: newTaskDay,
+        title: newTaskTitle.trim(), area: newTaskArea, day_of_week: newTaskDay === -1 ? null : newTaskDay,
         task_type: newTaskType, scheduled_time: newTaskTime || null,
         week_start: currentWeekStart,
       }),

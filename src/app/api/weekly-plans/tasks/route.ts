@@ -12,8 +12,8 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { title, area, task_type, linked_goal_id, linked_action_id, day_of_week, scheduled_time, week_start } = body;
 
-    if (!title || area === undefined || day_of_week === undefined) {
-      return NextResponse.json({ error: "Campos obrigatórios: title, area, day_of_week" }, { status: 400 });
+    if (!title || area === undefined) {
+      return NextResponse.json({ error: "Campos obrigatórios: title, area" }, { status: 400 });
     }
 
     const admin = getSupabaseAdmin();
