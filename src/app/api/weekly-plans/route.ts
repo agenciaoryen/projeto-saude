@@ -41,7 +41,8 @@ export async function POST(req: Request) {
   const body = await req.json();
   const { main_focus, main_focus_2, main_focus_3, linked_goal_id, focus_goal_ids, week_start } = body;
 
-  if (!main_focus) return NextResponse.json({ error: "Foco principal obrigatório" }, { status: 400 });
+  // At least one of main_focus, main_focus_2, main_focus_3 must be provided
+  if (!main_focus && !main_focus_2 && !main_focus_3) return NextResponse.json({ error: "Foco principal obrigatório" }, { status: 400 });
 
   const admin = getSupabaseAdmin();
   const weekStart = week_start || getWeekMondayDate();

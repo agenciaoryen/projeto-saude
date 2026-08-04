@@ -737,7 +737,7 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
                   // Save as task (task API)
                   const updates: Record<string, unknown> = {
                     title: planEditTitle.trim() || editingPlanTask.title,
-                    day_of_week: planEditDay,
+                    day_of_week: planEditDay === -1 ? null : planEditDay,
                     area: planEditArea,
                     task_type: planEditType,
                     scheduled_time: planEditTime || null,
