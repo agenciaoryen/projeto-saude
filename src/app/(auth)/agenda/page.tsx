@@ -792,8 +792,8 @@ function AgendaPage() {
                   />
                 ))}
 
-                {/* Current time needle */}
-                {currentTimePx > 0 && currentTimePx < TRACK_HEIGHT && (
+                {/* Current time needle — only on today */}
+                {selectedDate === today && currentTimePx > 0 && currentTimePx < TRACK_HEIGHT && (
                   <div style={{
                     position: "absolute", left: 0, right: 0, top: currentTimePx, zIndex: 5,
                     height: 2, background: "#FF4D4D",
