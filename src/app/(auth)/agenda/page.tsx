@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo, useCallback, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ChevronLeft, ChevronRight, Calendar, Sun, List,
   CheckCircle2, GripVertical, Plus, Clock, Star, Zap, Leaf, AlertCircle, Target,
@@ -66,8 +66,22 @@ export default function AgendaPage() {
   const router = useRouter();
   const today = getLocalDate();
   const [selectedDate, setSelectedDate] = useState(today);
-  const [viewMode, setViewMode] = useState<ViewMode>("dia");
-  const [activeModule, setActiveModule] = useState<ActiveModule>("agenda");
+  // Default tab from URL or "dia"
+  const getInitialTab = (): ViewMode => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const tab = params.get("tab");
+      if (tab === "semana" || tab === "metas" || tab === "lista") return tab;
+    }
+    return "dia";
+  };
+  const [viewMode, setViewMode] = useState<ViewMode>(getInitialTab);
+  const [activeModule, setActiveModule] = useState<ActiveModule>(() => {
+    const tab = getInitialTab();
+    if (tab === "semana") return "planejamento";
+    if (tab === "metas") return "metas";
+    return "agenda";
+  });
 
   // Sync: segmented control ↔ module
   const switchView = (mode: ViewMode) => {
@@ -75,6 +89,11 @@ export default function AgendaPage() {
     if (mode === "semana") setActiveModule("planejamento");
     else if (mode === "metas") setActiveModule("metas");
     else setActiveModule("agenda");
+    // Update URL without navigation
+    const url = new URL(window.location.href);
+    if (mode === "dia") url.searchParams.delete("tab");
+    else url.searchParams.set("tab", mode);
+    window.history.replaceState({}, "", url.toString());
   };
   const [items, setItems] = useState<AgendaItem[]>([]);
   const [loading, setLoading] = useState(true);

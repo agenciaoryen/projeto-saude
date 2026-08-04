@@ -374,7 +374,7 @@ function MetasPreview({ loading }: { loading: boolean }) {
       label="Metas"
       preview={preview}
       sub={sub}
-      href="/agenda"
+      href="/agenda?tab=metas"
       accent="#f59e0b"
       loading={loading || !ready}
     />
@@ -391,7 +391,7 @@ function PlanejamentoPreview({ loading, todayTasks }: { loading: boolean; todayT
       label="Plano"
       preview={total > 0 ? `${done}/${total} tarefas` : "Sem tarefas hoje"}
       sub={total > 0 ? (done === total ? "Tudo feito! ✨" : `${total - done} pendentes`) : "Planeje sua semana"}
-      href="/agenda"
+      href="/agenda?tab=semana"
       accent="#7C5CFF"
       loading={loading}
     />
