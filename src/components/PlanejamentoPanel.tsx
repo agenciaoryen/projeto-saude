@@ -516,9 +516,7 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
                   </p>
                 );
               })()}
-                </div>
-              );
-            })()}
+            </div>
 
             {/* Time — toggle on/off */}
             <div style={{ marginTop: 12 }}>
