@@ -50,6 +50,7 @@ export default function DashboardPage() {
 
   // Weekly tasks & meals
   const [todayTasks, setTodayTasks] = useState<WeeklyTask[]>([]);
+  const [todayMealsKcal, setTodayMealsKcal] = useState<number | null>(null);
   const [todayMealsCount, setTodayMealsCount] = useState<number>(0);
 
   // ── Fetch core data ──────────────────────────────────────────
@@ -127,10 +128,14 @@ export default function DashboardPage() {
       })
       .catch(() => {});
 
-    // Today's meals count — independent
-    cachedFetch<Array<{ meal_type: string }>>(`/api/meals?date=${today}`)
+    // Today's meals — independent
+    cachedFetch<Array<{ macros: { calorias_kcal: number } | null }>>(`/api/meals?date=${today}`)
       .then((meals) => {
-        if (Array.isArray(meals)) setTodayMealsCount(meals.length);
+        if (Array.isArray(meals)) {
+          setTodayMealsCount(meals.length);
+          const kcal = meals.reduce((sum, m) => sum + (m.macros?.calorias_kcal ?? 0), 0);
+          setTodayMealsKcal(kcal > 0 ? kcal : null);
+        }
       })
       .catch(() => {});
   }, [router]);
@@ -243,6 +248,7 @@ export default function DashboardPage() {
         spendingLimit={spendingLimit}
         todayTasks={todayTasks}
         todayMealsCount={todayMealsCount}
+        todayMealsKcal={todayMealsKcal}
         loading={loading}
       />
 

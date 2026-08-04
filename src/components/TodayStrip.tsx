@@ -77,6 +77,7 @@ interface TodayStripProps {
   spendingLimit: number;
   todayTasks: WeeklyTask[];
   todayMealsCount?: number;
+  todayMealsKcal?: number | null;
   loading?: boolean;
 }
 
@@ -89,6 +90,7 @@ export function TodayStrip({
   spendingLimit,
   todayTasks,
   todayMealsCount,
+  todayMealsKcal,
   loading,
 }: TodayStripProps) {
   const router = useRouter();
@@ -134,8 +136,12 @@ export function TodayStrip({
   const moodSub = todayCheckIn ? "Check-in feito" : "Pendente";
 
   const mealCount = todayMealsCount ?? 0;
-  const mealValue = mealCount > 0 ? `${mealCount}/4` : "—";
-  const mealSub = mealCount > 0 ? `${mealCount} refeições` : "Registrar";
+  const mealKcal = todayMealsKcal ?? null;
+  const mealValue = mealKcal != null ? `${mealKcal} kcal` : mealCount > 0 ? `${mealCount}/4` : "—";
+  const mealSub = mealCount > 0
+    ? `${mealCount} refeiç${mealCount === 1 ? "ão" : "ões"}`
+    : "Registrar";
+  const mealSubColor = mealKcal != null && mealKcal > 2200 ? "#FF5C5C" : "#22D18B";
 
   const spendingPct =
     todaySpending !== null && spendingLimit > 0
@@ -182,6 +188,7 @@ export function TodayStrip({
           label="Refeições"
           value={mealValue}
           sub={mealSub}
+          subColor={mealSubColor}
           onClick={() => router.push("/nutricao")}
         />
         <MiniCard
