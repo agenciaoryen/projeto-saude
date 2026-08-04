@@ -126,11 +126,13 @@ function AgendaPage() {
   const [editingItem, setEditingItem] = useState<AgendaItem | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editDone, setEditDone] = useState(false);
+  const [editDate, setEditDate] = useState("");
   const [editStartTime, setEditStartTime] = useState("");
   const [editEndTime, setEditEndTime] = useState("");
   const [editEmoji, setEditEmoji] = useState("");
   const [editPriority, setEditPriority] = useState<EisenhowerPriority>("importante_nao_urgente");
   const [newTitle, setNewTitle] = useState("");
+  const [newDate, setNewDate] = useState("");
   const [newEmoji, setNewEmoji] = useState("");
   const [newPriority, setNewPriority] = useState<EisenhowerPriority>("importante_nao_urgente");
   const [newStartTime, setNewStartTime] = useState("09:00");
@@ -154,7 +156,7 @@ function AgendaPage() {
     const body: Record<string, unknown> = {
       title: newTitle.trim(),
       item_type: newItemType,
-      date: selectedDate,
+      date: newDate || selectedDate,
       start_time: newItemType === "compromisso" ? newStartTime : null,
       end_time: newItemType === "compromisso" ? newEndTime : null,
       priority: newPriority,
@@ -211,6 +213,7 @@ function AgendaPage() {
   const openEditor = (item: AgendaItem) => {
     setNewItemType(item.item_type as "compromisso" | "tarefa");
     setNewTitle(item.title);
+    setNewDate(item.date || selectedDate);
     setNewEmoji(item.emoji || "");
     setNewPriority(item.priority as EisenhowerPriority);
     setNewStartTime(item.start_time?.slice(0, 5) || "09:00");
@@ -745,6 +748,7 @@ function AgendaPage() {
                         setNewItemType("compromisso");
                         setNewStartTime(`${String(h).padStart(2, "0")}:00`);
                         setNewEndTime(`${String(h + 1).padStart(2, "0")}:00`);
+                        setNewDate(selectedDate);
                         setShowNewItem(true);
                       }}
                       style={{
@@ -782,6 +786,7 @@ function AgendaPage() {
                       setNewItemType("compromisso");
                       setNewStartTime(start);
                       setNewEndTime(end);
+                      setNewDate(selectedDate);
                       setShowNewItem(true);
                     }}
                     style={{
@@ -830,6 +835,7 @@ function AgendaPage() {
                         e.stopPropagation();
                         setEditingItem(item);
                         setEditTitle(item.title || "");
+                        setEditDate(item.date || selectedDate);
                         setEditStartTime(item.start_time?.slice(0, 5) || "09:00");
                         setEditEndTime(item.end_time?.slice(0, 5) || "10:00");
                         setEditEmoji(item.emoji || "");
@@ -1024,6 +1030,7 @@ function AgendaPage() {
               setNewEmoji(editingItem.emoji || "");
               setNewPriority(editingItem.priority as EisenhowerPriority);
               setNewTitle(editingItem.title);
+              setNewDate(editingItem.date || selectedDate);
               setShowNewItem(true);
               setEditingItem(null);
             }}
@@ -1100,7 +1107,7 @@ function AgendaPage() {
 
       {/* ── FAB (Dia) ────────────────────────────────────────── */}
       {(activeModule === "agenda" && viewMode === "dia") && (
-        <button type="button" onClick={() => { setNewItemType("tarefa"); setShowNewItem(true); }}
+        <button type="button" onClick={() => { setNewItemType("tarefa"); setNewDate(selectedDate); setShowNewItem(true); }}
           style={{
             position: "fixed", bottom: 84, right: 20, zIndex: 40,
             width: 56, height: 56, borderRadius: "50%",
@@ -1165,6 +1172,15 @@ function AgendaPage() {
             <input value={newEmoji} onChange={(e) => setNewEmoji(e.target.value)}
               placeholder="Emoji (opcional) — ex: 💪"
               style={{ ...modalInput, marginTop: 10 }} />
+
+            {/* Date */}
+            <div style={{ marginTop: 10 }}>
+              <label style={{ fontSize: 10, color: "#9e96b5", marginBottom: 4, display: "block" }}>Data</label>
+              <div style={nativeInputWrapper}>
+                <input type="date" value={newDate || selectedDate} onChange={(e) => setNewDate(e.target.value)}
+                  style={nativeInputInner} />
+              </div>
+            </div>
 
             {/* Time (only for compromisso) */}
             {newItemType === "compromisso" && (
@@ -1391,6 +1407,7 @@ function ListView({ allWeekTasks, loadWeekTasks, compromissos, selectedDate }: {
   const [editingItem, setEditingItem] = useState<any>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editDone, setEditDone] = useState(false);
+  const [editDate, setEditDate] = useState("");
   const [detailGoalId, setDetailGoalId] = useState<string | null>(null);
 
   const refreshGoals = () => {
