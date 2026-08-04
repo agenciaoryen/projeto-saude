@@ -31,12 +31,16 @@ export async function POST(req: Request) {
   let planId: string;
 
   if (!plan) {
+    // Use upsert to avoid race conditions on unique (user_id, week_start)
     const { data: newPlan, error: createErr } = await admin
       .from("weekly_plans")
-      .insert({ user_id: session.user.id, week_start: weekStart, main_focus: "" })
+      .upsert({ user_id: session.user.id, week_start: weekStart, main_focus: "" }, { onConflict: "user_id,week_start" })
       .select("id")
       .single();
-    if (createErr || !newPlan) return NextResponse.json({ error: createErr?.message }, { status: 500 });
+    if (createErr || !newPlan) {
+      console.error("Failed to create weekly_plan:", createErr);
+      return NextResponse.json({ error: createErr?.message || "Falha ao criar plano semanal" }, { status: 500 });
+    }
     planId = newPlan.id;
   } else {
     planId = plan.id;
