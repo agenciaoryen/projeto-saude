@@ -46,7 +46,7 @@ export function BottomNav() {
     if (slug === "dashboard") return pathname === "/dashboard";
     if (slug === "insights") return pathname.startsWith("/insights");
     if (slug === "analise") return pathname.startsWith("/analise");
-    if (slug === "agenda") return pathname.startsWith("/agenda") || pathname.startsWith("/planejamento");
+    if (slug === "agenda") return pathname.startsWith("/agenda");
     if (slug === "perfil") return pathname.startsWith("/perfil");
     if (slug === "comunidade") return pathname.startsWith("/comunidade");
     return false;

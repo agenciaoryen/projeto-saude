@@ -198,7 +198,7 @@ export function TodayStrip({
           value={taskValue}
           sub={taskSub}
           subColor={todayDone === todayTotal && todayTotal > 0 ? "#22D18B" : undefined}
-          onClick={() => router.push("/planejamento")}
+          onClick={() => router.push("/agenda")}
         />
       </div>
 

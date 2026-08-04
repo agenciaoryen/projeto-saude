@@ -391,7 +391,7 @@ function PlanejamentoPreview({ loading, todayTasks }: { loading: boolean; todayT
       label="Plano"
       preview={total > 0 ? `${done}/${total} tarefas` : "Sem tarefas hoje"}
       sub={total > 0 ? (done === total ? "Tudo feito! ✨" : `${total - done} pendentes`) : "Planeje sua semana"}
-      href="/planejamento"
+      href="/agenda"
       accent="#7C5CFF"
       loading={loading}
     />
