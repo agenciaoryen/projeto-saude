@@ -12,15 +12,15 @@ import {
 
 function MiniRadar({ done, totals }: { done: Record<string, number>; totals: Record<string, number> }) {
   const RADAR = [
-    { key: "saude", label: "Sau", emoji: "💚", hue: 160 },
-    { key: "carreira", label: "Car", emoji: "💼", hue: 220 },
-    { key: "financas", label: "Fin", emoji: "💰", hue: 85 },
-    { key: "relacionamentos", label: "Rel", emoji: "❤️", hue: 15 },
-    { key: "desenvolvimento", label: "Men", emoji: "🧠", hue: 270 },
-    { key: "familia", label: "Fam", emoji: "🏡", hue: 40 },
-    { key: "lazer", label: "Laz", emoji: "🌊", hue: 185 },
-    { key: "espiritualidade", label: "Esp", emoji: "✨", hue: 300 },
-    { key: "outros", label: "Out", emoji: "⚪", hue: 200 },
+    { key: "saude", label: "Saúde", emoji: "💚", hue: 160 },
+    { key: "carreira", label: "Carreira", emoji: "💼", hue: 220 },
+    { key: "financas", label: "Finanças", emoji: "💰", hue: 85 },
+    { key: "relacionamentos", label: "Relac.", emoji: "❤️", hue: 15 },
+    { key: "desenvolvimento", label: "Mente", emoji: "🧠", hue: 270 },
+    { key: "familia", label: "Família", emoji: "🏡", hue: 40 },
+    { key: "lazer", label: "Lazer", emoji: "🌊", hue: 185 },
+    { key: "espiritualidade", label: "Espirit.", emoji: "✨", hue: 300 },
+    { key: "outros", label: "Outros", emoji: "⚪", hue: 200 },
   ];
   const N = RADAR.length, MAX = 100, cx = 130, cy = 130, R = 82;
   const progress = RADAR.map(a => {
@@ -85,13 +85,13 @@ function MiniRadar({ done, totals }: { done: Record<string, number>; totals: Rec
         {/* Area labels */}
         {RADAR.map((a, i) => {
           const a2 = angle(i);
-          const lx = cx + (R + 30) * Math.cos(a2), ly = cy + (R + 30) * Math.sin(a2);
+          const lx = cx + (R + 34) * Math.cos(a2), ly = cy + (R + 34) * Math.sin(a2);
           const pct = progress[i];
           const inactive = pct === 0 && !hasAnyData ? false : pct === 0;
           return (
             <g key={a.key}>
-              <text x={lx} y={ly - 6} textAnchor="middle" dominantBaseline="middle" fontSize="15" opacity={inactive ? 0.35 : 1}>{a.emoji}</text>
-              <text x={lx} y={ly + 10} textAnchor="middle" dominantBaseline="middle" fontSize="9" fontWeight="700" fill={inactive ? "#4a4560" : "#A78BFA"} letterSpacing=".04em">{a.label}</text>
+              <text x={lx} y={ly - 7} textAnchor="middle" dominantBaseline="middle" fontSize="15" opacity={inactive ? 0.35 : 1}>{a.emoji}</text>
+              <text x={lx} y={ly + 9} textAnchor="middle" dominantBaseline="middle" fontSize="8" fontWeight="700" fill={inactive ? "#4a4560" : "#A78BFA"} letterSpacing=".02em">{a.label}</text>
             </g>
           );
         })}
