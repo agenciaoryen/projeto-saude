@@ -12,58 +12,86 @@ import {
 
 function MiniRadar({ done, totals }: { done: Record<string, number>; totals: Record<string, number> }) {
   const RADAR = [
-    { key: "saude", label: "Saúde", emoji: "💚", hue: 160 },
-    { key: "carreira", label: "Carreira", emoji: "💼", hue: 220 },
-    { key: "financas", label: "Finanças", emoji: "💰", hue: 85 },
-    { key: "relacionamentos", label: "Relac.", emoji: "❤️", hue: 15 },
-    { key: "desenvolvimento", label: "Mente", emoji: "🧠", hue: 270 },
-    { key: "familia", label: "Família", emoji: "🏡", hue: 40 },
-    { key: "lazer", label: "Lazer", emoji: "🌊", hue: 185 },
-    { key: "espiritualidade", label: "Espirit.", emoji: "✨", hue: 300 },
-    { key: "outros", label: "Outros", emoji: "⚪", hue: 200 },
+    { key: "saude", label: "Sau", emoji: "💚", hue: 160 },
+    { key: "carreira", label: "Car", emoji: "💼", hue: 220 },
+    { key: "financas", label: "Fin", emoji: "💰", hue: 85 },
+    { key: "relacionamentos", label: "Rel", emoji: "❤️", hue: 15 },
+    { key: "desenvolvimento", label: "Men", emoji: "🧠", hue: 270 },
+    { key: "familia", label: "Fam", emoji: "🏡", hue: 40 },
+    { key: "lazer", label: "Laz", emoji: "🌊", hue: 185 },
+    { key: "espiritualidade", label: "Esp", emoji: "✨", hue: 300 },
+    { key: "outros", label: "Out", emoji: "⚪", hue: 200 },
   ];
-  const N = RADAR.length, MAX = 100, cx = 115, cy = 115, R = 65;
+  const N = RADAR.length, MAX = 100, cx = 130, cy = 130, R = 82;
   const progress = RADAR.map(a => {
     const t = totals[a.key] ?? 0;
     const d = done[a.key] ?? 0;
     return t > 0 ? Math.round((d / t) * 100) : 0;
   });
-  const pt = (i: number, pct: number) => {
-    const a = -Math.PI / 2 + (i * 2 * Math.PI) / N;
-    return [cx + R * (Math.min(pct, MAX) / MAX) * Math.cos(a), cy + R * (Math.min(pct, MAX) / MAX) * Math.sin(a)];
-  };
-  const points = RADAR.map((_, i) => pt(i, progress[i]).join(",")).join(" ");
+  const hasAnyData = progress.some(p => p > 0);
   const fullDone = RADAR.filter((_, i) => progress[i] >= 100).length;
+  const angle = (i: number) => -Math.PI / 2 + (i * 2 * Math.PI) / N;
+  const pt = (i: number, pct: number) => {
+    const a = angle(i);
+    const r = R * (Math.min(pct, MAX) / MAX);
+    return [cx + r * Math.cos(a), cy + r * Math.sin(a)];
+  };
+  const ringPt = (i: number, ratio: number) => {
+    const a = angle(i);
+    return [cx + R * ratio * Math.cos(a), cy + R * ratio * Math.sin(a)];
+  };
+  const polyPoints = RADAR.map((_, i) => pt(i, progress[i]).join(",")).join(" ");
 
   return (
-    <div style={{ background: "#1a1530", borderRadius: 18, border: "1px solid rgba(167,139,250,0.1)", padding: "14px 12px 10px", marginBottom: 16 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
-        <p style={{ margin: 0, fontSize: 10, fontWeight: 700, letterSpacing: ".1em", textTransform: "uppercase", color: "#A78BFA" }}>Progresso das áreas</p>
-        <span style={{ fontSize: 10, color: "#9e96b5" }}>{fullDone}/{N} concluídas</span>
+    <div style={{ background: "#1a1530", borderRadius: 18, border: "1px solid rgba(167,139,250,0.1)", padding: "16px 14px 14px", marginBottom: 16 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 2 }}>
+        <p style={{ margin: 0, fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "#A78BFA" }}>Roda das áreas</p>
+        <span style={{ fontSize: 10, color: "#9e96b5" }}>{fullDone}/{N} 100%</span>
       </div>
-      <svg viewBox="0 0 240 235" style={{ width: "100%", display: "block", margin: "0 auto" }}>
+      <svg viewBox="0 0 260 260" style={{ width: "100%", display: "block", margin: "0 auto" }}>
+        <defs>
+          <radialGradient id="radarGrad" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="rgba(124,92,255,0.3)" />
+            <stop offset="100%" stopColor="rgba(124,92,255,0.05)" />
+          </radialGradient>
+        </defs>
+        {/* Grid rings */}
         {[0.25, 0.5, 0.75, 1].map(r => (
-          <polygon key={r} points={RADAR.map((_, i) => {
-            const a = -Math.PI / 2 + (i * 2 * Math.PI) / N;
-            return `${cx + R * r * Math.cos(a)},${cy + R * r * Math.sin(a)}`;
-          }).join(" ")} fill="none" stroke="rgba(167,139,250,0.1)" strokeWidth="1" />
+          <polygon key={r} points={RADAR.map((_, i) => ringPt(i, r).join(",")).join(" ")}
+            fill="none" stroke="rgba(167,139,250,0.15)" strokeWidth="1" strokeDasharray={r === 1 ? "none" : "3,3"} />
         ))}
-        <polygon points={points} fill="rgba(124,92,255,0.15)" stroke="#7C5CFF" strokeWidth="1.5" strokeLinejoin="round" />
+        {/* Axis lines */}
+        {RADAR.map((_, i) => {
+          const [ex, ey] = ringPt(i, 1);
+          return <line key={i} x1={cx} y1={cy} x2={ex} y2={ey} stroke="rgba(167,139,250,0.08)" strokeWidth="0.5" />;
+        })}
+        {/* Data polygon */}
+        {hasAnyData && (
+          <polygon points={polyPoints} fill="url(#radarGrad)" stroke="rgba(124,92,255,0.7)" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+        )}
+        {/* Dots at vertices */}
         {RADAR.map((a, i) => {
           const pct = progress[i];
           if (pct === 0) return null;
           const [x, y] = pt(i, pct);
-          return <circle key={a.key} cx={x} cy={y} r={pct >= 100 ? 3 : 2.5} fill={pct >= 100 ? "#7C5CFF" : "#fff"} stroke="#7C5CFF" strokeWidth="1" />;
-        })}
-        {RADAR.map((a, i) => {
-          const angle = -Math.PI / 2 + (i * 2 * Math.PI) / N;
-          const lx = cx + (R + 26) * Math.cos(angle), ly = cy + (R + 26) * Math.sin(angle);
-          const pct = progress[i];
-          const isZero = pct === 0;
           return (
             <g key={a.key}>
-              <text x={lx} y={ly - 7} textAnchor="middle" dominantBaseline="middle" fontSize="13" opacity={isZero ? 0.3 : 1}>{a.emoji}</text>
-              <text x={lx} y={ly + 8} textAnchor="middle" dominantBaseline="middle" fontSize="8.5" fill={isZero ? "#4a4560" : "#9e96b5"} fontWeight={600}>{a.label}</text>
+              <circle cx={x} cy={y} r="6" fill="rgba(124,92,255,0.2)" />
+              <circle cx={x} cy={y} r="3.5" fill="#fff" stroke="#7C5CFF" strokeWidth="1.5" />
+              <text x={x} y={y - 10} textAnchor="middle" fontSize="9" fontWeight="700" fill="#A78BFA">{pct}%</text>
+            </g>
+          );
+        })}
+        {/* Area labels */}
+        {RADAR.map((a, i) => {
+          const a2 = angle(i);
+          const lx = cx + (R + 30) * Math.cos(a2), ly = cy + (R + 30) * Math.sin(a2);
+          const pct = progress[i];
+          const inactive = pct === 0 && !hasAnyData ? false : pct === 0;
+          return (
+            <g key={a.key}>
+              <text x={lx} y={ly - 6} textAnchor="middle" dominantBaseline="middle" fontSize="15" opacity={inactive ? 0.35 : 1}>{a.emoji}</text>
+              <text x={lx} y={ly + 10} textAnchor="middle" dominantBaseline="middle" fontSize="9" fontWeight="700" fill={inactive ? "#4a4560" : "#A78BFA"} letterSpacing=".04em">{a.label}</text>
             </g>
           );
         })}
