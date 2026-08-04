@@ -173,7 +173,7 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
     const res = await fetch("/api/weekly-plans/tasks", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        title: newTaskTitle.trim(), area: newTaskArea, day_of_week: newTaskDay === -1 ? null : newTaskDay,
+        title: newTaskTitle.trim(), area: newTaskArea, day_of_week: Math.max(0, newTaskDay),
         task_type: newTaskType, scheduled_time: newTaskTime || null,
         week_start: currentWeekStart,
       }),
@@ -222,20 +222,6 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
 
   const selectedDayTasks = tasks.filter((t: any) => t.day_of_week === selectedDay)
     .sort((a: any, b: any) => (a.position || 0) - (b.position || 0));
-  const openTasks = tasks.filter((t: any) => t.day_of_week == null || t.day_of_week === -1);
-
-  const assignToToday = async (task: any) => {
-    const today = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1;
-    const res = await fetch(`/api/weekly-plans/tasks/${task.id}`, {
-      method: "PATCH", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ day_of_week: today }),
-    });
-    if (res.ok) {
-      const updated = await res.json();
-      setTasks((prev: any[]) => prev.map(t => t.id === task.id ? updated : t));
-    }
-  };
-
   if (loading) return <p style={{ color: "#9e96b5", fontSize: 13, textAlign: "center", padding: 20 }}>Carregando...</p>;
 
   return (
@@ -296,48 +282,6 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
           );
         })}
       </div>
-
-      {/* Em aberto */}
-      {openTasks.length > 0 && (
-        <div style={{ background: "#1a1530", borderRadius: 16, border: "1px solid rgba(167,139,250,0.1)", padding: "10px 14px", marginBottom: 8 }}>
-          <p style={{ margin: "0 0 6px", fontSize: 11, fontWeight: 600, color: "#A78BFA" }}>📋 Em aberto</p>
-          {openTasks.map((task: any) => {
-            const area = AREA_CONFIG[task.area as TaskArea] || AREA_CONFIG.outros;
-            const done = task.status === "concluida";
-            return (
-              <div key={task.id}
-                onClick={() => {
-                  setEditingPlanTask(task);
-                  setPlanEditTitle(task.title || "");
-                  setPlanEditDay(task.day_of_week ?? -1);
-                  setPlanEditArea(task.area || "saude");
-                  setPlanEditType(task.task_type || "manutencao");
-                  setPlanEditTime(task.scheduled_time?.slice(0, 5) || "");
-                  setPlanEditStone(!!task.stone_rank);
-                  setPlanEditStoneRank(task.stone_rank || 1);
-                  setPlanShowMore(false);
-                }}
-                style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 0", borderBottom: "1px solid rgba(167,139,250,0.05)", cursor: "pointer" }}>
-                <button type="button" onClick={(e) => { e.stopPropagation(); toggleTask(task.id, task.status); }}
-                  style={{ width: 18, height: 18, borderRadius: task.task_type === "manutencao" ? "50%" : 4, flexShrink: 0, border: done ? "none" : "1.5px solid rgba(167,139,250,0.3)", background: done ? "#7C5CFF" : "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  {done && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3"><path d="m5 12 5 5 9-10" /></svg>}
-                </button>
-                <span style={{ fontSize: 10 }}>{area.emoji}</span>
-                {task.stone_rank && (
-                  <span style={{ fontSize: 8, fontWeight: 800, color: "#A78BFA", background: "rgba(167,139,250,0.12)", padding: "1px 4px", borderRadius: 4, fontFamily: "monospace", flexShrink: 0 }}>
-                    {["I","II","III"][task.stone_rank - 1]}
-                  </span>
-                )}
-                <span style={{ flex: 1, fontSize: 12, fontWeight: 500, color: done ? "#5a5470" : "#e0d6ff", textDecoration: done ? "line-through" : "none" }}>{task.title}</span>
-                <button type="button" onClick={(e) => { e.stopPropagation(); assignToToday(task); }}
-                  style={{ padding: "3px 8px", borderRadius: 9999, border: "1px solid rgba(167,139,250,0.25)", background: "rgba(124,92,255,0.08)", color: "#A78BFA", fontSize: 9, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
-                  Hoje →
-                </button>
-              </div>
-            );
-          })}
-        </div>
-      )}
 
       {/* Tasks */}
       <div style={{ background: "#1a1530", borderRadius: 16, border: "1px solid rgba(167,139,250,0.1)", padding: "10px 14px", marginBottom: 8 }}>
@@ -464,10 +408,10 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
               <div style={{ flex: 1 }}>
-                <p style={{ fontSize: 10, color: "#9e96b5", marginBottom: 4 }}>Dia {newTaskDay === -1 && <span style={{ color: "#A78BFA" }}>· Em aberto</span>}</p>
+                <p style={{ fontSize: 10, color: "#9e96b5", marginBottom: 4 }}>Dia</p>
                 <div style={{ display: "flex", gap: 2 }}>
                   {DAY_NAMES.map((d, i) => (
-                    <button key={i} type="button" onClick={() => setNewTaskDay(newTaskDay === i ? -1 : i)}
+                    <button key={i} type="button" onClick={() => setNewTaskDay(i)}
                       style={{ flex: 1, padding: "6px 2px", borderRadius: 8, border: 0, cursor: "pointer", background: newTaskDay === i ? "#7C5CFF" : "rgba(167,139,250,0.08)", color: newTaskDay === i ? "#fff" : "#9e96b5", fontSize: 9, fontWeight: 600, fontFamily: "inherit" }}>{d}</button>
                   ))}
                 </div>
@@ -584,10 +528,10 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
               style={{...inputS, marginBottom: 10, width: "100%", boxSizing: "border-box"}} />
 
             {/* Day */}
-            <label style={{ fontSize: 10, color: "#9e96b5", marginBottom: 4, display: "block" }}>Dia {planEditDay === -1 && <span style={{ color: "#A78BFA" }}>· Em aberto</span>}</label>
+            <label style={{ fontSize: 10, color: "#9e96b5", marginBottom: 4, display: "block" }}>Dia</label>
             <div style={{ display: "flex", gap: 2, marginBottom: planShowMore ? 10 : 16 }}>
               {["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"].map((label, i) => (
-                <button key={i} type="button" onClick={() => setPlanEditDay(planEditDay === i ? -1 : i)}
+                <button key={i} type="button" onClick={() => setPlanEditDay(i)}
                   style={{ flex: 1, padding: "5px 2px", borderRadius: 8, border: 0, cursor: "pointer", fontFamily: "inherit", fontSize: 9, fontWeight: 600,
                     background: planEditDay === i ? "#7C5CFF" : "rgba(167,139,250,0.08)", color: planEditDay === i ? "#fff" : "#9e96b5" }}>{label}</button>
               ))}
