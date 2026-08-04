@@ -480,33 +480,42 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
                 style={{ flex: 1, padding: "8px 0", borderRadius: 10, border: newTaskType === "crescimento" ? "2px solid #7C5CFF" : "1px solid rgba(167,139,250,0.15)", background: newTaskType === "crescimento" ? "rgba(124,92,255,0.1)" : "transparent", cursor: "pointer", color: newTaskType === "crescimento" ? "#A78BFA" : "#9e96b5", fontSize: 11, fontWeight: 600, fontFamily: "inherit" }}>↑ Crescer</button>
             </div>
             {/* Pedra da semana */}
-            {(() => {
-              const occupiedStones = tasks.filter((t: any) => t.task_type === "crescimento" && t.linked_goal_id != null).length >= 3
-                ? [1,2,3] : tasks.filter((t: any) => (t as any).stone_rank).map((t: any) => (t as any).stone_rank);
-              const availableRanks = [1,2,3].filter(r => !occupiedStones.includes(r));
-              if (availableRanks.length === 0) return null;
-              return (
-                <div style={{ marginTop: 14, padding: "12px 14px", borderRadius: 14, background: "#0B0B10", border: newIsStone ? "1px solid rgba(124,92,255,0.3)" : "1px solid rgba(167,139,250,0.1)" }}>
-                  <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
-                    <input type="checkbox" checked={newIsStone} onChange={e => setNewIsStone(e.target.checked)}
-                      style={{ accentColor: "#7C5CFF", width: 18, height: 18 }} />
-                    <span style={{ fontSize: 13, fontWeight: 600, color: "#e0d6ff" }}>Definir como pedra da semana</span>
-                  </label>
-                  {newIsStone && (
-                    <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-                      {availableRanks.map(n => (
-                        <button key={n} type="button" onClick={() => setNewStoneRank(n)}
-                          style={{
-                            flex: 1, padding: "8px 0", borderRadius: 10, border: 0, cursor: "pointer",
-                            fontFamily: "inherit", fontSize: 12, fontWeight: 700,
-                            background: newStoneRank === n ? "#7C5CFF" : "rgba(167,139,250,0.08)",
-                            color: newStoneRank === n ? "#fff" : "#9e96b5",
-                          }}>
-                          {["I", "II", "III"][n-1]}
-                        </button>
-                      ))}
-                    </div>
-                  )}
+            <div style={{ marginTop: 14, padding: "12px 14px", borderRadius: 14, background: "#0B0B10", border: newIsStone ? "1px solid rgba(124,92,255,0.3)" : "1px solid rgba(167,139,250,0.1)" }}>
+              <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
+                <input type="checkbox" checked={newIsStone} onChange={e => setNewIsStone(e.target.checked)}
+                  style={{ accentColor: "#7C5CFF", width: 18, height: 18 }} />
+                <span style={{ fontSize: 13, fontWeight: 600, color: "#e0d6ff" }}>Definir como pedra da semana</span>
+              </label>
+              {newIsStone && (
+                <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                  {([1,2,3] as const).map(n => {
+                    const occupied = n === 1 ? currentPlan?.main_focus : n === 2 ? currentPlan?.main_focus_2 : currentPlan?.main_focus_3;
+                    const isOccupied = !!occupied;
+                    return (
+                      <button key={n} type="button" onClick={() => setNewStoneRank(n)}
+                        style={{
+                          flex: 1, padding: "8px 0", borderRadius: 10, border: 0, cursor: "pointer",
+                          fontFamily: "inherit", fontSize: 12, fontWeight: 700,
+                          background: newStoneRank === n ? "#7C5CFF" : "rgba(167,139,250,0.08)",
+                          color: newStoneRank === n ? "#fff" : "#9e96b5",
+                          opacity: isOccupied && newStoneRank !== n ? 0.5 : 1,
+                        }}>
+                        {["I", "II", "III"][n-1]}
+                        {isOccupied && <div style={{ fontSize: 8, opacity: .7 }}>em uso</div>}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+              {newIsStone && (() => {
+                const occupied = newStoneRank === 1 ? currentPlan?.main_focus : newStoneRank === 2 ? currentPlan?.main_focus_2 : currentPlan?.main_focus_3;
+                if (!occupied) return null;
+                return (
+                  <p style={{ margin: "8px 0 0", fontSize: 10, color: "#FF9F43", textAlign: "center" }}>
+                    ⚠️ Já existe uma pedra {["I","II","III"][newStoneRank-1]}: "{String(occupied).slice(0, 40)}" — será substituída
+                  </p>
+                );
+              })()}
                 </div>
               );
             })()}
@@ -624,22 +633,42 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
                     style={{ flex: 1, padding: "7px 0", borderRadius: 8, border: planEditType === "crescimento" ? "1.5px solid #7C5CFF" : "1px solid rgba(167,139,250,0.12)", background: planEditType === "crescimento" ? "rgba(124,92,255,0.1)" : "transparent", cursor: "pointer", color: planEditType === "crescimento" ? "#A78BFA" : "#9e96b5", fontSize: 10, fontWeight: 600, fontFamily: "inherit" }}>↑ Crescer</button>
                 </div>
 
-                {/* Stone */}
+                {/* Definir como pedra da semana */}
                 <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", marginBottom: 10 }}>
                   <input type="checkbox" checked={planEditStone} onChange={e => setPlanEditStone(e.target.checked)}
                     style={{ accentColor: "#7C5CFF", width: 16, height: 16 }} />
-                  <span style={{ fontSize: 12, fontWeight: 600, color: "#e0d6ff" }}>Vinculada à pedra</span>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: "#e0d6ff" }}>Definir como pedra da semana</span>
                 </label>
                 {planEditStone && (
-                  <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
-                    {([1,2,3] as const).map(n => (
-                      <button key={n} type="button" onClick={() => setPlanEditStoneRank(n)}
-                        style={{ flex: 1, padding: "6px 0", borderRadius: 8, border: 0, cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: 700,
-                          background: planEditStoneRank === n ? "#7C5CFF" : "rgba(167,139,250,0.08)", color: planEditStoneRank === n ? "#fff" : "#9e96b5" }}>
-                        {["I","II","III"][n-1]}
-                      </button>
-                    ))}
-                  </div>
+                  <>
+                    <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
+                      {([1,2,3] as const).map(n => {
+                        const occ = n === 1 ? (currentPlan?.main_focus ?? "") : n === 2 ? (currentPlan?.main_focus_2 ?? "") : (currentPlan?.main_focus_3 ?? "");
+                        const isOcc = !!occ;
+                        return (
+                          <button key={n} type="button" onClick={() => setPlanEditStoneRank(n)}
+                            style={{
+                              flex: 1, padding: "6px 0", borderRadius: 8, border: 0, cursor: "pointer",
+                              fontFamily: "inherit", fontSize: 11, fontWeight: 700,
+                              background: planEditStoneRank === n ? "#7C5CFF" : "rgba(167,139,250,0.08)",
+                              color: planEditStoneRank === n ? "#fff" : "#9e96b5",
+                              opacity: isOcc && planEditStoneRank !== n ? 0.5 : 1,
+                            }}>
+                            {["I","II","III"][n-1]}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {(() => {
+                      const occ = planEditStoneRank === 1 ? (currentPlan?.main_focus ?? "") : planEditStoneRank === 2 ? (currentPlan?.main_focus_2 ?? "") : (currentPlan?.main_focus_3 ?? "");
+                      if (!occ) return null;
+                      return (
+                        <p style={{ margin: "0 0 8px", fontSize: 10, color: "#FF9F43", textAlign: "center" }}>
+                          ⚠️ Substituirá "{String(occ).slice(0, 40)}"
+                        </p>
+                      );
+                    })()}
+                  </>
                 )}
 
                 {/* Time */}
@@ -714,7 +743,6 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
                     area: planEditArea,
                     task_type: planEditType,
                     scheduled_time: planEditTime || null,
-                    stone_rank: planEditStone ? planEditStoneRank : null,
                   };
                   const res = await fetch(`/api/weekly-plans/tasks/${editingPlanTask.id}`, {
                     method: "PATCH",
@@ -724,8 +752,17 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
                   if (res.ok) {
                     const updated = await res.json();
                     setTasks((prev: any[]) => prev.map((t: any) => t.id === editingPlanTask.id ? updated : t));
-                    setEditingPlanTask(null);
                   }
+                  // If marked as stone, update the weekly plan
+                  if (planEditStone) {
+                    const stoneField = planEditStoneRank === 1 ? "main_focus" : planEditStoneRank === 2 ? "main_focus_2" : "main_focus_3";
+                    await fetch("/api/weekly-plans", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ [stoneField]: planEditTitle.trim(), week_start: currentWeekStart }),
+                    });
+                  }
+                  setEditingPlanTask(null);
                 }
               }}
                 style={{ flex: 2, padding: "12px 0", borderRadius: 14, border: 0, background: "#7C5CFF", color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
