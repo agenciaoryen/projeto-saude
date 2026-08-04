@@ -48,8 +48,9 @@ export default function DashboardPage() {
   const [todaySpending, setTodaySpending] = useState<number | null>(null);
   const [spendingLimit] = useState(80);
 
-  // Weekly tasks
+  // Weekly tasks & meals
   const [todayTasks, setTodayTasks] = useState<WeeklyTask[]>([]);
+  const [todayMealsCount, setTodayMealsCount] = useState<number>(0);
 
   // ── Fetch core data ──────────────────────────────────────────
 
@@ -123,6 +124,13 @@ export default function DashboardPage() {
         const todayDow = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1;
         const allTasks: WeeklyTask[] = weeklyPlanData?.current?.weekly_tasks ?? [];
         setTodayTasks(allTasks.filter((t: WeeklyTask) => t.day_of_week === todayDow));
+      })
+      .catch(() => {});
+
+    // Today's meals count — independent
+    cachedFetch<Array<{ meal_type: string }>>(`/api/meals?date=${today}`)
+      .then((meals) => {
+        if (Array.isArray(meals)) setTodayMealsCount(meals.length);
       })
       .catch(() => {});
   }, [router]);
@@ -234,6 +242,7 @@ export default function DashboardPage() {
         todaySpending={todaySpending}
         spendingLimit={spendingLimit}
         todayTasks={todayTasks}
+        todayMealsCount={todayMealsCount}
         loading={loading}
       />
 
