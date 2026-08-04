@@ -71,7 +71,14 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
   const [plan, setPlan] = useState<any>(null);
   const [tasks, setTasks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedDay, setSelectedDay] = useState(() => { const d = new Date().getDay(); return d === 0 ? 6 : d - 1; });
+  // Start at 0 (Monday) to avoid hydration crash, client useEffect corrects it
+  const [selectedDay, setSelectedDay] = useState(0);
+  const [dayReady, setDayReady] = useState(false);
+  useEffect(() => {
+    const d = new Date().getDay();
+    setSelectedDay(d === 0 ? 6 : d - 1);
+    setDayReady(true);
+  }, []);
   const [showAddTask, setShowAddTask] = useState(false);
   const [showReview, setShowReview] = useState(false);
   // Client-only current time
@@ -329,7 +336,7 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
       {/* Tasks */}
       <div style={{ background: "#1a1530", borderRadius: 16, border: "1px solid rgba(167,139,250,0.1)", padding: "10px 14px", marginBottom: 8 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-          <p style={{ margin: 0, fontSize: 11, fontWeight: 600, color: "#9e96b5" }}>{DAY_FULL[selectedDay]}</p>
+          <p suppressHydrationWarning style={{ margin: 0, fontSize: 11, fontWeight: 600, color: "#9e96b5" }}>{DAY_FULL[selectedDay]}</p>
         </div>
         {/* Current time indicator (today only) */}
         {selectedDay === clientTodayDow && now && (
