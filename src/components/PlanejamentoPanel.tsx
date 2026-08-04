@@ -10,7 +10,7 @@ import {
 
 // ── Mini Radar ──────────────────────────────────────────────────
 
-function MiniRadar({ counts }: { counts: Record<string, number> }) {
+function MiniRadar({ done, totals }: { done: Record<string, number>; totals: Record<string, number> }) {
   const RADAR = [
     { key: "saude", label: "Saúde", emoji: "💚", hue: 160 },
     { key: "carreira", label: "Carreira", emoji: "💼", hue: 220 },
@@ -22,19 +22,24 @@ function MiniRadar({ counts }: { counts: Record<string, number> }) {
     { key: "espiritualidade", label: "Espirit.", emoji: "✨", hue: 300 },
     { key: "outros", label: "Outros", emoji: "⚪", hue: 200 },
   ];
-  const N = RADAR.length, MAX = 5, cx = 115, cy = 115, R = 65;
-  const pt = (i: number, v: number) => {
+  const N = RADAR.length, MAX = 100, cx = 115, cy = 115, R = 65;
+  const progress = RADAR.map(a => {
+    const t = totals[a.key] ?? 0;
+    const d = done[a.key] ?? 0;
+    return t > 0 ? Math.round((d / t) * 100) : 0;
+  });
+  const pt = (i: number, pct: number) => {
     const a = -Math.PI / 2 + (i * 2 * Math.PI) / N;
-    return [cx + R * (Math.min(v, MAX) / MAX) * Math.cos(a), cy + R * (Math.min(v, MAX) / MAX) * Math.sin(a)];
+    return [cx + R * (Math.min(pct, MAX) / MAX) * Math.cos(a), cy + R * (Math.min(pct, MAX) / MAX) * Math.sin(a)];
   };
-  const points = RADAR.map((a, i) => pt(i, counts[a.key] ?? 0).join(",")).join(" ");
-  const covered = RADAR.filter(a => (counts[a.key] ?? 0) > 0).length;
+  const points = RADAR.map((_, i) => pt(i, progress[i]).join(",")).join(" ");
+  const fullDone = RADAR.filter((_, i) => progress[i] >= 100).length;
 
   return (
     <div style={{ background: "#1a1530", borderRadius: 18, border: "1px solid rgba(167,139,250,0.1)", padding: "14px 12px 10px", marginBottom: 16 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
-        <p style={{ margin: 0, fontSize: 10, fontWeight: 700, letterSpacing: ".1em", textTransform: "uppercase", color: "#A78BFA" }}>Roda das áreas</p>
-        <span style={{ fontSize: 10, color: "#9e96b5" }}>{covered}/{N} cobertas</span>
+        <p style={{ margin: 0, fontSize: 10, fontWeight: 700, letterSpacing: ".1em", textTransform: "uppercase", color: "#A78BFA" }}>Progresso das áreas</p>
+        <span style={{ fontSize: 10, color: "#9e96b5" }}>{fullDone}/{N} concluídas</span>
       </div>
       <svg viewBox="0 0 240 235" style={{ width: "100%", display: "block", margin: "0 auto" }}>
         {[0.25, 0.5, 0.75, 1].map(r => (
@@ -45,18 +50,20 @@ function MiniRadar({ counts }: { counts: Record<string, number> }) {
         ))}
         <polygon points={points} fill="rgba(124,92,255,0.15)" stroke="#7C5CFF" strokeWidth="1.5" strokeLinejoin="round" />
         {RADAR.map((a, i) => {
-          const v = counts[a.key] ?? 0;
-          if (v === 0) return null;
-          const [x, y] = pt(i, v);
-          return <circle key={a.key} cx={x} cy={y} r="2.5" fill="#fff" stroke="#7C5CFF" strokeWidth="1" />;
+          const pct = progress[i];
+          if (pct === 0) return null;
+          const [x, y] = pt(i, pct);
+          return <circle key={a.key} cx={x} cy={y} r={pct >= 100 ? 3 : 2.5} fill={pct >= 100 ? "#7C5CFF" : "#fff"} stroke="#7C5CFF" strokeWidth="1" />;
         })}
         {RADAR.map((a, i) => {
           const angle = -Math.PI / 2 + (i * 2 * Math.PI) / N;
           const lx = cx + (R + 26) * Math.cos(angle), ly = cy + (R + 26) * Math.sin(angle);
+          const pct = progress[i];
+          const isZero = pct === 0;
           return (
             <g key={a.key}>
-              <text x={lx} y={ly - 7} textAnchor="middle" dominantBaseline="middle" fontSize="13">{a.emoji}</text>
-              <text x={lx} y={ly + 8} textAnchor="middle" dominantBaseline="middle" fontSize="8.5" fill="#9e96b5" fontWeight={600}>{a.label}</text>
+              <text x={lx} y={ly - 7} textAnchor="middle" dominantBaseline="middle" fontSize="13" opacity={isZero ? 0.3 : 1}>{a.emoji}</text>
+              <text x={lx} y={ly + 8} textAnchor="middle" dominantBaseline="middle" fontSize="8.5" fill={isZero ? "#4a4560" : "#9e96b5"} fontWeight={600}>{a.label}</text>
             </g>
           );
         })}
@@ -216,6 +223,11 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
 
   const taskCountsByArea = useMemo(() => {
     const acc: Record<string, number> = {};
+    ALL_AREAS.forEach(a => acc[a] = tasks.filter((t: any) => t.area === a && t.status === "concluida").length);
+    return acc;
+  }, [tasks]);
+  const taskTotalByArea = useMemo(() => {
+    const acc: Record<string, number> = {};
     ALL_AREAS.forEach(a => acc[a] = tasks.filter((t: any) => t.area === a).length);
     return acc;
   }, [tasks]);
@@ -274,7 +286,7 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
       </div>
 
       {/* Radar — always visible */}
-      <MiniRadar counts={taskCountsByArea} />
+      <MiniRadar done={taskCountsByArea} totals={taskTotalByArea} />
 
       <p style={{ margin: "0 0 6px", fontSize: 11, color: "#9e96b5", fontFamily: "monospace" }}>{weekRange(selectedDate)} · {doneTasks}/{tasks.length} ✓</p>
 
