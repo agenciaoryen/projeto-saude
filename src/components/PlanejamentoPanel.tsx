@@ -175,7 +175,6 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
       body: JSON.stringify({
         title: newTaskTitle.trim(), area: newTaskArea, day_of_week: newTaskDay,
         task_type: newTaskType, scheduled_time: newTaskTime || null,
-        stone_rank: newIsStone ? newStoneRank : null,
         week_start: currentWeekStart,
       }),
     });
