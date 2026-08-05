@@ -6,7 +6,7 @@ import type { FinancialTransaction } from "@/types";
 import type { Lang } from "@/lib/i18n";
 import { t as tFn } from "@/lib/i18n";
 import type { CustomCat } from "@/lib/financas-categories";
-import { EXPENSE_CATS, INCOME_CATS, getSubcats } from "@/lib/financas-categories";
+import { EXPENSE_CATS, INCOME_CATS, getSubcats, type UserCategory } from "@/lib/financas-categories";
 import { CategoryPicker } from "./CategoryPicker";
 import { CustomCatModal } from "./CustomCatModal";
 
@@ -28,6 +28,7 @@ const inputStyle: React.CSSProperties = {
 
 export function TransactionModal({
   initial, prefill, onClose, onSaved, lang, currency, customCat, onCustomCatUpdated,
+  userCategories, hiddenCatIds, onManageCategories,
 }: {
   initial?: FinancialTransaction | null;
   prefill?: TxDraft;
@@ -37,6 +38,9 @@ export function TransactionModal({
   currency: string;
   customCat: CustomCat | null;
   onCustomCatUpdated: (c: CustomCat) => void;
+  userCategories: UserCategory[];
+  hiddenCatIds: string[];
+  onManageCategories: () => void;
 }) {
   const [type, setType]         = useState<"receita" | "despesa">(initial?.type ?? prefill?.type ?? "despesa");
   const [amount, setAmount]     = useState(initial ? String(initial.amount) : prefill?.amount ?? "");
@@ -138,8 +142,10 @@ export function TransactionModal({
             subcategory={subcategory}
             lang={lang}
             customCat={customCat}
+            userCategories={userCategories}
+            hiddenCatIds={hiddenCatIds}
             onSelect={(cat, sub) => { setCat(cat); setSubcat(sub); }}
-            onEditCustom={() => setShowCustomEdit(true)}
+            onManage={onManageCategories}
           />
 
           {/* Description */}

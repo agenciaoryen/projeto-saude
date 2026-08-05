@@ -3,45 +3,66 @@
 import { Settings } from "lucide-react";
 import type { Lang } from "@/lib/i18n";
 import { t as tFn } from "@/lib/i18n";
-import { EXPENSE_CATS, INCOME_CATS, getSubcats, type FinCat, type CustomCat } from "@/lib/financas-categories";
-
-function catLabel(c: FinCat, lang: Lang, customCat: CustomCat | null): string {
-  if (c.custom) return customCat?.name ?? tFn(lang, "fin_cat_personalizada");
-  return tFn(lang, `fin_cat_${c.id}`);
-}
+import { mergeCats, type UserCategory, type CustomCat } from "@/lib/financas-categories";
 
 export function CategoryPicker({
   type, category, subcategory, lang, customCat,
-  onSelect, onEditCustom,
+  userCategories, hiddenCatIds,
+  onSelect, onManage,
 }: {
   type: "receita" | "despesa";
   category: string;
   subcategory: string;
   lang: Lang;
   customCat: CustomCat | null;
+  userCategories: UserCategory[];
+  hiddenCatIds: string[];
   onSelect: (cat: string, sub: string) => void;
-  onEditCustom: () => void;
+  onManage: () => void;
 }) {
-  const cats = type === "despesa" ? EXPENSE_CATS : INCOME_CATS;
+  const cats = mergeCats(type, hiddenCatIds, userCategories, customCat);
   const cols = type === "despesa" ? "repeat(4, minmax(0, 1fr))" : "repeat(5, minmax(0, 1fr))";
   const selectedCat = cats.find((c) => c.id === category);
-  const subcats = category ? getSubcats(category, cats, customCat) : [];
+  const subcats = selectedCat?.subcats ?? [];
 
   const textSecondary = "#9e96b5";
   const borderDefault = "rgba(167,139,250,0.15)";
+  const ACCENT = "#7C5CFF";
 
   return (
     <div>
-      <p style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 700, letterSpacing: ".07em", textTransform: "uppercase", color: textSecondary }}>
-        {tFn(lang, "fin_categoria")}
-      </p>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+        <p style={{ margin: 0, fontSize: 11, fontWeight: 700, letterSpacing: ".07em", textTransform: "uppercase", color: textSecondary }}>
+          {tFn(lang, "fin_categoria")}
+        </p>
+        <button
+          type="button"
+          onClick={onManage}
+          style={{
+            border: 0, background: "transparent", cursor: "pointer", padding: 2,
+            color: textSecondary, display: "flex", alignItems: "center", gap: 3,
+            fontFamily: "inherit", fontSize: 10, fontWeight: 600,
+          }}
+        >
+          <Settings size={12} /> Gerenciar
+        </button>
+      </div>
 
       {/* Main category grid */}
       <div style={{ display: "grid", gridTemplateColumns: cols, gap: 6 }}>
         {cats.map((c) => {
           const sel = category === c.id;
-          const label = catLabel(c, lang, customCat);
-          const emoji = c.custom ? (customCat?.emoji ?? c.emoji) : c.emoji;
+          const isUserCat = c.id.startsWith("user_");
+          const label = c.custom
+            ? (isUserCat
+                ? userCategories.find((uc) => `user_${uc.id}` === c.id)?.name ?? c.emoji
+                : (customCat?.name ?? tFn(lang, "fin_cat_personalizada")))
+            : tFn(lang, `fin_cat_${c.id}`);
+          const emoji = c.custom
+            ? (isUserCat
+                ? (userCategories.find((uc) => `user_${uc.id}` === c.id)?.emoji ?? c.emoji)
+                : (customCat?.emoji ?? c.emoji))
+            : c.emoji;
           return (
             <div key={c.id} style={{ position: "relative" }}>
               <button
@@ -64,19 +85,16 @@ export function CategoryPicker({
                   {label}
                 </span>
               </button>
-              {c.custom && (
-                <button
-                  type="button"
-                  onClick={(e) => { e.stopPropagation(); onEditCustom(); }}
-                  style={{
-                    position: "absolute", top: 3, right: 3,
-                    width: 18, height: 18, borderRadius: "50%",
-                    background: "rgba(167,139,250,0.15)", border: 0, cursor: "pointer",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                  }}
-                >
-                  <Settings size={10} style={{ color: "#9e96b5" }} />
-                </button>
+              {/* Badge for user categories */}
+              {isUserCat && (
+                <span style={{
+                  position: "absolute", top: -2, right: -2,
+                  fontSize: 7, fontWeight: 700, color: ACCENT,
+                  background: "#0B0B10", borderRadius: 4, padding: "1px 4px",
+                  border: `1px solid rgba(124,92,255,0.3)`,
+                }}>
+                  sua
+                </span>
               )}
             </div>
           );

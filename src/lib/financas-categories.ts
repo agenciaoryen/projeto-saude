@@ -9,6 +9,19 @@ export interface FinCat {
   hue: number;
   subcats: FinSubcat[];
   custom?: boolean;
+  system?: boolean;   // categoria built-in imutável (ex: "outros")
+}
+
+export interface UserCategory {
+  id: string;
+  user_id: string;
+  type: "receita" | "despesa";
+  name: string;
+  emoji: string;
+  hue: number;
+  subcats: string[];
+  created_at: string;
+  updated_at: string;
 }
 
 export const EXPENSE_CATS: FinCat[] = [
@@ -151,6 +164,11 @@ export const EXPENSE_CATS: FinCat[] = [
     subcats: [],
     custom: true,
   },
+  {
+    id: "outros", emoji: "📦", hue: 160,
+    subcats: [],
+    system: true,
+  },
 ];
 
 export const INCOME_CATS: FinCat[] = [
@@ -198,4 +216,49 @@ export function getSubcats(
     return labels.map((label, i) => ({ id: `p${i}`, label }));
   }
   return cat.subcats;
+}
+
+// ── Merge defaults + user categories ────────────────────────────────────────
+
+/**
+ * Combina categorias padrão (filtrando ocultas) com categorias do usuário.
+ * Ordena: defaults primeiro, depois user cats alfabeticamente.
+ */
+export function mergeCats(
+  type: "receita" | "despesa",
+  hiddenIds: string[],
+  userCats: UserCategory[],
+  customCat: CustomCat | null,
+): FinCat[] {
+  const defaults = type === "despesa" ? EXPENSE_CATS : INCOME_CATS;
+
+  // Filter visible defaults (skip hidden + skip deprecated "personalizada" if user has their own cats)
+  const visibleDefaults = defaults.filter((c) => {
+    if (c.system) return true; // "outros" sempre visível
+    if (c.custom) {
+      // Legacy "personalizada": show only if customCat exists AND user has no user_categories
+      return !!customCat && userCats.length === 0;
+    }
+    return !hiddenIds.includes(c.id);
+  });
+
+  // Convert user categories to FinCat format
+  const userFinCats: FinCat[] = userCats
+    .filter((uc) => uc.type === type)
+    .map((uc) => ({
+      id: `user_${uc.id}`,
+      emoji: uc.emoji,
+      hue: uc.hue,
+      subcats: uc.subcats.map((label, i) => ({ id: `u${i}`, label })),
+      custom: true,
+    }));
+
+  // Sort user cats alphabetically
+  userFinCats.sort((a, b) => {
+    const labelA = userCats.find((uc) => `user_${uc.id}` === a.id)?.name ?? "";
+    const labelB = userCats.find((uc) => `user_${uc.id}` === b.id)?.name ?? "";
+    return labelA.localeCompare(labelB);
+  });
+
+  return [...visibleDefaults, ...userFinCats];
 }

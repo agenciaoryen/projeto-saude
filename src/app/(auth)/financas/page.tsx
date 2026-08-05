@@ -6,11 +6,12 @@ import { Plus, Pencil, Trash2, Target, ChevronLeft, ChevronRight, TrendingUp, Tr
 import type { FinancialTransaction, FinancialBudget, Goal } from "@/types";
 import { useTranslation } from "@/lib/useTranslation";
 import { t as tFn, type Lang } from "@/lib/i18n";
-import { EXPENSE_CATS, INCOME_CATS, getCatById, type FinCat, type CustomCat } from "@/lib/financas-categories";
+import { EXPENSE_CATS, INCOME_CATS, getCatById, type FinCat, type CustomCat, type UserCategory } from "@/lib/financas-categories";
 import { GoalCreateSheet } from "@/components/GoalCreateSheet";
 import { TransactionModal } from "@/components/financas/TransactionModal";
 import { BudgetModal } from "@/components/financas/BudgetModal";
 import { AddTypeSheet } from "@/components/financas/AddTypeSheet";
+import { CategoryManager } from "@/components/financas/CategoryManager";
 
 // ── Currency ──────────────────────────────────────────────────────────────────
 
@@ -154,6 +155,9 @@ export default function FinancasPage() {
   const { lang } = useTranslation();
   const [currency, setCurrency] = useState("BRL");
   const [customCat, setCustomCat] = useState<CustomCat | null>(null);
+  const [userCategories, setUserCategories] = useState<UserCategory[]>([]);
+  const [hiddenCatIds, setHiddenCatIds] = useState<string[]>([]);
+  const [showCategoryManager, setShowCategoryManager] = useState(false);
   const [monthOffset, setMonthOffset] = useState(0);
   const [transactions, setTransactions] = useState<FinancialTransaction[]>([]);
   const [budgets, setBudgets] = useState<FinancialBudget[]>([]);
@@ -172,11 +176,12 @@ export default function FinancasPage() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [prefsRes, txRes, budgetRes, goalsRes] = await Promise.all([
+    const [prefsRes, txRes, budgetRes, goalsRes, catsRes] = await Promise.all([
       fetch("/api/preferences").then((r) => r.json()),
       fetch(`/api/financas/transactions?month=${currentMonth}`).then((r) => r.json()),
       fetch(`/api/financas/budgets?month=${currentMonth}`).then((r) => r.json()),
       fetch("/api/goals").then((r) => r.json()),
+      fetch("/api/financas/categories").then((r) => r.json()),
     ]);
     if (prefsRes.context?.currency) setCurrency(prefsRes.context.currency);
     if (prefsRes.context?.custom_fin_cat) setCustomCat(prefsRes.context.custom_fin_cat);
@@ -185,6 +190,8 @@ export default function FinancasPage() {
     if (Array.isArray(goalsRes)) {
       setGoals(goalsRes.filter((g: Goal) => g.area === "financas" && g.source === "financas" && g.status === "ativa"));
     }
+    if (catsRes?.categories) setUserCategories(catsRes.categories);
+    if (catsRes?.hiddenFinCats) setHiddenCatIds(catsRes.hiddenFinCats);
     setLoading(false);
   }, [currentMonth]);
 
@@ -634,6 +641,26 @@ export default function FinancasPage() {
           currency={currency}
           customCat={customCat}
           onCustomCatUpdated={setCustomCat}
+          userCategories={userCategories}
+          hiddenCatIds={hiddenCatIds}
+          onManageCategories={() => {
+            setShowAdd(false);
+            setEditTx(null);
+            setShowCategoryManager(true);
+          }}
+        />
+      )}
+
+      {showCategoryManager && (
+        <CategoryManager
+          type="despesa"
+          hiddenIds={hiddenCatIds}
+          userCategories={userCategories}
+          customCat={customCat}
+          lang={lang}
+          onHiddenChange={setHiddenCatIds}
+          onCategoriesChange={load}
+          onClose={() => setShowCategoryManager(false)}
         />
       )}
 

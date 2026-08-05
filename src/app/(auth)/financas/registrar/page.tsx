@@ -6,9 +6,10 @@ import { Camera, ImageIcon, X, ArrowLeft } from "lucide-react";
 import { compressImage } from "@/lib/photo-storage";
 import { useTranslation } from "@/lib/useTranslation";
 import { t as tFn, type Lang } from "@/lib/i18n";
-import { EXPENSE_CATS, INCOME_CATS, getSubcats, type CustomCat } from "@/lib/financas-categories";
+import { EXPENSE_CATS, INCOME_CATS, getSubcats, type CustomCat, type UserCategory } from "@/lib/financas-categories";
 import { CategoryPicker } from "@/components/financas/CategoryPicker";
 import { CustomCatModal } from "@/components/financas/CustomCatModal";
+import { CategoryManager } from "@/components/financas/CategoryManager";
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
 
@@ -44,7 +45,10 @@ export default function FinancasRegistrarPage() {
   const galleryRef = useRef<HTMLInputElement>(null);
 
   const [customCat, setCustomCat] = useState<CustomCat | null>(null);
+  const [userCategories, setUserCategories] = useState<UserCategory[]>([]);
+  const [hiddenCatIds, setHiddenCatIds] = useState<string[]>([]);
   const [showCustomEdit, setShowCustomEdit] = useState(false);
+  const [showCategoryManager, setShowCategoryManager] = useState(false);
   const [photo, setPhoto] = useState<string | null>(null);
   const [stage, setStage] = useState<Stage>("capture");
   const [draft, setDraft] = useState<Draft>({
@@ -58,12 +62,14 @@ export default function FinancasRegistrarPage() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    fetch("/api/preferences")
-      .then((r) => r.json())
-      .then((prefs) => {
-        if (prefs.context?.custom_fin_cat) setCustomCat(prefs.context.custom_fin_cat);
-      })
-      .catch(() => {});
+    Promise.all([
+      fetch("/api/preferences").then((r) => r.json()),
+      fetch("/api/financas/categories").then((r) => r.json()),
+    ]).then(([prefs, catsRes]) => {
+      if (prefs.context?.custom_fin_cat) setCustomCat(prefs.context.custom_fin_cat);
+      if (catsRes?.categories) setUserCategories(catsRes.categories);
+      if (catsRes?.hiddenFinCats) setHiddenCatIds(catsRes.hiddenFinCats);
+    }).catch(() => {});
   }, []);
 
   const handleFile = async (file: File) => {
@@ -246,8 +252,10 @@ export default function FinancasRegistrarPage() {
             subcategory={draft.subcategory}
             lang={lang}
             customCat={customCat}
+            userCategories={userCategories}
+            hiddenCatIds={hiddenCatIds}
             onSelect={(cat, sub) => setDraft((p) => ({ ...p, category: cat, subcategory: sub }))}
-            onEditCustom={() => setShowCustomEdit(true)}
+            onManage={() => setShowCategoryManager(true)}
           />
 
           {/* Description */}
@@ -294,6 +302,23 @@ export default function FinancasRegistrarPage() {
             lang={lang}
             onClose={() => setShowCustomEdit(false)}
             onSaved={(updated) => setCustomCat(updated)}
+          />
+        )}
+
+        {showCategoryManager && (
+          <CategoryManager
+            type={draft.type}
+            hiddenIds={hiddenCatIds}
+            userCategories={userCategories}
+            customCat={customCat}
+            lang={lang}
+            onHiddenChange={setHiddenCatIds}
+            onCategoriesChange={async () => {
+              const catsRes = await fetch("/api/financas/categories").then((r) => r.json());
+              if (catsRes?.categories) setUserCategories(catsRes.categories);
+              if (catsRes?.hiddenFinCats) setHiddenCatIds(catsRes.hiddenFinCats);
+            }}
+            onClose={() => setShowCategoryManager(false)}
           />
         )}
 
