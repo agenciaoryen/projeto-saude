@@ -91,7 +91,7 @@ function MiniRadar({ done, totals }: { done: Record<string, number>; totals: Rec
           return (
             <g key={a.key}>
               <text x={lx} y={ly - 7} textAnchor="middle" dominantBaseline="middle" fontSize="15" opacity={inactive ? 0.35 : 1}>{a.emoji}</text>
-              <text x={lx} y={ly + 9} textAnchor="middle" dominantBaseline="middle" fontSize="8" fontWeight="700" fill={inactive ? "#4a4560" : "#A78BFA"} letterSpacing=".02em">{a.label}</text>
+              <text x={lx} y={ly + 9} textAnchor="middle" dominantBaseline="middle" fontSize="7.5" fontWeight="700" fill={inactive ? "#4a4560" : "#A78BFA"} letterSpacing=".01em">{a.label}</text>
             </g>
           );
         })}
