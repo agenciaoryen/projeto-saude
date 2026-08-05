@@ -8,7 +8,7 @@ interface MayaAvatarProps {
   className?: string;
 }
 
-const MAYA_IMAGE = "/maya-avatar.png";
+const MAYA_IMAGE = "/maya-avatar.webp";
 
 export function MayaAvatar({ state = "idle", size = 60, className = "" }: MayaAvatarProps) {
   if (state === "hero") {

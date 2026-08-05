@@ -25,7 +25,7 @@ export default function LandingPage() {
             width: 200, height: 200, margin: "0 auto 14px",
             position: "relative", display: "flex", alignItems: "center", justifyContent: "center",
           }}>
-            <img src="/maya-avatar.png" alt="Maya"
+            <img src="/maya-avatar.webp" alt="Maya"
               style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", display: "block" }} />
             {/* Bottom fade */}
             <div style={{
