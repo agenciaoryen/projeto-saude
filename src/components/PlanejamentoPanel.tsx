@@ -22,7 +22,7 @@ function MiniRadar({ done, totals }: { done: Record<string, number>; totals: Rec
     { key: "espiritualidade", label: "Espirit.", emoji: "✨", hue: 300 },
     { key: "outros", label: "Outros", emoji: "⚪", hue: 200 },
   ];
-  const N = RADAR.length, MAX = 100, cx = 130, cy = 130, R = 82;
+  const N = RADAR.length, MAX = 100, cx = 140, cy = 140, R = 85;
   const progress = RADAR.map(a => {
     const t = totals[a.key] ?? 0;
     const d = done[a.key] ?? 0;
@@ -48,7 +48,7 @@ function MiniRadar({ done, totals }: { done: Record<string, number>; totals: Rec
         <p style={{ margin: 0, fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "#A78BFA" }}>Roda das áreas</p>
         <span style={{ fontSize: 10, color: "#9e96b5" }}>{fullDone}/{N} 100%</span>
       </div>
-      <svg viewBox="0 0 260 260" style={{ width: "100%", display: "block", margin: "0 auto" }}>
+      <svg viewBox="0 0 280 280" style={{ width: "100%", display: "block", margin: "0 auto" }}>
         <defs>
           <radialGradient id="radarGrad" cx="50%" cy="50%" r="50%">
             <stop offset="0%" stopColor="rgba(124,92,255,0.3)" />
