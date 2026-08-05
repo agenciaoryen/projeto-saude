@@ -244,6 +244,7 @@ export default function DashboardPage() {
       <TodayStrip
         recentSleep={recentSleep}
         todayCheckIn={todayCheckIn}
+        userGender={userGender}
         todaySpending={todaySpending}
         spendingLimit={spendingLimit}
         todayTasks={todayTasks}

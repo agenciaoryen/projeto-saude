@@ -1,7 +1,13 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { getMoodLabel, getMoodById } from "@/lib/checkin-moods";
 import type { CheckIn, SleepLog, WeeklyTask } from "@/types";
+
+function formatMood(moodId: string, gender: string): string {
+  const chip = getMoodById(moodId);
+  return chip ? getMoodLabel(chip, gender) : moodId;
+}
 
 /* ── Mini card skeleton ─────────────────────────────────────── */
 
@@ -73,6 +79,7 @@ function MiniCard({
 interface TodayStripProps {
   recentSleep: SleepLog | null;
   todayCheckIn: CheckIn | null;
+  userGender: string;
   todaySpending: number | null;
   spendingLimit: number;
   todayTasks: WeeklyTask[];
@@ -86,6 +93,7 @@ interface TodayStripProps {
 export function TodayStrip({
   recentSleep,
   todayCheckIn,
+  userGender,
   todaySpending,
   spendingLimit,
   todayTasks,
@@ -127,13 +135,15 @@ export function TodayStrip({
     ? recentSleep.quality >= 3 ? "#22D18B" : "#FF5C5C"
     : undefined;
 
-  const moodValue = todayCheckIn?.mood_tags?.[0]
-    ? todayCheckIn.mood_tags[0].charAt(0).toUpperCase() + todayCheckIn.mood_tags[0].slice(1)
+  const moodTagId = todayCheckIn?.mood_tags?.[0];
+  const moodValue = moodTagId
+    ? formatMood(moodTagId, userGender)
     : todayCheckIn?.feeling
       ? `"${todayCheckIn.feeling.slice(0, 12)}${todayCheckIn.feeling.length > 12 ? "…" : ""}"`
       : "—";
 
-  const moodSub = todayCheckIn ? "Check-in feito" : "Pendente";
+  const moodSub = todayCheckIn ? "Check-in feito" : "Toque para registrar";
+  const moodEmoji = moodTagId ? (getMoodById(moodTagId)?.emoji ?? "😊") : todayCheckIn ? "😊" : "🤔";
 
   const mealCount = todayMealsCount ?? 0;
   const mealKcal = todayMealsKcal ?? null;
@@ -176,7 +186,7 @@ export function TodayStrip({
           onClick={() => router.push("/sono")}
         />
         <MiniCard
-          emoji={todayCheckIn?.mood_tags?.[0] ? "😊" : "🤔"}
+          emoji={moodEmoji}
           label="Humor"
           value={moodValue}
           sub={moodSub}
