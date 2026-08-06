@@ -1535,17 +1535,40 @@ function ListView({ allWeekTasks, loadWeekTasks, compromissos, selectedDate }: {
               dateLabel = `${String(mon.getDate()).padStart(2, "0")}/${String(mon.getMonth() + 1).padStart(2, "0")}`;
             }
             return (
-              <div key={t.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 0", borderTop: "1px solid rgba(167,139,250,0.05)" }}>
-                <span style={{ fontSize: 12, width: 18, height: 18, borderRadius: 4, flexShrink: 0, border: "1.5px solid rgba(255,159,67,0.4)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+              <div key={t.id} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 0", borderTop: "1px solid rgba(167,139,250,0.05)" }}>
+                <span style={{ width: 18, height: 18, borderRadius: 4, flexShrink: 0, border: "1.5px solid rgba(255,159,67,0.4)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
                   onClick={async (e) => {
                     e.stopPropagation();
-                    const newStatus = "concluida";
-                    await fetch(`/api/weekly-plans/tasks/${t.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: newStatus }) });
+                    await fetch(`/api/weekly-plans/tasks/${t.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "concluida" }) });
                     loadWeekTasks();
                   }}
                 />
-                <span style={{ flex: 1, fontSize: 11, color: "#FF9F43", cursor: "pointer" }} onClick={() => openEditor(t)}>{t.title}</span>
-                <span style={{ fontSize: 9, color: "#9e96b5" }}>{dateLabel}</span>
+                <span style={{ flex: 1, fontSize: 11, color: "#FF9F43", cursor: "pointer", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} onClick={() => openEditor(t)}>{t.title}</span>
+                <span style={{ fontSize: 8, color: "#9e96b5", flexShrink: 0 }}>{dateLabel}</span>
+                <button type="button"
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    const todayDow = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1;
+                    // Get or create current week's plan, then move task
+                    const weekRes = await fetch("/api/weekly-plans", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ main_focus: "", week_start: getCurrentWeekMonday() }),
+                    });
+                    if (weekRes.ok) {
+                      const plan = await weekRes.json();
+                      await fetch(`/api/weekly-plans/tasks/${t.id}`, {
+                        method: "PATCH",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ day_of_week: todayDow, weekly_plan_id: plan.id }),
+                      });
+                      loadWeekTasks();
+                    }
+                  }}
+                  title="Mover para esta semana"
+                  style={{ padding: "2px 6px", borderRadius: 6, border: "1px solid rgba(167,139,250,0.2)", background: "rgba(124,92,255,0.06)", color: "#A78BFA", fontSize: 8, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", flexShrink: 0, whiteSpace: "nowrap" }}>
+                  Hoje →
+                </button>
               </div>
             );
           })}

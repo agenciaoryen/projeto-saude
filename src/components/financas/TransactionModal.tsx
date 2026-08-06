@@ -44,6 +44,7 @@ export function TransactionModal({
 }) {
   const [type, setType]         = useState<"receita" | "despesa">(initial?.type ?? prefill?.type ?? "despesa");
   const [amount, setAmount]     = useState(initial ? String(initial.amount) : prefill?.amount ?? "");
+  const [amountFocused, setAmountFocused] = useState(false);
   const [category, setCat]      = useState<string>(initial?.category ?? prefill?.category ?? "");
   const [subcategory, setSubcat]= useState<string>(initial?.subcategory ?? prefill?.subcategory ?? "");
   const [desc, setDesc]         = useState(initial?.description ?? prefill?.description ?? "");
@@ -122,17 +123,44 @@ export function TransactionModal({
             <p style={{ margin: "0 0 6px", fontSize: 11, fontWeight: 700, letterSpacing: ".07em", textTransform: "uppercase", color: "#9e96b5" }}>
               {tFn(lang, "fin_valor")}
             </p>
-            <input
-              autoFocus
-              type="number"
-              inputMode="decimal"
-              min="0.01"
-              step="0.01"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              placeholder="0,00"
-              style={{ ...inputStyle, fontSize: 22, fontWeight: 700 }}
-            />
+            <div style={{
+              display: "flex", alignItems: "center", gap: 0,
+              borderRadius: 12, border: `1px solid ${amountFocused ? "#7C5CFF" : "rgba(167,139,250,0.2)"}`,
+              background: "#0B0B10", paddingRight: 14,
+              transition: "border-color .15s ease",
+            }}>
+              <span style={{
+                padding: "12px 0 12px 14px", fontSize: 22, fontWeight: 700,
+                color: amount ? "#e0d6ff" : "#9e96b5", fontFamily: "inherit",
+                whiteSpace: "nowrap",
+              }}>
+                {(() => {
+                  // Show currency symbol based on locale
+                  const symbols: Record<string, string> = {
+                    BRL: "R$", USD: "$", EUR: "€", GBP: "£",
+                    ARS: "$", CLP: "$", MXN: "$",
+                  };
+                  return symbols[currency] ?? currency + " ";
+                })()}
+              </span>
+              <input
+                autoFocus
+                type="number"
+                inputMode="decimal"
+                min="0.01"
+                step="0.01"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                onFocus={() => setAmountFocused(true)}
+                onBlur={() => setAmountFocused(false)}
+                placeholder="0,00"
+                style={{
+                  flex: 1, padding: "12px 0", border: "none", background: "transparent",
+                  fontFamily: "inherit", fontSize: 22, fontWeight: 700, color: "#e0d6ff",
+                  outline: "none",
+                }}
+              />
+            </div>
           </div>
 
           {/* Category + subcategory picker */}
