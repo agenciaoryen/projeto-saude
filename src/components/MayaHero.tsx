@@ -44,6 +44,14 @@ export function MayaHero({
   const router = useRouter();
   const { t } = useTranslation();
 
+  const timeGreeting = useMemo(() => {
+    const h = new Date().getHours();
+    if (h < 5) return { saudacao: "Boa noite", icon: "🌙" };
+    if (h < 12) return { saudacao: "Bom dia", icon: "☀️" };
+    if (h < 18) return { saudacao: "Boa tarde", icon: "🌤️" };
+    return { saudacao: "Boa noite", icon: "🌙" };
+  }, []);
+
   const mayaMessage = useMemo(() => {
     if (!firstName) return null;
     const sleepQuality = recentSleep?.quality ?? null;
@@ -57,12 +65,13 @@ export function MayaHero({
     const tasks = todayTasks || [];
     const todayDone = tasks.filter(t => t.status === "concluida").length;
     const todayTotal = tasks.length;
+    const { saudacao } = timeGreeting;
 
     // Priority: nudge from API (already contextual)
     if (mayaNudge?.message) return mayaNudge.message;
 
     if (!todayCheckIn) {
-      let msg = `Oi ${firstName}! `;
+      let msg = `${saudacao}, ${firstName}! `;
       if (sleepBad && spendingPct && spendingPct > 60) {
         msg += `Você dormiu mal e já gastou ${spendingPct}% do orçamento. Como pretende virar esse jogo hoje?`;
       } else if (sleepBad && todayTotal > 0) {
@@ -83,7 +92,7 @@ export function MayaHero({
 
     // Post-check-in: contextual based on plan progress
     if (todayTotal > 0 && todayDone === 0) {
-      return `Bom dia, ${firstName}! Nenhuma tarefa concluída ainda — quer começar pela mais rápida?`;
+      return `${saudacao}, ${firstName}! Nenhuma tarefa concluída ainda — quer começar pela mais rápida?`;
     }
     if (todayTotal > 0 && todayDone === todayTotal) {
       return `Uau, ${firstName}! 🎉 Todas as ${todayTotal} tarefas de hoje concluídas. Isso merece uma comemoração!`;
@@ -92,11 +101,23 @@ export function MayaHero({
       return `${todayDone}/${todayTotal} tarefas feitas hoje, ${firstName}. Tá indo bem! Quer conversar sobre o que ainda falta?`;
     }
 
-    const h = new Date().getHours();
-    const saudacao = h < 12 ? "Bom dia" : h < 18 ? "Boa tarde" : "Boa noite";
-    const pergunta = h >= 18 ? "Como foi seu dia?" : "Como está sendo seu dia?";
+    const pergunta = timeGreeting.saudacao === "Boa noite" ? "Como foi seu dia?" : "Como está sendo seu dia?";
     return `${saudacao}, ${firstName}. ${pergunta}`;
-  }, [firstName, todayCheckIn, recentSleep, todaySpending, spendingLimit, lastMood, mayaNudge, userGender, todayTasks]);
+  }, [firstName, todayCheckIn, recentSleep, todaySpending, spendingLimit, lastMood, mayaNudge, userGender, todayTasks, timeGreeting]);
+
+  // Default CTA when no nudge action
+  const defaultAction = useMemo(() => {
+    if (mayaNudge?.action) return mayaNudge.action;
+    const tasks = todayTasks || [];
+    const todayTotal = tasks.length;
+    const todayDone = tasks.filter(t => t.status === "concluida").length;
+    // If there are pending tasks, CTA = go to agenda
+    if (todayTotal > 0 && todayDone < todayTotal) {
+      return { label: "Ver tarefas do dia", href: "/agenda" };
+    }
+    // Default: chat with Maya
+    return { label: t("conversar_com_maya"), href: "/insights" };
+  }, [mayaNudge, todayTasks, t]);
 
   return (
     <div className="relative flex flex-col items-center" style={{ paddingTop: 0, paddingBottom: 24 }}>
@@ -152,15 +173,15 @@ export function MayaHero({
         )}
       </div>
 
-      {/* CTA Button — adapts to nudge action */}
+      {/* CTA Button — adapts to context */}
       {(() => {
-        const action = mayaNudge?.action;
-        const label = action?.label || t("conversar_com_maya");
-        const href = action?.href || "/insights";
-        const isChat = href.startsWith("/insights");
+        const action = defaultAction;
+        const label = action.label;
+        const href = action.href;
+        const isChat = href.startsWith("/insights") && mayaMessage;
         // If going to chat, carry Maya's message as context
-        const finalHref = isChat && mayaNudge?.message
-          ? `/insights?context=${encodeURIComponent(mayaNudge.message)}`
+        const finalHref = isChat
+          ? `/insights?context=${encodeURIComponent(mayaMessage)}`
           : href;
 
         return (
