@@ -64,7 +64,7 @@ export function GoalCreateSheet({ onClose, onCreated, initialArea, source }: {
   };
 
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 100, background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+    <div style={{ position: "fixed", inset: 0, zIndex: 100, background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)", display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "max(40px, 8dvh) 20px 20px", overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
       <div style={{ width: "100%", maxWidth: 420, maxHeight: "85dvh", overflowY: "auto", background: "#151520", borderRadius: 24, padding: 24, border: "1px solid rgba(167,139,250,0.15)" }}>
         <h2 style={{ margin: "0 0 4px", fontSize: 18, fontWeight: 700, color: "#e0d6ff" }}>
           {step === 1 ? "Nova meta" : step === 2 ? "Tipo da meta" : "Compromisso"}
