@@ -191,7 +191,7 @@ export function LifeWheel({ done, totals }: LifeWheelProps) {
             const lx = cx + (R + 38) * Math.cos(a2);
             const ly = cy + (R + 38) * Math.sin(a2);
             const pct = animated ? progress[i] : 0;
-            const inactive = pct === 0 && !hasData ? false : pct === 0;
+            const inactive = pct === 0 && !hasAnyPlanned ? false : pct === 0;
             return (
               <g key={a.key}>
                 <text x={lx} y={ly - 8} textAnchor="middle" dominantBaseline="middle"
