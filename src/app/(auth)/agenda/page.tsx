@@ -1444,7 +1444,8 @@ const navBtnStyle: React.CSSProperties = {
   color: "#e0d6ff",
 };
 
-function ListView({ allWeekTasks, loadWeekTasks, compromissos, selectedDate }: { allWeekTasks: any[]; loadWeekTasks: () => void; compromissos: AgendaItem[]; selectedDate: string }) {
+function ListView({ allWeekTasks, loadWeekTasks, compromissos, selectedDate }: { allWeekTasks: any[]; loadWeekTasks: () => Promise<void>; compromissos: AgendaItem[]; selectedDate: string }) {
+  const [listLoading, setListLoading] = useState(true);
   const [goals, setGoals] = useState<any[]>([]);
   const [editingItem, setEditingItem] = useState<any>(null);
   const [editTitle, setEditTitle] = useState("");
@@ -1457,7 +1458,12 @@ function ListView({ allWeekTasks, loadWeekTasks, compromissos, selectedDate }: {
   };
 
   useEffect(() => {
-    if (allWeekTasks.length === 0) loadWeekTasks();
+    if (allWeekTasks.length === 0) {
+      setListLoading(true);
+      loadWeekTasks().finally(() => setListLoading(false));
+    } else {
+      setListLoading(false);
+    }
     refreshGoals();
   }, []); // eslint-disable-line
 
@@ -1519,6 +1525,16 @@ function ListView({ allWeekTasks, loadWeekTasks, compromissos, selectedDate }: {
     setEditingItem(null); loadWeekTasks();
     window.location.reload();
   };
+
+  if (listLoading) {
+    return (
+      <div style={{ padding: "0 20px" }}>
+        {[1,2,3].map(i => (
+          <div key={i} style={{ height: 12, borderRadius: 6, background: "rgba(167,139,250,0.06)", marginBottom: 10, width: `${100 - i * 20}%` }} />
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div style={{ padding: "0 20px" }}>
