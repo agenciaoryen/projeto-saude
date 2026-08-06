@@ -1528,11 +1528,18 @@ function ListView({ allWeekTasks, loadWeekTasks, compromissos, selectedDate }: {
           <h3 style={{ margin: "0 0 8px", fontSize: 12, fontWeight: 700, color: "#FF9F43", textTransform: "uppercase", letterSpacing: ".06em" }}>⚠️ Atrasadas</h3>
           {overdueTasks.map((t: any) => {
             const area = AREA_CONFIG_PT[t.area] || { emoji: "⚪" };
+            // Calculate actual date from week Monday + day offset
+            let dateLabel = "";
+            if (t._weekStart && t.day_of_week != null && t.day_of_week >= 0) {
+              const mon = new Date(t._weekStart + "T12:00:00");
+              mon.setDate(mon.getDate() + t.day_of_week);
+              dateLabel = `${String(mon.getDate()).padStart(2, "0")}/${String(mon.getMonth() + 1).padStart(2, "0")}`;
+            }
             return (
               <button key={t.id} type="button" onClick={() => openEditor(t)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 0", borderTop: "1px solid rgba(167,139,250,0.05)", background: "none", borderLeft: 0, borderRight: 0, cursor: "pointer", textAlign: "left", fontFamily: "inherit" }}>
                 <span style={{ fontSize: 12 }}>{area.emoji}</span>
                 <span style={{ flex: 1, fontSize: 11, color: "#FF9F43" }}>{t.title}</span>
-                <span style={{ fontSize: 9, color: "#9e96b5" }}>{["Seg","Ter","Qua","Qui","Sex","Sáb","Dom"][t.day_of_week]}</span>
+                <span style={{ fontSize: 9, color: "#9e96b5" }}>{dateLabel}</span>
               </button>
             );
           })}

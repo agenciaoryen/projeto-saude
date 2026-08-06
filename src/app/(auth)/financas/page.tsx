@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Target, ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Wallet, Settings } from "lucide-react";
 import type { FinancialTransaction, FinancialBudget, Goal } from "@/types";
 import { useTranslation } from "@/lib/useTranslation";
@@ -177,30 +178,41 @@ export default function FinancasPage() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [prefsRes, txRes, budgetRes, goalsRes, catsRes] = await Promise.all([
-      fetch("/api/preferences").then((r) => r.json()),
-      fetch(`/api/financas/transactions?month=${currentMonth}`).then((r) => r.json()),
-      fetch(`/api/financas/budgets?month=${currentMonth}`).then((r) => r.json()),
-      fetch("/api/goals").then((r) => r.json()),
-      fetch("/api/financas/categories").then((r) => r.json()),
-    ]);
-    if (prefsRes.context?.currency) setCurrency(prefsRes.context.currency);
-    if (prefsRes.context?.custom_fin_cat) setCustomCat(prefsRes.context.custom_fin_cat);
-    if (Array.isArray(txRes)) setTransactions(txRes);
-    if (Array.isArray(budgetRes)) setBudgets(budgetRes);
-    if (Array.isArray(goalsRes)) {
-      setGoals(goalsRes.filter((g: Goal) => g.area === "financas" && (!g.source || g.source === "financas") && g.status === "ativa"));
+    try {
+      const [prefsRes, txRes, budgetRes, goalsRes, catsRes] = await Promise.all([
+        fetch("/api/preferences").then((r) => r.json()),
+        fetch(`/api/financas/transactions?month=${currentMonth}`).then((r) => r.json()),
+        fetch(`/api/financas/budgets?month=${currentMonth}`).then((r) => r.json()),
+        fetch("/api/goals").then((r) => r.json()),
+        fetch("/api/financas/categories").then((r) => r.json()).catch(() => ({ categories: [], hiddenFinCats: [] })),
+      ]);
+      if (prefsRes.context?.currency) setCurrency(prefsRes.context.currency);
+      if (prefsRes.context?.custom_fin_cat) setCustomCat(prefsRes.context.custom_fin_cat);
+      if (Array.isArray(txRes)) setTransactions(txRes);
+      if (Array.isArray(budgetRes)) setBudgets(budgetRes);
+      if (Array.isArray(goalsRes)) {
+        setGoals(goalsRes.filter((g: Goal) => g.area === "financas" && (!g.source || g.source === "financas") && g.status === "ativa"));
+      }
+      if (catsRes?.categories) setUserCategories(catsRes.categories);
+      if (catsRes?.hiddenFinCats) setHiddenCatIds(catsRes.hiddenFinCats);
+    } catch {
+      toast.error("Erro ao carregar dados financeiros");
+    } finally {
+      setLoading(false);
     }
-    if (catsRes?.categories) setUserCategories(catsRes.categories);
-    if (catsRes?.hiddenFinCats) setHiddenCatIds(catsRes.hiddenFinCats);
-    setLoading(false);
   }, [currentMonth]);
 
   useEffect(() => { load(); }, [load]);
 
   const deleteTx = async (id: string) => {
-    await fetch(`/api/financas/transactions/${id}`, { method: "DELETE" });
-    setTransactions((prev) => prev.filter((t) => t.id !== id));
+    try {
+      const res = await fetch(`/api/financas/transactions/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error();
+      setTransactions((prev) => prev.filter((t) => t.id !== id));
+      toast.success("Transação excluída");
+    } catch {
+      toast.error("Erro ao excluir transação");
+    }
     setDeleteId(null);
   };
 
