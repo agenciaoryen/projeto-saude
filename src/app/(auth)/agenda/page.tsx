@@ -1521,14 +1521,13 @@ function ListView({ allWeekTasks, loadWeekTasks, compromissos, selectedDate }: {
   };
 
   return (
-    <div style={{ padding: "0 16px" }}>
+    <div style={{ padding: "0 20px" }}>
       {/* Atrasadas (overdue weekly plan tasks) */}
       {overdueTasks.length > 0 && (
         <div style={{ marginBottom: 12 }}>
           <h3 style={{ margin: "0 0 8px", fontSize: 12, fontWeight: 700, color: "#FF9F43", textTransform: "uppercase", letterSpacing: ".06em" }}>⚠️ Atrasadas</h3>
           {overdueTasks.map((t: any) => {
             const area = AREA_CONFIG_PT[t.area] || { emoji: "⚪" };
-            // Calculate actual date from week Monday + day offset
             let dateLabel = "";
             if (t._weekStart && t.day_of_week != null && t.day_of_week >= 0) {
               const mon = new Date(t._weekStart + "T12:00:00");
@@ -1536,11 +1535,18 @@ function ListView({ allWeekTasks, loadWeekTasks, compromissos, selectedDate }: {
               dateLabel = `${String(mon.getDate()).padStart(2, "0")}/${String(mon.getMonth() + 1).padStart(2, "0")}`;
             }
             return (
-              <button key={t.id} type="button" onClick={() => openEditor(t)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 0", borderTop: "1px solid rgba(167,139,250,0.05)", background: "none", borderLeft: 0, borderRight: 0, cursor: "pointer", textAlign: "left", fontFamily: "inherit" }}>
-                <span style={{ fontSize: 12 }}>{area.emoji}</span>
-                <span style={{ flex: 1, fontSize: 11, color: "#FF9F43" }}>{t.title}</span>
+              <div key={t.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 0", borderTop: "1px solid rgba(167,139,250,0.05)" }}>
+                <span style={{ fontSize: 12, width: 18, height: 18, borderRadius: 4, flexShrink: 0, border: "1.5px solid rgba(255,159,67,0.4)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    const newStatus = "concluida";
+                    await fetch(`/api/weekly-plans/tasks/${t.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: newStatus }) });
+                    loadWeekTasks();
+                  }}
+                />
+                <span style={{ flex: 1, fontSize: 11, color: "#FF9F43", cursor: "pointer" }} onClick={() => openEditor(t)}>{t.title}</span>
                 <span style={{ fontSize: 9, color: "#9e96b5" }}>{dateLabel}</span>
-              </button>
+              </div>
             );
           })}
         </div>
@@ -1554,10 +1560,18 @@ function ListView({ allWeekTasks, loadWeekTasks, compromissos, selectedDate }: {
             const area = AREA_CONFIG_PT[t.area] || { emoji: "⚪" };
             const done = t.status === "concluida";
             return (
-              <button key={t.id} type="button" onClick={() => openEditor(t)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 0", borderTop: "1px solid rgba(167,139,250,0.05)", background: "none", borderLeft: 0, borderRight: 0, cursor: "pointer", textAlign: "left", fontFamily: "inherit" }}>
-                <span style={{ fontSize: 12 }}>{area.emoji}</span>
-                <span style={{ flex: 1, fontSize: 11, color: done ? "#5a5470" : "#e0d6ff", textDecoration: done ? "line-through" : "none" }}>{t.title}</span>
-              </button>
+              <div key={t.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderTop: "1px solid rgba(167,139,250,0.05)" }}>
+                <span style={{ fontSize: 12, flexShrink: 0, width: 18, height: 18, borderRadius: 4, border: done ? "none" : "1.5px solid rgba(167,139,250,0.3)", background: done ? "#7C5CFF" : "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    const newStatus = done ? "pendente" : "concluida";
+                    await fetch(`/api/weekly-plans/tasks/${t.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: newStatus }) });
+                    loadWeekTasks();
+                  }}>
+                  {done && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3"><path d="m5 12 5 5 9-10"/></svg>}
+                </span>
+                <span style={{ flex: 1, fontSize: 11, color: done ? "#5a5470" : "#e0d6ff", textDecoration: done ? "line-through" : "none", cursor: "pointer" }} onClick={() => openEditor(t)}>{t.title}</span>
+              </div>
             );
           })}
         </div>
