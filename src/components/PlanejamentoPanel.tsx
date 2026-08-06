@@ -7,98 +7,13 @@ import {
   AREA_CONFIG, ALL_AREAS, AREA_LABELS, DAY_NAMES, DAY_FULL,
   weekRangeFromDate as weekRange,
 } from "@/lib/planejamento-constants";
+import { LifeWheel } from "@/components/planejamento/LifeWheel";
+import { MayaStrategyCard } from "@/components/planejamento/MayaStrategyCard";
+import { WeekMetricsGrid } from "@/components/planejamento/WeekMetricsGrid";
+import { FocusStones } from "@/components/planejamento/FocusStones";
 
 // ── Mini Radar ──────────────────────────────────────────────────
 
-function MiniRadar({ done, totals }: { done: Record<string, number>; totals: Record<string, number> }) {
-  const RADAR = [
-    { key: "saude", label: "Saúde", emoji: "💚", hue: 160 },
-    { key: "carreira", label: "Carreira", emoji: "💼", hue: 220 },
-    { key: "financas", label: "Finanças", emoji: "💰", hue: 85 },
-    { key: "relacionamentos", label: "Relac.", emoji: "❤️", hue: 15 },
-    { key: "desenvolvimento", label: "Mente", emoji: "🧠", hue: 270 },
-    { key: "familia", label: "Família", emoji: "🏡", hue: 40 },
-    { key: "lazer", label: "Lazer", emoji: "🌊", hue: 185 },
-    { key: "espiritualidade", label: "Espirit.", emoji: "✨", hue: 300 },
-    { key: "outros", label: "Outros", emoji: "⚪", hue: 200 },
-  ];
-  const N = RADAR.length, MAX = 100, cx = 140, cy = 140, R = 85;
-  const progress = RADAR.map(a => {
-    const t = totals[a.key] ?? 0;
-    const d = done[a.key] ?? 0;
-    return t > 0 ? Math.round((d / t) * 100) : 0;
-  });
-  const hasAnyData = progress.some(p => p > 0);
-  const fullDone = RADAR.filter((_, i) => progress[i] >= 100).length;
-  const angle = (i: number) => -Math.PI / 2 + (i * 2 * Math.PI) / N;
-  const pt = (i: number, pct: number) => {
-    const a = angle(i);
-    const r = R * (Math.min(pct, MAX) / MAX);
-    return [cx + r * Math.cos(a), cy + r * Math.sin(a)];
-  };
-  const ringPt = (i: number, ratio: number) => {
-    const a = angle(i);
-    return [cx + R * ratio * Math.cos(a), cy + R * ratio * Math.sin(a)];
-  };
-  const polyPoints = RADAR.map((_, i) => pt(i, progress[i]).join(",")).join(" ");
-
-  return (
-    <div style={{ background: "#1a1530", borderRadius: 18, border: "1px solid rgba(167,139,250,0.1)", padding: "16px 14px 14px", marginBottom: 16 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 2 }}>
-        <p style={{ margin: 0, fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "#A78BFA" }}>Roda das áreas</p>
-        <span style={{ fontSize: 10, color: "#9e96b5" }}>{fullDone}/{N} 100%</span>
-      </div>
-      <svg viewBox="0 0 280 280" style={{ width: "100%", display: "block", margin: "0 auto" }}>
-        <defs>
-          <radialGradient id="radarGrad" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="rgba(124,92,255,0.3)" />
-            <stop offset="100%" stopColor="rgba(124,92,255,0.05)" />
-          </radialGradient>
-        </defs>
-        {/* Grid rings */}
-        {[0.25, 0.5, 0.75, 1].map(r => (
-          <polygon key={r} points={RADAR.map((_, i) => ringPt(i, r).join(",")).join(" ")}
-            fill="none" stroke="rgba(167,139,250,0.15)" strokeWidth="1" strokeDasharray={r === 1 ? "none" : "3,3"} />
-        ))}
-        {/* Axis lines */}
-        {RADAR.map((_, i) => {
-          const [ex, ey] = ringPt(i, 1);
-          return <line key={i} x1={cx} y1={cy} x2={ex} y2={ey} stroke="rgba(167,139,250,0.08)" strokeWidth="0.5" />;
-        })}
-        {/* Data polygon */}
-        {hasAnyData && (
-          <polygon points={polyPoints} fill="url(#radarGrad)" stroke="rgba(124,92,255,0.7)" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
-        )}
-        {/* Dots at vertices */}
-        {RADAR.map((a, i) => {
-          const pct = progress[i];
-          if (pct === 0) return null;
-          const [x, y] = pt(i, pct);
-          return (
-            <g key={a.key}>
-              <circle cx={x} cy={y} r="6" fill="rgba(124,92,255,0.2)" />
-              <circle cx={x} cy={y} r="3.5" fill="#fff" stroke="#7C5CFF" strokeWidth="1.5" />
-              <text x={x} y={y - 10} textAnchor="middle" fontSize="9" fontWeight="700" fill="#A78BFA">{pct}%</text>
-            </g>
-          );
-        })}
-        {/* Area labels */}
-        {RADAR.map((a, i) => {
-          const a2 = angle(i);
-          const lx = cx + (R + 34) * Math.cos(a2), ly = cy + (R + 34) * Math.sin(a2);
-          const pct = progress[i];
-          const inactive = pct === 0 && !hasAnyData ? false : pct === 0;
-          return (
-            <g key={a.key}>
-              <text x={lx} y={ly - 7} textAnchor="middle" dominantBaseline="middle" fontSize="15" opacity={inactive ? 0.35 : 1}>{a.emoji}</text>
-              <text x={lx} y={ly + 9} textAnchor="middle" dominantBaseline="middle" fontSize="7.5" fontWeight="700" fill={inactive ? "#4a4560" : "#A78BFA"} letterSpacing=".01em">{a.label}</text>
-            </g>
-          );
-        })}
-      </svg>
-    </div>
-  );
-}
 
 // ── Panel ───────────────────────────────────────────────────────
 
@@ -157,6 +72,11 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
   const [stone3, setStone3] = useState("");
   const [editingStoneIndex, setEditingStoneIndex] = useState(0); // 0=I, 1=II, 2=III
 
+  // Plan insight from Maya
+  const [planInsight, setPlanInsight] = useState<{ message: string; action?: { label: string; href: string } } | null>(null);
+  const [planMetrics, setPlanMetrics] = useState<{ strongest: string; weakest: string; balance: number; variation: number }>({ strongest: "—", weakest: "—", balance: 50, variation: 0 });
+  const [insightLoading, setInsightLoading] = useState(true);
+
   const fetchPlan = async () => {
     try {
       const res = await fetch(`/api/weekly-plans?week=${currentWeekStart}`);
@@ -172,6 +92,16 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
   useEffect(() => {
     setLoading(true);
     fetchPlan();
+    // Fetch Maya's plan insight
+    setInsightLoading(true);
+    fetch(`/api/maya/plan-insight?week=${currentWeekStart}`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.insights?.length > 0) setPlanInsight(d.insights[0]);
+        if (d.metrics) setPlanMetrics(d.metrics);
+      })
+      .catch(() => {})
+      .finally(() => setInsightLoading(false));
   }, [selectedDate]);
 
   // Lock body scroll when editor is open
@@ -262,6 +192,7 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
 
   const selectedDayTasks = tasks.filter((t: any) => t.day_of_week === selectedDay)
     .sort((a: any, b: any) => (a.position || 0) - (b.position || 0));
+  const doneSelectedDay = selectedDayTasks.filter((t: any) => t.status === "concluida").length;
   const openTasks = tasks.filter((t: any) => t.day_of_week == null || t.day_of_week === -1);
 
   const assignToToday = async (task: any) => {
@@ -276,71 +207,145 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
     }
   };
 
+  const stones = [currentPlan?.main_focus, currentPlan?.main_focus_2, currentPlan?.main_focus_3]
+    .filter(Boolean)
+    .map((text, i) => ({ rank: i + 1, text: text!, area: undefined as string | undefined }));
+
   if (loading) return <p style={{ color: "#9e96b5", fontSize: 13, textAlign: "center", padding: 20 }}>Carregando...</p>;
 
   return (
     <div style={{ marginBottom: 20 }}>
-      {/* Stones */}
-      <div style={{ marginBottom: 14 }}>
-        <h2 style={{ margin: "0 0 10px", fontSize: 13, fontWeight: 700, color: "#A78BFA", textTransform: "uppercase", letterSpacing: ".08em" }}>Pedras</h2>
-        {focuses.length > 0 ? (
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            {focuses.map((focus: string, i: number) => (
-              <button key={i} type="button"
-                onClick={() => {
-                  // Open the same task editor, pre-filled as a stone
-                  setEditingPlanTask({ id: null, title: focus, stoneRank: i + 1, isStone: true });
-                  setPlanEditTitle(focus || "");
-                  setPlanEditDay(-1);
-                  setPlanEditArea("saude");
-                  setPlanEditType("crescimento");
-                  setPlanEditTime("");
-                  setPlanEditStone(true);
-                  setPlanEditStoneRank(i + 1);
-                  setPlanShowMore(false);
-                }}
-                style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 14, border: "1px solid rgba(167,139,250,0.15)", background: "#1a1530", cursor: "pointer", textAlign: "left", fontFamily: "inherit", width: "100%" }}>
-                <span style={{ fontSize: 22, fontWeight: 800, color: "#A78BFA", fontFamily: "monospace", opacity: 0.4, flexShrink: 0 }}>{["I","II","III"][i]}</span>
-                <span style={{ fontSize: 13, fontWeight: 600, color: "#e0d6ff", lineHeight: 1.3 }}>{focus}</span>
+      {/* Maya Strategy Card */}
+      <MayaStrategyCard insight={planInsight} loading={insightLoading} />
+
+      {/* Life Wheel */}
+      <LifeWheel done={taskCountsByArea} totals={taskTotalByArea} />
+
+      {/* Week Metrics */}
+      <WeekMetricsGrid metrics={planMetrics} />
+
+      {/* Focus Stones Carousel */}
+      <FocusStones
+        stones={stones}
+        onEdit={() => {
+          setShowStoneEditor(true);
+          setStone1(currentPlan?.main_focus ?? "");
+          setStone2(currentPlan?.main_focus_2 ?? "");
+          setStone3(currentPlan?.main_focus_3 ?? "");
+        }}
+      />
+
+      {/* Energy Distribution */}
+      {tasks.length > 0 && (
+        <div style={{ marginBottom: 20 }}>
+          <p style={{ margin: "0 0 10px", fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "#A78BFA" }}>
+            Distribuição de energia
+          </p>
+          {ALL_AREAS.filter(a => taskTotalByArea[a] > 0).sort((a, b) => taskTotalByArea[b] - taskTotalByArea[a]).slice(0, 5).map(a => {
+            const pct = tasks.length > 0 ? Math.round((taskTotalByArea[a] / tasks.length) * 100) : 0;
+            const areaConf = AREA_CONFIG[a];
+            return (
+              <div key={a} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+                <span style={{ fontSize: 14, width: 22, textAlign: "center", flexShrink: 0 }}>{areaConf?.emoji || "⚪"}</span>
+                <span style={{ fontSize: 11, fontWeight: 600, color: "#9e96b5", width: 70, flexShrink: 0 }}>{AREA_LABELS[a] || a}</span>
+                <div style={{ flex: 1, height: 6, borderRadius: 9999, background: "rgba(167,139,250,0.08)", overflow: "hidden" }}>
+                  <div style={{
+                    height: "100%", borderRadius: 9999, width: `${Math.max(pct, 3)}%`,
+                    background: `oklch(.5 .12 ${areaConf?.hue || 200})`,
+                    transition: "width 0.6s ease",
+                  }} />
+                </div>
+                <span style={{ fontSize: 10, fontWeight: 700, color: "#A78BFA", width: 30, textAlign: "right", flexShrink: 0 }}>{pct}%</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Day Focus + Tasks */}
+      <div style={{ marginBottom: 20 }}>
+        <p style={{ margin: "0 0 10px", fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "#A78BFA" }}>
+          Foco por dia
+        </p>
+        {/* Day selector */}
+        <div suppressHydrationWarning style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 3, marginBottom: 12 }}>
+          {DAY_NAMES.map((d, i) => {
+            const today = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1;
+            const dt = tasks.filter((t: any) => t.day_of_week === i);
+            const isToday = i === today;
+            const load = dt.length === 0 ? "—" : dt.length <= 2 ? "Leve" : dt.length <= 4 ? "Médio" : dt.length <= 6 ? "Cheio" : "Pesado";
+            return (
+              <button key={i} type="button" onClick={() => setSelectedDay(i)}
+                style={{ padding: "8px 2px 6px", borderRadius: 10, border: isToday ? "1.5px solid rgba(167,139,250,0.4)" : "1.5px solid transparent", background: "transparent", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 4, fontFamily: "inherit" }}>
+                <span style={{ fontSize: 10, fontWeight: isToday ? 700 : 500, color: isToday ? "#A78BFA" : "#9e96b5", textTransform: "uppercase" }}>{d}</span>
+                <span style={{ fontSize: 8, fontWeight: 600, color: "#6a657a" }}>{load}</span>
+                <span style={{ fontSize: 9, fontWeight: 600, color: "#9e96b5" }}>{dt.length > 0 ? `${dt.filter((t: any) => t.status === "concluida").length}/${dt.length}` : ""}</span>
               </button>
-            ))}
-          </div>
-        ) : (
-          <div style={{ textAlign: "center", padding: 20, background: "#1a1530", borderRadius: 14, border: "1px dashed rgba(167,139,250,0.15)" }}>
-            <p style={{ margin: "0 0 6px", color: "#9e96b5", fontSize: 13 }}>Nenhuma pedra definida</p>
-            <p style={{ margin: 0, color: "#9e96b5", fontSize: 11 }}>Toque no + para criar uma atividade e defini-la como pedra</p>
-          </div>
-        )}
-      </div>
+            );
+          })}
+        </div>
 
-      {/* Radar — always visible */}
-      <MiniRadar done={taskCountsByArea} totals={taskTotalByArea} />
-
-      <p style={{ margin: "0 0 6px", fontSize: 11, color: "#9e96b5", fontFamily: "monospace" }}>{weekRange(selectedDate)} · {doneTasks}/{tasks.length} ✓</p>
-
-      {/* Day selector */}
-      <div suppressHydrationWarning style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 3, marginBottom: 12 }}>
-        {DAY_NAMES.map((d, i) => {
-          const today = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1;
-          const dt = tasks.filter((t: any) => t.day_of_week === i);
-          const isToday = i === today;
-          return (
-            <button key={i} type="button" onClick={() => setSelectedDay(i)}
-              style={{ padding: "8px 2px 6px", borderRadius: 10, border: isToday ? "1.5px solid rgba(167,139,250,0.4)" : "1.5px solid transparent", background: "transparent", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 4, fontFamily: "inherit" }}>
-              <span style={{ fontSize: 10, fontWeight: isToday ? 700 : 500, color: isToday ? "#A78BFA" : "#9e96b5", textTransform: "uppercase" }}>{d}</span>
-              <div style={{ display: "flex", gap: 1.5 }}>{dt.slice(0,4).map((t: any, j: number) => (
-                <span key={j} style={{ width: 4, height: 4, borderRadius: "50%", background: t.status === "concluida" ? "#7C5CFF" : "rgba(167,139,250,0.2)" }} />
-              ))}</div>
-              <span style={{ fontSize: 9, fontWeight: 600, color: "#9e96b5" }}>{dt.filter((t: any) => t.status === "concluida").length}/{dt.length}</span>
-            </button>
-          );
-        })}
+        {/* Selected day tasks */}
+        <div style={{ background: "#151520", borderRadius: 18, border: "1px solid rgba(167,139,250,0.08)", padding: "12px 16px" }}>
+          <p suppressHydrationWarning style={{ margin: "0 0 10px", fontSize: 11, fontWeight: 600, color: "#9e96b5" }}>
+            {DAY_FULL[selectedDay]} · {selectedDayTasks.length > 0 ? `${doneSelectedDay}/${selectedDayTasks.length} feitas` : "Sem tarefas"}
+          </p>
+          {/* Current time indicator */}
+          {selectedDay === clientTodayDow && now && (
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, padding: "5px 10px", borderRadius: 8, background: "rgba(255,80,80,0.06)", border: "1px solid rgba(255,80,80,0.15)" }}>
+              <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#FF5050", flexShrink: 0, boxShadow: "0 0 0 3px rgba(255,80,80,0.25)", animation: "pulse 2s ease-in-out infinite" }} />
+              <span style={{ fontSize: 10, fontWeight: 600, color: "#FF7070" }}>Agora · {now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>
+            </div>
+          )}
+          {selectedDayTasks.length === 0 ? (
+            <p style={{ color: "#5a5470", fontSize: 12, textAlign: "center", padding: 12, margin: 0 }}>Nenhuma tarefa</p>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              {selectedDayTasks.map((task: any) => {
+                const area = AREA_CONFIG[task.area as TaskArea] || AREA_CONFIG.outros;
+                const done = task.status === "concluida";
+                return (
+                  <div key={task.id}
+                    onClick={() => {
+                      setEditingPlanTask(task);
+                      setPlanEditTitle(task.title || "");
+                      setPlanEditDay(task.day_of_week ?? 0);
+                      setPlanEditArea(task.area || "saude");
+                      setPlanEditType(task.task_type || "manutencao");
+                      setPlanEditTime(task.scheduled_time?.slice(0, 5) || "");
+                      setPlanEditStone(!!task.stone_rank);
+                      setPlanEditStoneRank(task.stone_rank || 1);
+                      setPlanShowMore(false);
+                    }}
+                    style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 0", borderBottom: "1px solid rgba(167,139,250,0.04)", cursor: "pointer" }}>
+                    <button type="button" onClick={(e) => { e.stopPropagation(); toggleTask(task.id, task.status); }}
+                      style={{ width: 18, height: 18, borderRadius: task.task_type === "manutencao" ? "50%" : 4, flexShrink: 0, border: done ? "none" : "1.5px solid rgba(167,139,250,0.3)", background: done ? "#7C5CFF" : "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      {done && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3"><path d="m5 12 5 5 9-10" /></svg>}
+                    </button>
+                    <span style={{ fontSize: 11 }}>{area.emoji}</span>
+                    {task.stone_rank && (
+                      <span style={{ fontSize: 8, fontWeight: 800, color: "#A78BFA", background: "rgba(167,139,250,0.12)", padding: "1px 4px", borderRadius: 4, fontFamily: "monospace", flexShrink: 0 }}>
+                        {["I","II","III"][task.stone_rank - 1]}
+                      </span>
+                    )}
+                    <span style={{ flex: 1, fontSize: 12, fontWeight: 500, color: done ? "#5a5470" : "#e0d6ff", textDecoration: done ? "line-through" : "none" }}>{task.title}</span>
+                    {task.scheduled_time && <span style={{ fontSize: 9, color: "#6a657a", fontFamily: "monospace" }}>{task.scheduled_time.slice(0,5)}</span>}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          <button type="button" onClick={() => { setNewTaskDay(selectedDay); setShowAddTask(true); }}
+            style={{ marginTop: 10, width: "100%", padding: "10px 0", borderRadius: 12, background: "rgba(124,92,255,0.04)", border: "1.5px dashed rgba(124,92,255,0.2)", cursor: "pointer", color: "#A78BFA", fontSize: 12, fontWeight: 600, fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+            <Plus size={14} /> Adicionar item
+          </button>
+        </div>
       </div>
 
       {/* Em aberto */}
       {openTasks.length > 0 && (
-        <div style={{ background: "#1a1530", borderRadius: 16, border: "1px solid rgba(167,139,250,0.1)", padding: "10px 14px", marginBottom: 8 }}>
-          <p style={{ margin: "0 0 6px", fontSize: 11, fontWeight: 600, color: "#A78BFA" }}>📋 Em aberto</p>
+        <div style={{ background: "#151520", borderRadius: 18, border: "1px solid rgba(167,139,250,0.08)", padding: "12px 16px", marginBottom: 20 }}>
+          <p style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 600, color: "#A78BFA" }}>📋 Em aberto</p>
           {openTasks.map((task: any) => {
             const area = AREA_CONFIG[task.area as TaskArea] || AREA_CONFIG.outros;
             const done = task.status === "concluida";
@@ -357,12 +362,12 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
                   setPlanEditStoneRank(task.stone_rank || 1);
                   setPlanShowMore(false);
                 }}
-                style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 0", borderBottom: "1px solid rgba(167,139,250,0.05)", cursor: "pointer" }}>
+                style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 0", borderBottom: "1px solid rgba(167,139,250,0.04)", cursor: "pointer" }}>
                 <button type="button" onClick={(e) => { e.stopPropagation(); toggleTask(task.id, task.status); }}
                   style={{ width: 18, height: 18, borderRadius: task.task_type === "manutencao" ? "50%" : 4, flexShrink: 0, border: done ? "none" : "1.5px solid rgba(167,139,250,0.3)", background: done ? "#7C5CFF" : "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
                   {done && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3"><path d="m5 12 5 5 9-10" /></svg>}
                 </button>
-                <span style={{ fontSize: 10 }}>{area.emoji}</span>
+                <span style={{ fontSize: 11 }}>{area.emoji}</span>
                 {task.stone_rank && (
                   <span style={{ fontSize: 8, fontWeight: 800, color: "#A78BFA", background: "rgba(167,139,250,0.12)", padding: "1px 4px", borderRadius: 4, fontFamily: "monospace", flexShrink: 0 }}>
                     {["I","II","III"][task.stone_rank - 1]}
@@ -370,7 +375,7 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
                 )}
                 <span style={{ flex: 1, fontSize: 12, fontWeight: 500, color: done ? "#5a5470" : "#e0d6ff", textDecoration: done ? "line-through" : "none" }}>{task.title}</span>
                 <button type="button" onClick={(e) => { e.stopPropagation(); assignToToday(task); }}
-                  style={{ padding: "3px 8px", borderRadius: 9999, border: "1px solid rgba(167,139,250,0.25)", background: "rgba(124,92,255,0.08)", color: "#A78BFA", fontSize: 9, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
+                  style={{ padding: "3px 8px", borderRadius: 9999, border: "1px solid rgba(167,139,250,0.25)", background: "rgba(124,92,255,0.06)", color: "#A78BFA", fontSize: 9, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
                   Hoje →
                 </button>
               </div>
@@ -379,106 +384,44 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
         </div>
       )}
 
-      {/* Tasks */}
-      <div style={{ background: "#1a1530", borderRadius: 16, border: "1px solid rgba(167,139,250,0.1)", padding: "10px 14px", marginBottom: 8 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-          <p suppressHydrationWarning style={{ margin: 0, fontSize: 11, fontWeight: 600, color: "#9e96b5" }}>{DAY_FULL[selectedDay]}</p>
-        </div>
-        {/* Current time indicator (today only) */}
-        {selectedDay === clientTodayDow && now && (
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, padding: "5px 10px", borderRadius: 8, background: "rgba(255,80,80,0.08)", border: "1px solid rgba(255,80,80,0.2)" }}>
-            <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#FF5050", flexShrink: 0, boxShadow: "0 0 0 3px rgba(255,80,80,0.25)", animation: "pulse 2s ease-in-out infinite" }} />
-            <span style={{ fontSize: 10, fontWeight: 600, color: "#FF7070" }}>Agora · {now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>
-          </div>
-        )}
-        {selectedDayTasks.length === 0 ? (
-          <p style={{ color: "#9e96b5", fontSize: 12, textAlign: "center", padding: 8, margin: 0 }}>Nenhuma tarefa</p>
-        ) : (
-          selectedDayTasks.map((task: any) => {
-            const area = AREA_CONFIG[task.area as TaskArea] || AREA_CONFIG.outros;
-            const done = task.status === "concluida";
-            return (
-              <div key={task.id}
-                onClick={() => {
-                  setEditingPlanTask(task);
-                  setPlanEditTitle(task.title || "");
-                  setPlanEditDay(task.day_of_week ?? 0);
-                  setPlanEditArea(task.area || "saude");
-                  setPlanEditType(task.task_type || "manutencao");
-                  setPlanEditTime(task.scheduled_time?.slice(0, 5) || "");
-                  setPlanEditStone(!!task.stone_rank);
-                  setPlanEditStoneRank(task.stone_rank || 1);
-                  setPlanShowMore(false);
-                }}
-                style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 0", borderBottom: "1px solid rgba(167,139,250,0.05)", cursor: "pointer" }}>
-                <button type="button" onClick={(e) => { e.stopPropagation(); toggleTask(task.id, task.status); }}
-                  style={{ width: 18, height: 18, borderRadius: task.task_type === "manutencao" ? "50%" : 4, flexShrink: 0, border: done ? "none" : "1.5px solid rgba(167,139,250,0.3)", background: done ? "#7C5CFF" : "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  {done && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3"><path d="m5 12 5 5 9-10" /></svg>}
-                </button>
-                <span style={{ fontSize: 10 }}>{area.emoji}</span>
-                {task.stone_rank && (
-                  <span style={{ fontSize: 8, fontWeight: 800, color: "#A78BFA", background: "rgba(167,139,250,0.12)", padding: "1px 4px", borderRadius: 4, fontFamily: "monospace", flexShrink: 0 }}>
-                    {["I","II","III"][task.stone_rank - 1]}
-                  </span>
-                )}
-                <span style={{ flex: 1, fontSize: 12, fontWeight: 500, color: done ? "#5a5470" : "#e0d6ff", textDecoration: done ? "line-through" : "none" }}>{task.title}</span>
-                {task.scheduled_time && <span style={{ fontSize: 9, color: "#9e96b5", fontFamily: "monospace" }}>{task.scheduled_time.slice(0,5)}</span>}
+      {/* Weekly Commitment Card */}
+      <div style={{
+        background: "linear-gradient(135deg, #1a1530 0%, rgba(94,234,212,0.04) 100%)",
+        borderRadius: 20, border: "1px solid rgba(94,234,212,0.12)",
+        padding: "18px 20px", marginBottom: 16,
+      }}>
+        <p style={{ margin: "0 0 4px", fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "#5EEAD4" }}>
+          Compromisso da semana
+        </p>
+        <p style={{ margin: "0 0 16px", fontSize: 14, fontWeight: 500, color: "#e0d6ff", lineHeight: 1.5 }}>
+          Qual é a única coisa que, se acontecer esta semana, fará você sentir que ela valeu a pena?
+        </p>
+        {review ? (
+          <div style={{ padding: "12px 14px", borderRadius: 14, background: "rgba(94,234,212,0.06)", border: "1px solid rgba(94,234,212,0.1)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+              <p style={{ margin: 0, fontSize: 10, fontWeight: 700, textTransform: "uppercase", color: "#5EEAD4", letterSpacing: ".06em" }}>Revisão ✓</p>
+              <div style={{ display: "flex", gap: 1 }}>
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <span key={i} style={{ fontSize: 12, color: i < review.week_score ? "#F59E0B" : "rgba(167,139,250,0.15)" }}>★</span>
+                ))}
               </div>
-            );
-          })
+            </div>
+            {review.biggest_win && <p style={{ margin: 0, fontSize: 12, color: "#9e96b5" }}>🏆 {review.biggest_win.slice(0, 100)}</p>}
+            {review.main_learning && <p style={{ margin: "4px 0 0", fontSize: 11, color: "#6a657a" }}>💡 {review.main_learning.slice(0, 100)}</p>}
+          </div>
+        ) : (
+          <button type="button" onClick={() => setShowReview(true)}
+            style={{ width: "100%", padding: "14px 0", borderRadius: 14, border: "1px solid rgba(94,234,212,0.2)", background: "rgba(94,234,212,0.04)", cursor: "pointer", color: "#5EEAD4", fontSize: 13, fontWeight: 700, fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+            <Star size={16} /> Fazer revisão da semana
+          </button>
         )}
       </div>
 
-      {/* Review */}
-      {review ? (
-        <div style={{ marginBottom: 8, background: "#1a1530", borderRadius: 14, padding: 12, border: "1px solid rgba(167,139,250,0.1)" }}>
-          <p style={{ margin: 0, fontSize: 10, fontWeight: 700, textTransform: "uppercase", color: "#A78BFA", letterSpacing: ".1em" }}>Revisão ✓</p>
-          <div style={{ display: "flex", gap: 1, marginTop: 4 }}>{Array.from({length:5}).map((_,i) => <span key={i} style={{ fontSize: 12, color: i < review.week_score ? "#f59e0b" : "rgba(167,139,250,0.15)" }}>★</span>)}</div>
-          {review.biggest_win && <p style={{ margin: "4px 0 0", fontSize: 11, color: "#9e96b5" }}>🏆 {review.biggest_win.slice(0,80)}</p>}
-        </div>
-      ) : (
-        <button type="button" onClick={() => setShowReview(true)}
-          style={{
-            width: "100%", padding: "16px 0", borderRadius: 16, border: "1px solid rgba(167,139,250,0.2)",
-            background: "linear-gradient(135deg, rgba(124,92,255,0.08) 0%, rgba(167,139,250,0.04) 100%)",
-            cursor: "pointer", color: "#A78BFA", fontSize: 13, fontWeight: 600, fontFamily: "inherit",
-            marginBottom: 8, display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-            transition: "all .15s ease",
-          }}>
-          <span style={{ fontSize: 18 }}>⭐</span> Fazer revisão da semana
-        </button>
-      )}
-
       {/* FAB */}
       <button type="button" onClick={() => { setNewTaskDay(selectedDay); setShowAddTask(true); }}
-        style={{
-          position: "fixed", bottom: 84, right: 20, zIndex: 40,
-          width: 56, height: 56, borderRadius: "50%",
-          background: "#7C5CFF", border: 0, cursor: "pointer",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          boxShadow: "0 4px 20px rgba(124,92,255,0.4)",
-        }}>
+        style={{ position: "fixed", bottom: 84, right: 20, zIndex: 40, width: 56, height: 56, borderRadius: "50%", background: "#7C5CFF", border: 0, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 20px rgba(124,92,255,0.4)" }}>
         <Plus size={24} color="#fff" />
       </button>
-
-      {/* History */}
-      {plan?.history?.length > 0 && (
-        <div style={{ marginTop: 12 }}>
-          <p style={{ margin: "0 0 6px", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".1em", color: "#5a5470" }}>Semanas anteriores</p>
-          {plan.history.slice(0, 3).map((h: any) => {
-            const d = new Date(h.week_start + "T12:00:00");
-            const M = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
-            const rev = (h as any).weekly_reviews?.[0];
-            return (
-              <div key={h.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderTop: "1px solid rgba(167,139,250,0.05)" }}>
-                <span style={{ flex: 1, fontSize: 11, color: "#9e96b5" }}>{d.getDate()} {M[d.getMonth()]}</span>
-                <span style={{ fontSize: 11, color: "#9e96b5", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 140 }}>{h.main_focus || "—"}</span>
-                {rev && <span>{Array.from({length:5}).map((_,i) => <span key={i} style={{ fontSize: 9, color: i < rev.week_score ? "#f59e0b" : "rgba(167,139,250,0.1)" }}>★</span>)}</span>}
-              </div>
-            );
-          })}
-        </div>
-      )}
 
       {/* Add Task Sheet */}
       {showAddTask && (
