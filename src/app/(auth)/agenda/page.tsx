@@ -971,7 +971,12 @@ function AgendaPage() {
       {viewMode === "lista" && (
         <ListView allWeekTasks={allWeekTasks} compromissos={items} selectedDate={selectedDate} loadWeekTasks={async () => {
           try {
-            const res = await fetch("/api/weekly-plans");
+            // Compute the Monday of selectedDate's week
+            const d = new Date(selectedDate + "T12:00:00");
+            const mon = new Date(d);
+            mon.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+            const weekStart = `${mon.getFullYear()}-${String(mon.getMonth() + 1).padStart(2, "0")}-${String(mon.getDate()).padStart(2, "0")}`;
+            const res = await fetch(`/api/weekly-plans?week=${weekStart}`);
             if (res.ok) {
               const data = await res.json();
               setAllWeekTasks(data.current?.weekly_tasks || []);
@@ -1548,8 +1553,8 @@ function ListView({ allWeekTasks, loadWeekTasks, compromissos, selectedDate }: {
 
       {/* Tarefas da agenda */}
       {todayAgendaTarefas.length > 0 && (
-        <div style={{ marginBottom: 16 }}>
-          <h3 style={{ margin: "0 0 10px", fontSize: 13, fontWeight: 700, color: "#A78BFA", textTransform: "uppercase", letterSpacing: ".06em" }}>Tarefas do dia</h3>
+        <div style={{ marginBottom: 12 }}>
+          <h3 style={{ margin: "0 0 8px", fontSize: 12, fontWeight: 700, color: "#A78BFA", textTransform: "uppercase", letterSpacing: ".06em" }}>Tarefas do dia</h3>
           {todayAgendaTarefas.map(t => (
             <button key={t.id} type="button" onClick={() => openEditor(t)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "10px 0", borderTop: "1px solid rgba(167,139,250,0.05)", background: "none", borderLeft: 0, borderRight: 0, cursor: "pointer", textAlign: "left", fontFamily: "inherit" }}>
               <span style={{ fontSize: 12 }}>{t.emoji || "☑️"}</span>
