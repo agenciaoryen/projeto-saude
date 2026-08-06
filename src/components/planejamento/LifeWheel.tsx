@@ -16,6 +16,8 @@ const AREAS = [
 interface LifeWheelProps {
   done: Record<string, number>;
   totals: Record<string, number>;
+  /** Custom emoji images — map of area key to PNG URL. Falls back to system emoji. */
+  emojis?: Partial<Record<string, string>>;
 }
 
 const N = AREAS.length;
@@ -34,7 +36,7 @@ function ringPt(i: number, ratio: number) {
   return `${CX + R * ratio * Math.cos(a)},${CY + R * ratio * Math.sin(a)}`;
 }
 
-export function LifeWheel({ done, totals }: LifeWheelProps) {
+export function LifeWheel({ done, totals, emojis }: LifeWheelProps) {
   const [mounted, setMounted] = useState(false);
   useEffect(() => { requestAnimationFrame(() => setMounted(true)); }, []);
 
@@ -138,16 +140,16 @@ export function LifeWheel({ done, totals }: LifeWheelProps) {
             </filter>
           </defs>
 
-          {/* Grid rings */}
-          <polygon points={outerRing} fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="1" />
-          <polygon points={ring75}  fill="none" stroke="rgba(255,255,255,0.025)" strokeWidth="0.5" />
-          <polygon points={ring50}  fill="none" stroke="rgba(255,255,255,0.025)" strokeWidth="0.5" />
-          <polygon points={ring25}  fill="none" stroke="rgba(255,255,255,0.02)" strokeWidth="0.5" />
+          {/* Grid rings — visible, alive */}
+          <polygon points={outerRing} fill="none" stroke="rgba(124,92,255,0.25)" strokeWidth="1.5" />
+          <polygon points={ring75}  fill="none" stroke="rgba(167,139,250,0.15)" strokeWidth="0.8" />
+          <polygon points={ring50}  fill="none" stroke="rgba(167,139,250,0.1)" strokeWidth="0.7" />
+          <polygon points={ring25}  fill="none" stroke="rgba(167,139,250,0.06)" strokeWidth="0.5" />
 
-          {/* Axis lines */}
-          {AREAS.map((_, i) => {
+          {/* Axis lines — each with its area color, visible */}
+          {AREAS.map((a, i) => {
             const [ex, ey] = ringPt(i, 1).split(",");
-            return <line key={i} x1={CX} y1={CY} x2={ex} y2={ey} stroke="rgba(255,255,255,0.02)" strokeWidth="0.5" />;
+            return <line key={i} x1={CX} y1={CY} x2={ex} y2={ey} stroke={a.color} strokeWidth="0.6" opacity="0.35" />;
           })}
 
           {/* Planned polygon */}
@@ -199,11 +201,16 @@ export function LifeWheel({ done, totals }: LifeWheelProps) {
             const pct = mounted ? progress[i] : 0;
             const planPct = mounted ? planned[i] : 0;
             const empty = pct === 0 && planPct === 0;
+            const customEmoji = emojis?.[a.key];
             return (
-              <g key={a.key} opacity={empty ? 0.3 : 1} style={{ transition: "opacity .6s" }}>
-                <text x={lx} y={ly - 3} textAnchor="middle" dominantBaseline="middle" fontSize="16">
-                  {a.emoji}
-                </text>
+              <g key={a.key} opacity={empty ? 0.4 : 1} style={{ transition: "opacity .6s" }}>
+                {customEmoji ? (
+                  <image href={customEmoji} x={lx - 12} y={ly - 16} width="24" height="24" />
+                ) : (
+                  <text x={lx} y={ly - 3} textAnchor="middle" dominantBaseline="middle" fontSize="16">
+                    {a.emoji}
+                  </text>
+                )}
                 <text x={lx} y={ly + 11} textAnchor="middle" dominantBaseline="middle"
                   fontSize="8.5" fontWeight="600" fill={a.color} letterSpacing=".03em">
                   {a.label}
