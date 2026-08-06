@@ -232,47 +232,56 @@ export default function FinancasPage() {
 
       {/* ── Header ── */}
       <div style={{
-        background: `linear-gradient(160deg, ${ACCENT}, #5B3FCF)`,
-        padding: "44px 20px 24px", position: "relative", overflow: "hidden",
+        background: `
+          radial-gradient(ellipse 80% 60% at 50% 0%, rgba(167,139,250,0.35) 0%, transparent 60%),
+          linear-gradient(170deg, #1a1040 0%, #1a1530 40%, ${BG} 100%)
+        `,
+        padding: "44px 20px 28px", position: "relative", overflow: "hidden",
       }}>
-        <div style={{ position: "absolute", top: -40, right: -40, width: 160, height: 160, borderRadius: "50%", background: "rgba(255,255,255,0.07)" }} />
-        <div style={{ position: "absolute", bottom: -20, left: -20, width: 100, height: 100, borderRadius: "50%", background: "rgba(255,255,255,0.05)" }} />
+        {/* Decorative elements */}
+        <div style={{ position: "absolute", top: -60, right: -30, width: 200, height: 200, borderRadius: "50%", background: "radial-gradient(circle, rgba(167,139,250,0.2) 0%, transparent 70%)" }} />
+        <div style={{ position: "absolute", bottom: -40, left: -40, width: 150, height: 150, borderRadius: "50%", background: "radial-gradient(circle, rgba(124,92,255,0.15) 0%, transparent 70%)" }} />
+        <div style={{ position: "absolute", top: "30%", right: "10%", width: 8, height: 8, borderRadius: "50%", background: "rgba(255,255,255,0.15)" }} />
+        <div style={{ position: "absolute", top: "60%", left: "15%", width: 4, height: 4, borderRadius: "50%", background: "rgba(255,255,255,0.1)" }} />
 
         <div style={{ position: "relative", zIndex: 1 }}>
           {/* Month navigator */}
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
             <button type="button" onClick={() => setMonthOffset((p) => p - 1)} style={{
-              width: 32, height: 32, borderRadius: "50%", border: 0, cursor: "pointer",
-              background: "rgba(255,255,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center",
+              width: 36, height: 36, borderRadius: "50%", border: "1px solid rgba(255,255,255,0.2)", cursor: "pointer",
+              background: "rgba(255,255,255,0.08)", display: "flex", alignItems: "center", justifyContent: "center",
+              backdropFilter: "blur(10px)",
             }}>
-              <ChevronLeft size={16} color="#fff" />
+              <ChevronLeft size={17} color="#fff" />
             </button>
-            <span style={{ flex: 1, textAlign: "center", fontSize: 14, fontWeight: 700, color: "#fff", textTransform: "capitalize" }}>
+            <span style={{ flex: 1, textAlign: "center", fontSize: 15, fontWeight: 700, color: "#fff", textTransform: "capitalize", letterSpacing: "-0.01em" }}>
               {monthLabel(currentMonth, lang)}
             </span>
             <button type="button" onClick={() => setMonthOffset((p) => p + 1)} disabled={monthOffset >= 0} style={{
-              width: 32, height: 32, borderRadius: "50%", border: 0, cursor: monthOffset >= 0 ? "not-allowed" : "pointer",
-              background: monthOffset >= 0 ? "rgba(255,255,255,0.07)" : "rgba(255,255,255,0.15)",
+              width: 36, height: 36, borderRadius: "50%", border: "1px solid rgba(255,255,255,0.2)", cursor: monthOffset >= 0 ? "not-allowed" : "pointer",
+              background: monthOffset >= 0 ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.08)",
               display: "flex", alignItems: "center", justifyContent: "center",
-              opacity: monthOffset >= 0 ? 0.4 : 1,
+              opacity: monthOffset >= 0 ? 0.3 : 1, backdropFilter: "blur(10px)",
             }}>
-              <ChevronRight size={16} color="#fff" />
+              <ChevronRight size={17} color="#fff" />
             </button>
             <button type="button" onClick={() => setShowCategoryManager(true)} style={{
-              width: 32, height: 32, borderRadius: "50%", border: 0, cursor: "pointer",
-              background: "rgba(255,255,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center",
+              width: 36, height: 36, borderRadius: "50%", border: "1px solid rgba(255,255,255,0.2)", cursor: "pointer",
+              background: "rgba(255,255,255,0.08)", display: "flex", alignItems: "center", justifyContent: "center",
+              backdropFilter: "blur(10px)",
             }} title="Gerenciar categorias">
-              <Settings size={15} color="#fff" />
+              <Settings size={16} color="#fff" />
             </button>
           </div>
 
           {/* Balance */}
-          <div style={{ textAlign: "center", marginBottom: 16 }}>
-            <p style={{ margin: "0 0 2px", fontSize: 12, color: "rgba(255,255,255,0.7)", fontWeight: 500 }}>
+          <div style={{ textAlign: "center", marginBottom: 20 }}>
+            <p style={{ margin: "0 0 4px", fontSize: 11, color: "rgba(255,255,255,0.55)", fontWeight: 600, letterSpacing: ".08em", textTransform: "uppercase" }}>
               {tFn(lang, "fin_saldo")}
             </p>
             <p style={{
-              margin: 0, fontSize: 32, fontWeight: 800, color: "#fff", letterSpacing: "-1px",
+              margin: 0, fontSize: 38, fontWeight: 800, color: "#fff", letterSpacing: "-1.5px",
+              textShadow: "0 2px 20px rgba(124,92,255,0.3)",
             }}>
               {fmt(saldo, currency)}
             </p>
@@ -280,19 +289,37 @@ export default function FinancasPage() {
 
           {/* Receitas / Despesas pills */}
           <div style={{ display: "flex", gap: 10 }}>
-            <div style={{ flex: 1, background: "rgba(255,255,255,0.12)", borderRadius: 14, padding: "10px 14px", backdropFilter: "blur(8px)" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
-                <TrendingUp size={14} color="#b39dff" />
-                <span style={{ fontSize: 11, color: "rgba(255,255,255,0.75)", fontWeight: 600 }}>{tFn(lang, "fin_receitas")}</span>
+            <div style={{
+              flex: 1, background: "rgba(255,255,255,0.06)", borderRadius: 16,
+              padding: "12px 14px", border: "1px solid rgba(255,255,255,0.1)",
+              backdropFilter: "blur(12px)",
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                <div style={{
+                  width: 28, height: 28, borderRadius: 10,
+                  background: "rgba(34,197,94,0.2)", display: "flex", alignItems: "center", justifyContent: "center",
+                }}>
+                  <TrendingUp size={14} color="#4ade80" />
+                </div>
+                <span style={{ fontSize: 11, color: "rgba(255,255,255,0.65)", fontWeight: 600 }}>{tFn(lang, "fin_receitas")}</span>
               </div>
-              <p style={{ margin: 0, fontSize: 15, fontWeight: 800, color: "#fff" }}>{fmt(totalReceitas, currency)}</p>
+              <p style={{ margin: 0, fontSize: 17, fontWeight: 800, color: "#fff" }}>{fmt(totalReceitas, currency)}</p>
             </div>
-            <div style={{ flex: 1, background: "rgba(255,255,255,0.12)", borderRadius: 14, padding: "10px 14px", backdropFilter: "blur(8px)" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
-                <TrendingDown size={14} color="#FF5C5C" />
-                <span style={{ fontSize: 11, color: "rgba(255,255,255,0.75)", fontWeight: 600 }}>{tFn(lang, "fin_despesas")}</span>
+            <div style={{
+              flex: 1, background: "rgba(255,255,255,0.06)", borderRadius: 16,
+              padding: "12px 14px", border: "1px solid rgba(255,255,255,0.1)",
+              backdropFilter: "blur(12px)",
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                <div style={{
+                  width: 28, height: 28, borderRadius: 10,
+                  background: "rgba(255,92,92,0.2)", display: "flex", alignItems: "center", justifyContent: "center",
+                }}>
+                  <TrendingDown size={14} color="#f87171" />
+                </div>
+                <span style={{ fontSize: 11, color: "rgba(255,255,255,0.65)", fontWeight: 600 }}>{tFn(lang, "fin_despesas")}</span>
               </div>
-              <p style={{ margin: 0, fontSize: 15, fontWeight: 800, color: "#fff" }}>{fmt(totalDespesas, currency)}</p>
+              <p style={{ margin: 0, fontSize: 17, fontWeight: 800, color: "#fff" }}>{fmt(totalDespesas, currency)}</p>
             </div>
           </div>
         </div>

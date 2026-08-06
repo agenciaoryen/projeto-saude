@@ -1,5 +1,4 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest) {
@@ -7,20 +6,26 @@ export async function GET(req: NextRequest) {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
 
-  const month = req.nextUrl.searchParams.get("month"); // YYYY-MM
-  const admin = getSupabaseAdmin();
+  const month = req.nextUrl.searchParams.get("month");       // YYYY-MM
+  const limit = parseInt(req.nextUrl.searchParams.get("limit") ?? "200", 10);
+  const offset = parseInt(req.nextUrl.searchParams.get("offset") ?? "0", 10);
 
-  let query = admin
+  let query = supabase
     .from("financial_transactions")
     .select("*")
     .eq("user_id", session.user.id)
     .order("date", { ascending: false })
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .limit(Math.min(limit, 500))
+    .range(offset, offset + Math.min(limit, 500) - 1);
 
   if (month) {
+    // Calculate correct last day of the month
+    const [y, m] = month.split("-").map(Number);
+    const lastDay = new Date(y, m, 0).getDate(); // e.g. Feb → 28/29, Apr → 30
     query = query
       .gte("date", `${month}-01`)
-      .lte("date", `${month}-31`);
+      .lte("date", `${month}-${String(lastDay).padStart(2, "0")}`);
   }
 
   const { data, error } = await query;
@@ -40,8 +45,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Campos obrigatórios ausentes" }, { status: 400 });
   }
 
-  const admin = getSupabaseAdmin();
-  const { data, error } = await admin
+  const { data, error } = await supabase
     .from("financial_transactions")
     .insert({
       user_id: session.user.id,

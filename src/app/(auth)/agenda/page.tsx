@@ -1521,7 +1521,7 @@ function ListView({ allWeekTasks, loadWeekTasks, compromissos, selectedDate }: {
   };
 
   return (
-    <div style={{ marginBottom: 20, padding: "0 16px" }}>
+    <div style={{ padding: "0 16px" }}>
       {/* Atrasadas (overdue weekly plan tasks) */}
       {overdueTasks.length > 0 && (
         <div style={{ marginBottom: 12 }}>

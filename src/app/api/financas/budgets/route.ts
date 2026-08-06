@@ -1,5 +1,4 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest) {
@@ -8,9 +7,8 @@ export async function GET(req: NextRequest) {
   if (!session) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
 
   const month = req.nextUrl.searchParams.get("month") ?? new Date().toISOString().slice(0, 7);
-  const admin = getSupabaseAdmin();
 
-  const { data, error } = await admin
+  const { data, error } = await supabase
     .from("financial_budgets")
     .select("*")
     .eq("user_id", session.user.id)
@@ -32,8 +30,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Campos obrigatórios ausentes" }, { status: 400 });
   }
 
-  const admin = getSupabaseAdmin();
-  const { data, error } = await admin
+  const { data, error } = await supabase
     .from("financial_budgets")
     .upsert({
       user_id: session.user.id,
@@ -54,9 +51,8 @@ export async function DELETE(req: NextRequest) {
   if (!session) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
 
   const { category, month } = await req.json();
-  const admin = getSupabaseAdmin();
 
-  const { error } = await admin
+  const { error } = await supabase
     .from("financial_budgets")
     .delete()
     .eq("user_id", session.user.id)

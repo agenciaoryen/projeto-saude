@@ -1,5 +1,4 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -11,8 +10,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const body = await req.json();
   const { type, amount, category, subcategory, description, date } = body;
 
-  const admin = getSupabaseAdmin();
-  const { data, error } = await admin
+  const { data, error } = await supabase
     .from("financial_transactions")
     .update({
       ...(type !== undefined && { type }),
@@ -38,8 +36,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   if (!session) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
 
   const { id } = await params;
-  const admin = getSupabaseAdmin();
-  const { error } = await admin
+  const { error } = await supabase
     .from("financial_transactions")
     .delete()
     .eq("id", id)
