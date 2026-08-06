@@ -253,8 +253,29 @@ export default function MayaChatPage() {
               })
           : [];
 
-        setMessages(serverMsgs);
-        if (serverMsgs.length > 0) {
+        // If arriving from Maya home nudge, inject context message
+        const contextMsg = searchParams.get("context");
+        let initialMessages = serverMsgs;
+        if (contextMsg) {
+          const contextAlreadyPresent = serverMsgs.some(
+            (m: Message) => m.role === "assistant" && m.content === contextMsg
+          );
+          if (!contextAlreadyPresent) {
+            const contextEntry: Message = {
+              role: "assistant",
+              content: contextMsg,
+              time: formatTime(),
+              date: formatDate(),
+              synced: false, // will be saved below
+            };
+            initialMessages = [...serverMsgs, contextEntry];
+            // Persist the context message
+            persistWithRetry([{ role: "assistant", content: contextMsg }]);
+          }
+        }
+
+        setMessages(initialMessages);
+        if (initialMessages.length > 0) {
           localStorage.setItem(CHAT_CACHE_KEY, JSON.stringify(serverMsgs.slice(-50)));
         }
         setHydrated(true);

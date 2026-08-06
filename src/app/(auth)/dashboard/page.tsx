@@ -42,7 +42,7 @@ export default function DashboardPage() {
   const [userGender, setUserGender] = useState("");
 
   // Maya nudge
-  const [mayaNudgeText, setMayaNudgeText] = useState<string | null>(null);
+  const [mayaNudge, setMayaNudge] = useState<{ message: string; action?: { label: string; href: string } } | null>(null);
 
   // Finance
   const [todaySpending, setTodaySpending] = useState<number | null>(null);
@@ -101,8 +101,11 @@ export default function DashboardPage() {
     // Maya nudge — independent
     fetch("/api/maya/nudge")
       .then((r) => r.json())
-      .then((data) => setMayaNudgeText(data.nudges?.[0]?.message ?? ""))
-      .catch(() => setMayaNudgeText(""));
+      .then((data) => {
+        const n = data.nudges?.[0];
+        if (n) setMayaNudge({ message: n.message, action: n.action });
+      })
+      .catch(() => setMayaNudge(null));
 
     // Finance — independent
     const now = new Date();
@@ -238,7 +241,7 @@ export default function DashboardPage() {
         todaySpending={todaySpending}
         spendingLimit={spendingLimit}
         lastMood={lastMood}
-        mayaNudgeText={mayaNudgeText}
+        mayaNudge={mayaNudge}
         todayTasks={todayTasks}
         loading={loading}
       />

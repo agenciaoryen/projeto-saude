@@ -24,7 +24,7 @@ interface MayaHeroProps {
   todaySpending: number | null;
   spendingLimit: number;
   lastMood: string;
-  mayaNudgeText: string | null;
+  mayaNudge?: { message: string; action?: { label: string; href: string } } | null;
   todayTasks?: { status: string; day_of_week?: number }[];
   loading?: boolean;
 }
@@ -37,7 +37,7 @@ export function MayaHero({
   todaySpending,
   spendingLimit,
   lastMood,
-  mayaNudgeText,
+  mayaNudge,
   todayTasks,
   loading,
 }: MayaHeroProps) {
@@ -59,7 +59,7 @@ export function MayaHero({
     const todayTotal = tasks.length;
 
     // Priority: nudge from API (already contextual)
-    if (mayaNudgeText) return mayaNudgeText;
+    if (mayaNudge?.message) return mayaNudge.message;
 
     if (!todayCheckIn) {
       let msg = `Oi ${firstName}! `;
@@ -96,7 +96,7 @@ export function MayaHero({
     const saudacao = h < 12 ? "Bom dia" : h < 18 ? "Boa tarde" : "Boa noite";
     const pergunta = h >= 18 ? "Como foi seu dia?" : "Como está sendo seu dia?";
     return `${saudacao}, ${firstName}. ${pergunta}`;
-  }, [firstName, todayCheckIn, recentSleep, todaySpending, spendingLimit, lastMood, mayaNudgeText, userGender, todayTasks]);
+  }, [firstName, todayCheckIn, recentSleep, todaySpending, spendingLimit, lastMood, mayaNudge, userGender, todayTasks]);
 
   return (
     <div className="relative flex flex-col items-center" style={{ paddingTop: 0, paddingBottom: 24 }}>
@@ -152,26 +152,39 @@ export function MayaHero({
         )}
       </div>
 
-      {/* CTA Button */}
-      <button
-        type="button"
-        onClick={() => router.push("/insights")}
-        className="inline-flex items-center justify-center h-12 px-8 rounded-2xl border-0 cursor-pointer font-[inherit] text-[15px] font-bold text-white transition-transform duration-150 ease-out"
-        style={{
-          background: "linear-gradient(135deg, #7C5CFF, #A78BFA)",
-          boxShadow: "0 4px 20px rgba(124,92,255,0.4)",
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.transform = "scale(1.03)";
-          e.currentTarget.style.boxShadow = "0 6px 28px rgba(124,92,255,0.55)";
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.transform = "scale(1)";
-          e.currentTarget.style.boxShadow = "0 4px 20px rgba(124,92,255,0.4)";
-        }}
-      >
-        {t("conversar_com_maya")}
-      </button>
+      {/* CTA Button — adapts to nudge action */}
+      {(() => {
+        const action = mayaNudge?.action;
+        const label = action?.label || t("conversar_com_maya");
+        const href = action?.href || "/insights";
+        const isChat = href.startsWith("/insights");
+        // If going to chat, carry Maya's message as context
+        const finalHref = isChat && mayaNudge?.message
+          ? `/insights?context=${encodeURIComponent(mayaNudge.message)}`
+          : href;
+
+        return (
+          <button
+            type="button"
+            onClick={() => router.push(finalHref)}
+            className="inline-flex items-center justify-center h-12 px-8 rounded-2xl border-0 cursor-pointer font-[inherit] text-[15px] font-bold text-white transition-transform duration-150 ease-out"
+            style={{
+              background: "linear-gradient(135deg, #7C5CFF, #A78BFA)",
+              boxShadow: "0 4px 20px rgba(124,92,255,0.4)",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = "scale(1.03)";
+              e.currentTarget.style.boxShadow = "0 6px 28px rgba(124,92,255,0.55)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = "scale(1)";
+              e.currentTarget.style.boxShadow = "0 4px 20px rgba(124,92,255,0.4)";
+            }}
+          >
+            {label}
+          </button>
+        );
+      })()}
     </div>
   );
 }

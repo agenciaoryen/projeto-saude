@@ -188,7 +188,7 @@ export default function FinancasPage() {
     if (Array.isArray(txRes)) setTransactions(txRes);
     if (Array.isArray(budgetRes)) setBudgets(budgetRes);
     if (Array.isArray(goalsRes)) {
-      setGoals(goalsRes.filter((g: Goal) => g.area === "financas" && g.source === "financas" && g.status === "ativa"));
+      setGoals(goalsRes.filter((g: Goal) => g.area === "financas" && (!g.source || g.source === "financas") && g.status === "ativa"));
     }
     if (catsRes?.categories) setUserCategories(catsRes.categories);
     if (catsRes?.hiddenFinCats) setHiddenCatIds(catsRes.hiddenFinCats);
@@ -371,32 +371,74 @@ export default function FinancasPage() {
                       Ver todos →
                     </button>
                   </div>
-                  {budgets.slice(0, 3).map((b) => {
-                    const conf = getCatById(b.category, "despesa");
-                    const label = catLabel(conf, lang, customCat);
-                    const emoji = conf.custom ? (customCat?.emoji ?? conf.emoji) : conf.emoji;
-                    const spent = transactions.filter((t) => t.type === "despesa" && t.category === b.category).reduce((s, t) => s + t.amount, 0);
-                    const pct = Math.min((spent / b.monthly_limit) * 100, 100);
-                    const over = spent > b.monthly_limit;
+                  {(() => {
+                    const items = budgets.slice(0, 3).map((b) => {
+                      const conf = getCatById(b.category, "despesa");
+                      const label = catLabel(conf, lang, customCat);
+                      const emoji = conf.custom ? (customCat?.emoji ?? conf.emoji) : conf.emoji;
+                      const spent = transactions.filter((t) => t.type === "despesa" && t.category === b.category).reduce((s, t) => s + t.amount, 0);
+                      const pct = Math.min((spent / b.monthly_limit) * 100, 100);
+                      const over = spent > b.monthly_limit;
+                      return { b, spent, pct, over, conf, label, emoji };
+                    });
+
+                    // Compute totals across ALL budgeted categories (not just visible top 3)
+                    const totalLimit = budgets.reduce((s, b) => s + b.monthly_limit, 0);
+                    const totalSpent = budgets.reduce((s, b) => {
+                      const catSpent = transactions.filter((t) => t.type === "despesa" && t.category === b.category).reduce((sum, t) => sum + t.amount, 0);
+                      return s + catSpent;
+                    }, 0);
+                    const totalPct = totalLimit > 0 ? Math.min((totalSpent / totalLimit) * 100, 100) : 0;
+                    const totalOver = totalSpent > totalLimit;
+
                     return (
-                      <div key={b.id} style={{ marginBottom: 8 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                          <span style={{ fontSize: 15 }}>{emoji}</span>
-                          <span style={{ flex: 1, fontSize: 12, fontWeight: 600, color: TEXT }}>{label}</span>
-                          <span style={{ fontSize: 11, fontWeight: 700, color: over ? RED : TEXT_SEC }}>
-                            {fmt(spent, currency)} / {fmt(b.monthly_limit, currency)}
-                          </span>
+                      <>
+                        {items.map(({ b, spent, pct, over, label, emoji }) => (
+                          <div key={b.id} style={{ marginBottom: 8 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                              <span style={{ fontSize: 15 }}>{emoji}</span>
+                              <span style={{ flex: 1, fontSize: 12, fontWeight: 600, color: TEXT }}>{label}</span>
+                              <span style={{ fontSize: 11, fontWeight: 700, color: over ? RED : TEXT_SEC }}>
+                                {fmt(spent, currency)} / {fmt(b.monthly_limit, currency)}
+                              </span>
+                            </div>
+                            <div style={{ height: 5, borderRadius: 9999, background: "rgba(167,139,250,0.08)", overflow: "hidden" }}>
+                              <div style={{
+                                height: "100%", borderRadius: 9999,
+                                background: over ? RED : pct > 80 ? AMBER : GREEN,
+                                width: `${pct}%`, transition: "width .5s ease",
+                              }} />
+                            </div>
+                          </div>
+                        ))}
+
+                        {/* Total row */}
+                        <div style={{
+                          marginTop: 10, paddingTop: 10,
+                          borderTop: `1px solid ${BORDER}`,
+                        }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
+                            <span style={{ fontSize: 13, fontWeight: 800, color: TEXT }}>Total</span>
+                            <span style={{ flex: 1 }} />
+                            <span style={{ fontSize: 12, fontWeight: 800, color: totalOver ? RED : TEXT }}>
+                              {fmt(totalSpent, currency)}
+                              <span style={{ fontWeight: 500, color: TEXT_SEC }}> / {fmt(totalLimit, currency)}</span>
+                            </span>
+                          </div>
+                          <div style={{ height: 6, borderRadius: 9999, background: "rgba(167,139,250,0.08)", overflow: "hidden" }}>
+                            <div style={{
+                              height: "100%", borderRadius: 9999,
+                              background: totalOver ? RED : totalPct > 80 ? AMBER : GREEN,
+                              width: `${totalPct}%`, transition: "width .5s ease",
+                            }} />
+                          </div>
+                          <p style={{ margin: "4px 0 0", fontSize: 10, color: totalOver ? RED : TEXT_SEC, textAlign: "right" }}>
+                            {Math.round(totalPct)}% do orçamento total
+                          </p>
                         </div>
-                        <div style={{ height: 5, borderRadius: 9999, background: "rgba(167,139,250,0.08)", overflow: "hidden" }}>
-                          <div style={{
-                            height: "100%", borderRadius: 9999,
-                            background: over ? RED : pct > 80 ? AMBER : GREEN,
-                            width: `${pct}%`, transition: "width .5s ease",
-                          }} />
-                        </div>
-                      </div>
+                      </>
                     );
-                  })}
+                  })()}
                 </div>
               </div>
             )}
