@@ -1566,8 +1566,8 @@ function ListView({ allWeekTasks, loadWeekTasks, compromissos, selectedDate }: {
 
       {/* Tarefas do planejamento */}
       {dayPlanTasks.length > 0 && (
-        <div style={{ marginBottom: 16 }}>
-          <h3 style={{ margin: "0 0 10px", fontSize: 13, fontWeight: 700, color: "#A78BFA", textTransform: "uppercase", letterSpacing: ".06em" }}>Plano do dia</h3>
+        <div style={{ marginBottom: 12 }}>
+          <h3 style={{ margin: "0 0 8px", fontSize: 12, fontWeight: 700, color: "#A78BFA", textTransform: "uppercase", letterSpacing: ".06em" }}>Plano do dia</h3>
           {dayPlanTasks.map((t: any) => {
             const area = AREA_CONFIG_PT[t.area] || { emoji: "⚪" };
             const done = t.status === "concluida";
@@ -1584,8 +1584,8 @@ function ListView({ allWeekTasks, loadWeekTasks, compromissos, selectedDate }: {
 
       {/* Metas ativas */}
       {activeGoals.length > 0 && (
-        <div style={{ marginBottom: 16 }}>
-          <h3 style={{ margin: "0 0 10px", fontSize: 13, fontWeight: 700, color: "#A78BFA", textTransform: "uppercase", letterSpacing: ".06em" }}>Metas ativas</h3>
+        <div style={{ marginBottom: 12 }}>
+          <h3 style={{ margin: "0 0 8px", fontSize: 12, fontWeight: 700, color: "#A78BFA", textTransform: "uppercase", letterSpacing: ".06em" }}>Metas ativas</h3>
           {activeGoals.map((g: any) => (
             <button key={g.id} type="button" onClick={() => setDetailGoalId(g.id)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "10px 0", borderTop: "1px solid rgba(167,139,250,0.05)", background: "none", borderLeft: 0, borderRight: 0, cursor: "pointer", textAlign: "left", fontFamily: "inherit" }}>
               <span style={{ fontSize: 12 }}>{(AREA_CONFIG_PT as any)[g.area]?.emoji || "🎯"}</span>
