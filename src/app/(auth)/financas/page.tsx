@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Pencil, Trash2, Target, ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Wallet } from "lucide-react";
+import { Plus, Pencil, Trash2, Target, ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Wallet, Settings } from "lucide-react";
 import type { FinancialTransaction, FinancialBudget, Goal } from "@/types";
 import { useTranslation } from "@/lib/useTranslation";
 import { t as tFn, type Lang } from "@/lib/i18n";
@@ -257,6 +257,12 @@ export default function FinancasPage() {
             }}>
               <ChevronRight size={16} color="#fff" />
             </button>
+            <button type="button" onClick={() => setShowCategoryManager(true)} style={{
+              width: 32, height: 32, borderRadius: "50%", border: 0, cursor: "pointer",
+              background: "rgba(255,255,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center",
+            }} title="Gerenciar categorias">
+              <Settings size={15} color="#fff" />
+            </button>
           </div>
 
           {/* Balance */}
@@ -314,7 +320,16 @@ export default function FinancasPage() {
               <div style={cardStyle}>
                 <div style={{ height: 3, background: `linear-gradient(90deg, ${ACCENT}, #5B3FCF)` }} />
                 <div style={{ padding: "14px 16px" }}>
-                  <p style={sectionTitle}>{tFn(lang, "fin_categorias_despesas")}</p>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <p style={sectionTitle}>{tFn(lang, "fin_categorias_despesas")}</p>
+                    <button type="button" onClick={() => setShowCategoryManager(true)} style={{
+                      border: 0, background: "transparent", cursor: "pointer", padding: 4,
+                      color: ACCENT, display: "flex", alignItems: "center", gap: 4,
+                      fontFamily: "inherit", fontSize: 11, fontWeight: 600,
+                    }}>
+                      <Settings size={12} /> Gerenciar
+                    </button>
+                  </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 10 }}>
                     {spendByCategory.slice(0, 5).map((c) => {
                       const pct = totalDespesas > 0 ? (c.total / totalDespesas) * 100 : 0;
