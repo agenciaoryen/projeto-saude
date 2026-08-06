@@ -971,16 +971,22 @@ function AgendaPage() {
       {viewMode === "lista" && (
         <ListView allWeekTasks={allWeekTasks} compromissos={items} selectedDate={selectedDate} loadWeekTasks={async () => {
           try {
-            // Compute the Monday of selectedDate's week
+            // Fetch current week + last 3 weeks for overdue detection
+            const allTasks: any[] = [];
             const d = new Date(selectedDate + "T12:00:00");
-            const mon = new Date(d);
-            mon.setDate(d.getDate() - ((d.getDay() + 6) % 7));
-            const weekStart = `${mon.getFullYear()}-${String(mon.getMonth() + 1).padStart(2, "0")}-${String(mon.getDate()).padStart(2, "0")}`;
-            const res = await fetch(`/api/weekly-plans?week=${weekStart}`);
-            if (res.ok) {
-              const data = await res.json();
-              setAllWeekTasks(data.current?.weekly_tasks || []);
+            for (let offset = 0; offset <= 3; offset++) {
+              const mon = new Date(d);
+              mon.setDate(d.getDate() - ((d.getDay() + 6) % 7) - (offset * 7));
+              const ws = `${mon.getFullYear()}-${String(mon.getMonth() + 1).padStart(2, "0")}-${String(mon.getDate()).padStart(2, "0")}`;
+              const res = await fetch(`/api/weekly-plans?week=${ws}`);
+              if (res.ok) {
+                const data = await res.json();
+                if (data.current?.weekly_tasks) {
+                  allTasks.push(...data.current.weekly_tasks.map((t: any) => ({ ...t, _weekStart: ws })));
+                }
+              }
             }
+            setAllWeekTasks(allTasks);
           } catch {}
         }} />
       )}
@@ -1455,6 +1461,13 @@ function ListView({ allWeekTasks, loadWeekTasks, compromissos, selectedDate }: {
     refreshGoals();
   }, []); // eslint-disable-line
 
+  function getCurrentWeekMonday(): string {
+    const now = new Date();
+    const mon = new Date(now);
+    mon.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+    return `${mon.getFullYear()}-${String(mon.getMonth() + 1).padStart(2, "0")}-${String(mon.getDate()).padStart(2, "0")}`;
+  }
+
   const todayComp = compromissos.filter(c => c.item_type === "compromisso");
   const todayAgendaTarefas = compromissos.filter(c => c.item_type === "tarefa");
 
@@ -1462,15 +1475,21 @@ function ListView({ allWeekTasks, loadWeekTasks, compromissos, selectedDate }: {
   const selD = new Date(selectedDate + "T12:00:00");
   const selDow = selD.getDay() === 0 ? 6 : selD.getDay() - 1;
   const todayDow = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1;
+  const currentWeekMonday = getCurrentWeekMonday();
   const dayPlanTasks = allWeekTasks.filter((t: any) => t.day_of_week === selDow);
-  // Tasks without a specific day (Em aberto) — from the whole week
+  // Tasks without a specific day (Em aberto) — from all loaded weeks
   const openWeekTasks = allWeekTasks.filter((t: any) => t.day_of_week == null || t.day_of_week === -1);
-  // Overdue tasks: from previous days this week, not completed
-  const overdueTasks = allWeekTasks.filter((t: any) =>
-    t.day_of_week != null && t.day_of_week >= 0 &&
-    t.day_of_week < todayDow &&
-    t.status !== "concluida"
-  );
+  // Overdue tasks: from previous days this week OR past weeks, not completed
+  const overdueTasks = allWeekTasks.filter((t: any) => {
+    if (t.status === "concluida") return false;
+    if (t.day_of_week == null || t.day_of_week < 0) return false;
+    const taskWeek = t._weekStart;
+    // From a past week (always overdue)
+    if (taskWeek && taskWeek < currentWeekMonday) return true;
+    // From this week but earlier day
+    if (t.day_of_week < todayDow) return true;
+    return false;
+  });
 
   const openEditor = (item: any) => {
     setEditingItem(item);
