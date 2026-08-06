@@ -18,11 +18,16 @@ export async function GET() {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   // Also return hidden IDs from preferences
-  const { data: prefs } = await admin
+  const { data: prefs, error: prefsErr } = await admin
     .from("preferences")
     .select("context")
     .eq("user_id", session.user.id)
-    .single();
+    .maybeSingle();
+
+  if (prefsErr) {
+    // If preferences table doesn't exist or other error, just return empty
+    return NextResponse.json({ categories: cats ?? [], hiddenFinCats: [] });
+  }
 
   const hiddenFinCats: string[] = prefs?.context?.hidden_fin_cats ?? [];
 

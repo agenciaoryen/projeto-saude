@@ -47,6 +47,7 @@ export default function DashboardPage() {
   // Finance
   const [todaySpending, setTodaySpending] = useState<number | null>(null);
   const [spendingLimit] = useState(80);
+  const [currency, setCurrency] = useState("BRL");
 
   // Weekly tasks & meals
   const [todayTasks, setTodayTasks] = useState<WeeklyTask[]>([]);
@@ -91,6 +92,7 @@ export default function DashboardPage() {
         if (profileData.name) setUserName(profileData.name);
         if (profileData.gender) setUserGender(profileData.gender);
         else if (prefsData.context?.gender) setUserGender(prefsData.context.gender as string);
+        if (prefsData.context?.currency) setCurrency(prefsData.context.currency as string);
 
         setLoading(false);
       })
@@ -251,6 +253,7 @@ export default function DashboardPage() {
         todayMealsCount={todayMealsCount}
         todayMealsKcal={todayMealsKcal}
         loading={loading}
+        currency={currency}
       />
 
       {/* ═══ SEUS ESPAÇOS ═══ */}

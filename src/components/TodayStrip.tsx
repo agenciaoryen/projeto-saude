@@ -86,6 +86,7 @@ interface TodayStripProps {
   todayMealsCount?: number;
   todayMealsKcal?: number | null;
   loading?: boolean;
+  currency?: string;
 }
 
 /* ── Component ──────────────────────────────────────────────── */
@@ -100,6 +101,7 @@ export function TodayStrip({
   todayMealsCount,
   todayMealsKcal,
   loading,
+  currency = "BRL",
 }: TodayStripProps) {
   const router = useRouter();
 
@@ -157,7 +159,27 @@ export function TodayStrip({
     todaySpending !== null && spendingLimit > 0
       ? Math.round((todaySpending / spendingLimit) * 100)
       : null;
-  const spendingValue = todaySpending !== null ? `R$${todaySpending.toFixed(0)}` : "—";
+
+  // Format currency according to user preference
+  const CURRENCY_CONFIG: Record<string, { locale: string; code: string }> = {
+    BRL: { locale: "pt-BR", code: "BRL" },
+    USD: { locale: "en-US", code: "USD" },
+    EUR: { locale: "de-DE", code: "EUR" },
+    GBP: { locale: "en-GB", code: "GBP" },
+    ARS: { locale: "es-AR", code: "ARS" },
+    CLP: { locale: "es-CL", code: "CLP" },
+    MXN: { locale: "es-MX", code: "MXN" },
+  };
+  function fmtCurrency(amount: number): string {
+    const conf = CURRENCY_CONFIG[currency] ?? CURRENCY_CONFIG.BRL;
+    try {
+      return new Intl.NumberFormat(conf.locale, { style: "currency", currency: conf.code, minimumFractionDigits: 0 }).format(amount);
+    } catch {
+      return `${currency} ${amount.toFixed(0)}`;
+    }
+  }
+
+  const spendingValue = todaySpending !== null ? fmtCurrency(todaySpending) : "—";
   const spendingSub = spendingPct !== null ? `${spendingPct}% do limite` : "Sem dados";
 
   const todayDone = todayTasks.filter((t) => t.status === "concluida").length;
