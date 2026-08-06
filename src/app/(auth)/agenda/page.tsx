@@ -393,12 +393,38 @@ function AgendaPage() {
   const tarefasSemHorario = tarefas.filter(t => !t.start_time);
   const tarefasComHorario = tarefas.filter(t => t.start_time);
 
-  // All timeline items (compromissos + tarefas with time)
+  // Map weekly plan tasks with scheduled_time into agenda-like items for the timeline
+  const planTasksAsAgenda = useMemo(() => {
+    return dayPlanTasks
+      .filter((t: any) => t.scheduled_time)
+      .map((t: any, idx: number) => ({
+        id: `wp_${t.id}`,
+        title: t.title,
+        item_type: "tarefa",
+        date: selectedDate,
+        start_time: t.scheduled_time,
+        end_time: null,
+        priority: "importante_nao_urgente" as EisenhowerPriority,
+        emoji: null,
+        color: null,
+        status: t.status === "concluida" ? "concluida" : "pendente",
+        description: null,
+        repeat_type: "none",
+        notify_minutes: null,
+        due_date: null,
+        linked_goal_id: t.linked_goal_id,
+        linked_weekly_task_id: t.id,
+        position: idx,
+        _isWeeklyTask: true,
+      } as AgendaItem));
+  }, [dayPlanTasks, selectedDate]);
+
+  // All timeline items (compromissos + tarefas with time + weekly plan tasks)
   const timelineItems = useMemo(() =>
-    [...compromissos, ...tarefasComHorario].sort((a, b) =>
+    [...compromissos, ...tarefasComHorario, ...planTasksAsAgenda].sort((a, b) =>
       (a.start_time || "").localeCompare(b.start_time || "")
     ),
-  [compromissos, tarefasComHorario]);
+  [compromissos, tarefasComHorario, planTasksAsAgenda]);
 
   // ── Overlap detection: assign columns to simultaneous events ──
   const timelineColumns = useMemo(() => {
@@ -833,6 +859,11 @@ function AgendaPage() {
                     <button key={item.id} type="button"
                       onClick={(e) => {
                         e.stopPropagation();
+                        if ((item as any)._isWeeklyTask) {
+                          // Switch to Semana tab to edit
+                          switchView("semana");
+                          return;
+                        }
                         setEditingItem(item);
                         setEditTitle(item.title || "");
                         setEditDate(item.date || selectedDate);
