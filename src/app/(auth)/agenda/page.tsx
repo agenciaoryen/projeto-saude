@@ -416,7 +416,7 @@ function AgendaPage() {
         linked_weekly_task_id: t.id,
         position: idx,
         _isWeeklyTask: true,
-      } as AgendaItem));
+      } as unknown as AgendaItem));
   }, [dayPlanTasks, selectedDate]);
 
   // All timeline items (compromissos + tarefas with time + weekly plan tasks)
