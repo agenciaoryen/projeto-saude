@@ -239,6 +239,7 @@ export default function DashboardPage() {
         spendingLimit={spendingLimit}
         lastMood={lastMood}
         mayaNudgeText={mayaNudgeText}
+        todayTasks={todayTasks}
         loading={loading}
       />
 

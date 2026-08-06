@@ -25,6 +25,7 @@ interface MayaHeroProps {
   spendingLimit: number;
   lastMood: string;
   mayaNudgeText: string | null;
+  todayTasks?: { status: string; day_of_week?: number }[];
   loading?: boolean;
 }
 
@@ -37,6 +38,7 @@ export function MayaHero({
   spendingLimit,
   lastMood,
   mayaNudgeText,
+  todayTasks,
   loading,
 }: MayaHeroProps) {
   const router = useRouter();
@@ -52,12 +54,23 @@ export function MayaHero({
         ? Math.round((todaySpending / spendingLimit) * 100)
         : null;
 
+    const tasks = todayTasks || [];
+    const todayDone = tasks.filter(t => t.status === "concluida").length;
+    const todayTotal = tasks.length;
+
+    // Priority: nudge from API (already contextual)
+    if (mayaNudgeText) return mayaNudgeText;
+
     if (!todayCheckIn) {
       let msg = `Oi ${firstName}! `;
       if (sleepBad && spendingPct && spendingPct > 60) {
         msg += `Você dormiu mal e já gastou ${spendingPct}% do orçamento. Como pretende virar esse jogo hoje?`;
-      } else if (sleepGood) {
-        msg += `Que bom que descansou bem. Bora fazer hoje valer?`;
+      } else if (sleepBad && todayTotal > 0) {
+        msg += `Dormiu mal essa noite e tem ${todayTotal} tarefa${todayTotal > 1 ? "s" : ""} planejada${todayTotal > 1 ? "s" : ""}. Quer ajustar pra algo mais leve hoje?`;
+      } else if (sleepGood && todayTotal > 0) {
+        msg += `Que bom que descansou bem! Tem ${todayTotal} tarefa${todayTotal > 1 ? "s" : ""} pra hoje. Bora fazer valer?`;
+      } else if (todayTotal > 0) {
+        msg += `Tem ${todayTotal} tarefa${todayTotal > 1 ? "s" : ""} planejada${todayTotal > 1 ? "s" : ""} pra hoje. Registre como está pra eu personalizar melhor.`;
       } else {
         msg += `Registre como está hoje. Quanto mais você me conta, mais eu posso te ajudar.`;
       }
@@ -68,11 +81,22 @@ export function MayaHero({
       return `Sei que "${formatMood(lastMood, userGender)}" não é fácil, ${firstName}. Quer conversar sobre o que está pesando?`;
     }
 
+    // Post-check-in: contextual based on plan progress
+    if (todayTotal > 0 && todayDone === 0) {
+      return `Bom dia, ${firstName}! Nenhuma tarefa concluída ainda — quer começar pela mais rápida?`;
+    }
+    if (todayTotal > 0 && todayDone === todayTotal) {
+      return `Uau, ${firstName}! 🎉 Todas as ${todayTotal} tarefas de hoje concluídas. Isso merece uma comemoração!`;
+    }
+    if (todayTotal > 0 && todayDone > 0) {
+      return `${todayDone}/${todayTotal} tarefas feitas hoje, ${firstName}. Tá indo bem! Quer conversar sobre o que ainda falta?`;
+    }
+
     const h = new Date().getHours();
     const saudacao = h < 12 ? "Bom dia" : h < 18 ? "Boa tarde" : "Boa noite";
     const pergunta = h >= 18 ? "Como foi seu dia?" : "Como está sendo seu dia?";
-    return mayaNudgeText || `${saudacao}, ${firstName}. ${pergunta}`;
-  }, [firstName, todayCheckIn, recentSleep, todaySpending, spendingLimit, lastMood, mayaNudgeText, userGender]);
+    return `${saudacao}, ${firstName}. ${pergunta}`;
+  }, [firstName, todayCheckIn, recentSleep, todaySpending, spendingLimit, lastMood, mayaNudgeText, userGender, todayTasks]);
 
   return (
     <div className="relative flex flex-col items-center" style={{ paddingTop: 0, paddingBottom: 24 }}>

@@ -32,12 +32,25 @@ async function detectAllTriggers(userId: string, today: string, firstName: strin
     { data: activeGoals },
     { data: todayTx },
     { data: lastDiary },
+    { data: currentPlan },
+    { data: recentSleep },
   ] = await Promise.all([
     admin.from("check_ins").select("*").eq("user_id", userId).order("date", { ascending: false }).limit(10),
     admin.from("goals").select("*, goal_stages(*)").eq("user_id", userId).eq("status", "ativa").order("created_at", { ascending: true }),
     admin.from("financial_transactions").select("amount, type").eq("user_id", userId).gte("date", `${today.slice(0, 7)}-01`).lte("date", `${today.slice(0, 7)}-31`),
     admin.from("diary_entries").select("date").eq("user_id", userId).order("date", { ascending: false }).limit(1),
+    // Current week plan with tasks
+    admin.from("weekly_plans").select("*, weekly_tasks(*)").eq("user_id", userId).eq("week_start", getWeekMonday(today)).maybeSingle(),
+    admin.from("sleep_logs").select("*").eq("user_id", userId).order("date", { ascending: false }).limit(7),
   ]);
+
+  function getWeekMonday(date: string): string {
+    const d = new Date(date + "T12:00:00");
+    const dow = d.getDay();
+    const daysToMonday = dow === 0 ? -6 : 1 - dow;
+    d.setDate(d.getDate() + daysToMonday);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }
 
   const checks = recentCheckIns || [];
 
@@ -173,6 +186,111 @@ async function detectAllTriggers(userId: string, today: string, firstName: strin
       priority: 4,
     action: { label: "Ver finanças", href: "/financas" },
     });
+  }
+
+  // ── PLAN: OVERDUE TASKS ──
+  if (currentPlan) {
+    const weekTasks = (currentPlan as any).weekly_tasks || [];
+    const todayDow = new Date(today + "T12:00:00").getDay();
+    const todayIdx = todayDow === 0 ? 6 : todayDow - 1; // 0=Mon..6=Sun
+    const overdue = weekTasks.filter((t: any) =>
+      t.day_of_week != null && t.day_of_week >= 0 &&
+      t.day_of_week < todayIdx &&
+      t.status !== "concluida"
+    );
+    if (overdue.length > 0) {
+      const names = overdue.slice(0, 2).map((t: any) => `"${t.title.slice(0, 30)}"`).join(" e ");
+      const extra = overdue.length > 2 ? ` e mais ${overdue.length - 2}` : "";
+      results.push({
+        id: "plan_overdue",
+        message: pick([
+          `${greet} ${overdue.length === 1 ? "tem uma tarefa" : `tem ${overdue.length} tarefas`} pendente de dias anteriores: ${names}${extra}. Quer reagendar ou concluir hoje?`,
+          `${greet} ${names}${extra} ${overdue.length === 1 ? "ficou" : "ficaram"} pra trás essa semana. Bora dar um jeito? Posso ajudar a reorganizar.`,
+          `${greet} olhei sua semana e ${names}${extra} ainda não ${overdue.length === 1 ? "foi feito" : "foram feitos"}. ${overdue.length > 2 ? "Não se culpe, isso acontece. " : ""}Quer priorizar isso hoje?`,
+        ]),
+        priority: 1,
+        action: { label: "Ver planejamento", href: "/agenda?tab=semana" },
+      });
+    }
+  }
+
+  // ── PLAN: ENERGY MISMATCH ──
+  if (currentPlan && (recentSleep || []).length > 0) {
+    const lastSleep = (recentSleep || [])[0] as any;
+    const sleptBad = lastSleep?.quality != null && lastSleep.quality <= 2;
+    const weekTasks = (currentPlan as any).weekly_tasks || [];
+    const todayDow2 = new Date(today + "T12:00:00").getDay();
+    const todayIdx2 = todayDow2 === 0 ? 6 : todayDow2 - 1;
+    const todayGrowthTasks = weekTasks.filter((t: any) =>
+      t.day_of_week === todayIdx2 && t.task_type === "crescimento" && t.status !== "concluida"
+    );
+    if (sleptBad && todayGrowthTasks.length > 0) {
+      results.push({
+        id: "plan_energy_mismatch",
+        message: pick([
+          `${greet} dormiu mal essa noite e tem ${todayGrowthTasks.length} tarefa${todayGrowthTasks.length > 1 ? "s" : ""} de crescimento hoje. Quer ajustar? Tarefas de manutenção podem ser melhores hoje.`,
+          `${greet} sei que seu sono não foi dos melhores. Tem tarefas ambiciosas hoje — quer trocar alguma por algo mais leve?`,
+          `${greet} notei que você dormiu mal mas planejou tarefas de crescimento. Tá se cobrando demais? Hoje pode ser dia de cuidar, não de performar.`,
+        ]),
+        priority: 2,
+        action: { label: "Ajustar planejamento", href: "/agenda?tab=semana" },
+      });
+    }
+  }
+
+  // ── PLAN: EMPTY WEEK ──
+  if (!currentPlan || ((currentPlan as any).weekly_tasks || []).length === 0) {
+    const dow = new Date(today + "T12:00:00").getDay();
+    const isWeekend = dow === 0 || dow === 6; // Sun or Sat
+    if (isWeekend) {
+      results.push({
+        id: "plan_empty_weekend",
+        message: pick([
+          `${greet} fim de semana chegando! Quer planejar a próxima semana? Separar 5 minutinhos agora evita começar segunda perdid${oo}.`,
+          `${greet} tava aqui pensando... quer aproveitar o fim de semana pra esboçar suas pedras da semana que vem? Prometo que segunda você agradece.`,
+          `${greet} domingo é um ótimo dia pra planejar. Quer definir suas 3 prioridades da semana? Te ajudo!`,
+        ]),
+        priority: 3,
+        action: { label: "Planejar semana", href: "/agenda?tab=semana" },
+      });
+    }
+  }
+
+  // ── PLAN: PROCRASTINATION DETECTED ──
+  if (currentPlan) {
+    const weekTasks = (currentPlan as any).weekly_tasks || [];
+    const undoneTasks = weekTasks.filter((t: any) => t.status !== "concluida");
+    const doneTasks = weekTasks.filter((t: any) => t.status === "concluida");
+    const total = weekTasks.length;
+    const pct = total > 0 ? Math.round((doneTasks.length / total) * 100) : 0;
+    const dow3 = new Date(today + "T12:00:00").getDay();
+    // Late in the week (Wed+) and < 30% done
+    if (dow3 >= 3 && dow3 <= 5 && total >= 5 && pct < 30) {
+      results.push({
+        id: "plan_procrastination",
+        message: pick([
+          `${greet} já é ${["quarta","quinta","sexta"][dow3-3]}-feira e só ${pct}% da semana foi concluído. Quer ajuda pra priorizar o que realmente importa?`,
+          `${greet} a semana tá voando e ${undoneTasks.length} tarefas ainda estão pendentes. Que tal focar nas 2 mais importantes hoje?`,
+          `${greet} tá tudo bem ter semanas mais lentas. ${undoneTasks.length} coisas pendentes — quer que eu te ajude a escolher por onde começar?`,
+        ]),
+        priority: 2,
+        action: { label: "Ver semana", href: "/agenda?tab=semana" },
+      });
+    }
+    // End of week (Sat/Sun) and nothing done
+    if (dow3 === 6 || dow3 === 0) {
+      if (total >= 3 && pct === 0) {
+        results.push({
+          id: "plan_week_wasted",
+          message: pick([
+            `${greet} fim de semana e nada concluído essa semana. Acontece. Quer começar a próxima com o pé direito? Bora planejar junt${oo === "a" ? "a" : "o"}.`,
+            `${greet} essa semana não rolou, e tá tudo bem. Nem toda semana é igual. Quer esboçar 3 coisas importantes pra semana que vem?`,
+          ]),
+          priority: 2,
+          action: { label: "Planejar próxima semana", href: "/agenda?tab=semana" },
+        });
+      }
+    }
   }
 
   // ── NO CHECK-IN TODAY ──
