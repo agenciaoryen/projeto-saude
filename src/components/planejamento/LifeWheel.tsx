@@ -26,11 +26,22 @@ export function LifeWheel({ done, totals }: LifeWheelProps) {
   const MAX = 100;
   const cx = 160, cy = 160, R = 100;
 
+  // Compute progress % per area (done / total)
   const progress = AREAS.map(a => {
     const t = totals[a.key] ?? 0;
     const d = done[a.key] ?? 0;
     return t > 0 ? Math.round((d / t) * 100) : 0;
   });
+
+  // Compute planned % per area (total / maxTotal, for outer dashed ring)
+  const maxTotal = Math.max(...AREAS.map(a => totals[a.key] ?? 0), 1);
+  const planned = AREAS.map(a => {
+    const t = totals[a.key] ?? 0;
+    return t > 0 ? Math.round((t / maxTotal) * 100) : 0;
+  });
+
+  const hasAnyPlanned = planned.some(p => p > 0);
+  const hasAnyDone = progress.some(p => p > 0);
 
   const angle = (i: number) => -Math.PI / 2 + (i * 2 * Math.PI) / N;
 
@@ -45,9 +56,10 @@ export function LifeWheel({ done, totals }: LifeWheelProps) {
     return `${cx + r * Math.cos(a)},${cy + r * Math.sin(a)}`;
   };
 
-  const polyPoints = AREAS.map((_, i) => pt(i, animated ? progress[i] : 0)).join(" ");
+  const donePoints = AREAS.map((_, i) => pt(i, animated ? progress[i] : 0)).join(" ");
+  const plannedPoints = AREAS.map((_, i) => pt(i, animated ? planned[i] : 0)).join(" ");
   const fullDone = AREAS.filter((_, i) => progress[i] >= 100).length;
-  const hasData = progress.some(p => p > 0);
+  const areasWithPlan = AREAS.filter((_, i) => planned[i] > 0).length;
 
   return (
     <div style={{
@@ -73,7 +85,7 @@ export function LifeWheel({ done, totals }: LifeWheelProps) {
           Roda da Vida
         </p>
         <span style={{ fontSize: 10, color: "#9e96b5" }}>
-          {fullDone}/{N} completas
+          {fullDone}/{areasWithPlan || N} completas
         </span>
       </div>
 
@@ -111,10 +123,26 @@ export function LifeWheel({ done, totals }: LifeWheelProps) {
           {/* Center glow */}
           <circle cx={cx} cy={cy} r="18" fill="url(#lwCenter)" />
 
-          {/* Data polygon */}
-          {hasData && (
+          {/* Planned polygon (dashed, outer layer) */}
+          {hasAnyPlanned && (
             <polygon
-              points={polyPoints}
+              points={plannedPoints}
+              fill="none"
+              stroke="rgba(167,139,250,0.35)"
+              strokeWidth="1.5"
+              strokeDasharray="6,4"
+              strokeLinejoin="round"
+              strokeLinecap="round"
+              style={{
+                transition: "all 1.2s cubic-bezier(0.34, 1.56, 0.64, 1)",
+              }}
+            />
+          )}
+
+          {/* Done polygon (solid, inner layer) */}
+          {hasAnyDone && (
+            <polygon
+              points={donePoints}
               fill="url(#lwGlow)"
               stroke="#7C5CFF"
               strokeWidth="2"
@@ -127,7 +155,24 @@ export function LifeWheel({ done, totals }: LifeWheelProps) {
             />
           )}
 
-          {/* Vertex dots */}
+          {/* Planned vertex dots (hollow) */}
+          {AREAS.map((a, i) => {
+            const p = animated ? planned[i] : 0;
+            if (p === 0) return null;
+            const donePct = animated ? progress[i] : 0;
+            const [px, py] = pt(i, p).split(",");
+            return (
+              <g key={`plan-${a.key}`}>
+                <circle cx={px} cy={py} r="5" fill="none" stroke="rgba(167,139,250,0.3)" strokeWidth="1.5" strokeDasharray="3,2" />
+                {/* Label planned count */}
+                <text x={Number(px) + 8} y={Number(py) - 8} fontSize="8" fill="rgba(167,139,250,0.5)" fontWeight="600" textAnchor="start">
+                  {totals[a.key] || 0}
+                </text>
+              </g>
+            );
+          })}
+
+          {/* Done vertex dots (solid) */}
           {AREAS.map((a, i) => {
             const pct = animated ? progress[i] : 0;
             if (pct === 0) return null;
