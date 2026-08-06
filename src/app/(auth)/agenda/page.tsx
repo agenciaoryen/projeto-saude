@@ -114,7 +114,7 @@ function AgendaPage() {
   const [showNewItem, setShowNewItem] = useState(false);
   const [newItemType, setNewItemType] = useState<"compromisso" | "tarefa">("tarefa");
   const [allWeekTasks, setAllWeekTasks] = useState<any[]>([]);
-  const [tasksOpen, setTasksOpen] = useState(false); // closed by default now
+  const [tasksOpen, setTasksOpen] = useState(true); // open by default, user can collapse
   const [editingPlanTask, setEditingPlanTask] = useState<any>(null);
   const [planEditTitle, setPlanEditTitle] = useState("");
   const [planEditDay, setPlanEditDay] = useState(0);
@@ -1456,7 +1456,16 @@ function ListView({ allWeekTasks, loadWeekTasks, compromissos, selectedDate }: {
   const activeGoals = goals.slice(0, 5);
   const selD = new Date(selectedDate + "T12:00:00");
   const selDow = selD.getDay() === 0 ? 6 : selD.getDay() - 1;
+  const todayDow = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1;
   const dayPlanTasks = allWeekTasks.filter((t: any) => t.day_of_week === selDow);
+  // Tasks without a specific day (Em aberto) — from the whole week
+  const openWeekTasks = allWeekTasks.filter((t: any) => t.day_of_week == null || t.day_of_week === -1);
+  // Overdue tasks: from previous days this week, not completed
+  const overdueTasks = allWeekTasks.filter((t: any) =>
+    t.day_of_week != null && t.day_of_week >= 0 &&
+    t.day_of_week < todayDow &&
+    t.status !== "concluida"
+  );
 
   const openEditor = (item: any) => {
     setEditingItem(item);
@@ -1489,10 +1498,44 @@ function ListView({ allWeekTasks, loadWeekTasks, compromissos, selectedDate }: {
 
   return (
     <div style={{ marginBottom: 20, padding: "0 16px" }}>
+      {/* Atrasadas (overdue weekly plan tasks) */}
+      {overdueTasks.length > 0 && (
+        <div style={{ marginBottom: 12 }}>
+          <h3 style={{ margin: "0 0 8px", fontSize: 12, fontWeight: 700, color: "#FF9F43", textTransform: "uppercase", letterSpacing: ".06em" }}>⚠️ Atrasadas</h3>
+          {overdueTasks.map((t: any) => {
+            const area = AREA_CONFIG_PT[t.area] || { emoji: "⚪" };
+            return (
+              <button key={t.id} type="button" onClick={() => openEditor(t)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 0", borderTop: "1px solid rgba(167,139,250,0.05)", background: "none", borderLeft: 0, borderRight: 0, cursor: "pointer", textAlign: "left", fontFamily: "inherit" }}>
+                <span style={{ fontSize: 12 }}>{area.emoji}</span>
+                <span style={{ flex: 1, fontSize: 11, color: "#FF9F43" }}>{t.title}</span>
+                <span style={{ fontSize: 9, color: "#9e96b5" }}>{["Seg","Ter","Qua","Qui","Sex","Sáb","Dom"][t.day_of_week]}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Em aberto (weekly tasks without day) */}
+      {openWeekTasks.length > 0 && (
+        <div style={{ marginBottom: 12 }}>
+          <h3 style={{ margin: "0 0 8px", fontSize: 12, fontWeight: 700, color: "#A78BFA", textTransform: "uppercase", letterSpacing: ".06em" }}>📋 Em aberto</h3>
+          {openWeekTasks.map((t: any) => {
+            const area = AREA_CONFIG_PT[t.area] || { emoji: "⚪" };
+            const done = t.status === "concluida";
+            return (
+              <button key={t.id} type="button" onClick={() => openEditor(t)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 0", borderTop: "1px solid rgba(167,139,250,0.05)", background: "none", borderLeft: 0, borderRight: 0, cursor: "pointer", textAlign: "left", fontFamily: "inherit" }}>
+                <span style={{ fontSize: 12 }}>{area.emoji}</span>
+                <span style={{ flex: 1, fontSize: 11, color: done ? "#5a5470" : "#e0d6ff", textDecoration: done ? "line-through" : "none" }}>{t.title}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {/* Compromissos do dia */}
       {todayComp.length > 0 && (
-        <div style={{ marginBottom: 16 }}>
-          <h3 style={{ margin: "0 0 10px", fontSize: 13, fontWeight: 700, color: "#A78BFA", textTransform: "uppercase", letterSpacing: ".06em" }}>Compromissos do dia</h3>
+        <div style={{ marginBottom: 12 }}>
+          <h3 style={{ margin: "0 0 8px", fontSize: 12, fontWeight: 700, color: "#A78BFA", textTransform: "uppercase", letterSpacing: ".06em" }}>Compromissos do dia</h3>
           {todayComp.map(c => (
             <button key={c.id} type="button" onClick={() => openEditor(c)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "10px 0", borderTop: "1px solid rgba(167,139,250,0.05)", background: "none", borderLeft: 0, borderRight: 0, cursor: "pointer", textAlign: "left", fontFamily: "inherit" }}>
               <span style={{ fontSize: 12 }}>{c.emoji || "📅"}</span>
@@ -1548,8 +1591,8 @@ function ListView({ allWeekTasks, loadWeekTasks, compromissos, selectedDate }: {
         </div>
       )}
 
-      {todayComp.length === 0 && todayAgendaTarefas.length === 0 && dayPlanTasks.length === 0 && activeGoals.length === 0 && (
-        <p style={{ color: "#9e96b5", fontSize: 13, textAlign: "center", padding: 32 }}>Nenhuma atividade neste dia</p>
+      {todayComp.length === 0 && todayAgendaTarefas.length === 0 && dayPlanTasks.length === 0 && openWeekTasks.length === 0 && overdueTasks.length === 0 && activeGoals.length === 0 && (
+        <p style={{ color: "#9e96b5", fontSize: 13, textAlign: "center", padding: 32 }}>Nenhuma atividade</p>
       )}
 
       {/* Edit modal */}
