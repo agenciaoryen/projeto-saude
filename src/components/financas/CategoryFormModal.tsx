@@ -55,9 +55,9 @@ export function CategoryFormModal({
 
   return (
     <>
-      <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 85, background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)" }} />
+      <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 100, background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)" }} />
       <div style={{
-        position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 95,
+        position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 105,
         borderRadius: "24px 24px 0 0", background: "#151520",
         padding: "20px 20px calc(env(safe-area-inset-bottom) + 28px)",
         boxShadow: "0 -8px 40px rgba(0,0,0,0.3)",
