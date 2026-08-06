@@ -393,9 +393,43 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
         <p style={{ margin: "0 0 4px", fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "#5EEAD4" }}>
           Compromisso da semana
         </p>
-        <p style={{ margin: "0 0 16px", fontSize: 14, fontWeight: 500, color: "#e0d6ff", lineHeight: 1.5 }}>
-          Qual é a única coisa que, se acontecer esta semana, fará você sentir que ela valeu a pena?
-        </p>
+
+        {focuses.length > 0 ? (
+          <div style={{ marginBottom: 16 }}>
+            <p style={{ margin: "0 0 10px", fontSize: 13, fontWeight: 500, color: "#9e96b5", lineHeight: 1.4 }}>
+              Se estas coisas acontecerem, a semana valeu a pena:
+            </p>
+            {focuses.map((focus: string, i: number) => (
+              <div key={i} style={{
+                display: "flex", alignItems: "flex-start", gap: 10, padding: "10px 0",
+                borderTop: i > 0 ? "1px solid rgba(94,234,212,0.06)" : "none",
+              }}>
+                <span style={{
+                  width: 22, height: 22, borderRadius: "50%", flexShrink: 0,
+                  background: "rgba(94,234,212,0.1)", color: "#5EEAD4",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 10, fontWeight: 700, fontFamily: "monospace",
+                }}>
+                  {i + 1}
+                </span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: "#e0d6ff", lineHeight: 1.4, paddingTop: 2 }}>
+                  {focus}
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div style={{ marginBottom: 16, textAlign: "center", padding: "14px 0" }}>
+            <p style={{ margin: "0 0 10px", fontSize: 13, color: "#6a657a" }}>
+              Defina suas pedras e elas aparecerão aqui como o compromisso da semana.
+            </p>
+            <button type="button" onClick={() => setShowStoneEditor(true)}
+              style={{ padding: "10px 20px", borderRadius: 12, border: "1px solid rgba(94,234,212,0.2)", background: "rgba(94,234,212,0.04)", cursor: "pointer", color: "#5EEAD4", fontSize: 13, fontWeight: 600, fontFamily: "inherit" }}>
+              Definir pedras
+            </button>
+          </div>
+        )}
+
         {review ? (
           <div style={{ padding: "12px 14px", borderRadius: 14, background: "rgba(94,234,212,0.06)", border: "1px solid rgba(94,234,212,0.1)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
