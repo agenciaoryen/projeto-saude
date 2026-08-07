@@ -582,11 +582,10 @@ function AgendaPage() {
       <div style={{ maxWidth: 480, margin: "0 auto", padding: "0 20px", width: "100%", display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}>
 
         {/* ── Title + Date navigation ─────────────────────────── */}
-        {viewMode !== "lista" && (
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: 12, marginBottom: 8 }}>
           <div>
             <h1 style={{ margin: 0, fontSize: 26, fontWeight: 800, color: "#e0d6ff", letterSpacing: "-0.02em" }}>
-              {viewMode === "metas" ? "Metas" : viewMode === "semana" ? "Agenda da semana" : "Agenda do dia"}
+              {viewMode === "metas" ? "Metas" : viewMode === "semana" ? "Agenda da semana" : viewMode === "lista" ? "Lista" : "Agenda do dia"}
             </h1>
             <p style={{ margin: "2px 0 0", fontSize: 13, color: "#A78BFA", fontWeight: 500 }}>
               {viewMode === "metas" ? "Acompanhe seu progresso" : viewMode === "semana" ? weekRangeLabel(selectedDate) : formatDateLabel(selectedDate)}
@@ -613,7 +612,6 @@ function AgendaPage() {
               style={navBtnStyle}><ChevronRight size={18} /></button>
           </div>
         </div>
-        )}
 
         {/* ── Segmented control Dia/Semana/Lista/Metas ──────────── */}
         <div style={{
@@ -1515,7 +1513,7 @@ function ListView({ allWeekTasks, compromissos, selectedDate }: { allWeekTasks: 
   };
 
   return (
-    <div>
+    <div style={{ padding: "0 20px" }}>
       {/* Atrasadas (overdue weekly plan tasks) */}
       {overdueTasks.length > 0 && (
         <div style={{ marginBottom: 12 }}>
