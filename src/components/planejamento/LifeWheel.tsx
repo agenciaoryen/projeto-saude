@@ -57,20 +57,43 @@ export function LifeWheel({ done, totals, emojis }: LifeWheelProps) {
       const svgBlob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
       const svgUrl = URL.createObjectURL(svgBlob);
 
-      // Draw to canvas with branding
+      // Draw to canvas — story format 1080×1920
       const canvas = document.createElement("canvas");
-      const scale = 2;
-      const wheelSize = 600;
-      const brandingHeight = 120;
-      canvas.width = wheelSize * scale;
-      canvas.height = (wheelSize + brandingHeight) * scale;
+      const W = 1080;
+      const H = 1920;
+      canvas.width = W;
+      canvas.height = H;
       const ctx = canvas.getContext("2d")!;
-      ctx.scale(scale, scale);
 
-      // Dark background
-      ctx.fillStyle = "#0F0F14";
+      // Dark gradient background
+      const bg = ctx.createLinearGradient(0, 0, 0, H);
+      bg.addColorStop(0, "#0F0F14");
+      bg.addColorStop(0.5, "#12121c");
+      bg.addColorStop(1, "#0F0F14");
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, W, H);
+
+      // Top section — header
+      ctx.fillStyle = "#A78BFA";
+      ctx.font = "bold 48px system-ui, -apple-system, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("Roda da Vida", W / 2, 160);
+      ctx.fillStyle = "#6a657a";
+      ctx.font = "28px system-ui, -apple-system, sans-serif";
+      ctx.fillText("Meu equilíbrio esta semana", W / 2, 210);
+
+      // Draw wheel centered — 800px with 140px padding each side
+      const wheelSize = 800;
+      const wheelX = (W - wheelSize) / 2; // 140
+      const wheelY = 280;
+
+      // Subtle glow behind wheel
+      const glow = ctx.createRadialGradient(W / 2, wheelY + wheelSize / 2, wheelSize * 0.1, W / 2, wheelY + wheelSize / 2, wheelSize * 0.6);
+      glow.addColorStop(0, "rgba(124,92,255,0.08)");
+      glow.addColorStop(1, "transparent");
+      ctx.fillStyle = glow;
       ctx.beginPath();
-      ctx.roundRect(0, 0, wheelSize, wheelSize + brandingHeight, 24);
+      ctx.arc(W / 2, wheelY + wheelSize / 2, wheelSize * 0.6, 0, Math.PI * 2);
       ctx.fill();
 
       // Draw SVG
@@ -80,16 +103,52 @@ export function LifeWheel({ done, totals, emojis }: LifeWheelProps) {
         img.onerror = reject;
         img.src = svgUrl;
       });
-      ctx.drawImage(img, 0, 0, wheelSize, wheelSize);
+      ctx.drawImage(img, wheelX, wheelY, wheelSize, wheelSize);
 
-      // Branding footer
-      ctx.fillStyle = "#7C5CFF";
-      ctx.font = "bold 28px system-ui, -apple-system, sans-serif";
+      // Stats row below wheel
+      const statsY = wheelY + wheelSize + 60;
+      const stats = [
+        { value: `${totalPlanned}`, label: "Planejadas" },
+        { value: `${totalDone}`, label: "Concluídas" },
+        { value: `${pctGlobal}%`, label: "Taxa" },
+      ];
+      const statWidth = W / 3;
+      stats.forEach((s, i) => {
+        const sx = statWidth * i + statWidth / 2;
+        ctx.fillStyle = "#e0d6ff";
+        ctx.font = "bold 56px system-ui, -apple-system, sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(s.value, sx, statsY);
+        ctx.fillStyle = "#6a657a";
+        ctx.font = "22px system-ui, -apple-system, sans-serif";
+        ctx.fillText(s.label, sx, statsY + 40);
+      });
+
+      // Bottom branding
+      const footerY = H - 200;
+      ctx.fillStyle = "rgba(124,92,255,0.08)";
+      ctx.beginPath();
+      const r = 24;
+      const bw = 340, bh = 90;
+      const bx = (W - bw) / 2, by = footerY - bh / 2;
+      ctx.moveTo(bx + r, by);
+      ctx.lineTo(bx + bw - r, by);
+      ctx.quadraticCurveTo(bx + bw, by, bx + bw, by + r);
+      ctx.lineTo(bx + bw, by + bh - r);
+      ctx.quadraticCurveTo(bx + bw, by + bh, bx + bw - r, by + bh);
+      ctx.lineTo(bx + r, by + bh);
+      ctx.quadraticCurveTo(bx, by + bh, bx, by + bh - r);
+      ctx.lineTo(bx, by + r);
+      ctx.quadraticCurveTo(bx, by, bx + r, by);
+      ctx.fill();
+
+      ctx.fillStyle = "#A78BFA";
+      ctx.font = "bold 32px system-ui, -apple-system, sans-serif";
       ctx.textAlign = "center";
-      ctx.fillText("Maya · Roda da Vida", wheelSize / 2, wheelSize + 50);
-      ctx.fillStyle = "#9e96b5";
-      ctx.font = "16px system-ui, -apple-system, sans-serif";
-      ctx.fillText("Seu equilíbrio semanal", wheelSize / 2, wheelSize + 80);
+      ctx.fillText("✨ Maya App", W / 2, footerY - 4);
+      ctx.fillStyle = "#6a657a";
+      ctx.font = "20px system-ui, -apple-system, sans-serif";
+      ctx.fillText("maya.app · Seu parceiro de equilíbrio", W / 2, footerY + 32);
 
       const pngBlob = await new Promise<Blob | null>(r => canvas.toBlob(r, "image/png"));
       URL.revokeObjectURL(svgUrl);
