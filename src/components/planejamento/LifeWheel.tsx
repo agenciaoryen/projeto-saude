@@ -130,7 +130,7 @@ export function LifeWheel({ done, totals, emojis }: LifeWheelProps) {
           animation: "lwPulse 4s ease-in-out infinite",
         }} />
 
-        <svg viewBox="0 0 300 315" style={{ width: "100%", maxWidth: 290 }}>
+        <svg viewBox="0 0 320 320" style={{ width: "100%", maxWidth: 300 }}>
           <defs>
             <linearGradient id="lwDoneFill" x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" stopColor="rgba(124,92,255,0.3)" />
@@ -199,8 +199,8 @@ export function LifeWheel({ done, totals, emojis }: LifeWheelProps) {
           {/* Area labels */}
           {AREAS.map((a, i) => {
             const a2 = angle(i);
-            const lx = CX + (R + 30) * Math.cos(a2);
-            const ly = CY + (R + 30) * Math.sin(a2);
+            const lx = CX + (R + 26) * Math.cos(a2);
+            const ly = CY + (R + 26) * Math.sin(a2);
             const pct = mounted ? progress[i] : 0;
             const planPct = mounted ? planned[i] : 0;
             const empty = pct === 0 && planPct === 0;
