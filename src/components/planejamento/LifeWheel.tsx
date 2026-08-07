@@ -76,8 +76,27 @@ export function LifeWheel({ done, totals, emojis }: LifeWheelProps) {
     if (!svg) return;
     setSharing(true);
     try {
+      // Boost visibility of cloned SVG for export
       const clone = svg.cloneNode(true) as SVGSVGElement;
       clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+      // Make rings and axes more visible for export
+      clone.querySelectorAll("polygon, line, circle").forEach((el: Element) => {
+        const s = el as SVGElement;
+        const stroke = s.getAttribute("stroke");
+        const fill = s.getAttribute("fill");
+        if (stroke && stroke.includes("rgba")) {
+          s.setAttribute("stroke", stroke.replace(/[\d.]+\)$/, m => {
+            const v = parseFloat(m);
+            return `${Math.min(v * 2.5, 0.8)})`;
+          }));
+        }
+        if (fill && fill.includes("rgba")) {
+          s.setAttribute("fill", fill.replace(/[\d.]+\)$/, m => {
+            const v = parseFloat(m);
+            return `${Math.min(v * 2, 0.7)})`;
+          }));
+        }
+      });
       const svgData = new XMLSerializer().serializeToString(clone);
       const svgBlob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
       const svgUrl = URL.createObjectURL(svgBlob);
@@ -86,25 +105,27 @@ export function LifeWheel({ done, totals, emojis }: LifeWheelProps) {
       const W = 1080, H = 1920;
       canvas.width = W; canvas.height = H;
       const ctx = canvas.getContext("2d")!;
+      // Crisp rendering
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
 
+      // Rich gradient background
       const bg = ctx.createLinearGradient(0, 0, 0, H);
-      bg.addColorStop(0, "#0F0F14"); bg.addColorStop(0.5, "#12121c"); bg.addColorStop(1, "#0F0F14");
+      bg.addColorStop(0, "#0a0a12");
+      bg.addColorStop(0.4, "#0F0F18");
+      bg.addColorStop(1, "#0a0a12");
       ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
 
-      ctx.fillStyle = "#A78BFA";
-      ctx.font = "bold 48px system-ui, -apple-system, sans-serif";
-      ctx.textAlign = "center";
-      ctx.fillText("Roda da Vida", W / 2, 160);
-      ctx.fillStyle = "#6a657a";
-      ctx.font = "28px system-ui, -apple-system, sans-serif";
-      ctx.fillText("Meu equilíbrio esta semana", W / 2, 210);
-
-      const wheelSize = 800, wheelX = (W - wheelSize) / 2, wheelY = 280;
-      const glow = ctx.createRadialGradient(W / 2, wheelY + wheelSize / 2, wheelSize * 0.1, W / 2, wheelY + wheelSize / 2, wheelSize * 0.6);
-      glow.addColorStop(0, "rgba(124,92,255,0.08)"); glow.addColorStop(1, "transparent");
+      // Stronger glow behind wheel
+      const wheelSize = 920, wheelX = (W - wheelSize) / 2, wheelY = 280;
+      const glow = ctx.createRadialGradient(W / 2, wheelY + wheelSize / 2, wheelSize * 0.05, W / 2, wheelY + wheelSize / 2, wheelSize * 0.7);
+      glow.addColorStop(0, "rgba(124,92,255,0.2)");
+      glow.addColorStop(0.5, "rgba(94,234,212,0.06)");
+      glow.addColorStop(1, "transparent");
       ctx.fillStyle = glow; ctx.beginPath();
-      ctx.arc(W / 2, wheelY + wheelSize / 2, wheelSize * 0.6, 0, Math.PI * 2); ctx.fill();
+      ctx.arc(W / 2, wheelY + wheelSize / 2, wheelSize * 0.7, 0, Math.PI * 2); ctx.fill();
 
+      // Load SVG at 2x for crispness
       const img = new Image();
       await new Promise<void>((resolve, reject) => { img.onload = () => resolve(); img.onerror = reject; img.src = svgUrl; });
       ctx.drawImage(img, wheelX, wheelY, wheelSize, wheelSize);
