@@ -169,7 +169,7 @@ export function LifeWheel({ done, totals, emojis }: LifeWheelProps) {
       // User cancelled or not supported — ignore
     }
     setSharing(false);
-  }, []);
+  }, [totalPlanned, totalDone, pctGlobal]);
 
   const progress = AREAS.map(a => {
     const t = totals[a.key] ?? 0;
