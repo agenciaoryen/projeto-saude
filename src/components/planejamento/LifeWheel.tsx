@@ -269,40 +269,42 @@ export function LifeWheel({ done, totals, emojis }: LifeWheelProps) {
             </filter>
           </defs>
 
-          {/* Grid rings — visible, alive */}
-          <polygon points={outerRing} fill="none" stroke="rgba(124,92,255,0.25)" strokeWidth="1.5" />
-          <polygon points={ring75}  fill="none" stroke="rgba(167,139,250,0.15)" strokeWidth="0.8" />
-          <polygon points={ring50}  fill="none" stroke="rgba(167,139,250,0.1)" strokeWidth="0.7" />
-          <polygon points={ring25}  fill="none" stroke="rgba(167,139,250,0.06)" strokeWidth="0.5" />
+          {/* Grid rings */}
+          <polygon points={outerRing} fill="none" stroke="rgba(124,92,255,0.3)" strokeWidth="2" />
+          <polygon points={ring75}  fill="none" stroke="rgba(167,139,250,0.18)" strokeWidth="1" />
+          <polygon points={ring50}  fill="none" stroke="rgba(167,139,250,0.12)" strokeWidth="0.8" />
+          <polygon points={ring25}  fill="none" stroke="rgba(167,139,250,0.08)" strokeWidth="0.6" />
 
-          {/* Axis lines — each with its area color, visible */}
+          {/* Axis lines */}
           {AREAS.map((a, i) => {
             const [ex, ey] = ringPt(i, 1).split(",");
-            return <line key={i} x1={CX} y1={CY} x2={ex} y2={ey} stroke={a.color} strokeWidth="0.6" opacity="0.35" />;
+            return <line key={i} x1={CX} y1={CY} x2={ex} y2={ey} stroke={a.color} strokeWidth="0.7" opacity="0.4" />;
           })}
 
           {/* Planned polygon */}
           {hasData && (
             <polygon points={plannedPts}
-              fill="rgba(167,139,250,0.03)"
-              stroke="rgba(167,139,250,0.2)"
-              strokeWidth="1.2"
+              fill="rgba(167,139,250,0.04)"
+              stroke="rgba(167,139,250,0.3)"
+              strokeWidth="1.5"
               strokeDasharray="4,4"
               strokeLinejoin="round"
               style={{ transition: "all 1.1s cubic-bezier(0.34, 1.4, 0.5, 1)" }}
             />
           )}
 
-          {/* Done polygon */}
+          {/* Done polygon + glow layer */}
           {hasDone && (
-            <polygon points={donePoints}
-              fill="url(#lwDoneFill)"
-              stroke="rgba(124,92,255,0.6)"
-              strokeWidth="2"
-              strokeLinejoin="round"
-              filter="url(#lwGlow)"
-              style={{ transition: "all 1.1s cubic-bezier(0.34, 1.4, 0.5, 1)" }}
-            />
+            <>
+              <polygon points={donePoints}
+                fill="url(#lwDoneFill)"
+                stroke="rgba(124,92,255,0.7)"
+                strokeWidth="2.5"
+                strokeLinejoin="round"
+                filter="url(#lwGlow)"
+                style={{ transition: "all 1.1s cubic-bezier(0.34, 1.4, 0.5, 1)" }}
+              />
+            </>
           )}
 
           {/* Vertex dots */}
@@ -322,7 +324,7 @@ export function LifeWheel({ done, totals, emojis }: LifeWheelProps) {
             );
           })}
 
-          {/* Area labels */}
+          {/* Area labels with colored badge */}
           {AREAS.map((a, i) => {
             const a2 = angle(i);
             const lx = CX + (R + 26) * Math.cos(a2);
@@ -332,16 +334,19 @@ export function LifeWheel({ done, totals, emojis }: LifeWheelProps) {
             const empty = pct === 0 && planPct === 0;
             const customEmoji = emojis?.[a.key];
             return (
-              <g key={a.key} opacity={empty ? 0.4 : 1} style={{ transition: "opacity .6s" }}>
+              <g key={a.key} opacity={empty ? 0.35 : 1} style={{ transition: "opacity .6s" }}>
+                {/* Colored glow circle behind emoji */}
+                <circle cx={lx} cy={ly - 8} r="14" fill={a.color} opacity={0.12} />
+                <circle cx={lx} cy={ly - 8} r="11" fill="none" stroke={a.color} strokeWidth="0.8" opacity={0.3} />
                 {customEmoji ? (
-                  <image href={customEmoji} x={lx - 12} y={ly - 16} width="24" height="24" />
+                  <image href={customEmoji} x={lx - 10} y={ly - 18} width="20" height="20" />
                 ) : (
-                  <text x={lx} y={ly - 3} textAnchor="middle" dominantBaseline="middle" fontSize="16">
+                  <text x={lx} y={ly - 5} textAnchor="middle" dominantBaseline="middle" fontSize="14">
                     {a.emoji}
                   </text>
                 )}
                 <text x={lx} y={ly + 11} textAnchor="middle" dominantBaseline="middle"
-                  fontSize="8.5" fontWeight="600" fill={a.color} letterSpacing=".03em">
+                  fontSize="7.5" fontWeight="700" fill={a.color} letterSpacing=".04em">
                   {a.label}
                 </text>
               </g>
