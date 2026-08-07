@@ -2,15 +2,18 @@
 
 import { useEffect, useState } from "react";
 
+// Ordered to place longer labels where there's more horizontal space
+// Top (0) & bottom (4) = most space for long labels
+// Left (6) & right (2) = tight — shorter labels
 const AREAS = [
-  { key: "saude",           label: "Saúde",           color: "#7C5CFF", emoji: "💚" },
-  { key: "carreira",        label: "Carreira",        color: "#5EEAD4", emoji: "💼" },
-  { key: "financas",        label: "Finanças",        color: "#F59E0B", emoji: "💰" },
-  { key: "relacionamentos", label: "Relacionamentos", color: "#EC4899", emoji: "❤️" },
-  { key: "familia",         label: "Família",         color: "#22D18B", emoji: "🏡" },
-  { key: "desenvolvimento", label: "Mente",           color: "#A78BFA", emoji: "🧠" },
-  { key: "lazer",           label: "Lazer",           color: "#38BDF8", emoji: "🌊" },
-  { key: "espiritualidade", label: "Espiritualidade", color: "#F97316", emoji: "✨" },
+  { key: "espiritualidade", label: "Espiritualidade", color: "#F97316", emoji: "✨" }, // top — long label, centered
+  { key: "carreira",        label: "Carreira",        color: "#5EEAD4", emoji: "💼" }, // top-right
+  { key: "desenvolvimento", label: "Mente",           color: "#A78BFA", emoji: "🧠" }, // right — short label
+  { key: "familia",         label: "Família",         color: "#22D18B", emoji: "🏡" }, // bottom-right
+  { key: "relacionamentos", label: "Relacionamentos", color: "#EC4899", emoji: "❤️" }, // bottom — long label, centered
+  { key: "financas",        label: "Finanças",        color: "#F59E0B", emoji: "💰" }, // bottom-left — longer label
+  { key: "lazer",           label: "Lazer",           color: "#38BDF8", emoji: "🌊" }, // left — short label
+  { key: "saude",           label: "Saúde",           color: "#7C5CFF", emoji: "💚" }, // top-left
 ];
 
 interface LifeWheelProps {

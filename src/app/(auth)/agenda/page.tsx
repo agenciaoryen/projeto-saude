@@ -107,6 +107,10 @@ function AgendaPage() {
     if (mode === "dia") url.searchParams.delete("tab");
     else url.searchParams.set("tab", mode);
     window.history.replaceState({}, "", url.toString());
+    // Refresh data when switching views
+    if (mode === "dia" || mode === "semana" || mode === "lista") {
+      fetchItems(selectedDate);
+    }
   };
   const [items, setItems] = useState<AgendaItem[]>([]);
   const [loading, setLoading] = useState(true);
