@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 
 // Ordered to place longer labels where there's more horizontal space
 // Top (0) & bottom (4) = most space for long labels
@@ -41,7 +41,76 @@ function ringPt(i: number, ratio: number) {
 
 export function LifeWheel({ done, totals, emojis }: LifeWheelProps) {
   const [mounted, setMounted] = useState(false);
+  const [sharing, setSharing] = useState(false);
+  const svgRef = useRef<SVGSVGElement>(null);
   useEffect(() => { requestAnimationFrame(() => setMounted(true)); }, []);
+
+  const handleShare = useCallback(async () => {
+    const svg = svgRef.current;
+    if (!svg) return;
+    setSharing(true);
+    try {
+      // Clone SVG and serialize
+      const clone = svg.cloneNode(true) as SVGSVGElement;
+      clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+      const svgData = new XMLSerializer().serializeToString(clone);
+      const svgBlob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
+      const svgUrl = URL.createObjectURL(svgBlob);
+
+      // Draw to canvas with branding
+      const canvas = document.createElement("canvas");
+      const scale = 2;
+      const wheelSize = 600;
+      const brandingHeight = 120;
+      canvas.width = wheelSize * scale;
+      canvas.height = (wheelSize + brandingHeight) * scale;
+      const ctx = canvas.getContext("2d")!;
+      ctx.scale(scale, scale);
+
+      // Dark background
+      ctx.fillStyle = "#0F0F14";
+      ctx.beginPath();
+      ctx.roundRect(0, 0, wheelSize, wheelSize + brandingHeight, 24);
+      ctx.fill();
+
+      // Draw SVG
+      const img = new Image();
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve();
+        img.onerror = reject;
+        img.src = svgUrl;
+      });
+      ctx.drawImage(img, 0, 0, wheelSize, wheelSize);
+
+      // Branding footer
+      ctx.fillStyle = "#7C5CFF";
+      ctx.font = "bold 28px system-ui, -apple-system, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("Maya · Roda da Vida", wheelSize / 2, wheelSize + 50);
+      ctx.fillStyle = "#9e96b5";
+      ctx.font = "16px system-ui, -apple-system, sans-serif";
+      ctx.fillText("Seu equilíbrio semanal", wheelSize / 2, wheelSize + 80);
+
+      const pngBlob = await new Promise<Blob | null>(r => canvas.toBlob(r, "image/png"));
+      URL.revokeObjectURL(svgUrl);
+      if (!pngBlob) return;
+
+      const file = new File([pngBlob], "roda-da-vida.png", { type: "image/png" });
+
+      // Try Web Share API first (mobile), fallback to download
+      if (navigator.share && navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file], title: "Minha Roda da Vida" });
+      } else {
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(pngBlob);
+        a.download = "roda-da-vida.png";
+        a.click();
+      }
+    } catch (e) {
+      // User cancelled or not supported — ignore
+    }
+    setSharing(false);
+  }, []);
 
   const progress = AREAS.map(a => {
     const t = totals[a.key] ?? 0;
@@ -98,7 +167,7 @@ export function LifeWheel({ done, totals, emojis }: LifeWheelProps) {
       />
 
       {/* ── Header ── */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8, position: "relative" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8, position: "relative" }}>
         <div>
           <p style={{ margin: 0, fontSize: 13, fontWeight: 700, letterSpacing: "-0.01em", color: "#e0d6ff" }}>
             Roda da Vida
@@ -107,15 +176,36 @@ export function LifeWheel({ done, totals, emojis }: LifeWheelProps) {
             Como sua energia está distribuída
           </p>
         </div>
-        {totalPlanned > 0 && (
-          <div style={{
-            background: "rgba(124,92,255,0.08)", borderRadius: 20,
-            padding: "4px 12px", border: "1px solid rgba(124,92,255,0.12)",
-          }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: "#A78BFA" }}>{pctGlobal}%</span>
-            <span style={{ fontSize: 9, color: "#6a657a", marginLeft: 4 }}>concluído</span>
-          </div>
-        )}
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          {totalPlanned > 0 && (
+            <div style={{
+              background: "rgba(124,92,255,0.08)", borderRadius: 20,
+              padding: "4px 12px", border: "1px solid rgba(124,92,255,0.12)",
+            }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: "#A78BFA" }}>{pctGlobal}%</span>
+              <span style={{ fontSize: 9, color: "#6a657a", marginLeft: 4 }}>concluído</span>
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={handleShare}
+            disabled={sharing}
+            aria-label="Compartilhar Roda da Vida"
+            style={{
+              width: 32, height: 32, borderRadius: 10, border: "1px solid rgba(167,139,250,0.15)",
+              background: "rgba(124,92,255,0.06)", cursor: "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              opacity: sharing ? 0.5 : 1,
+            }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#A78BFA" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="18" cy="5" r="3" />
+              <circle cx="6" cy="12" r="3" />
+              <circle cx="18" cy="19" r="3" />
+              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+              <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       {/* ── Wheel container ── */}
@@ -130,7 +220,7 @@ export function LifeWheel({ done, totals, emojis }: LifeWheelProps) {
           animation: "lwPulse 4s ease-in-out infinite",
         }} />
 
-        <svg viewBox="0 0 320 320" style={{ width: "100%", maxWidth: 300 }}>
+        <svg ref={svgRef} viewBox="0 0 320 320" style={{ width: "100%", maxWidth: 300 }}>
           <defs>
             <linearGradient id="lwDoneFill" x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" stopColor="rgba(124,92,255,0.3)" />
