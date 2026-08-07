@@ -1496,7 +1496,7 @@ function ListView({ allWeekTasks, compromissos, selectedDate }: { allWeekTasks: 
     } else {
       await fetch(`/api/weekly-plans/tasks/${editingItem.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: editTitle.trim(), status: editDone ? "concluida" : "pendente" }) });
     }
-    setEditingItem(null); loadWeekTasks();
+    setEditingItem(null);
     // Refresh compromissos too
     window.location.reload();
   };
@@ -1508,7 +1508,7 @@ function ListView({ allWeekTasks, compromissos, selectedDate }: { allWeekTasks: 
     } else {
       await fetch(`/api/weekly-plans/tasks/${editingItem.id}`, { method: "DELETE" });
     }
-    setEditingItem(null); loadWeekTasks();
+    setEditingItem(null);
     window.location.reload();
   };
 
