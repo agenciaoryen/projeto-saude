@@ -617,7 +617,7 @@ function AgendaPage() {
         <div style={{
           display: "flex", borderRadius: 14, background: "#1a1530",
           border: "1px solid rgba(167,139,250,0.15)", padding: 3,
-          marginBottom: 0,
+          marginBottom: 8,
         }}>
           {([
             { key: "dia", icon: Sun, label: "Dia" },
