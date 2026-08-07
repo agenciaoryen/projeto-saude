@@ -4,10 +4,62 @@ export async function registerSW(): Promise<ServiceWorkerRegistration | null> {
   if (!("serviceWorker" in navigator)) return null;
 
   try {
-    await navigator.serviceWorker.register("/sw.js");
-    return null; // registration triggered; use .ready for subscription
+    const reg = await navigator.serviceWorker.register("/sw.js");
+
+    // Detect new version waiting
+    if (reg.waiting) {
+      notifyUpdate();
+    }
+    reg.addEventListener("updatefound", () => {
+      const newWorker = reg.installing;
+      if (!newWorker) return;
+      newWorker.addEventListener("statechange", () => {
+        if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
+          notifyUpdate();
+        }
+      });
+    });
+
+    // Also check periodically for updates (every 60 min)
+    setInterval(() => {
+      reg.update().catch(() => {});
+    }, 60 * 60 * 1000);
+
+    return null;
   } catch {
     return null;
+  }
+}
+
+function notifyUpdate() {
+  // Show a subtle toast or banner — skip if already shown this session
+  if (sessionStorage.getItem("sw_update_shown")) return;
+  sessionStorage.setItem("sw_update_shown", "1");
+
+  // Use a small non-blocking banner
+  const banner = document.createElement("div");
+  banner.style.cssText = `
+    position:fixed;bottom:100px;left:16px;right:16px;z-index:9999;
+    background:#7C5CFF;color:#fff;border-radius:14px;padding:14px 18px;
+    font-family:system-ui,sans-serif;font-size:13px;font-weight:600;
+    text-align:center;box-shadow:0 4px 20px rgba(124,92,255,0.5);
+    cursor:pointer;animation:swSlideUp .3s ease;
+  `;
+  banner.textContent = "Nova versão disponível! Toque para atualizar ✨";
+  banner.addEventListener("click", () => {
+    window.location.reload();
+  });
+  document.body.appendChild(banner);
+
+  // Auto-remove after 10s
+  setTimeout(() => banner.remove(), 10000);
+
+  // Add animation style
+  if (!document.getElementById("sw-update-style")) {
+    const style = document.createElement("style");
+    style.id = "sw-update-style";
+    style.textContent = "@keyframes swSlideUp {from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}";
+    document.head.appendChild(style);
   }
 }
 
