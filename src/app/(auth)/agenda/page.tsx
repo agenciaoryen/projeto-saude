@@ -337,22 +337,30 @@ function AgendaPage() {
   // Fetch weekly plan tasks + goals + pedras for the current week
   useEffect(() => {
     Promise.all([
-      fetch("/api/weekly-plans").then(r => r.json()).catch(() => null),
+      // Fetch current + 3 past weeks for overdue/open detection
+      (async () => {
+        const allTasks: any[] = [];
+        for (let offset = 0; offset <= 3; offset++) {
+          const mon = new Date(selectedDate + "T12:00:00");
+          mon.setDate(mon.getDate() - ((mon.getDay() + 6) % 7) - (offset * 7));
+          const ws = `${mon.getFullYear()}-${String(mon.getMonth() + 1).padStart(2, "0")}-${String(mon.getDate()).padStart(2, "0")}`;
+          try {
+            const res = await fetch(`/api/weekly-plans?week=${ws}`);
+            if (res.ok) {
+              const data = await res.json();
+              if (data.current?.weekly_tasks) {
+                allTasks.push(...data.current.weekly_tasks.map((t: any) => ({ ...t, _weekStart: ws })));
+              }
+            }
+          } catch {}
+        }
+        setAllWeekTasks(allTasks);
+        return allTasks;
+      })(),
       fetch("/api/goals").then(r => r.json()).catch(() => []),
     ]).then(([planData, goalsData]) => {
-      if (planData?.current?.weekly_tasks) setAllWeekTasks(planData.current.weekly_tasks);
       // Active goals
       if (Array.isArray(goalsData)) {
-        setActiveGoals(goalsData.filter((g: any) => g.status === "ativa"));
-      }
-      // Focus goals (pedras com goal real)
-      if (planData?.current?.weekly_focus_goals && Array.isArray(goalsData)) {
-        const focusGoalIds = (planData.current.weekly_focus_goals ?? []).map((f: any) => f.goal_id);
-        const pedras = goalsData
-          .filter((g: any) => focusGoalIds.includes(g.id))
-          .map((g: any) => ({ id: g.id, title: `🎯 ${g.title}` }));
-        setWeekPedras(pedras);
-      } else if (Array.isArray(goalsData)) {
         setActiveGoals(goalsData.filter((g: any) => g.status === "ativa"));
       }
     }).catch(() => {});
@@ -973,26 +981,7 @@ function AgendaPage() {
 
       {/* ── LISTA ───────────────────────────────────────────── */}
       {viewMode === "lista" && (
-        <ListView allWeekTasks={allWeekTasks} compromissos={items} selectedDate={selectedDate} loadWeekTasks={async () => {
-          try {
-            // Fetch current week + last 3 weeks for overdue detection
-            const allTasks: any[] = [];
-            const d = new Date(selectedDate + "T12:00:00");
-            for (let offset = 0; offset <= 3; offset++) {
-              const mon = new Date(d);
-              mon.setDate(d.getDate() - ((d.getDay() + 6) % 7) - (offset * 7));
-              const ws = `${mon.getFullYear()}-${String(mon.getMonth() + 1).padStart(2, "0")}-${String(mon.getDate()).padStart(2, "0")}`;
-              const res = await fetch(`/api/weekly-plans?week=${ws}`);
-              if (res.ok) {
-                const data = await res.json();
-                if (data.current?.weekly_tasks) {
-                  allTasks.push(...data.current.weekly_tasks.map((t: any) => ({ ...t, _weekStart: ws })));
-                }
-              }
-            }
-            setAllWeekTasks(allTasks);
-          } catch {}
-        }} />
+        <ListView allWeekTasks={allWeekTasks} compromissos={items} selectedDate={selectedDate} />
       )}
 
       {/* ── Detail popup for compromisso ────────────────────── */}
@@ -1448,8 +1437,7 @@ const navBtnStyle: React.CSSProperties = {
   color: "#e0d6ff",
 };
 
-function ListView({ allWeekTasks, loadWeekTasks, compromissos, selectedDate }: { allWeekTasks: any[]; loadWeekTasks: () => Promise<void>; compromissos: AgendaItem[]; selectedDate: string }) {
-  const [listLoading, setListLoading] = useState(true);
+function ListView({ allWeekTasks, compromissos, selectedDate }: { allWeekTasks: any[]; compromissos: AgendaItem[]; selectedDate: string }) {
   const [goals, setGoals] = useState<any[]>([]);
   const [editingItem, setEditingItem] = useState<any>(null);
   const [editTitle, setEditTitle] = useState("");
@@ -1462,12 +1450,6 @@ function ListView({ allWeekTasks, loadWeekTasks, compromissos, selectedDate }: {
   };
 
   useEffect(() => {
-    if (allWeekTasks.length === 0) {
-      setListLoading(true);
-      loadWeekTasks().finally(() => setListLoading(false));
-    } else {
-      setListLoading(false);
-    }
     refreshGoals();
   }, []); // eslint-disable-line
 
@@ -1529,16 +1511,6 @@ function ListView({ allWeekTasks, loadWeekTasks, compromissos, selectedDate }: {
     setEditingItem(null); loadWeekTasks();
     window.location.reload();
   };
-
-  if (listLoading) {
-    return (
-      <div style={{ padding: "0 20px" }}>
-        {[1,2,3].map(i => (
-          <div key={i} style={{ height: 12, borderRadius: 6, background: "rgba(167,139,250,0.06)", marginBottom: 10, width: `${100 - i * 20}%` }} />
-        ))}
-      </div>
-    );
-  }
 
   return (
     <div style={{ padding: "0 20px" }}>
