@@ -269,11 +269,11 @@ export function LifeWheel({ done, totals, emojis, weekLabel, stones }: LifeWheel
         const miniH = 220;
         const miniGap = 20;
 
-        // Mini card colors and emojis
+        // Mini card accent colors
         const stoneMeta = [
-          { emoji: "🚀", color: "#5EEAD4", rgb: "94,234,212" },
-          { emoji: "🏋️", color: "#7C5CFF", rgb: "124,92,255" },
-          { emoji: "💗", color: "#EC4899", rgb: "236,72,153" },
+          { color: "#5EEAD4", rgb: "94,234,212" },
+          { color: "#7C5CFF", rgb: "124,92,255" },
+          { color: "#EC4899", rgb: "236,72,153" },
         ];
 
         // Calculate mini card widths based on count
@@ -302,7 +302,10 @@ export function LifeWheel({ done, totals, emojis, weekLabel, stones }: LifeWheel
 
         activeStones.forEach((s, idx) => {
           if (idx >= 3) return;
-          const title = (s ?? "").length > 22 ? (s ?? "").slice(0, 20) + "…" : (s ?? "");
+          // Dynamic max chars based on card width (18px font ≈ 7px/char)
+          const maxChars = stoneCount === 1 ? 52 : stoneCount === 2 ? 38 : 22;
+          const rawTitle = (s ?? "").trim();
+          const title = rawTitle.length > maxChars ? rawTitle.slice(0, maxChars - 2) + "…" : rawTitle;
 
           // Center each card configuration
           const totalMiniW = stoneCount * miniW + (stoneCount - 1) * miniGap;
@@ -321,13 +324,10 @@ export function LifeWheel({ done, totals, emojis, weekLabel, stones }: LifeWheel
           ctx.strokeStyle = topGlow; ctx.lineWidth = 2;
           ctx.beginPath(); ctx.moveTo(mx + 20, miniY + 2); ctx.lineTo(mx + miniW - 20, miniY + 2); ctx.stroke();
 
-          // Emoji
-          ctx.fillStyle = "#FFFFFF"; ctx.font = "40px Inter, system-ui, -apple-system, sans-serif"; ctx.textAlign = "center";
-          ctx.fillText(meta.emoji, mx + miniW / 2, miniY + 56);
-          // Title
-          ctx.fillStyle = "#FFFFFF"; ctx.font = "600 18px Inter, system-ui, -apple-system, sans-serif";
-          ctx.fillText(title, mx + miniW / 2, miniY + 100);
-          // Description
+          // Title — UPPERCASE, centered, no emoji above
+          ctx.fillStyle = "#FFFFFF"; ctx.font = "700 18px Inter, system-ui, -apple-system, sans-serif"; ctx.textAlign = "center";
+          ctx.fillText(title.toUpperCase(), mx + miniW / 2, miniY + 100);
+          // Subtitle
           ctx.fillStyle = "#A0A0B3"; ctx.font = "400 14px Inter, system-ui, -apple-system, sans-serif";
           ctx.fillText("Meu compromisso da semana.", mx + miniW / 2, miniY + 132);
         });
