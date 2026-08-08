@@ -279,8 +279,9 @@ export function LifeWheel({ done, totals, emojis, weekLabel, stones }: LifeWheel
       }));
       AREAS.forEach((a, i) => {
         const a2 = angle(i);
-        const lx = 150 + 134 * Math.cos(a2); // SVG x coordinate (emoji center)
-        const ly = 150 + 134 * Math.sin(a2); // SVG y coordinate
+        const labelDist = 108 + (i === 1 ? 36 : i === 7 ? 33 : 26); // Carreira & Saúde need extra breathing room
+        const lx = 150 + labelDist * Math.cos(a2); // SVG x coordinate (emoji center)
+        const ly = 150 + labelDist * Math.sin(a2); // SVG y coordinate
         const cx = wheelX + lx * svgToCanvas;
         const cy = wheelY + (ly - 5) * svgToCanvas; // emoji sits slightly above the center radial line
         ctx.drawImage(emojiImgs[a.key], cx - emojiCanvasSize / 2, cy - emojiCanvasSize / 2, emojiCanvasSize, emojiCanvasSize);
@@ -561,8 +562,9 @@ export function LifeWheel({ done, totals, emojis, weekLabel, stones }: LifeWheel
           {/* Area labels */}
           {AREAS.map((a, i) => {
             const a2 = angle(i);
-            const lx = CX + (R + 26) * Math.cos(a2);
-            const ly = CY + (R + 26) * Math.sin(a2);
+            const labelDist = R + (i === 1 ? 36 : i === 7 ? 33 : 26); // Carreira & Saúde need extra breathing room
+            const lx = CX + labelDist * Math.cos(a2);
+            const ly = CY + labelDist * Math.sin(a2);
             const pct = mounted ? progress[i] : 0;
             const planPct = mounted ? planned[i] : 0;
             const empty = pct === 0 && planPct === 0;
