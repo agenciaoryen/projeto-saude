@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useMemo } from "react";
-import { Moon, Zap, Clock, TrendingUp, Plus } from "lucide-react";
+import { Moon, Clock, Plus } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   computeSleepStats,
@@ -415,9 +415,134 @@ function SleepHistoryRow({ log, onEdit, lang }: { log: SleepLog; onEdit: (log: S
   );
 }
 
-// ── Sleep config card ─────────────────────────────────────────────────────────
+// ── Secondary action toolbar ──────────────────────────────────────────────────
 
-function SleepConfigCard({ config, onChange, onSave, saving, lang }: {
+function SleepToolbar({ config, onChange, onSave, saving, lang }: {
+  config: SleepConfig;
+  onChange: (c: SleepConfig) => void;
+  onSave: () => void;
+  saving: boolean;
+  lang: Lang;
+}) {
+  const [openPanel, setOpenPanel] = useState<"config" | "calculator" | null>(null);
+
+  const toggle = (panel: "config" | "calculator") => {
+    setOpenPanel((prev) => (prev === panel ? null : panel));
+  };
+
+  const pillBase: React.CSSProperties = {
+    flex: 1,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 7,
+    padding: "11px 15px",
+    borderRadius: 9999,
+    border: "1px solid oklch(0.28 0.02 270 / 0.35)",
+    background: "oklch(0.14 0.012 270 / 0.5)",
+    backdropFilter: "blur(14px)",
+    WebkitBackdropFilter: "blur(14px)",
+    fontFamily: "inherit",
+    fontSize: 12.5,
+    fontWeight: 600,
+    color: "#c4b5e0",
+    cursor: "pointer",
+    transition: "all 0.25s ease",
+  };
+
+  const pillActive: React.CSSProperties = {
+    background: "oklch(0.20 0.025 270 / 0.8)",
+    borderColor: "oklch(0.58 0.18 270 / 0.5)",
+    boxShadow: "0 0 20px oklch(0.58 0.18 270 / 0.14)",
+    color: "#e0d6ff",
+  };
+
+  const panelOuter = (isOpen: boolean): React.CSSProperties => ({
+    display: "grid",
+    gridTemplateRows: isOpen ? "1fr" : "0fr",
+    transition: "grid-template-rows 0.3s cubic-bezier(0.22, 1, 0.36, 1)",
+    marginTop: isOpen ? 10 : 0,
+  });
+
+  const panelInner: React.CSSProperties = {
+    overflow: "hidden",
+    background: "oklch(0.14 0.012 270 / 0.35)",
+    backdropFilter: "blur(18px)",
+    WebkitBackdropFilter: "blur(18px)",
+    borderRadius: 18,
+    border: "1px solid oklch(0.28 0.02 270 / 0.22)",
+    boxShadow: "0 8px 32px rgba(0,0,0,0.2)",
+  };
+
+  return (
+    <div>
+      {/* Pill row */}
+      <div style={{ display: "flex", gap: 8 }}>
+        <button
+          type="button"
+          onClick={() => toggle("config")}
+          style={{
+            ...pillBase,
+            ...(openPanel === "config" ? pillActive : {}),
+          }}
+        >
+          <span style={{ fontSize: 15 }}>⚙️</span>
+          <span>{tFn(lang, "sono_config_title")}</span>
+          <span
+            style={{
+              fontSize: 10,
+              display: "inline-block",
+              transform: openPanel === "config" ? "rotate(180deg)" : "rotate(0deg)",
+              transition: "transform 0.25s ease",
+            }}
+          >
+            ▾
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => toggle("calculator")}
+          style={{
+            ...pillBase,
+            ...(openPanel === "calculator" ? pillActive : {}),
+          }}
+        >
+          <Clock size={15} style={{ flexShrink: 0 }} />
+          <span>{tFn(lang, "sono_calc_title")}</span>
+          <span
+            style={{
+              fontSize: 10,
+              display: "inline-block",
+              transform: openPanel === "calculator" ? "rotate(180deg)" : "rotate(0deg)",
+              transition: "transform 0.25s ease",
+            }}
+          >
+            ▾
+          </span>
+        </button>
+      </div>
+
+      {/* Config panel */}
+      <div style={panelOuter(openPanel === "config")}>
+        <div style={panelInner}>
+          <SleepConfigContent config={config} onChange={onChange} onSave={onSave} saving={saving} lang={lang} />
+        </div>
+      </div>
+
+      {/* Calculator panel */}
+      <div style={panelOuter(openPanel === "calculator")}>
+        <div style={panelInner}>
+          <SleepCalculatorContent defaultBedtime={config.bedtime} lang={lang} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Sleep config content (inside toolbar panel) ────────────────────────────────
+
+function SleepConfigContent({ config, onChange, onSave, saving, lang }: {
   config: SleepConfig;
   onChange: (c: SleepConfig) => void;
   onSave: () => void;
@@ -427,96 +552,93 @@ function SleepConfigCard({ config, onChange, onSave, saving, lang }: {
   const TARGET_OPTIONS = [6, 7, 7.5, 8, 8.5, 9];
 
   return (
-    <Card className="rounded-2xl">
-      <CardContent className="p-4 space-y-4">
-        <p className="text-sm font-semibold">⚙️ {tFn(lang, "sono_config_title")}</p>
+    <div style={{ padding: "16px", display: "flex", flexDirection: "column", gap: 14 }}>
 
-        {/* Bedtime + Wake — stacked */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <div>
-            <p style={{ margin: "0 0 6px", fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "#9e96b5" }}>
-              {tFn(lang, "sono_horario_dormir")}
-            </p>
-            <div style={timeInputWrap}>
-              <input
-                type="time"
-                value={config.bedtime}
-                onChange={(e) => onChange({ ...config, bedtime: e.target.value })}
-                style={timeInputStyle}
-              />
-            </div>
-          </div>
-          <div>
-            <p style={{ margin: "0 0 6px", fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "#9e96b5" }}>
-              {tFn(lang, "sono_horario_acordar")}
-            </p>
-            <div style={timeInputWrap}>
-              <input
-                type="time"
-                value={config.wake_time}
-                onChange={(e) => onChange({ ...config, wake_time: e.target.value })}
-                style={timeInputStyle}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Target hours */}
-        <div>
-          <p style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "#9e96b5" }}>
-            {tFn(lang, "sono_meta")}
-          </p>
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            {TARGET_OPTIONS.map((h) => (
-              <button key={h} type="button" onClick={() => onChange({ ...config, target_hours: h })} style={{
-                padding: "7px 13px", borderRadius: 9999, cursor: "pointer",
-                border: config.target_hours === h ? "none" : "1px solid oklch(.28 .02 270 / .5)",
-                background: config.target_hours === h ? P : "oklch(.16 .012 270)",
-                fontFamily: "inherit", fontSize: 12, fontWeight: 600,
-                color: config.target_hours === h ? "#fff" : "#e0d6ff",
-                transition: "all .15s ease",
-              }}>
-                {h % 1 === 0 ? `${h}h` : `${h}h`}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Reminder time */}
-        <div>
+      {/* Bedtime + Wake — side by side on larger screens */}
+      <div style={{ display: "flex", gap: 10 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
           <p style={{ margin: "0 0 6px", fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "#9e96b5" }}>
-            {tFn(lang, "sono_lembrete_noturno")}
-          </p>
-          <p style={{ margin: "0 0 8px", fontSize: 12, color: "#9e96b5" }}>
-            {tFn(lang, "sono_lembrete_push_desc")}
+            {tFn(lang, "sono_horario_dormir")}
           </p>
           <div style={timeInputWrap}>
             <input
               type="time"
-              value={config.reminder_time}
-              onChange={(e) => onChange({ ...config, reminder_time: e.target.value })}
+              value={config.bedtime}
+              onChange={(e) => onChange({ ...config, bedtime: e.target.value })}
               style={timeInputStyle}
             />
           </div>
         </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{ margin: "0 0 6px", fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "#9e96b5" }}>
+            {tFn(lang, "sono_horario_acordar")}
+          </p>
+          <div style={timeInputWrap}>
+            <input
+              type="time"
+              value={config.wake_time}
+              onChange={(e) => onChange({ ...config, wake_time: e.target.value })}
+              style={timeInputStyle}
+            />
+          </div>
+        </div>
+      </div>
 
-        <button type="button" onClick={onSave} disabled={saving} style={{
-          width: "100%", height: 44, borderRadius: 12, border: 0,
-          cursor: saving ? "not-allowed" : "pointer",
-          background: P, color: "#fff",
-          fontFamily: "inherit", fontSize: 14, fontWeight: 700,
-          opacity: saving ? 0.7 : 1, transition: "opacity .15s ease",
-        }}>
-          {saving ? tFn(lang, "salvando") : tFn(lang, "sono_salvar_config")}
-        </button>
-      </CardContent>
-    </Card>
+      {/* Target hours */}
+      <div>
+        <p style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "#9e96b5" }}>
+          {tFn(lang, "sono_meta")}
+        </p>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          {TARGET_OPTIONS.map((h) => (
+            <button key={h} type="button" onClick={() => onChange({ ...config, target_hours: h })} style={{
+              padding: "7px 13px", borderRadius: 9999, cursor: "pointer",
+              border: config.target_hours === h ? "none" : "1px solid oklch(.28 .02 270 / .5)",
+              background: config.target_hours === h ? P : "oklch(.16 .012 270)",
+              fontFamily: "inherit", fontSize: 12, fontWeight: 600,
+              color: config.target_hours === h ? "#fff" : "#e0d6ff",
+              transition: "all .15s ease",
+            }}>
+              {h % 1 === 0 ? `${h}h` : `${h}h`}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Reminder time */}
+      <div>
+        <p style={{ margin: "0 0 6px", fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "#9e96b5" }}>
+          {tFn(lang, "sono_lembrete_noturno")}
+        </p>
+        <p style={{ margin: "0 0 8px", fontSize: 12, color: "#9e96b5" }}>
+          {tFn(lang, "sono_lembrete_push_desc")}
+        </p>
+        <div style={timeInputWrap}>
+          <input
+            type="time"
+            value={config.reminder_time}
+            onChange={(e) => onChange({ ...config, reminder_time: e.target.value })}
+            style={timeInputStyle}
+          />
+        </div>
+      </div>
+
+      <button type="button" onClick={onSave} disabled={saving} style={{
+        width: "100%", height: 44, borderRadius: 12, border: 0,
+        cursor: saving ? "not-allowed" : "pointer",
+        background: P, color: "#fff",
+        fontFamily: "inherit", fontSize: 14, fontWeight: 700,
+        opacity: saving ? 0.7 : 1, transition: "opacity .15s ease",
+      }}>
+        {saving ? tFn(lang, "salvando") : tFn(lang, "sono_salvar_config")}
+      </button>
+    </div>
   );
 }
 
-// ── Cycle calculator ──────────────────────────────────────────────────────────
+// ── Cycle calculator content (inside toolbar panel) ───────────────────────────
 
-function CycleCalculator({ defaultBedtime = "23:00", lang = "pt" }: { defaultBedtime?: string; lang?: Lang }) {
+function SleepCalculatorContent({ defaultBedtime = "23:00", lang = "pt" }: { defaultBedtime?: string; lang?: Lang }) {
   const [bedtime, setBedtime] = useState(defaultBedtime);
   const [synced, setSynced] = useState(defaultBedtime);
 
@@ -533,49 +655,43 @@ function CycleCalculator({ defaultBedtime = "23:00", lang = "pt" }: { defaultBed
   })();
 
   return (
-    <Card className="rounded-2xl">
-      <CardContent className="p-4 space-y-4">
-        <div className="flex items-center gap-2">
-          <Clock className="size-4" style={{ color: P }} />
-          <p className="text-sm font-semibold">{tFn(lang, "sono_calc_title")}</p>
+    <div style={{ padding: "16px", display: "flex", flexDirection: "column", gap: 14 }}>
+      <p style={{ margin: 0, fontSize: 12, color: "#9e96b5" }}>
+        {tFn(lang, "sono_calc_desc")}
+      </p>
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <label style={{ fontSize: 13, color: "#9e96b5", flexShrink: 0 }}>{tFn(lang, "sono_dormir_as")}</label>
+        <div style={{ ...timeInputWrap, flex: 1 }}>
+          <input
+            type="time"
+            value={bedtime}
+            onChange={(e) => setBedtime(e.target.value)}
+            style={timeInputStyle}
+          />
         </div>
-        <p className="text-xs text-muted-foreground">
-          {tFn(lang, "sono_calc_desc")}
+      </div>
+      <div>
+        <p style={{ margin: "0 0 10px", fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "#9e96b5" }}>
+          {tFn(lang, "sono_horarios_ideais")}
         </p>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <label style={{ fontSize: 13, color: "#9e96b5", flexShrink: 0 }}>{tFn(lang, "sono_dormir_as")}</label>
-          <div style={{ ...timeInputWrap, flex: 1 }}>
-            <input
-              type="time"
-              value={bedtime}
-              onChange={(e) => setBedtime(e.target.value)}
-              style={timeInputStyle}
-            />
-          </div>
+        <div style={{ display: "flex", gap: 10 }}>
+          {idealWakes.map((w, i) => (
+            <div key={i} style={{
+              flex: 1, padding: "12px", borderRadius: 14, textAlign: "center",
+              background: i === 1 ? PL : "oklch(.16 .012 270)",
+              border: i === 1 ? PB : "1px solid oklch(.28 .02 270 / .5)",
+            }}>
+              <p style={{ margin: 0, fontSize: 20, fontWeight: 700, color: i === 1 ? "#e0d6ff" : "var(--foreground)" }}>
+                {w.toLocaleTimeString(dateLocale(lang), { hour: "2-digit", minute: "2-digit" })}
+              </p>
+              <p style={{ margin: "3px 0 0", fontSize: 11, color: "#9e96b5" }}>
+                {i === 0 ? tFn(lang, "sono_ciclo_5") : tFn(lang, "sono_ciclo_6")}
+              </p>
+            </div>
+          ))}
         </div>
-        <div>
-          <p style={{ margin: "0 0 10px", fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "#9e96b5" }}>
-            {tFn(lang, "sono_horarios_ideais")}
-          </p>
-          <div style={{ display: "flex", gap: 10 }}>
-            {idealWakes.map((w, i) => (
-              <div key={i} style={{
-                flex: 1, padding: "12px", borderRadius: 14, textAlign: "center",
-                background: i === 1 ? PL : "oklch(.16 .012 270)",
-                border: i === 1 ? PB : "1px solid oklch(.28 .02 270 / .5)",
-              }}>
-                <p style={{ margin: 0, fontSize: 20, fontWeight: 700, color: i === 1 ? "#e0d6ff" : "var(--foreground)" }}>
-                  {w.toLocaleTimeString(dateLocale(lang), { hour: "2-digit", minute: "2-digit" })}
-                </p>
-                <p style={{ margin: "3px 0 0", fontSize: 11, color: "#9e96b5" }}>
-                  {i === 0 ? tFn(lang, "sono_ciclo_5") : tFn(lang, "sono_ciclo_6")}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
 
@@ -763,11 +879,8 @@ export default function SonoPage() {
           </>
         )}
 
-        {/* ── Cycle calculator ── */}
-        <CycleCalculator defaultBedtime={config.bedtime} lang={lang} />
-
-        {/* ── Sleep config ── */}
-        <SleepConfigCard
+        {/* ── Secondary actions toolbar ── */}
+        <SleepToolbar
           config={config}
           onChange={setConfig}
           onSave={handleSaveConfig}
