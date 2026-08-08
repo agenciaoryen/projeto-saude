@@ -253,95 +253,90 @@ export function LifeWheel({ done, totals, emojis, weekLabel, stones }: LifeWheel
       ctx.fillStyle = "#FFFFFF"; ctx.beginPath();
       ctx.arc(wheelCx, wheelCy, 4, 0, Math.PI * 2); ctx.fill();
 
-      // ── 5. HANDWRITTEN NOTES ───────────────────────────────────
-      // Note 1 — upper right corner, well clear of area labels
-      ctx.save();
-      ctx.fillStyle = "rgba(200,180,240,0.75)"; ctx.font = "italic 400 24px 'Segoe Script', 'Brush Script MT', cursive, sans-serif"; ctx.textAlign = "right";
-      ctx.translate(W - 50, wheelCy - 180); ctx.rotate(-0.06);
-      ctx.fillText("Pequenas escolhas", 0, 0);
-      ctx.fillText("grandes mudanças", 0, 32);
-      // Subtle decorative line (not crossing into wheel area)
-      ctx.strokeStyle = "rgba(167,139,250,0.35)"; ctx.lineWidth = 1; ctx.setLineDash([3, 4]);
-      ctx.beginPath(); ctx.moveTo(-120, -50); ctx.lineTo(-80, -50); ctx.stroke();
-      ctx.setLineDash([]);
-      ctx.fillStyle = "rgba(167,139,250,0.4)";
-      ctx.beginPath(); ctx.moveTo(-90, -50); ctx.lineTo(-80, -56); ctx.lineTo(-80, -44); ctx.closePath(); ctx.fill();
-      ctx.restore();
-
-      // Note 2 — above bottom card, centered, better contrast
+      // ── 5. BOTTOM CARD — "MEU FOCO DA SEMANA" ──────────────────
       const cardStartY = wheelY + wheelSize + 90;
-      ctx.save();
-      ctx.fillStyle = "rgba(200,180,240,0.7)"; ctx.font = "italic 400 22px 'Segoe Script', 'Brush Script MT', cursive, sans-serif"; ctx.textAlign = "center";
-      ctx.translate(W / 2, cardStartY - 22); ctx.rotate(-0.04);
-      ctx.fillText("Menos é mais. Escolho o que importa.", 0, 0);
-      ctx.restore();
 
-      // ── 7. BOTTOM CARD — "MEU FOCO DA SEMANA" ──────────────────
-      const cardW = 900, cardX = (W - cardW) / 2;
-      const cardPadding = 40;
-      const cardTopPad = 50, cardInnerH = 340;
-      const cardRadius = 28;
-      const cardH = cardTopPad + cardInnerH;
-
-      // Glass card background
-      ctx.fillStyle = "rgba(26,26,36,0.85)"; ctx.strokeStyle = "rgba(255,255,255,0.06)"; ctx.lineWidth = 1;
-      drawRoundRect(ctx, cardX, cardStartY, cardW, cardH, cardRadius); ctx.fill(); ctx.stroke();
-
-      // Card header — centered vertically within top padding
-      const cardHeaderY = cardStartY + cardTopPad;
-      ctx.fillStyle = "#FFFFFF"; ctx.font = "600 28px Inter, system-ui, -apple-system, sans-serif"; ctx.textAlign = "left";
-      ctx.fillText("🎯  Meu foco da semana", cardX + cardPadding, cardHeaderY);
-
-      // ── Mini cards ──
-      const stoneDefs: { emoji: string; title: string; desc: string; color: string }[] = [
-        { emoji: "🚀", title: "Crescer na carreira", desc: "Dar um passo decisivo.", color: "#5EEAD4" },
-        { emoji: "🏋️", title: "Cuidar do corpo", desc: "Energia e presença.", color: "#7C5CFF" },
-        { emoji: "💗", title: "Fortalecer relações", desc: "Tempo com quem importa.", color: "#EC4899" },
-      ];
-
-      // Override with actual stones if available — shorten to avoid wrapping
+      // Collect actual stones (filter out null/empty)
       const activeStones = (stones || []).filter(Boolean);
-      if (activeStones.length > 0) {
+      const stoneCount = activeStones.length;
+
+      // Only render card if there are stones
+      if (stoneCount > 0) {
+        const cardW = 900, cardX = (W - cardW) / 2;
+        const cardPadding = 40;
+        const cardTopPad = 70;
+        const cardRadius = 28;
+        const miniH = 220;
+        const miniGap = 20;
+
+        // Mini card colors and emojis
+        const stoneMeta = [
+          { emoji: "🚀", color: "#5EEAD4", rgb: "94,234,212" },
+          { emoji: "🏋️", color: "#7C5CFF", rgb: "124,92,255" },
+          { emoji: "💗", color: "#EC4899", rgb: "236,72,153" },
+        ];
+
+        // Calculate mini card widths based on count
+        let miniW: number;
+        if (stoneCount === 1) {
+          miniW = 500; // one wide card, centered
+        } else if (stoneCount === 2) {
+          miniW = (cardW - cardPadding * 2 - miniGap) / 2;
+        } else {
+          miniW = (cardW - cardPadding * 2 - miniGap * 2) / 3;
+        }
+
+        const cardH = cardTopPad + miniH + 60; // top pad + cards + bottom pad
+        const cardBottomY = cardStartY + cardH;
+
+        // Glass card background
+        ctx.fillStyle = "rgba(26,26,36,0.85)"; ctx.strokeStyle = "rgba(255,255,255,0.06)"; ctx.lineWidth = 1;
+        drawRoundRect(ctx, cardX, cardStartY, cardW, cardH, cardRadius); ctx.fill(); ctx.stroke();
+
+        // Card header
+        const cardHeaderY = cardStartY + cardTopPad;
+        ctx.fillStyle = "#FFFFFF"; ctx.font = "600 28px Inter, system-ui, -apple-system, sans-serif"; ctx.textAlign = "left";
+        ctx.fillText("🎯  Meu foco da semana", cardX + cardPadding, cardHeaderY);
+
+        const miniY = cardHeaderY + 28;
+
         activeStones.forEach((s, idx) => {
-          if (idx < 3 && s) {
-            stoneDefs[idx].title = s.length > 22 ? s.slice(0, 20) + "…" : s;
-            stoneDefs[idx].desc = "Meu foco da semana.";
-          }
+          if (idx >= 3) return;
+          const title = (s ?? "").length > 22 ? (s ?? "").slice(0, 20) + "…" : (s ?? "");
+
+          // Center each card configuration
+          const totalMiniW = stoneCount * miniW + (stoneCount - 1) * miniGap;
+          const miniStartX = cardX + (cardW - totalMiniW) / 2;
+          const mx = miniStartX + idx * (miniW + miniGap);
+          const meta = stoneMeta[idx];
+
+          // Mini card bg
+          ctx.fillStyle = "rgba(15,15,20,0.7)"; ctx.strokeStyle = `rgba(${meta.rgb},0.2)`; ctx.lineWidth = 1;
+          drawRoundRect(ctx, mx, miniY, miniW, miniH, 18); ctx.fill(); ctx.stroke();
+          // Colored top glow line
+          const topGlow = ctx.createLinearGradient(mx, miniY, mx + miniW, miniY);
+          topGlow.addColorStop(0, "transparent");
+          topGlow.addColorStop(0.5, meta.color);
+          topGlow.addColorStop(1, "transparent");
+          ctx.strokeStyle = topGlow; ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.moveTo(mx + 20, miniY + 2); ctx.lineTo(mx + miniW - 20, miniY + 2); ctx.stroke();
+
+          // Emoji
+          ctx.fillStyle = "#FFFFFF"; ctx.font = "40px Inter, system-ui, -apple-system, sans-serif"; ctx.textAlign = "center";
+          ctx.fillText(meta.emoji, mx + miniW / 2, miniY + 56);
+          // Title
+          ctx.fillStyle = "#FFFFFF"; ctx.font = "600 18px Inter, system-ui, -apple-system, sans-serif";
+          ctx.fillText(title, mx + miniW / 2, miniY + 100);
+          // Description
+          ctx.fillStyle = "#A0A0B3"; ctx.font = "400 14px Inter, system-ui, -apple-system, sans-serif";
+          ctx.fillText("Meu compromisso da semana.", mx + miniW / 2, miniY + 132);
         });
       }
 
-      const miniGap = 20;
-      const miniW = (cardW - cardPadding * 2 - miniGap * 2) / 3;
-      const miniH = 220;
-      const miniY = cardHeaderY + 24; // closer to header, more room below
-
-      stoneDefs.forEach((sd, idx) => {
-        const mx = cardX + cardPadding + idx * (miniW + miniGap);
-        // Mini card bg
-        ctx.fillStyle = "rgba(15,15,20,0.7)"; ctx.strokeStyle = `rgba(${sd.color === "#5EEAD4" ? "94,234,212" : sd.color === "#7C5CFF" ? "124,92,255" : "236,72,153"},0.2)`; ctx.lineWidth = 1;
-        drawRoundRect(ctx, mx, miniY, miniW, miniH, 18); ctx.fill(); ctx.stroke();
-        // Colored top glow line
-        const topGlow = ctx.createLinearGradient(mx, miniY, mx + miniW, miniY);
-        topGlow.addColorStop(0, "transparent");
-        topGlow.addColorStop(0.5, sd.color);
-        topGlow.addColorStop(1, "transparent");
-        ctx.strokeStyle = topGlow; ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.moveTo(mx + 20, miniY + 2); ctx.lineTo(mx + miniW - 20, miniY + 2); ctx.stroke();
-
-        // Emoji
-        ctx.fillStyle = "#FFFFFF"; ctx.font = "40px Inter, system-ui, -apple-system, sans-serif"; ctx.textAlign = "center";
-        ctx.fillText(sd.emoji, mx + miniW / 2, miniY + 56);
-        // Title — truncated to single line guaranteed
-        ctx.fillStyle = "#FFFFFF"; ctx.font = "600 18px Inter, system-ui, -apple-system, sans-serif";
-        ctx.fillText(sd.title, mx + miniW / 2, miniY + 100);
-        // Description — short enough to fit
-        ctx.fillStyle = "#A0A0B3"; ctx.font = "400 14px Inter, system-ui, -apple-system, sans-serif";
-        ctx.fillText(sd.desc, mx + miniW / 2, miniY + 132);
-      });
-
-      // ── 8. HERO STATEMENT ──────────────────────────────────────
-      const cardBottomY = cardStartY + cardH;
-      const heroY = cardBottomY + 90;
+      // ── 6. HERO STATEMENT ──────────────────────────────────────
+      // Where content ends: card bottom if cards exist, otherwise just wheel + gap
+      const contentEndY = stoneCount > 0 ? cardStartY + 350 /* cardH */ : cardStartY;
+      const heroY = contentEndY + 100;
       ctx.font = "700 50px Inter, system-ui, -apple-system, sans-serif"; ctx.textAlign = "center";
       const planejoW = ctx.measureText("Planejo hoje, ").width;
       const vivoW = ctx.measureText("vivo meu amanhã.").width;
