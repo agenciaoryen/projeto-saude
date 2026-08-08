@@ -895,6 +895,14 @@ function SleepTrendChart({ logs, lang }: { logs: SleepLog[]; lang: Lang }) {
 
   const avgY = pad.top + ph - ((avgScore - minScore) / range) * ph;
 
+  // Reference threshold Y positions (clamped to visible range)
+  const toY = (score: number) => {
+    const raw = pad.top + ph - ((score - minScore) / range) * ph;
+    return Math.max(pad.top, Math.min(pad.top + ph, raw));
+  };
+  const refGoodY = toY(70);   // ≥70 = bom
+  const refWarnY = toY(45);   // <45 = ruim
+
   const fmtShort = (dateStr: string) => {
     const d = new Date(dateStr + "T12:00:00");
     return d.toLocaleDateString(dateLocale(lang), { day: "numeric", month: "short" });
@@ -958,6 +966,30 @@ function SleepTrendChart({ logs, lang }: { logs: SleepLog[]; lang: Lang }) {
           strokeDasharray="5,4"
         />
 
+        {/* Score threshold: 70 (good) */}
+        <line
+          x1={pad.left}
+          y1={refGoodY}
+          x2={pad.left + pw}
+          y2={refGoodY}
+          stroke="oklch(0.58 0.18 270 / 0.30)"
+          strokeWidth="1"
+          strokeDasharray="3,6"
+        />
+        <text x={pad.left + pw} y={refGoodY - 3} textAnchor="end" fontSize="8" fill="oklch(0.58 0.18 270 / 0.6)" fontFamily="inherit">70</text>
+
+        {/* Score threshold: 45 (warning) */}
+        <line
+          x1={pad.left}
+          y1={refWarnY}
+          x2={pad.left + pw}
+          y2={refWarnY}
+          stroke="oklch(0.60 0.12 70 / 0.30)"
+          strokeWidth="1"
+          strokeDasharray="3,6"
+        />
+        <text x={pad.left + pw} y={refWarnY - 3} textAnchor="end" fontSize="8" fill="oklch(0.60 0.12 70 / 0.6)" fontFamily="inherit">45</text>
+
         {/* Area fill */}
         <path d={areaD} fill="url(#sleeptrend-grad)" />
 
@@ -1010,6 +1042,103 @@ function SleepTrendChart({ logs, lang }: { logs: SleepLog[]; lang: Lang }) {
   );
 }
 
+// ── Sleep specialist card ──────────────────────────────────────────────────────
+
+function SleepSpecialistCard({ insight, lang }: {
+  insight: { patterns: string[]; concerns: string[]; strengths: string[]; summary: string } | null;
+  lang: Lang;
+}) {
+  if (!insight?.summary) return null;
+
+  return (
+    <div
+      style={{
+        background: "oklch(0.16 0.012 270)",
+        borderRadius: 18,
+        border: "1px solid oklch(0.28 0.02 270 / 0.5)",
+        padding: "16px",
+      }}
+    >
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+        <span style={{ fontSize: 18 }}>🧠</span>
+        <span
+          style={{
+            fontSize: 10,
+            fontWeight: 700,
+            letterSpacing: ".08em",
+            textTransform: "uppercase",
+            color: "#A78BFA",
+          }}
+        >
+          {tFn(lang, "sono_especialista_title")}
+        </span>
+      </div>
+
+      {/* Summary */}
+      <p
+        style={{
+          margin: "0 0 12px",
+          fontSize: 13,
+          lineHeight: 1.55,
+          color: "#e0d6ff",
+        }}
+      >
+        {insight.summary}
+      </p>
+
+      {/* Badges */}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+        {insight.strengths?.map((s, i) => (
+          <span
+            key={`s-${i}`}
+            style={{
+              padding: "4px 10px",
+              borderRadius: 9999,
+              fontSize: 11,
+              fontWeight: 600,
+              background: "oklch(0.20 0.04 160 / 0.20)",
+              color: "#5EEAD4",
+            }}
+          >
+            {s}
+          </span>
+        ))}
+        {insight.concerns?.map((c, i) => (
+          <span
+            key={`c-${i}`}
+            style={{
+              padding: "4px 10px",
+              borderRadius: 9999,
+              fontSize: 11,
+              fontWeight: 600,
+              background: "oklch(0.20 0.04 70 / 0.20)",
+              color: "#FBBF24",
+            }}
+          >
+            {c}
+          </span>
+        ))}
+        {insight.patterns?.map((p, i) => (
+          <span
+            key={`p-${i}`}
+            style={{
+              padding: "4px 10px",
+              borderRadius: 9999,
+              fontSize: 11,
+              fontWeight: 500,
+              background: "oklch(0.20 0.025 270 / 0.25)",
+              color: "#c4b5e0",
+            }}
+          >
+            {p}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function SonoPage() {
@@ -1022,6 +1151,7 @@ export default function SonoPage() {
   const [config, setConfig] = useState<SleepConfig>(DEFAULT_CONFIG);
   const [configSaving, setConfigSaving] = useState(false);
   const [openSleepMonths, setOpenSleepMonths] = useState<Set<string>>(new Set());
+  const [sleepInsight, setSleepInsight] = useState<{ patterns: string[]; concerns: string[]; strengths: string[]; summary: string } | null>(null);
 
   // Open current month by default once logs load
   useEffect(() => {
@@ -1054,9 +1184,10 @@ export default function SonoPage() {
   };
 
   const loadLogs = useCallback(async () => {
-    const [sleepData, prefsData] = await Promise.all([
+    const [sleepData, prefsData, insightData] = await Promise.all([
       fetch("/api/sleep?limit=30").then((r) => r.json()).catch(() => []),
       fetch("/api/preferences").then((r) => r.json()).catch(() => ({})),
+      fetch("/api/sleep/insights").then((r) => r.json()).catch(() => null),
     ]);
 
     if (Array.isArray(sleepData)) {
@@ -1067,6 +1198,10 @@ export default function SonoPage() {
     const ctx = prefsData?.context ?? {};
     if (ctx.sleep_config) {
       setConfig({ ...DEFAULT_CONFIG, ...(ctx.sleep_config as Partial<SleepConfig>) });
+    }
+
+    if (insightData?.summary) {
+      setSleepInsight(insightData);
     }
 
     setLoading(false);
@@ -1196,6 +1331,9 @@ export default function SonoPage() {
 
         {/* ── 30-day trend ── */}
         <SleepTrendChart logs={logs} lang={lang} />
+
+        {/* ── Specialist analysis ── */}
+        <SleepSpecialistCard insight={sleepInsight} lang={lang} />
 
         {/* ── Secondary actions toolbar ── */}
         <SleepToolbar
