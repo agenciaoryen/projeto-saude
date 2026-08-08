@@ -140,6 +140,8 @@ function ManualLogModal({ onClose, onSaved, lang }: { onClose: () => void; onSav
         source: "checkin",
       }),
     });
+    // Fire-and-forget: trigger specialist re-analysis in background
+    fetch("/api/specialists/analyze", { method: "POST" }).catch(() => {});
     setSaving(false);
     onSaved();
     onClose();
@@ -367,6 +369,8 @@ function EditSleepModal({ log, onClose, onSaved, lang }: {
         notes: interruptions > 0 && notes.trim() ? notes.trim() : null,
       }),
     });
+    // Fire-and-forget: trigger specialist re-analysis in background
+    fetch("/api/specialists/analyze", { method: "POST" }).catch(() => {});
     setSaving(false);
     onSaved();
     onClose();
