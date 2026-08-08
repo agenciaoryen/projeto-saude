@@ -174,25 +174,31 @@ export function LifeWheel({ done, totals, emojis, weekLabel, stones }: LifeWheel
       ctx.fillStyle = vignette; ctx.fillRect(0, 0, W, H);
 
       // ── 2. HEADER ──────────────────────────────────────────────
-      const headerY = 110;
-      // Diamond icon + MAYA
-      const diamondCx = W / 2 - 62, diamondCy = headerY - 52;
+      // Load Maya avatar image
+      const mayaAvatar = new Image();
+      mayaAvatar.src = "/maya-avatar.webp";
+      await new Promise<void>((resolve, reject) => { mayaAvatar.onload = () => resolve(); mayaAvatar.onerror = reject; });
+
+      const headerY = 115;
+      // Maya avatar (circular clip) + MAYA APP
+      const avatarR = 22, avatarCx = W / 2 - 72, avatarCy = headerY - 56;
       ctx.save();
-      ctx.translate(diamondCx, diamondCy);
       ctx.beginPath();
-      ctx.moveTo(0, -11); ctx.lineTo(8, 0); ctx.lineTo(0, 11); ctx.lineTo(-8, 0); ctx.closePath();
-      ctx.fillStyle = "#A78BFA";
-      ctx.shadowColor = "rgba(167,139,250,0.6)"; ctx.shadowBlur = 14;
-      ctx.fill();
-      ctx.shadowBlur = 0;
+      ctx.arc(avatarCx, avatarCy, avatarR, 0, Math.PI * 2);
+      ctx.closePath(); ctx.clip();
+      ctx.drawImage(mayaAvatar, avatarCx - avatarR, avatarCy - avatarR, avatarR * 2, avatarR * 2);
       ctx.restore();
-      // MAYA text
+      // Subtle ring around avatar
+      ctx.strokeStyle = "rgba(167,139,250,0.4)"; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(avatarCx, avatarCy, avatarR + 1, 0, Math.PI * 2); ctx.stroke();
+
+      // MAYA APP text
       ctx.fillStyle = "#FFFFFF"; ctx.font = "600 24px Inter, system-ui, -apple-system, sans-serif"; ctx.textAlign = "center";
-      ctx.fillText("MAYA", W / 2 + 10, headerY - 46);
+      ctx.fillText("MAYA APP", W / 2 + 8, headerY - 48);
 
       // Title: "Hub da" + "Semana" in gradient
-      const titleY = headerY + 20;
-      ctx.font = "700 72px Inter, system-ui, -apple-system, sans-serif"; ctx.textAlign = "center";
+      const titleY = headerY + 24;
+      ctx.font = "700 84px Inter, system-ui, -apple-system, sans-serif"; ctx.textAlign = "center";
       const hubDaW = ctx.measureText("Hub da ").width;
       const semanaW = ctx.measureText("Semana").width;
       const titleStartX = (W - hubDaW - semanaW) / 2;
@@ -205,11 +211,11 @@ export function LifeWheel({ done, totals, emojis, weekLabel, stones }: LifeWheel
       ctx.fillText("Semana", titleStartX + hubDaW + semanaW / 2, titleY);
 
       // Subtitle
-      ctx.fillStyle = "#A0A0B3"; ctx.font = "400 24px Inter, system-ui, -apple-system, sans-serif";
-      ctx.fillText("Meu equilíbrio. Minhas escolhas. Minha melhor versão.", W / 2, titleY + 42);
+      ctx.fillStyle = "#A0A0B3"; ctx.font = "400 28px Inter, system-ui, -apple-system, sans-serif";
+      ctx.fillText("Meu equilíbrio. Minhas escolhas. Minha melhor versão.", W / 2, titleY + 48);
 
       // ── 3. DATE BADGE ──────────────────────────────────────────
-      const badgeY = titleY + 90;
+      const badgeY = titleY + 100;
       const badgeLabel = weekLabel || "";
       const badgeW = badgeLabel ? ctx.measureText(`📅 ${badgeLabel}`).width + 44 : 0;
       if (badgeW > 0) {
@@ -221,7 +227,7 @@ export function LifeWheel({ done, totals, emojis, weekLabel, stones }: LifeWheel
       }
 
       // ── 4. WHEEL ───────────────────────────────────────────────
-      const wheelSize = 740, wheelX = (W - wheelSize) / 2, wheelY = badgeY + 100;
+      const wheelSize = 820, wheelX = (W - wheelSize) / 2, wheelY = badgeY + 110;
       const wheelCx = W / 2, wheelCy = wheelY + wheelSize / 2;
 
       // Glow aura behind wheel
