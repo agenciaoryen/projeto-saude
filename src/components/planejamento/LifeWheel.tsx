@@ -252,29 +252,12 @@ export function LifeWheel({ done, totals, emojis, weekLabel, stones }: LifeWheel
       const wheelY = badgeY + 110;
       const wheelCx = W / 2, wheelCy = wheelY + wheelSize / 2;
 
-      // Ultra-subtle aura behind wheel — a whisper of depth, no visible circles
-      const wheelGlow = ctx.createRadialGradient(wheelCx, wheelCy, wheelSize * 0.3, wheelCx, wheelCy, wheelSize * 0.5);
-      wheelGlow.addColorStop(0, "rgba(124,92,255,0.025)");
-      wheelGlow.addColorStop(0.6, "rgba(94,234,212,0.01)");
-      wheelGlow.addColorStop(1, "transparent");
-      ctx.fillStyle = wheelGlow; ctx.beginPath();
-      ctx.arc(wheelCx, wheelCy, wheelSize * 0.5, 0, Math.PI * 2); ctx.fill();
-
-      // Load & render SVG wheel
+      // Load & render SVG wheel (no background glow)
       const img = new Image();
       await new Promise<void>((resolve, reject) => { img.onload = () => resolve(); img.onerror = reject; img.src = svgUrl; });
       ctx.drawImage(img, wheelX, wheelY, wheelSize, wheelSize);
 
-      // Subtle center dot — barely there, just a hint of focus
-      const centerGlow = ctx.createRadialGradient(wheelCx, wheelCy, 0, wheelCx, wheelCy, 8);
-      centerGlow.addColorStop(0, "rgba(255,255,255,0.5)");
-      centerGlow.addColorStop(0.5, "rgba(167,139,250,0.15)");
-      centerGlow.addColorStop(1, "transparent");
-      ctx.fillStyle = centerGlow; ctx.beginPath();
-      ctx.arc(wheelCx, wheelCy, 8, 0, Math.PI * 2); ctx.fill();
-      // Tiny white pinpoint
-      ctx.fillStyle = "rgba(255,255,255,0.6)"; ctx.beginPath();
-      ctx.arc(wheelCx, wheelCy, 2, 0, Math.PI * 2); ctx.fill();
+      // center dot removed — clean wheel
 
       // ── 5. BOTTOM CARD — "MEU FOCO DA SEMANA" ──────────────────
       const cardStartY = wheelY + wheelSize + 90;
