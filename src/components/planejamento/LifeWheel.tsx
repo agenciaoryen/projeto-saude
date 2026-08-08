@@ -166,6 +166,9 @@ export function LifeWheel({ done, totals, emojis, weekLabel, stones }: LifeWheel
           }));
         }
       });
+      // Remove <image> elements — blob-URL SVGs don't load nested images reliably;
+      // we draw the custom emoji icons directly on canvas instead.
+      clone.querySelectorAll("image").forEach(el => el.remove());
       const svgData = new XMLSerializer().serializeToString(clone);
       const svgBlob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
       const svgUrl = URL.createObjectURL(svgBlob);
@@ -261,6 +264,27 @@ export function LifeWheel({ done, totals, emojis, weekLabel, stones }: LifeWheel
       const img = new Image();
       await new Promise<void>((resolve, reject) => { img.onload = () => resolve(); img.onerror = reject; img.src = svgUrl; });
       ctx.drawImage(img, wheelX, wheelY, wheelSize, wheelSize);
+
+      // ── Draw custom emoji icons directly on canvas ──────────────
+      // (SVG <image> elements don't load reliably inside blob-URL SVGs)
+      const svgToCanvas = wheelSize / 320; // 2.5625
+      const emojiCanvasSize = 88;
+      const emojiImgs: Record<string, HTMLImageElement> = {};
+      await Promise.all(AREAS.map(async (a) => {
+        const src = emojis?.[a.key] ?? DEFAULT_EMOJIS[a.key];
+        const imgEl = new Image();
+        imgEl.src = src;
+        await new Promise<void>((resolve, reject) => { imgEl.onload = () => resolve(); imgEl.onerror = reject; });
+        emojiImgs[a.key] = imgEl;
+      }));
+      AREAS.forEach((a, i) => {
+        const a2 = angle(i);
+        const lx = 150 + 134 * Math.cos(a2); // SVG x coordinate (emoji center)
+        const ly = 150 + 134 * Math.sin(a2); // SVG y coordinate
+        const cx = wheelX + lx * svgToCanvas;
+        const cy = wheelY + (ly - 5) * svgToCanvas; // emoji sits slightly above the center radial line
+        ctx.drawImage(emojiImgs[a.key], cx - emojiCanvasSize / 2, cy - emojiCanvasSize / 2, emojiCanvasSize, emojiCanvasSize);
+      });
 
       // center dot removed — clean wheel
 
@@ -546,13 +570,13 @@ export function LifeWheel({ done, totals, emojis, weekLabel, stones }: LifeWheel
             return (
               <g key={a.key} opacity={empty ? 0.4 : 1} style={{ transition: "opacity .6s" }}>
                 {customEmoji ? (
-                  <image href={customEmoji} x={lx - 12} y={ly - 16} width="24" height="24" />
+                  <image href={customEmoji} x={lx - 16} y={ly - 21} width="32" height="32" />
                 ) : (
                   <text x={lx} y={ly - 3} textAnchor="middle" dominantBaseline="middle" fontSize="16">
                     {a.emoji}
                   </text>
                 )}
-                <text x={lx} y={ly + 11} textAnchor="middle" dominantBaseline="middle"
+                <text x={lx} y={ly + 14} textAnchor="middle" dominantBaseline="middle"
                   fontSize="8.5" fontWeight="600" fill={a.color} letterSpacing=".03em">
                   {a.label}
                 </text>
