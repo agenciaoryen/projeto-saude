@@ -486,7 +486,6 @@ function SleepToolbar({ config, onChange, onSave, saving, lang }: {
             ...(openPanel === "config" ? pillActive : {}),
           }}
         >
-          <span style={{ fontSize: 15 }}>⚙️</span>
           <span>{tFn(lang, "sono_config_title")}</span>
           <span
             style={{
@@ -695,6 +694,161 @@ function SleepCalculatorContent({ defaultBedtime = "23:00", lang = "pt" }: { def
   );
 }
 
+// ── 30-day trend sparkline ────────────────────────────────────────────────────
+
+function SleepTrendChart({ logs, lang }: { logs: SleepLog[]; lang: Lang }) {
+  const sorted = useMemo(() => {
+    return [...logs]
+      .filter((l) => l.duration_min !== null && l.duration_min > 0)
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .slice(-30);
+  }, [logs]);
+
+  if (sorted.length < 2) return null;
+
+  const durations = sorted.map((l) => l.duration_min!);
+  const maxDur = Math.max(...durations);
+  const minDur = Math.min(...durations);
+  const range = maxDur - minDur || 1;
+  const avgDur = durations.reduce((a, b) => a + b, 0) / durations.length;
+
+  const W = 600;
+  const H = 100;
+  const pad = { top: 14, right: 6, bottom: 18, left: 6 };
+  const pw = W - pad.left - pad.right;
+  const ph = H - pad.top - pad.bottom;
+
+  const points = durations.map((d, i) => {
+    const x = pad.left + (i / Math.max(durations.length - 1, 1)) * pw;
+    const y = pad.top + ph - ((d - minDur) / range) * ph;
+    return [x, y] as const;
+  });
+
+  const lineD = points.map(([x, y], i) => `${i === 0 ? "M" : "L"}${x},${y}`).join(" ");
+  const areaD = [
+    `M${points[0][0]},${pad.top + ph}`,
+    ...points.map(([x, y]) => `L${x},${y}`),
+    `L${points[points.length - 1][0]},${pad.top + ph}`,
+    "Z",
+  ].join(" ");
+
+  const avgY = pad.top + ph - ((avgDur - minDur) / range) * ph;
+
+  const fmtShort = (dateStr: string) => {
+    const d = new Date(dateStr + "T12:00:00");
+    return d.toLocaleDateString(dateLocale(lang), { day: "numeric", month: "short" });
+  };
+
+  return (
+    <div
+      style={{
+        background: "oklch(0.16 0.012 270)",
+        borderRadius: 18,
+        border: "1px solid oklch(0.28 0.02 270 / 0.5)",
+        padding: "14px 16px 10px",
+      }}
+    >
+      {/* Header */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "baseline",
+          marginBottom: 6,
+        }}
+      >
+        <span
+          style={{
+            fontSize: 10,
+            fontWeight: 700,
+            letterSpacing: ".08em",
+            textTransform: "uppercase",
+            color: "#A78BFA",
+          }}
+        >
+          📈 {tFn(lang, "sono_tendencia_30d")}
+        </span>
+        <span style={{ fontSize: 10, color: "#9e96b5" }}>
+          {tFn(lang, "sono_media")}: {formatDuration(Math.round(avgDur))}
+        </span>
+      </div>
+
+      {/* Sparkline */}
+      <svg
+        viewBox={`0 0 ${W} ${H}`}
+        style={{ width: "100%", height: "auto", display: "block" }}
+        preserveAspectRatio="none"
+      >
+        <defs>
+          <linearGradient id="sleeptrend-grad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="oklch(0.58 0.18 270 / 0.30)" />
+            <stop offset="100%" stopColor="oklch(0.58 0.18 270 / 0.02)" />
+          </linearGradient>
+        </defs>
+
+        {/* Average reference line */}
+        <line
+          x1={pad.left}
+          y1={avgY}
+          x2={pad.left + pw}
+          y2={avgY}
+          stroke="oklch(0.58 0.18 270 / 0.22)"
+          strokeWidth="1"
+          strokeDasharray="5,4"
+        />
+
+        {/* Area fill */}
+        <path d={areaD} fill="url(#sleeptrend-grad)" />
+
+        {/* Line */}
+        <path
+          d={lineD}
+          fill="none"
+          stroke="oklch(0.58 0.18 270)"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+
+        {/* Key dots: first, last, max, min */}
+        {points.map(([x, y], i) => {
+          const isKey =
+            i === 0 ||
+            i === points.length - 1 ||
+            durations[i] === maxDur ||
+            durations[i] === minDur;
+          if (!isKey) return null;
+          return (
+            <circle
+              key={i}
+              cx={x}
+              cy={y}
+              r={3.5}
+              fill="oklch(0.58 0.18 270)"
+              stroke="#15151F"
+              strokeWidth="1.5"
+            />
+          );
+        })}
+      </svg>
+
+      {/* Date labels */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          marginTop: 2,
+          fontSize: 9,
+          color: "oklch(0.55 0.03 270)",
+        }}
+      >
+        <span>{fmtShort(sorted[0].date)}</span>
+        <span>{fmtShort(sorted[sorted.length - 1].date)}</span>
+      </div>
+    </div>
+  );
+}
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function SonoPage() {
@@ -878,6 +1032,9 @@ export default function SonoPage() {
             )}
           </>
         )}
+
+        {/* ── 30-day trend ── */}
+        <SleepTrendChart logs={logs} lang={lang} />
 
         {/* ── Secondary actions toolbar ── */}
         <SleepToolbar

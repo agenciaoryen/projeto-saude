@@ -416,6 +416,8 @@ const translations: Record<Lang, Record<string, string>> = {
     sono_horarios_ideais: "Horários ideais para acordar",
     sono_ciclo_5: "5 ciclos · 7h30",
     sono_ciclo_6: "6 ciclos · 9h",
+    sono_tendencia_30d: "Tendência 30 dias",
+    sono_media: "Média",
 
     // Áreas da vida
     area_saude: "Saúde",
@@ -990,6 +992,8 @@ const translations: Record<Lang, Record<string, string>> = {
     sono_horarios_ideais: "Horarios ideales para despertar",
     sono_ciclo_5: "5 ciclos (7h30)",
     sono_ciclo_6: "6 ciclos (9h)",
+    sono_tendencia_30d: "Tendencia 30 días",
+    sono_media: "Media",
 
     // Areas
     area_saude: "Salud",
@@ -1560,6 +1564,8 @@ const translations: Record<Lang, Record<string, string>> = {
     sono_horarios_ideais: "Ideal wake-up times",
     sono_ciclo_5: "5 cycles (7h30)",
     sono_ciclo_6: "6 cycles (9h)",
+    sono_tendencia_30d: "30-day trend",
+    sono_media: "Average",
 
     // Areas
     area_saude: "Health",
