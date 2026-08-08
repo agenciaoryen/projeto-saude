@@ -61,6 +61,15 @@ export function LifeWheel({ done, totals, emojis, weekLabel, stones }: LifeWheel
   const svgRef = useRef<SVGSVGElement>(null);
   useEffect(() => { requestAnimationFrame(() => setMounted(true)); }, []);
 
+  // Preload all custom emoji images so they render instantly (no pop-in delay)
+  useEffect(() => {
+    AREAS.forEach((a) => {
+      const src = emojis?.[a.key] ?? DEFAULT_EMOJIS[a.key];
+      const img = new Image();
+      img.src = src;
+    });
+  }, [emojis]);
+
   const progress = AREAS.map(a => {
     const t = totals[a.key] ?? 0;
     return t > 0 ? Math.round(((done[a.key] ?? 0) / t) * 100) : 0;
