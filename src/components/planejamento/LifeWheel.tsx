@@ -148,10 +148,10 @@ export function LifeWheel({ done, totals, emojis, weekLabel, stones }: LifeWheel
       // Base fill
       ctx.fillStyle = "#0F0F14"; ctx.fillRect(0, 0, W, H);
 
-      // Radial gradient — subtle purple/blue glow behind center
-      const bgGlow = ctx.createRadialGradient(W / 2, H * 0.38, W * 0.08, W / 2, H * 0.42, W * 0.75);
-      bgGlow.addColorStop(0, "rgba(124,92,255,0.12)");
-      bgGlow.addColorStop(0.4, "rgba(94,234,212,0.04)");
+      // Radial gradient — barely perceptible depth behind center
+      const bgGlow = ctx.createRadialGradient(W / 2, H * 0.38, W * 0.12, W / 2, H * 0.42, W * 0.7);
+      bgGlow.addColorStop(0, "rgba(124,92,255,0.04)");
+      bgGlow.addColorStop(0.5, "rgba(94,234,212,0.02)");
       bgGlow.addColorStop(1, "transparent");
       ctx.fillStyle = bgGlow; ctx.fillRect(0, 0, W, H);
 
@@ -182,13 +182,7 @@ export function LifeWheel({ done, totals, emojis, weekLabel, stones }: LifeWheel
       const headerY = 120;
       // Maya avatar (estilo home — sem crop circular) + MAYA APP
       const avatarSize = 44, avatarCx = W / 2 - 74, avatarCy = headerY - 58;
-      // Subtle glow behind avatar
-      const avatarGlow = ctx.createRadialGradient(avatarCx, avatarCy, avatarSize * 0.25, avatarCx, avatarCy, avatarSize * 1.1);
-      avatarGlow.addColorStop(0, "rgba(167,139,250,0.35)");
-      avatarGlow.addColorStop(1, "transparent");
-      ctx.fillStyle = avatarGlow; ctx.beginPath();
-      ctx.arc(avatarCx, avatarCy, avatarSize * 1.1, 0, Math.PI * 2); ctx.fill();
-      // Draw avatar full-image (contain, no circle clip)
+      // Draw avatar full-image, no glow
       ctx.drawImage(mayaAvatar, avatarCx - avatarSize / 2, avatarCy - avatarSize / 2, avatarSize, avatarSize);
 
       // MAYA APP text
@@ -234,13 +228,13 @@ export function LifeWheel({ done, totals, emojis, weekLabel, stones }: LifeWheel
       const wheelY = badgeY + 110;
       const wheelCx = W / 2, wheelCy = wheelY + wheelSize / 2;
 
-      // Glow aura behind wheel
-      const wheelGlow = ctx.createRadialGradient(wheelCx, wheelCy, wheelSize * 0.08, wheelCx, wheelCy, wheelSize * 0.65);
-      wheelGlow.addColorStop(0, "rgba(124,92,255,0.18)");
-      wheelGlow.addColorStop(0.4, "rgba(94,234,212,0.05)");
+      // Subtle aura behind wheel — barely there, just enough to lift it from background
+      const wheelGlow = ctx.createRadialGradient(wheelCx, wheelCy, wheelSize * 0.15, wheelCx, wheelCy, wheelSize * 0.55);
+      wheelGlow.addColorStop(0, "rgba(124,92,255,0.06)");
+      wheelGlow.addColorStop(0.5, "rgba(94,234,212,0.02)");
       wheelGlow.addColorStop(1, "transparent");
       ctx.fillStyle = wheelGlow; ctx.beginPath();
-      ctx.arc(wheelCx, wheelCy, wheelSize * 0.65, 0, Math.PI * 2); ctx.fill();
+      ctx.arc(wheelCx, wheelCy, wheelSize * 0.55, 0, Math.PI * 2); ctx.fill();
 
       // Load & render SVG wheel
       const img = new Image();
