@@ -85,6 +85,30 @@ export function LifeWheel({ done, totals, emojis, weekLabel, stones }: LifeWheel
     ctx.quadraticCurveTo(x, y, x + r, y); ctx.closePath();
   }
 
+  // Helper: wrap text to fit maxWidth, returns up to 2 lines
+  function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
+    if (ctx.measureText(text).width <= maxWidth) return [text];
+    // Try to split roughly in half at a space
+    const mid = Math.floor(text.length / 2);
+    let splitAt = text.lastIndexOf(" ", mid);
+    if (splitAt < 0 || splitAt < text.length * 0.2) splitAt = text.indexOf(" ", mid);
+    if (splitAt < 0) splitAt = mid; // no spaces, hard split
+    let line1 = text.slice(0, splitAt).trim();
+    let line2 = text.slice(splitAt).trim();
+    // If line2 still too long, truncate with ellipsis
+    if (ctx.measureText(line2).width > maxWidth) {
+      while (line2.length > 2 && ctx.measureText(line2 + "…").width > maxWidth) line2 = line2.slice(0, -1);
+      line2 += "…";
+    }
+    // If line1 also too long (shouldn't happen with 2-line allowance), truncate
+    if (ctx.measureText(line1).width > maxWidth) {
+      while (line1.length > 2 && ctx.measureText(line1 + "…").width > maxWidth) line1 = line1.slice(0, -1);
+      line1 += "…";
+      return [line1];
+    }
+    return [line1, line2];
+  }
+
   const handleShare = useCallback(async () => {
     const svg = svgRef.current;
     if (!svg) return;
@@ -241,17 +265,16 @@ export function LifeWheel({ done, totals, emojis, weekLabel, stones }: LifeWheel
       await new Promise<void>((resolve, reject) => { img.onload = () => resolve(); img.onerror = reject; img.src = svgUrl; });
       ctx.drawImage(img, wheelX, wheelY, wheelSize, wheelSize);
 
-      // Center luminous dot with halo
-      const centerGlow = ctx.createRadialGradient(wheelCx, wheelCy, 0, wheelCx, wheelCy, 28);
-      centerGlow.addColorStop(0, "rgba(255,255,255,0.9)");
-      centerGlow.addColorStop(0.2, "rgba(167,139,250,0.5)");
-      centerGlow.addColorStop(0.6, "rgba(124,92,255,0.15)");
+      // Subtle center dot — barely there, just a hint of focus
+      const centerGlow = ctx.createRadialGradient(wheelCx, wheelCy, 0, wheelCx, wheelCy, 8);
+      centerGlow.addColorStop(0, "rgba(255,255,255,0.5)");
+      centerGlow.addColorStop(0.5, "rgba(167,139,250,0.15)");
       centerGlow.addColorStop(1, "transparent");
       ctx.fillStyle = centerGlow; ctx.beginPath();
-      ctx.arc(wheelCx, wheelCy, 28, 0, Math.PI * 2); ctx.fill();
-      // Tiny white dot
-      ctx.fillStyle = "#FFFFFF"; ctx.beginPath();
-      ctx.arc(wheelCx, wheelCy, 4, 0, Math.PI * 2); ctx.fill();
+      ctx.arc(wheelCx, wheelCy, 8, 0, Math.PI * 2); ctx.fill();
+      // Tiny white pinpoint
+      ctx.fillStyle = "rgba(255,255,255,0.6)"; ctx.beginPath();
+      ctx.arc(wheelCx, wheelCy, 2, 0, Math.PI * 2); ctx.fill();
 
       // ── 5. BOTTOM CARD — "MEU FOCO DA SEMANA" ──────────────────
       const cardStartY = wheelY + wheelSize + 90;
@@ -302,10 +325,7 @@ export function LifeWheel({ done, totals, emojis, weekLabel, stones }: LifeWheel
 
         activeStones.forEach((s, idx) => {
           if (idx >= 3) return;
-          // Dynamic max chars based on card width (18px font ≈ 7px/char)
-          const maxChars = stoneCount === 1 ? 52 : stoneCount === 2 ? 38 : 22;
-          const rawTitle = (s ?? "").trim();
-          const title = rawTitle.length > maxChars ? rawTitle.slice(0, maxChars - 2) + "…" : rawTitle;
+          const rawTitle = (s ?? "").trim().toUpperCase();
 
           // Center each card configuration
           const totalMiniW = stoneCount * miniW + (stoneCount - 1) * miniGap;
@@ -324,12 +344,23 @@ export function LifeWheel({ done, totals, emojis, weekLabel, stones }: LifeWheel
           ctx.strokeStyle = topGlow; ctx.lineWidth = 2;
           ctx.beginPath(); ctx.moveTo(mx + 20, miniY + 2); ctx.lineTo(mx + miniW - 20, miniY + 2); ctx.stroke();
 
-          // Title — UPPERCASE, centered, no emoji above
+          // Title — UPPERCASE, 2-line wrapping if needed
           ctx.fillStyle = "#FFFFFF"; ctx.font = "700 18px Inter, system-ui, -apple-system, sans-serif"; ctx.textAlign = "center";
-          ctx.fillText(title.toUpperCase(), mx + miniW / 2, miniY + 100);
-          // Subtitle
-          ctx.fillStyle = "#A0A0B3"; ctx.font = "400 14px Inter, system-ui, -apple-system, sans-serif";
-          ctx.fillText("Meu compromisso da semana.", mx + miniW / 2, miniY + 132);
+          const availableW = miniW - 28; // padding inside card
+          const lines = wrapText(ctx, rawTitle, availableW);
+
+          if (lines.length === 1) {
+            ctx.fillText(lines[0], mx + miniW / 2, miniY + 96);
+          } else {
+            // Two lines, vertically balanced
+            ctx.fillText(lines[0], mx + miniW / 2, miniY + 86);
+            ctx.fillText(lines[1], mx + miniW / 2, miniY + 112);
+          }
+
+          // Subtitle — bigger, below title lines
+          const subtitleY = lines.length === 1 ? miniY + 128 : miniY + 140;
+          ctx.fillStyle = "#A0A0B3"; ctx.font = "400 16px Inter, system-ui, -apple-system, sans-serif";
+          ctx.fillText("Meu compromisso da semana.", mx + miniW / 2, subtitleY);
         });
       }
 
