@@ -169,15 +169,8 @@ export function LifeWheel({ done, totals, emojis, weekLabel, stones }: LifeWheel
       ctx.imageSmoothingQuality = "high";
 
       // ── 1. BACKGROUND ──────────────────────────────────────────
-      // Base fill
+      // Solid dark base
       ctx.fillStyle = "#0F0F14"; ctx.fillRect(0, 0, W, H);
-
-      // Radial gradient — barely perceptible depth behind center
-      const bgGlow = ctx.createRadialGradient(W / 2, H * 0.38, W * 0.12, W / 2, H * 0.42, W * 0.7);
-      bgGlow.addColorStop(0, "rgba(124,92,255,0.04)");
-      bgGlow.addColorStop(0.5, "rgba(94,234,212,0.02)");
-      bgGlow.addColorStop(1, "transparent");
-      ctx.fillStyle = bgGlow; ctx.fillRect(0, 0, W, H);
 
       // Subtle particles / blurred lights
       const particleSeeds = [23, 67, 112, 189, 245, 312, 378, 421, 489, 534, 601, 678, 723, 789, 845, 901, 956, 1003];
