@@ -699,18 +699,17 @@ function SleepCalculatorContent({ defaultBedtime = "23:00", lang = "pt" }: { def
 function SleepTrendChart({ logs, lang }: { logs: SleepLog[]; lang: Lang }) {
   const sorted = useMemo(() => {
     return [...logs]
-      .filter((l) => l.duration_min !== null && l.duration_min > 0)
       .sort((a, b) => a.date.localeCompare(b.date))
       .slice(-30);
   }, [logs]);
 
   if (sorted.length < 2) return null;
 
-  const durations = sorted.map((l) => l.duration_min!);
-  const maxDur = Math.max(...durations);
-  const minDur = Math.min(...durations);
-  const range = maxDur - minDur || 1;
-  const avgDur = durations.reduce((a, b) => a + b, 0) / durations.length;
+  const scores = sorted.map((l) => sleepScore(l));
+  const maxScore = Math.max(...scores);
+  const minScore = Math.min(...scores);
+  const range = maxScore - minScore || 1;
+  const avgScore = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
 
   const W = 600;
   const H = 100;
@@ -718,9 +717,9 @@ function SleepTrendChart({ logs, lang }: { logs: SleepLog[]; lang: Lang }) {
   const pw = W - pad.left - pad.right;
   const ph = H - pad.top - pad.bottom;
 
-  const points = durations.map((d, i) => {
-    const x = pad.left + (i / Math.max(durations.length - 1, 1)) * pw;
-    const y = pad.top + ph - ((d - minDur) / range) * ph;
+  const points = scores.map((s, i) => {
+    const x = pad.left + (i / Math.max(scores.length - 1, 1)) * pw;
+    const y = pad.top + ph - ((s - minScore) / range) * ph;
     return [x, y] as const;
   });
 
@@ -732,7 +731,7 @@ function SleepTrendChart({ logs, lang }: { logs: SleepLog[]; lang: Lang }) {
     "Z",
   ].join(" ");
 
-  const avgY = pad.top + ph - ((avgDur - minDur) / range) * ph;
+  const avgY = pad.top + ph - ((avgScore - minScore) / range) * ph;
 
   const fmtShort = (dateStr: string) => {
     const d = new Date(dateStr + "T12:00:00");
@@ -769,7 +768,7 @@ function SleepTrendChart({ logs, lang }: { logs: SleepLog[]; lang: Lang }) {
           📈 {tFn(lang, "sono_tendencia_30d")}
         </span>
         <span style={{ fontSize: 10, color: "#9e96b5" }}>
-          {tFn(lang, "sono_media")}: {formatDuration(Math.round(avgDur))}
+          {tFn(lang, "sono_media")}: {avgScore}
         </span>
       </div>
 
@@ -815,8 +814,8 @@ function SleepTrendChart({ logs, lang }: { logs: SleepLog[]; lang: Lang }) {
           const isKey =
             i === 0 ||
             i === points.length - 1 ||
-            durations[i] === maxDur ||
-            durations[i] === minDur;
+            scores[i] === maxScore ||
+            scores[i] === minScore;
           if (!isKey) return null;
           return (
             <circle
