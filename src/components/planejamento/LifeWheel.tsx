@@ -18,7 +18,7 @@ const AREAS = [
 
 // Default custom emoji icons (fallback to text emoji if image fails to load)
 const DEFAULT_EMOJIS: Record<string, string> = {
-  espiritualidade: "/emojis/Espiritualidade-emoji-roda-da-vida.png",
+  espiritualidade: "/emojis/Espiritualidade-emoji-roda-da-vida.png?v=2",
   carreira: "/emojis/Carreira-emoji-roda-da-vida.png",
   desenvolvimento: "/emojis/Mente-emoji-roda-da-vida.png",
   familia: "/emojis/Familia-emoji-roda-da-vida.png",
