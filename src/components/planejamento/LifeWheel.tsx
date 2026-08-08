@@ -21,6 +21,10 @@ interface LifeWheelProps {
   totals: Record<string, number>;
   /** Custom emoji images — map of area key to PNG URL. Falls back to system emoji. */
   emojis?: Partial<Record<string, string>>;
+  /** Week date range label, e.g. "4 a 10 de agosto" — used in share PNG */
+  weekLabel?: string;
+  /** Focus stones for the week (max 3) — used in share PNG bottom card */
+  stones?: (string | null)[];
 }
 
 const N = AREAS.length;
@@ -39,7 +43,7 @@ function ringPt(i: number, ratio: number) {
   return `${CX + R * ratio * Math.cos(a)},${CY + R * ratio * Math.sin(a)}`;
 }
 
-export function LifeWheel({ done, totals, emojis }: LifeWheelProps) {
+export function LifeWheel({ done, totals, emojis, weekLabel, stones }: LifeWheelProps) {
   const [mounted, setMounted] = useState(false);
   const [sharing, setSharing] = useState(false);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -71,15 +75,27 @@ export function LifeWheel({ done, totals, emojis }: LifeWheelProps) {
   const totalDone    = AREAS.reduce((s, a) => s + (done[a.key] ?? 0), 0);
   const pctGlobal    = totalPlanned > 0 ? Math.round((totalDone / totalPlanned) * 100) : 0;
 
+  // Helper: draw rounded rectangle on canvas (roundRect not available in all TypeScript DOM libs)
+  function drawRoundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y); ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r); ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h); ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r); ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y); ctx.closePath();
+  }
+
   const handleShare = useCallback(async () => {
     const svg = svgRef.current;
     if (!svg) return;
     setSharing(true);
     try {
-      // Boost visibility of cloned SVG for export
+      // ── Clone SVG & strip labels (we'll draw premium labels on canvas) ──
       const clone = svg.cloneNode(true) as SVGSVGElement;
       clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
-      // Make rings and axes more visible for export
+      // Remove text + image elements (area labels, emojis, percentage dots) — keep structure
+      clone.querySelectorAll("text, image").forEach(el => el.remove());
+      // Boost structural elements for export clarity
       clone.querySelectorAll("polygon, line, circle").forEach((el: Element) => {
         const s = el as SVGElement;
         const stroke = s.getAttribute("stroke");
@@ -87,13 +103,13 @@ export function LifeWheel({ done, totals, emojis }: LifeWheelProps) {
         if (stroke && stroke.includes("rgba")) {
           s.setAttribute("stroke", stroke.replace(/[\d.]+\)$/, m => {
             const v = parseFloat(m);
-            return `${Math.min(v * 2.5, 0.8)})`;
+            return `${Math.min(v * 3, 0.85)})`;
           }));
         }
         if (fill && fill.includes("rgba")) {
           s.setAttribute("fill", fill.replace(/[\d.]+\)$/, m => {
             const v = parseFloat(m);
-            return `${Math.min(v * 2, 0.7)})`;
+            return `${Math.min(v * 2.5, 0.75)})`;
           }));
         }
       });
@@ -101,65 +117,259 @@ export function LifeWheel({ done, totals, emojis }: LifeWheelProps) {
       const svgBlob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
       const svgUrl = URL.createObjectURL(svgBlob);
 
+      // ── Canvas setup ──
       const canvas = document.createElement("canvas");
       const W = 1080, H = 1920;
       canvas.width = W; canvas.height = H;
       const ctx = canvas.getContext("2d")!;
-      // Crisp rendering
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = "high";
 
-      // Rich gradient background
-      const bg = ctx.createLinearGradient(0, 0, 0, H);
-      bg.addColorStop(0, "#0a0a12");
-      bg.addColorStop(0.4, "#0F0F18");
-      bg.addColorStop(1, "#0a0a12");
-      ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+      // ── 1. BACKGROUND ──────────────────────────────────────────
+      // Base fill
+      ctx.fillStyle = "#0F0F14"; ctx.fillRect(0, 0, W, H);
 
-      // Stronger glow behind wheel
-      const wheelSize = 920, wheelX = (W - wheelSize) / 2, wheelY = 280;
-      const glow = ctx.createRadialGradient(W / 2, wheelY + wheelSize / 2, wheelSize * 0.05, W / 2, wheelY + wheelSize / 2, wheelSize * 0.7);
-      glow.addColorStop(0, "rgba(124,92,255,0.2)");
-      glow.addColorStop(0.5, "rgba(94,234,212,0.06)");
-      glow.addColorStop(1, "transparent");
-      ctx.fillStyle = glow; ctx.beginPath();
-      ctx.arc(W / 2, wheelY + wheelSize / 2, wheelSize * 0.7, 0, Math.PI * 2); ctx.fill();
+      // Radial gradient — subtle purple/blue glow behind center
+      const bgGlow = ctx.createRadialGradient(W / 2, H * 0.38, W * 0.08, W / 2, H * 0.42, W * 0.75);
+      bgGlow.addColorStop(0, "rgba(124,92,255,0.12)");
+      bgGlow.addColorStop(0.4, "rgba(94,234,212,0.04)");
+      bgGlow.addColorStop(1, "transparent");
+      ctx.fillStyle = bgGlow; ctx.fillRect(0, 0, W, H);
 
-      // Load SVG at 2x for crispness
+      // Subtle particles / blurred lights
+      const particleSeeds = [23, 67, 112, 189, 245, 312, 378, 421, 489, 534, 601, 678, 723, 789, 845, 901, 956, 1003];
+      particleSeeds.forEach(seed => {
+        const px = (seed * 173) % W;
+        const py = (seed * 337) % H;
+        const pr = 1.5 + (seed % 5);
+        const alpha = 0.08 + (seed % 4) * 0.03;
+        const hue = seed % 3 === 0 ? "124,92,255" : seed % 3 === 1 ? "94,234,212" : "167,139,250";
+        ctx.fillStyle = `rgba(${hue},${alpha})`;
+        ctx.beginPath(); ctx.arc(px, py, pr, 0, Math.PI * 2); ctx.fill();
+      });
+
+      // Vignette
+      const vignette = ctx.createRadialGradient(W / 2, H / 2, W * 0.55, W / 2, H / 2, W * 0.95);
+      vignette.addColorStop(0, "transparent");
+      vignette.addColorStop(1, "rgba(0,0,0,0.45)");
+      ctx.fillStyle = vignette; ctx.fillRect(0, 0, W, H);
+
+      // ── 2. HEADER ──────────────────────────────────────────────
+      const headerY = 110;
+      // Diamond icon + MAYA
+      const diamondCx = W / 2 - 58, diamondCy = headerY - 52;
+      ctx.save();
+      ctx.translate(diamondCx, diamondCy);
+      ctx.beginPath();
+      ctx.moveTo(0, -10); ctx.lineTo(7, 0); ctx.lineTo(0, 10); ctx.lineTo(-7, 0); ctx.closePath();
+      ctx.fillStyle = "#A78BFA";
+      ctx.shadowColor = "rgba(167,139,250,0.6)"; ctx.shadowBlur = 12;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.restore();
+      // MAYA text
+      ctx.fillStyle = "#FFFFFF"; ctx.font = "600 22px Inter, system-ui, -apple-system, sans-serif"; ctx.textAlign = "center";
+      ctx.fillText("MAYA", W / 2 + 10, headerY - 46);
+
+      // Title: "Hub da" + "Semana" in gradient
+      const titleY = headerY + 20;
+      ctx.font = "700 64px Inter, system-ui, -apple-system, sans-serif"; ctx.textAlign = "center";
+      const hubDaW = ctx.measureText("Hub da ").width;
+      const semanaW = ctx.measureText("Semana").width;
+      const titleStartX = (W - hubDaW - semanaW) / 2;
+      ctx.fillStyle = "#FFFFFF";
+      ctx.fillText("Hub da ", titleStartX + hubDaW / 2, titleY);
+      // Gradient for "Semana"
+      const semanaGrad = ctx.createLinearGradient(titleStartX + hubDaW, titleY, titleStartX + hubDaW + semanaW, titleY);
+      semanaGrad.addColorStop(0, "#7C5CFF"); semanaGrad.addColorStop(1, "#A78BFA");
+      ctx.fillStyle = semanaGrad;
+      ctx.fillText("Semana", titleStartX + hubDaW + semanaW / 2, titleY);
+
+      // Subtitle
+      ctx.fillStyle = "#A0A0B3"; ctx.font = "400 22px Inter, system-ui, -apple-system, sans-serif";
+      ctx.fillText("Meu equilíbrio. Minhas escolhas. Minha melhor versão.", W / 2, titleY + 38);
+
+      // ── 3. DATE BADGE ──────────────────────────────────────────
+      const badgeY = titleY + 90;
+      const badgeLabel = weekLabel || "";
+      const badgeW = badgeLabel ? ctx.measureText(`📅 ${badgeLabel}`).width + 44 : 0;
+      if (badgeW > 0) {
+        const badgeX = (W - badgeW) / 2;
+        ctx.fillStyle = "rgba(124,92,255,0.12)"; ctx.strokeStyle = "rgba(167,139,250,0.2)"; ctx.lineWidth = 1;
+        drawRoundRect(ctx, badgeX, badgeY - 18, badgeW, 36, 20); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = "#E0D6FF"; ctx.font = "500 17px Inter, system-ui, -apple-system, sans-serif"; ctx.textAlign = "center";
+        ctx.fillText(`📅  ${badgeLabel}`, W / 2, badgeY + 5);
+      }
+
+      // ── 4. WHEEL ───────────────────────────────────────────────
+      const wheelSize = 640, wheelX = (W - wheelSize) / 2, wheelY = badgeY + 60;
+      const wheelCx = W / 2, wheelCy = wheelY + wheelSize / 2;
+
+      // Glow aura behind wheel
+      const wheelGlow = ctx.createRadialGradient(wheelCx, wheelCy, wheelSize * 0.08, wheelCx, wheelCy, wheelSize * 0.65);
+      wheelGlow.addColorStop(0, "rgba(124,92,255,0.18)");
+      wheelGlow.addColorStop(0.4, "rgba(94,234,212,0.05)");
+      wheelGlow.addColorStop(1, "transparent");
+      ctx.fillStyle = wheelGlow; ctx.beginPath();
+      ctx.arc(wheelCx, wheelCy, wheelSize * 0.65, 0, Math.PI * 2); ctx.fill();
+
+      // Load & render SVG wheel
       const img = new Image();
       await new Promise<void>((resolve, reject) => { img.onload = () => resolve(); img.onerror = reject; img.src = svgUrl; });
       ctx.drawImage(img, wheelX, wheelY, wheelSize, wheelSize);
 
-      const statsY = wheelY + wheelSize + 60;
-      [
-        { value: `${totalPlanned}`, label: "Planejadas" },
-        { value: `${totalDone}`, label: "Concluídas" },
-        { value: `${pctGlobal}%`, label: "Taxa" },
-      ].forEach((s, i) => {
-        const sx = (W / 3) * i + W / 6;
-        ctx.fillStyle = "#e0d6ff"; ctx.font = "bold 56px system-ui, -apple-system, sans-serif"; ctx.textAlign = "center";
-        ctx.fillText(s.value, sx, statsY);
-        ctx.fillStyle = "#6a657a"; ctx.font = "22px system-ui, -apple-system, sans-serif";
-        ctx.fillText(s.label, sx, statsY + 40);
+      // Center luminous dot with halo
+      const centerGlow = ctx.createRadialGradient(wheelCx, wheelCy, 0, wheelCx, wheelCy, 24);
+      centerGlow.addColorStop(0, "rgba(255,255,255,0.9)");
+      centerGlow.addColorStop(0.2, "rgba(167,139,250,0.5)");
+      centerGlow.addColorStop(0.6, "rgba(124,92,255,0.15)");
+      centerGlow.addColorStop(1, "transparent");
+      ctx.fillStyle = centerGlow; ctx.beginPath();
+      ctx.arc(wheelCx, wheelCy, 24, 0, Math.PI * 2); ctx.fill();
+      // Tiny white dot
+      ctx.fillStyle = "#FFFFFF"; ctx.beginPath();
+      ctx.arc(wheelCx, wheelCy, 3.5, 0, Math.PI * 2); ctx.fill();
+
+      // ── 5. AREA LABELS AROUND WHEEL ────────────────────────────
+      const labelDist = wheelSize * 0.56; // distance from wheel center
+      AREAS.forEach((a, i) => {
+        const a2 = angle(i);
+        const lx = wheelCx + labelDist * Math.cos(a2);
+        const ly = wheelCy + labelDist * Math.sin(a2);
+        const pct = mounted ? progress[i] : 0;
+
+        // Colored dot indicator
+        ctx.fillStyle = a.color; ctx.beginPath();
+        ctx.arc(lx - 28, ly - 2, 5, 0, Math.PI * 2); ctx.fill();
+
+        // Area name
+        ctx.fillStyle = "#A0A0B3"; ctx.font = "500 15px Inter, system-ui, -apple-system, sans-serif"; ctx.textAlign = "left";
+        ctx.fillText(a.label, lx - 16, ly + 5);
+
+        // Percentage
+        ctx.fillStyle = a.color; ctx.font = "700 18px Inter, system-ui, -apple-system, sans-serif"; ctx.textAlign = "left";
+        ctx.fillText(`${pct}%`, lx - 16, ly - 14);
       });
 
-      const footerY = H - 200;
-      ctx.fillStyle = "rgba(124,92,255,0.08)"; ctx.beginPath();
-      const cr = 24, bw = 340, bh = 90, bx = (W - bw) / 2, by = footerY - bh / 2;
-      ctx.moveTo(bx + cr, by); ctx.lineTo(bx + bw - cr, by);
-      ctx.quadraticCurveTo(bx + bw, by, bx + bw, by + cr);
-      ctx.lineTo(bx + bw, by + bh - cr);
-      ctx.quadraticCurveTo(bx + bw, by + bh, bx + bw - cr, by + bh);
-      ctx.lineTo(bx + cr, by + bh);
-      ctx.quadraticCurveTo(bx, by + bh, bx, by + bh - cr);
-      ctx.lineTo(bx, by + cr); ctx.quadraticCurveTo(bx, by, bx + cr, by);
-      ctx.fill();
+      // ── 6. HANDWRITTEN NOTES ───────────────────────────────────
+      // Note 1 — right side, subtle handwritten style
+      ctx.save();
+      ctx.fillStyle = "rgba(167,139,250,0.35)"; ctx.font = "italic 400 20px 'Segoe Script', 'Brush Script MT', cursive, sans-serif"; ctx.textAlign = "right";
+      ctx.translate(W - 100, wheelCy - 60); ctx.rotate(-0.06);
+      ctx.fillText("Pequenas escolhas", 0, 0);
+      ctx.fillText("grandes mudanças", 0, 28);
+      // Subtle arrow pointing left toward wheel
+      ctx.strokeStyle = "rgba(167,139,250,0.2)"; ctx.lineWidth = 1; ctx.setLineDash([3, 3]);
+      ctx.beginPath(); ctx.moveTo(-160, -10); ctx.lineTo(-80, -10); ctx.stroke();
+      ctx.setLineDash([]);
+      // Small arrowhead
+      ctx.fillStyle = "rgba(167,139,250,0.25)";
+      ctx.beginPath(); ctx.moveTo(-90, -10); ctx.lineTo(-80, -16); ctx.lineTo(-80, -4); ctx.closePath(); ctx.fill();
+      ctx.restore();
 
-      ctx.fillStyle = "#A78BFA"; ctx.font = "bold 32px system-ui, -apple-system, sans-serif"; ctx.textAlign = "center";
-      ctx.fillText("✨ Maya App", W / 2, footerY - 4);
-      ctx.fillStyle = "#6a657a"; ctx.font = "20px system-ui, -apple-system, sans-serif";
-      ctx.fillText("maya.app · Seu parceiro de equilíbrio", W / 2, footerY + 32);
+      // Note 2 — above bottom card, centered
+      const cardStartY = wheelY + wheelSize + 50;
+      ctx.save();
+      ctx.fillStyle = "rgba(167,139,250,0.3)"; ctx.font = "italic 400 18px 'Segoe Script', 'Brush Script MT', cursive, sans-serif"; ctx.textAlign = "center";
+      ctx.translate(W / 2, cardStartY - 18); ctx.rotate(-0.04);
+      ctx.fillText("Menos é mais. Escolho o que importa.", 0, 0);
+      ctx.restore();
 
+      // ── 7. BOTTOM CARD — "MEU FOCO DA SEMANA" ──────────────────
+      const cardW = 880, cardX = (W - cardW) / 2;
+      const cardHeaderY = cardStartY + 26;
+      const cardPadding = 32;
+      const cardBottomY = cardHeaderY + 350;
+      const cardRadius = 28;
+
+      // Glass card background
+      ctx.fillStyle = "rgba(26,26,36,0.85)"; ctx.strokeStyle = "rgba(255,255,255,0.06)"; ctx.lineWidth = 1;
+      drawRoundRect(ctx, cardX, cardStartY, cardW, cardBottomY - cardStartY, cardRadius); ctx.fill(); ctx.stroke();
+
+      // Card header
+      ctx.fillStyle = "#FFFFFF"; ctx.font = "600 24px Inter, system-ui, -apple-system, sans-serif"; ctx.textAlign = "left";
+      ctx.fillText("🎯  Meu foco da semana", cardX + cardPadding, cardHeaderY);
+
+      // ── Mini cards ──
+      const stoneDefs: { emoji: string; title: string; desc: string; color: string }[] = [
+        { emoji: "🚀", title: "Crescer na carreira", desc: "Dar um passo decisivo.", color: "#5EEAD4" },
+        { emoji: "🏋️", title: "Cuidar do corpo", desc: "Energia para viver com presença.", color: "#7C5CFF" },
+        { emoji: "💗", title: "Fortalecer relações", desc: "Tempo de qualidade com quem importa.", color: "#EC4899" },
+      ];
+
+      // Override with actual stones if available
+      const activeStones = (stones || []).filter(Boolean);
+      if (activeStones.length > 0) {
+        activeStones.forEach((s, idx) => {
+          if (idx < 3 && s) {
+            stoneDefs[idx].title = s.length > 28 ? s.slice(0, 26) + "…" : s;
+            stoneDefs[idx].desc = "Meu compromisso desta semana.";
+          }
+        });
+      }
+
+      const miniGap = 16, miniW = (cardW - cardPadding * 2 - miniGap * 2) / 3, miniH = 200;
+      const miniY = cardHeaderY + 32;
+
+      stoneDefs.forEach((sd, idx) => {
+        const mx = cardX + cardPadding + idx * (miniW + miniGap);
+        // Mini card bg
+        ctx.fillStyle = "rgba(15,15,20,0.7)"; ctx.strokeStyle = `rgba(${sd.color === "#5EEAD4" ? "94,234,212" : sd.color === "#7C5CFF" ? "124,92,255" : "236,72,153"},0.15)`; ctx.lineWidth = 1;
+        drawRoundRect(ctx, mx, miniY, miniW, miniH, 18); ctx.fill(); ctx.stroke();
+        // Colored top glow line
+        const topGlow = ctx.createLinearGradient(mx, miniY, mx + miniW, miniY);
+        topGlow.addColorStop(0, "transparent");
+        topGlow.addColorStop(0.5, sd.color);
+        topGlow.addColorStop(1, "transparent");
+        ctx.strokeStyle = topGlow; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(mx + 20, miniY + 2); ctx.lineTo(mx + miniW - 20, miniY + 2); ctx.stroke();
+
+        // Emoji
+        ctx.fillStyle = "#FFFFFF"; ctx.font = "36px Inter, system-ui, -apple-system, sans-serif"; ctx.textAlign = "center";
+        ctx.fillText(sd.emoji, mx + miniW / 2, miniY + 52);
+        // Title
+        ctx.fillStyle = "#FFFFFF"; ctx.font = "600 17px Inter, system-ui, -apple-system, sans-serif";
+        ctx.fillText(sd.title, mx + miniW / 2, miniY + 90);
+        // Description
+        ctx.fillStyle = "#A0A0B3"; ctx.font = "400 14px Inter, system-ui, -apple-system, sans-serif";
+        ctx.fillText(sd.desc, mx + miniW / 2, miniY + 120);
+      });
+
+      // ── 8. HERO STATEMENT ──────────────────────────────────────
+      const heroY = cardBottomY + 50;
+      ctx.font = "700 42px Inter, system-ui, -apple-system, sans-serif"; ctx.textAlign = "center";
+      const planejoW = ctx.measureText("Planejo hoje, ").width;
+      const vivoW = ctx.measureText("vivo meu amanhã.").width;
+      const heroStartX = (W - planejoW - vivoW) / 2;
+      ctx.fillStyle = "#FFFFFF";
+      ctx.fillText("Planejo hoje, ", heroStartX + planejoW / 2, heroY);
+      const vivoGrad = ctx.createLinearGradient(heroStartX + planejoW, heroY, heroStartX + planejoW + vivoW, heroY);
+      vivoGrad.addColorStop(0, "#7C5CFF"); vivoGrad.addColorStop(1, "#A78BFA");
+      ctx.fillStyle = vivoGrad;
+      ctx.fillText("vivo meu amanhã.", heroStartX + planejoW + vivoW / 2, heroY);
+
+      // ── 9. FOOTER ──────────────────────────────────────────────
+      const footerY = H - 160;
+      // Heart outline icon (simple SVG-like path)
+      const heartX = W / 2, heartY = footerY;
+      ctx.fillStyle = "rgba(124,92,255,0.15)"; ctx.strokeStyle = "rgba(167,139,250,0.4)"; ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(heartX, heartY + 8);
+      ctx.bezierCurveTo(heartX, heartY + 2, heartX - 14, heartY - 6, heartX - 14, heartY - 14);
+      ctx.bezierCurveTo(heartX - 14, heartY - 24, heartX - 4, heartY - 22, heartX, heartY - 14);
+      ctx.bezierCurveTo(heartX + 4, heartY - 22, heartX + 14, heartY - 24, heartX + 14, heartY - 14);
+      ctx.bezierCurveTo(heartX + 14, heartY - 6, heartX, heartY + 2, heartX, heartY + 8);
+      ctx.fill(); ctx.stroke();
+
+      // MAYA
+      ctx.fillStyle = "#A78BFA"; ctx.font = "500 18px Inter, system-ui, -apple-system, sans-serif"; ctx.textAlign = "center";
+      ctx.fillText("MAYA", W / 2, heartY + 44);
+
+      // Tagline
+      ctx.fillStyle = "#6A657A"; ctx.font = "400 14px Inter, system-ui, -apple-system, sans-serif";
+      ctx.fillText("SUA MELHOR VERSÃO, TODOS OS DIAS.", W / 2, heartY + 72);
+
+      // ── 10. EXPORT & SHARE ─────────────────────────────────────
       const pngBlob = await new Promise<Blob | null>(r => canvas.toBlob(r, "image/png"));
       URL.revokeObjectURL(svgUrl);
       if (!pngBlob) return;
@@ -172,7 +382,7 @@ export function LifeWheel({ done, totals, emojis }: LifeWheelProps) {
       }
     } catch { /* cancelled */ }
     setSharing(false);
-  }, [totalPlanned, totalDone, pctGlobal]);
+  }, [totalPlanned, totalDone, pctGlobal, weekLabel, stones, mounted, progress]);
 
   return (
     <div

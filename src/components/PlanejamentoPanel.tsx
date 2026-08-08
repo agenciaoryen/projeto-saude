@@ -219,7 +219,12 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
       <MayaStrategyCard insight={planInsight} loading={insightLoading} />
 
       {/* Life Wheel */}
-      <LifeWheel done={taskCountsByArea} totals={taskTotalByArea} />
+      <LifeWheel
+        done={taskCountsByArea}
+        totals={taskTotalByArea}
+        weekLabel={weekRange(currentWeekStart)}
+        stones={[currentPlan?.main_focus, currentPlan?.main_focus_2, currentPlan?.main_focus_3]}
+      />
 
       {/* Week Metrics */}
       <WeekMetricsGrid metrics={planMetrics} />
