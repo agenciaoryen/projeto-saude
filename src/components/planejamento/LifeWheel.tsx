@@ -157,23 +157,23 @@ export function LifeWheel({ done, totals, emojis, weekLabel, stones }: LifeWheel
       // ── 2. HEADER ──────────────────────────────────────────────
       const headerY = 110;
       // Diamond icon + MAYA
-      const diamondCx = W / 2 - 58, diamondCy = headerY - 52;
+      const diamondCx = W / 2 - 62, diamondCy = headerY - 52;
       ctx.save();
       ctx.translate(diamondCx, diamondCy);
       ctx.beginPath();
-      ctx.moveTo(0, -10); ctx.lineTo(7, 0); ctx.lineTo(0, 10); ctx.lineTo(-7, 0); ctx.closePath();
+      ctx.moveTo(0, -11); ctx.lineTo(8, 0); ctx.lineTo(0, 11); ctx.lineTo(-8, 0); ctx.closePath();
       ctx.fillStyle = "#A78BFA";
-      ctx.shadowColor = "rgba(167,139,250,0.6)"; ctx.shadowBlur = 12;
+      ctx.shadowColor = "rgba(167,139,250,0.6)"; ctx.shadowBlur = 14;
       ctx.fill();
       ctx.shadowBlur = 0;
       ctx.restore();
       // MAYA text
-      ctx.fillStyle = "#FFFFFF"; ctx.font = "600 22px Inter, system-ui, -apple-system, sans-serif"; ctx.textAlign = "center";
+      ctx.fillStyle = "#FFFFFF"; ctx.font = "600 24px Inter, system-ui, -apple-system, sans-serif"; ctx.textAlign = "center";
       ctx.fillText("MAYA", W / 2 + 10, headerY - 46);
 
       // Title: "Hub da" + "Semana" in gradient
       const titleY = headerY + 20;
-      ctx.font = "700 64px Inter, system-ui, -apple-system, sans-serif"; ctx.textAlign = "center";
+      ctx.font = "700 72px Inter, system-ui, -apple-system, sans-serif"; ctx.textAlign = "center";
       const hubDaW = ctx.measureText("Hub da ").width;
       const semanaW = ctx.measureText("Semana").width;
       const titleStartX = (W - hubDaW - semanaW) / 2;
@@ -186,8 +186,8 @@ export function LifeWheel({ done, totals, emojis, weekLabel, stones }: LifeWheel
       ctx.fillText("Semana", titleStartX + hubDaW + semanaW / 2, titleY);
 
       // Subtitle
-      ctx.fillStyle = "#A0A0B3"; ctx.font = "400 22px Inter, system-ui, -apple-system, sans-serif";
-      ctx.fillText("Meu equilíbrio. Minhas escolhas. Minha melhor versão.", W / 2, titleY + 38);
+      ctx.fillStyle = "#A0A0B3"; ctx.font = "400 24px Inter, system-ui, -apple-system, sans-serif";
+      ctx.fillText("Meu equilíbrio. Minhas escolhas. Minha melhor versão.", W / 2, titleY + 42);
 
       // ── 3. DATE BADGE ──────────────────────────────────────────
       const badgeY = titleY + 90;
@@ -196,13 +196,13 @@ export function LifeWheel({ done, totals, emojis, weekLabel, stones }: LifeWheel
       if (badgeW > 0) {
         const badgeX = (W - badgeW) / 2;
         ctx.fillStyle = "rgba(124,92,255,0.12)"; ctx.strokeStyle = "rgba(167,139,250,0.2)"; ctx.lineWidth = 1;
-        drawRoundRect(ctx, badgeX, badgeY - 18, badgeW, 36, 20); ctx.fill(); ctx.stroke();
-        ctx.fillStyle = "#E0D6FF"; ctx.font = "500 17px Inter, system-ui, -apple-system, sans-serif"; ctx.textAlign = "center";
-        ctx.fillText(`📅  ${badgeLabel}`, W / 2, badgeY + 5);
+        drawRoundRect(ctx, badgeX, badgeY - 20, badgeW, 40, 22); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = "#E0D6FF"; ctx.font = "500 19px Inter, system-ui, -apple-system, sans-serif"; ctx.textAlign = "center";
+        ctx.fillText(`📅  ${badgeLabel}`, W / 2, badgeY + 6);
       }
 
       // ── 4. WHEEL ───────────────────────────────────────────────
-      const wheelSize = 640, wheelX = (W - wheelSize) / 2, wheelY = badgeY + 60;
+      const wheelSize = 740, wheelX = (W - wheelSize) / 2, wheelY = badgeY + 100;
       const wheelCx = W / 2, wheelCy = wheelY + wheelSize / 2;
 
       // Glow aura behind wheel
@@ -231,55 +231,55 @@ export function LifeWheel({ done, totals, emojis, weekLabel, stones }: LifeWheel
       ctx.arc(wheelCx, wheelCy, 3.5, 0, Math.PI * 2); ctx.fill();
 
       // ── 5. AREA LABELS AROUND WHEEL ────────────────────────────
-      const labelDist = wheelSize * 0.56; // distance from wheel center
+      const labelDist = wheelSize * 0.465; // distance from wheel center — tight to wheel
       AREAS.forEach((a, i) => {
         const a2 = angle(i);
         const lx = wheelCx + labelDist * Math.cos(a2);
         const ly = wheelCy + labelDist * Math.sin(a2);
         const pct = mounted ? progress[i] : 0;
 
-        // Colored dot indicator
+        // Colored dot indicator — bigger
         ctx.fillStyle = a.color; ctx.beginPath();
-        ctx.arc(lx - 28, ly - 2, 5, 0, Math.PI * 2); ctx.fill();
+        ctx.arc(lx - 34, ly - 8, 7, 0, Math.PI * 2); ctx.fill();
 
-        // Area name
-        ctx.fillStyle = "#A0A0B3"; ctx.font = "500 15px Inter, system-ui, -apple-system, sans-serif"; ctx.textAlign = "left";
-        ctx.fillText(a.label, lx - 16, ly + 5);
+        // Area name — always vibrant color, no opacity fade
+        ctx.fillStyle = a.color; ctx.font = "600 21px Inter, system-ui, -apple-system, sans-serif"; ctx.textAlign = "left";
+        ctx.fillText(a.label, lx - 20, ly + 10);
 
-        // Percentage
-        ctx.fillStyle = a.color; ctx.font = "700 18px Inter, system-ui, -apple-system, sans-serif"; ctx.textAlign = "left";
-        ctx.fillText(`${pct}%`, lx - 16, ly - 14);
+        // Percentage — bigger, vibrant
+        ctx.fillStyle = a.color; ctx.font = "800 25px Inter, system-ui, -apple-system, sans-serif"; ctx.textAlign = "left";
+        ctx.fillText(`${pct}%`, lx - 20, ly - 18);
       });
 
       // ── 6. HANDWRITTEN NOTES ───────────────────────────────────
       // Note 1 — right side, subtle handwritten style
       ctx.save();
-      ctx.fillStyle = "rgba(167,139,250,0.35)"; ctx.font = "italic 400 20px 'Segoe Script', 'Brush Script MT', cursive, sans-serif"; ctx.textAlign = "right";
-      ctx.translate(W - 100, wheelCy - 60); ctx.rotate(-0.06);
+      ctx.fillStyle = "rgba(167,139,250,0.4)"; ctx.font = "italic 400 24px 'Segoe Script', 'Brush Script MT', cursive, sans-serif"; ctx.textAlign = "right";
+      ctx.translate(W - 100, wheelCy - 80); ctx.rotate(-0.06);
       ctx.fillText("Pequenas escolhas", 0, 0);
-      ctx.fillText("grandes mudanças", 0, 28);
+      ctx.fillText("grandes mudanças", 0, 32);
       // Subtle arrow pointing left toward wheel
-      ctx.strokeStyle = "rgba(167,139,250,0.2)"; ctx.lineWidth = 1; ctx.setLineDash([3, 3]);
-      ctx.beginPath(); ctx.moveTo(-160, -10); ctx.lineTo(-80, -10); ctx.stroke();
+      ctx.strokeStyle = "rgba(167,139,250,0.25)"; ctx.lineWidth = 1; ctx.setLineDash([3, 3]);
+      ctx.beginPath(); ctx.moveTo(-180, -10); ctx.lineTo(-80, -10); ctx.stroke();
       ctx.setLineDash([]);
       // Small arrowhead
-      ctx.fillStyle = "rgba(167,139,250,0.25)";
-      ctx.beginPath(); ctx.moveTo(-90, -10); ctx.lineTo(-80, -16); ctx.lineTo(-80, -4); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = "rgba(167,139,250,0.3)";
+      ctx.beginPath(); ctx.moveTo(-90, -10); ctx.lineTo(-80, -17); ctx.lineTo(-80, -3); ctx.closePath(); ctx.fill();
       ctx.restore();
 
       // Note 2 — above bottom card, centered
-      const cardStartY = wheelY + wheelSize + 50;
+      const cardStartY = wheelY + wheelSize + 90;
       ctx.save();
-      ctx.fillStyle = "rgba(167,139,250,0.3)"; ctx.font = "italic 400 18px 'Segoe Script', 'Brush Script MT', cursive, sans-serif"; ctx.textAlign = "center";
-      ctx.translate(W / 2, cardStartY - 18); ctx.rotate(-0.04);
+      ctx.fillStyle = "rgba(167,139,250,0.35)"; ctx.font = "italic 400 22px 'Segoe Script', 'Brush Script MT', cursive, sans-serif"; ctx.textAlign = "center";
+      ctx.translate(W / 2, cardStartY - 22); ctx.rotate(-0.04);
       ctx.fillText("Menos é mais. Escolho o que importa.", 0, 0);
       ctx.restore();
 
       // ── 7. BOTTOM CARD — "MEU FOCO DA SEMANA" ──────────────────
-      const cardW = 880, cardX = (W - cardW) / 2;
-      const cardHeaderY = cardStartY + 26;
-      const cardPadding = 32;
-      const cardBottomY = cardHeaderY + 350;
+      const cardW = 900, cardX = (W - cardW) / 2;
+      const cardHeaderY = cardStartY + 30;
+      const cardPadding = 36;
+      const cardBottomY = cardHeaderY + 380;
       const cardRadius = 28;
 
       // Glass card background
@@ -287,7 +287,7 @@ export function LifeWheel({ done, totals, emojis, weekLabel, stones }: LifeWheel
       drawRoundRect(ctx, cardX, cardStartY, cardW, cardBottomY - cardStartY, cardRadius); ctx.fill(); ctx.stroke();
 
       // Card header
-      ctx.fillStyle = "#FFFFFF"; ctx.font = "600 24px Inter, system-ui, -apple-system, sans-serif"; ctx.textAlign = "left";
+      ctx.fillStyle = "#FFFFFF"; ctx.font = "600 28px Inter, system-ui, -apple-system, sans-serif"; ctx.textAlign = "left";
       ctx.fillText("🎯  Meu foco da semana", cardX + cardPadding, cardHeaderY);
 
       // ── Mini cards ──
@@ -308,13 +308,13 @@ export function LifeWheel({ done, totals, emojis, weekLabel, stones }: LifeWheel
         });
       }
 
-      const miniGap = 16, miniW = (cardW - cardPadding * 2 - miniGap * 2) / 3, miniH = 200;
-      const miniY = cardHeaderY + 32;
+      const miniGap = 18, miniW = (cardW - cardPadding * 2 - miniGap * 2) / 3, miniH = 220;
+      const miniY = cardHeaderY + 36;
 
       stoneDefs.forEach((sd, idx) => {
         const mx = cardX + cardPadding + idx * (miniW + miniGap);
         // Mini card bg
-        ctx.fillStyle = "rgba(15,15,20,0.7)"; ctx.strokeStyle = `rgba(${sd.color === "#5EEAD4" ? "94,234,212" : sd.color === "#7C5CFF" ? "124,92,255" : "236,72,153"},0.15)`; ctx.lineWidth = 1;
+        ctx.fillStyle = "rgba(15,15,20,0.7)"; ctx.strokeStyle = `rgba(${sd.color === "#5EEAD4" ? "94,234,212" : sd.color === "#7C5CFF" ? "124,92,255" : "236,72,153"},0.2)`; ctx.lineWidth = 1;
         drawRoundRect(ctx, mx, miniY, miniW, miniH, 18); ctx.fill(); ctx.stroke();
         // Colored top glow line
         const topGlow = ctx.createLinearGradient(mx, miniY, mx + miniW, miniY);
@@ -324,20 +324,20 @@ export function LifeWheel({ done, totals, emojis, weekLabel, stones }: LifeWheel
         ctx.strokeStyle = topGlow; ctx.lineWidth = 2;
         ctx.beginPath(); ctx.moveTo(mx + 20, miniY + 2); ctx.lineTo(mx + miniW - 20, miniY + 2); ctx.stroke();
 
-        // Emoji
-        ctx.fillStyle = "#FFFFFF"; ctx.font = "36px Inter, system-ui, -apple-system, sans-serif"; ctx.textAlign = "center";
-        ctx.fillText(sd.emoji, mx + miniW / 2, miniY + 52);
-        // Title
-        ctx.fillStyle = "#FFFFFF"; ctx.font = "600 17px Inter, system-ui, -apple-system, sans-serif";
-        ctx.fillText(sd.title, mx + miniW / 2, miniY + 90);
-        // Description
-        ctx.fillStyle = "#A0A0B3"; ctx.font = "400 14px Inter, system-ui, -apple-system, sans-serif";
-        ctx.fillText(sd.desc, mx + miniW / 2, miniY + 120);
+        // Emoji — bigger
+        ctx.fillStyle = "#FFFFFF"; ctx.font = "42px Inter, system-ui, -apple-system, sans-serif"; ctx.textAlign = "center";
+        ctx.fillText(sd.emoji, mx + miniW / 2, miniY + 58);
+        // Title — bigger
+        ctx.fillStyle = "#FFFFFF"; ctx.font = "600 19px Inter, system-ui, -apple-system, sans-serif";
+        ctx.fillText(sd.title, mx + miniW / 2, miniY + 100);
+        // Description — bigger
+        ctx.fillStyle = "#A0A0B3"; ctx.font = "400 15px Inter, system-ui, -apple-system, sans-serif";
+        ctx.fillText(sd.desc, mx + miniW / 2, miniY + 132);
       });
 
       // ── 8. HERO STATEMENT ──────────────────────────────────────
-      const heroY = cardBottomY + 50;
-      ctx.font = "700 42px Inter, system-ui, -apple-system, sans-serif"; ctx.textAlign = "center";
+      const heroY = cardBottomY + 60;
+      ctx.font = "700 50px Inter, system-ui, -apple-system, sans-serif"; ctx.textAlign = "center";
       const planejoW = ctx.measureText("Planejo hoje, ").width;
       const vivoW = ctx.measureText("vivo meu amanhã.").width;
       const heroStartX = (W - planejoW - vivoW) / 2;
@@ -349,8 +349,8 @@ export function LifeWheel({ done, totals, emojis, weekLabel, stones }: LifeWheel
       ctx.fillText("vivo meu amanhã.", heroStartX + planejoW + vivoW / 2, heroY);
 
       // ── 9. FOOTER ──────────────────────────────────────────────
-      const footerY = H - 160;
-      // Heart outline icon (simple SVG-like path)
+      const footerY = H - 180;
+      // Heart outline icon
       const heartX = W / 2, heartY = footerY;
       ctx.fillStyle = "rgba(124,92,255,0.15)"; ctx.strokeStyle = "rgba(167,139,250,0.4)"; ctx.lineWidth = 1.5;
       ctx.beginPath();
@@ -362,12 +362,12 @@ export function LifeWheel({ done, totals, emojis, weekLabel, stones }: LifeWheel
       ctx.fill(); ctx.stroke();
 
       // MAYA
-      ctx.fillStyle = "#A78BFA"; ctx.font = "500 18px Inter, system-ui, -apple-system, sans-serif"; ctx.textAlign = "center";
-      ctx.fillText("MAYA", W / 2, heartY + 44);
+      ctx.fillStyle = "#A78BFA"; ctx.font = "500 20px Inter, system-ui, -apple-system, sans-serif"; ctx.textAlign = "center";
+      ctx.fillText("MAYA", W / 2, heartY + 46);
 
       // Tagline
-      ctx.fillStyle = "#6A657A"; ctx.font = "400 14px Inter, system-ui, -apple-system, sans-serif";
-      ctx.fillText("SUA MELHOR VERSÃO, TODOS OS DIAS.", W / 2, heartY + 72);
+      ctx.fillStyle = "#6A657A"; ctx.font = "400 15px Inter, system-ui, -apple-system, sans-serif";
+      ctx.fillText("SUA MELHOR VERSÃO, TODOS OS DIAS.", W / 2, heartY + 76);
 
       // ── 10. EXPORT & SHARE ─────────────────────────────────────
       const pngBlob = await new Promise<Blob | null>(r => canvas.toBlob(r, "image/png"));
