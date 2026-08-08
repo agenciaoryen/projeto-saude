@@ -462,10 +462,11 @@ export function LifeWheel({ done, totals, emojis, weekLabel, stones }: LifeWheel
           {totalPlanned > 0 && (
             <div style={{
               background: "rgba(124,92,255,0.08)", borderRadius: 20,
-              padding: "4px 12px", border: "1px solid rgba(124,92,255,0.12)",
+              padding: "6px 14px", border: "1px solid rgba(124,92,255,0.12)",
+              display: "flex", alignItems: "center",
             }}>
-              <span style={{ fontSize: 12, fontWeight: 700, color: "#A78BFA" }}>{pctGlobal}%</span>
-              <span style={{ fontSize: 9, color: "#6a657a", marginLeft: 4 }}>concluído</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: "#A78BFA", lineHeight: 1 }}>{pctGlobal}%</span>
+              <span style={{ fontSize: 9, color: "#6a657a", marginLeft: 5, lineHeight: 1 }}>concluído</span>
             </div>
           )}
           <button
