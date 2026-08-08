@@ -405,6 +405,17 @@ function AgendaPage() {
   const tarefasSemHorario = tarefas.filter(t => !t.start_time);
   const tarefasComHorario = tarefas.filter(t => t.start_time);
 
+  // Pending task count for the day — used to control the collapsible strip
+  const totalPendingTasks = useMemo(() => {
+    const planPending = dayPlanTasks.filter((t: any) => t.status !== "concluida").length;
+    return tarefasSemHorario.filter(t => t.status !== "concluida").length + planPending;
+  }, [tarefasSemHorario, dayPlanTasks]);
+
+  // Auto-collapse the task strip when there are no pending tasks
+  useEffect(() => {
+    if (totalPendingTasks === 0) setTasksOpen(false);
+  }, [totalPendingTasks]);
+
   // Map weekly plan tasks with scheduled_time into agenda-like items for the timeline
   const planTasksAsAgenda = useMemo(() => {
     return dayPlanTasks
@@ -676,23 +687,21 @@ function AgendaPage() {
               position: tasksOpen ? "absolute" : "relative",
               top: 0, left: 0, right: 0, zIndex: 10,
             }}>
-                <button type="button" onClick={() => setTasksOpen(!tasksOpen)} style={{
+                <button type="button" onClick={() => {
+                  // Only allow toggling open when there are tasks
+                  if (totalPendingTasks > 0 || tasksOpen) setTasksOpen(!tasksOpen);
+                }} style={{
                   width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
                   padding: "10px 14px", background: "none", border: 0, cursor: "pointer",
                   fontFamily: "inherit",
                 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <span style={{ fontSize: 13, fontWeight: 700, color: "#e0d6ff" }}>Tarefas do dia</span>
-                    {(() => {
-                      const planPending = dayPlanTasks.filter((t: any) => t.status !== "concluida").length;
-                      const total = tarefasSemHorario.filter(t => t.status !== "concluida").length + planPending;
-                      if (total === 0) return null;
-                      return (
-                        <span style={{ padding: "1px 7px", borderRadius: 9999, fontSize: 10, fontWeight: 600, background: "rgba(167,139,250,0.15)", color: "#A78BFA" }}>
-                          {total} pendente{total !== 1 ? "s" : ""}
-                        </span>
-                      );
-                    })()}
+                    {totalPendingTasks > 0 && (
+                      <span style={{ padding: "1px 7px", borderRadius: 9999, fontSize: 10, fontWeight: 600, background: "rgba(167,139,250,0.15)", color: "#A78BFA" }}>
+                        {totalPendingTasks} pendente{totalPendingTasks !== 1 ? "s" : ""}
+                      </span>
+                    )}
                   </div>
                   <span style={{ fontSize: 12, color: "#9e96b5", transition: "transform .2s", transform: tasksOpen ? "rotate(180deg)" : "rotate(0deg)" }}>
                     ▴
