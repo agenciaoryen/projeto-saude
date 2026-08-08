@@ -93,21 +93,24 @@ export function LifeWheel({ done, totals, emojis, weekLabel, stones }: LifeWheel
       // ── Clone SVG & boost everything for export ──
       const clone = svg.cloneNode(true) as SVGSVGElement;
       clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
-      // Boost text: make area labels & percentages bigger and more opaque
+      // Force full opacity on ALL area groups — every label vibrant, even empty areas
+      clone.querySelectorAll("g").forEach((el: Element) => {
+        const g = el as SVGElement;
+        const op = g.getAttribute("opacity");
+        if (op && parseFloat(op) < 1) g.setAttribute("opacity", "1");
+      });
+      // Boost text sizes modestly for export
       clone.querySelectorAll("text").forEach((el: Element) => {
         const t = el as SVGElement;
         const fs = parseFloat(t.getAttribute("font-size") || "8");
-        t.setAttribute("font-size", String(fs * 1.55));
+        t.setAttribute("font-size", String(fs * 1.2));
         const fill = t.getAttribute("fill");
-        // Boost opacity on rgba fills
+        // Boost opacity on rgba fills to full
         if (fill && fill.includes("rgba")) {
-          t.setAttribute("fill", fill.replace(/[\d.]+\)$/, m => {
-            const v = parseFloat(m);
-            return `${Math.min(v * 2, 1)})`;
-          }));
+          t.setAttribute("fill", fill.replace(/[\d.]+\)$/, () => "1)"));
         }
-        // Make gray text lighter
-        if (fill && fill === "#6a657a") t.setAttribute("fill", "#b0aabf");
+        // Make subdued text fully vibrant
+        if (fill && fill === "#6a657a") t.setAttribute("fill", "#c0b8d8");
       });
       // Boost structural elements (rings, axes, polygons) for export clarity
       clone.querySelectorAll("polygon, line, circle").forEach((el: Element) => {
@@ -131,11 +134,13 @@ export function LifeWheel({ done, totals, emojis, weekLabel, stones }: LifeWheel
       const svgBlob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
       const svgUrl = URL.createObjectURL(svgBlob);
 
-      // ── Canvas setup ──
+      // ── Canvas setup (2x internal resolution = 4K quality) ──
       const canvas = document.createElement("canvas");
       const W = 1080, H = 1920;
-      canvas.width = W; canvas.height = H;
+      const SCALE = 2; // 2160×3840 internal → crisp text
+      canvas.width = W * SCALE; canvas.height = H * SCALE;
       const ctx = canvas.getContext("2d")!;
+      ctx.scale(SCALE, SCALE);
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = "high";
 
