@@ -16,6 +16,18 @@ const AREAS = [
   { key: "saude",           label: "Saúde",           color: "#7C5CFF", emoji: "💚" }, // top-left
 ];
 
+// Default custom emoji icons (fallback to text emoji if image fails to load)
+const DEFAULT_EMOJIS: Record<string, string> = {
+  espiritualidade: "/emojis/Espiritualidade-emoji-roda-da-vida.png",
+  carreira: "/emojis/Carreira-emoji-roda-da-vida.png",
+  desenvolvimento: "/emojis/Mente-emoji-roda-da-vida.png",
+  familia: "/emojis/Familia-emoji-roda-da-vida.png",
+  relacionamentos: "/emojis/Relacionamentos-emoji-roda-da-vida.png",
+  financas: "/emojis/Financas-emoji-roda-da-vida.png",
+  lazer: "/emojis/Lazer-emoji-roda-da-vida.png",
+  saude: "/emojis/Saude-emoji-roda-da-vida.png",
+};
+
 interface LifeWheelProps {
   done: Record<string, number>;
   totals: Record<string, number>;
@@ -530,7 +542,7 @@ export function LifeWheel({ done, totals, emojis, weekLabel, stones }: LifeWheel
             const pct = mounted ? progress[i] : 0;
             const planPct = mounted ? planned[i] : 0;
             const empty = pct === 0 && planPct === 0;
-            const customEmoji = emojis?.[a.key];
+            const customEmoji = emojis?.[a.key] ?? DEFAULT_EMOJIS[a.key];
             return (
               <g key={a.key} opacity={empty ? 0.4 : 1} style={{ transition: "opacity .6s" }}>
                 {customEmoji ? (
