@@ -5,59 +5,165 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-// São Paulo timezone offset: UTC-3 (Brazil no longer observes DST since 2019)
-const SP_OFFSET_MS = -3 * 60 * 60 * 1000;
+// ── Timezone utilities ────────────────────────────────────────────────
+// All date functions respect the user's actual timezone when running in
+// the browser. On the server, they accept a `tz` IANA timezone parameter
+// and fall back to São Paulo (UTC-3) when none is provided.
+
+const SP_OFFSET_MS = -3 * 60 * 60 * 1000; // legacy fallback only
 
 function pad2(n: number): string {
   return String(n).padStart(2, "0");
 }
 
-/** Converts UTC milliseconds to a YYYY-MM-DD string in São Paulo timezone. */
+/** Formats a Date object as YYYY-MM-DD using its local (system) components. */
+function dateToYMD(d: Date): string {
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+}
+
+/** Returns today's date in YYYY-MM-DD using the browser timezone (client)
+ *  or the given IANA timezone (server). Falls back to UTC-3 (São Paulo). */
+export function getLocalDate(tz?: string): string {
+  const isBrowser = typeof window !== "undefined";
+
+  if (isBrowser) {
+    return dateToYMD(new Date());
+  }
+
+  if (tz) {
+    try {
+      return new Intl.DateTimeFormat("en-CA", {
+        timeZone: tz,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }).format(new Date());
+    } catch {
+      // invalid timezone — fall through to SP legacy
+    }
+  }
+
+  // Server-side legacy fallback: UTC-3 (São Paulo)
+  return spDate(Date.now());
+}
+
+/** Returns yesterday's date in YYYY-MM-DD in the user's timezone. */
+export function getLocalYesterday(tz?: string): string {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  if (typeof window !== "undefined" || !tz) {
+    // Browser: uses native local time. Server without tz: SP fallback.
+    if (typeof window !== "undefined") return dateToYMD(d);
+    return spDate(Date.now() - 24 * 60 * 60 * 1000);
+  }
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: tz,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(d);
+}
+
+/** Converts a UTC ISO timestamp string to a local date string (YYYY-MM-DD).
+ *  In the browser this uses the user's actual timezone; on the server
+ *  pass `tz` for the target timezone (falls back to UTC-3). */
+export function getLocalDateFromISO(isoStr: string, tz?: string): string {
+  if (typeof window !== "undefined") {
+    return dateToYMD(new Date(isoStr));
+  }
+  if (tz) {
+    try {
+      return new Intl.DateTimeFormat("en-CA", {
+        timeZone: tz,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }).format(new Date(isoStr));
+    } catch {
+      // invalid tz — fall through
+    }
+  }
+  return spDate(new Date(isoStr).getTime());
+}
+
+/** Formats a Date as YYYY-MM-DD in the user's timezone. */
+export function formatLocalDate(d: Date, tz?: string): string {
+  if (typeof window !== "undefined") return dateToYMD(d);
+  if (tz) {
+    try {
+      return new Intl.DateTimeFormat("en-CA", {
+        timeZone: tz,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }).format(d);
+    } catch {
+      // fall through
+    }
+  }
+  return spDate(d.getTime());
+}
+
+/** Returns the user's IANA timezone string (e.g. "America/Sao_Paulo").
+ *  In the browser this reads from Intl; on the server returns UTC-3. */
+export function getUserTimezone(): string {
+  if (typeof window !== "undefined") {
+    try {
+      return Intl.DateTimeFormat().resolvedOptions().timeZone;
+    } catch {
+      // fall through
+    }
+  }
+  return "America/Sao_Paulo";
+}
+
+/** Returns the UTC offset string (e.g. "-03:00", "+05:30") for a given IANA
+ *  timezone on a specific date. Used to construct timestamp ranges for DB queries. */
+export function getTimezoneOffset(tz: string, dateStr: string): string {
+  try {
+    const fmt = new Intl.DateTimeFormat("en-US", {
+      timeZone: tz,
+      timeZoneName: "longOffset",
+    });
+    const parts = fmt.formatToParts(new Date(dateStr + "T12:00:00"));
+    const offsetPart = parts.find((p) => p.type === "timeZoneName");
+    if (offsetPart?.value?.startsWith("GMT")) {
+      return offsetPart.value.slice(3); // "GMT-03:00" → "-03:00"
+    }
+  } catch {
+    // invalid timezone — fall through
+  }
+  return "-03:00"; // fallback SP
+}
+
+/** Returns the Monday date (YYYY-MM-DD) of the current week in the user's timezone.
+ *  Pass offsetWeeks to get a different week (e.g. 1 = next Monday, -1 = previous Monday). */
+export function getWeekMondayDate(offsetWeeks?: number, tz?: string): string {
+  const today = getLocalDate(tz);
+  const d = new Date(today + "T12:00:00");
+  const dow = d.getDay(); // 0=Sun,1=Mon,...,6=Sat
+  const daysToMonday = dow === 0 ? -6 : 1 - dow;
+  d.setDate(d.getDate() + daysToMonday + (offsetWeeks ?? 0) * 7);
+  return dateToYMD(d);
+}
+
+/** Returns the Sunday date (YYYY-MM-DD) of the current week in the user's timezone. */
+export function getWeekSundayDate(tz?: string): string {
+  const mon = getWeekMondayDate(undefined, tz);
+  const d = new Date(mon + "T12:00:00");
+  d.setDate(d.getDate() + 6);
+  return dateToYMD(d);
+}
+
+// ── Legacy SP helpers (server-side only) ──────────────────────────────
+
+/** Converts UTC milliseconds to a YYYY-MM-DD string in São Paulo timezone (UTC-3). */
 function spDate(ms: number): string {
   const d = new Date(ms + SP_OFFSET_MS);
   const y = d.getUTCFullYear();
   const m = pad2(d.getUTCMonth() + 1);
   const day = pad2(d.getUTCDate());
   return `${y}-${m}-${day}`;
-}
-
-/** Returns today's date in YYYY-MM-DD in São Paulo timezone (UTC-3). */
-export function getLocalDate(): string {
-  return spDate(Date.now());
-}
-
-/** Returns yesterday's date in YYYY-MM-DD in São Paulo timezone (UTC-3). */
-export function getLocalYesterday(): string {
-  return spDate(Date.now() - 24 * 60 * 60 * 1000);
-}
-
-/** Converts a UTC ISO timestamp string to a São Paulo date string (YYYY-MM-DD). */
-export function getLocalDateFromISO(isoStr: string): string {
-  return spDate(new Date(isoStr).getTime());
-}
-
-/** Formats a Date as YYYY-MM-DD in São Paulo timezone (UTC-3). */
-export function formatLocalDate(d: Date): string {
-  return spDate(d.getTime());
-}
-
-/** Returns the Monday date (YYYY-MM-DD) of the current week in São Paulo timezone.
- *  Pass offsetWeeks to get a different week (e.g. 1 = next Monday, -1 = previous Monday). */
-export function getWeekMondayDate(offsetWeeks?: number): string {
-  const today = getLocalDate();
-  const d = new Date(today + "T12:00:00");
-  const dow = d.getDay(); // 0=Sun,1=Mon,...,6=Sat
-  const daysToMonday = dow === 0 ? -6 : 1 - dow;
-  d.setDate(d.getDate() + daysToMonday + (offsetWeeks ?? 0) * 7);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
-/** Returns the Sunday date (YYYY-MM-DD) of the current week in São Paulo timezone. */
-export function getWeekSundayDate(): string {
-  const mon = getWeekMondayDate();
-  const d = new Date(mon + "T12:00:00");
-  d.setDate(d.getDate() + 6);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
 /**

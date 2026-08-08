@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { getLocalDate } from "@/lib/utils";
+import { getLocalDate, getUserTimezone } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { cachedFetch, safeCachedFetch } from "@/lib/fetch-cache";
 import { useTranslation } from "@/lib/useTranslation";
@@ -58,6 +58,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const today = getLocalDate();
+    const userTz = getUserTimezone();
 
     Promise.all([
       cachedFetch<CheckIn[]>("/api/check-ins"),
@@ -134,7 +135,7 @@ export default function DashboardPage() {
       .catch(() => {});
 
     // Today's meals — independent
-    cachedFetch<Array<{ macros: { calorias_kcal: number } | null }>>(`/api/meals?date=${today}`)
+    cachedFetch<Array<{ macros: { calorias_kcal: number } | null }>>(`/api/meals?date=${today}&tz=${encodeURIComponent(userTz)}`)
       .then((meals) => {
         if (Array.isArray(meals)) {
           setTodayMealsCount(meals.length);
@@ -428,7 +429,8 @@ function NutricaoPreview({ loading }: { loading: boolean }) {
 
   useEffect(() => {
     const today = getLocalDate();
-    safeCachedFetch<Array<{ date: string; meal_type: string }>>(`/api/meals?date=${today}`)
+    const userTz = getUserTimezone();
+    safeCachedFetch<Array<{ date: string; meal_type: string }>>(`/api/meals?date=${today}&tz=${encodeURIComponent(userTz)}`)
       .then((meals) => {
         const count = meals?.length ?? 0;
         setPreview(count > 0 ? `${count}/4 refeições` : "Nenhuma refeição");

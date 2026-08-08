@@ -2,7 +2,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { syncCheckInField } from "@/lib/checkin-sync";
 import { ateWellFromMeals } from "@/lib/meal-utils";
-import { getLocalDate } from "@/lib/utils";
+import { getLocalDate, getTimezoneOffset } from "@/lib/utils";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest) {
@@ -34,9 +34,11 @@ export async function GET(req: NextRequest) {
     }
 
     if (date) {
-      // Refições de uma data específica (filtra pelo dia na timestamp)
-      const startOfDay = `${date}T00:00:00-03:00`;
-      const endOfDay = `${date}T23:59:59-03:00`;
+      // Refeições de uma data específica — respeita o fuso horário do usuário
+      const tz = searchParams.get("tz") || "America/Sao_Paulo";
+      const offset = getTimezoneOffset(tz, date);
+      const startOfDay = `${date}T00:00:00${offset}`;
+      const endOfDay = `${date}T23:59:59${offset}`;
 
       const { data, error } = await admin
         .from("meals")
@@ -138,11 +140,13 @@ export async function POST(req: NextRequest) {
 /** Recalcula ate_well das refeições de hoje e sincroniza o check-in */
 async function syncAteWell(
   admin: ReturnType<typeof getSupabaseAdmin>,
-  userId: string
+  userId: string,
+  tz?: string
 ) {
-  const today = getLocalDate();
-  const startOfDay = `${today}T00:00:00-03:00`;
-  const endOfDay = `${today}T23:59:59-03:00`;
+  const today = getLocalDate(tz);
+  const offset = getTimezoneOffset(tz || "America/Sao_Paulo", today);
+  const startOfDay = `${today}T00:00:00${offset}`;
+  const endOfDay = `${today}T23:59:59${offset}`;
 
   const { data: meals } = await admin
     .from("meals")
