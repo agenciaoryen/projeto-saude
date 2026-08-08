@@ -1,6 +1,7 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getLocalDate } from "@/lib/utils";
+import { analyzeAllSpecialists } from "@/lib/specialists";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest) {
@@ -148,6 +149,8 @@ export async function POST(req: NextRequest) {
 
       // Invalidate Maya nudge cache so next dashboard load reflects today's data
       invalidateMayaNudgeCache(admin, user.id);
+      // Fire-and-forget: refresh all specialist insights
+      analyzeAllSpecialists(user.id).catch(() => {});
 
       return NextResponse.json(updated);
     }
@@ -162,6 +165,8 @@ export async function POST(req: NextRequest) {
 
     // Invalidate Maya nudge cache so next dashboard load reflects today's data
     invalidateMayaNudgeCache(admin, user.id);
+    // Fire-and-forget: refresh all specialist insights
+    analyzeAllSpecialists(user.id).catch(() => {});
 
     return NextResponse.json(created, { status: 201 });
   } catch (error) {

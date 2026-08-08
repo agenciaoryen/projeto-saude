@@ -2,6 +2,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { syncCheckInField } from "@/lib/checkin-sync";
 import { ateWellFromMeals } from "@/lib/meal-utils";
+import { analyzeAllSpecialists } from "@/lib/specialists";
 import { getLocalDate, getTimezoneOffset } from "@/lib/utils";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -113,8 +114,9 @@ export async function POST(req: NextRequest) {
         .single();
 
       if (error) throw error;
-      // Auto-sync ate_well no check-in de hoje
+      // Auto-sync ate_well + refresh specialists
       syncAteWell(admin, user.id).catch(() => {});
+      analyzeAllSpecialists(user.id).catch(() => {});
       return NextResponse.json(updated);
     }
 
@@ -125,8 +127,9 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (error) throw error;
-    // Auto-sync ate_well no check-in de hoje
+    // Auto-sync ate_well + refresh specialists
     syncAteWell(admin, user.id).catch(() => {});
+    analyzeAllSpecialists(user.id).catch(() => {});
     return NextResponse.json(created, { status: 201 });
   } catch (error) {
     console.error("POST /api/meals error:", error);
