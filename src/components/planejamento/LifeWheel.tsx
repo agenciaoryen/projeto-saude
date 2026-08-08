@@ -179,25 +179,24 @@ export function LifeWheel({ done, totals, emojis, weekLabel, stones }: LifeWheel
       mayaAvatar.src = "/maya-avatar.webp";
       await new Promise<void>((resolve, reject) => { mayaAvatar.onload = () => resolve(); mayaAvatar.onerror = reject; });
 
-      const headerY = 115;
-      // Maya avatar (circular clip) + MAYA APP
-      const avatarR = 22, avatarCx = W / 2 - 72, avatarCy = headerY - 56;
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(avatarCx, avatarCy, avatarR, 0, Math.PI * 2);
-      ctx.closePath(); ctx.clip();
-      ctx.drawImage(mayaAvatar, avatarCx - avatarR, avatarCy - avatarR, avatarR * 2, avatarR * 2);
-      ctx.restore();
-      // Subtle ring around avatar
-      ctx.strokeStyle = "rgba(167,139,250,0.4)"; ctx.lineWidth = 1.5;
-      ctx.beginPath(); ctx.arc(avatarCx, avatarCy, avatarR + 1, 0, Math.PI * 2); ctx.stroke();
+      const headerY = 120;
+      // Maya avatar (estilo home — sem crop circular) + MAYA APP
+      const avatarSize = 44, avatarCx = W / 2 - 74, avatarCy = headerY - 58;
+      // Subtle glow behind avatar
+      const avatarGlow = ctx.createRadialGradient(avatarCx, avatarCy, avatarSize * 0.25, avatarCx, avatarCy, avatarSize * 1.1);
+      avatarGlow.addColorStop(0, "rgba(167,139,250,0.35)");
+      avatarGlow.addColorStop(1, "transparent");
+      ctx.fillStyle = avatarGlow; ctx.beginPath();
+      ctx.arc(avatarCx, avatarCy, avatarSize * 1.1, 0, Math.PI * 2); ctx.fill();
+      // Draw avatar full-image (contain, no circle clip)
+      ctx.drawImage(mayaAvatar, avatarCx - avatarSize / 2, avatarCy - avatarSize / 2, avatarSize, avatarSize);
 
       // MAYA APP text
       ctx.fillStyle = "#FFFFFF"; ctx.font = "600 24px Inter, system-ui, -apple-system, sans-serif"; ctx.textAlign = "center";
-      ctx.fillText("MAYA APP", W / 2 + 8, headerY - 48);
+      ctx.fillText("MAYA APP", W / 2 + 6, headerY - 48);
 
-      // Title: "Hub da" + "Semana" in gradient
-      const titleY = headerY + 24;
+      // Title: "Hub da" + "Semana" in gradient — more breathing room from header
+      const titleY = headerY + 52;
       ctx.font = "700 84px Inter, system-ui, -apple-system, sans-serif"; ctx.textAlign = "center";
       const hubDaW = ctx.measureText("Hub da ").width;
       const semanaW = ctx.measureText("Semana").width;
@@ -227,7 +226,12 @@ export function LifeWheel({ done, totals, emojis, weekLabel, stones }: LifeWheel
       }
 
       // ── 4. WHEEL ───────────────────────────────────────────────
-      const wheelSize = 820, wheelX = (W - wheelSize) / 2, wheelY = badgeY + 110;
+      // SVG internal content is centered at x=150 (not 160) in 320-wide viewBox
+      // Compensate so visual wheel center aligns with canvas center
+      const wheelSize = 820;
+      const svgCenterOffset = (160 - 150) / 320 * wheelSize; // ~26px right shift
+      const wheelX = (W - wheelSize) / 2 + svgCenterOffset;
+      const wheelY = badgeY + 110;
       const wheelCx = W / 2, wheelCy = wheelY + wheelSize / 2;
 
       // Glow aura behind wheel
@@ -256,25 +260,24 @@ export function LifeWheel({ done, totals, emojis, weekLabel, stones }: LifeWheel
       ctx.arc(wheelCx, wheelCy, 4, 0, Math.PI * 2); ctx.fill();
 
       // ── 5. HANDWRITTEN NOTES ───────────────────────────────────
-      // Note 1 — right side, subtle handwritten style
+      // Note 1 — upper right corner, well clear of area labels
       ctx.save();
-      ctx.fillStyle = "rgba(167,139,250,0.4)"; ctx.font = "italic 400 24px 'Segoe Script', 'Brush Script MT', cursive, sans-serif"; ctx.textAlign = "right";
-      ctx.translate(W - 100, wheelCy - 80); ctx.rotate(-0.06);
+      ctx.fillStyle = "rgba(200,180,240,0.75)"; ctx.font = "italic 400 24px 'Segoe Script', 'Brush Script MT', cursive, sans-serif"; ctx.textAlign = "right";
+      ctx.translate(W - 50, wheelCy - 180); ctx.rotate(-0.06);
       ctx.fillText("Pequenas escolhas", 0, 0);
       ctx.fillText("grandes mudanças", 0, 32);
-      // Subtle arrow pointing left toward wheel
-      ctx.strokeStyle = "rgba(167,139,250,0.25)"; ctx.lineWidth = 1; ctx.setLineDash([3, 3]);
-      ctx.beginPath(); ctx.moveTo(-180, -10); ctx.lineTo(-80, -10); ctx.stroke();
+      // Subtle decorative line (not crossing into wheel area)
+      ctx.strokeStyle = "rgba(167,139,250,0.35)"; ctx.lineWidth = 1; ctx.setLineDash([3, 4]);
+      ctx.beginPath(); ctx.moveTo(-120, -50); ctx.lineTo(-80, -50); ctx.stroke();
       ctx.setLineDash([]);
-      // Small arrowhead
-      ctx.fillStyle = "rgba(167,139,250,0.3)";
-      ctx.beginPath(); ctx.moveTo(-90, -10); ctx.lineTo(-80, -17); ctx.lineTo(-80, -3); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = "rgba(167,139,250,0.4)";
+      ctx.beginPath(); ctx.moveTo(-90, -50); ctx.lineTo(-80, -56); ctx.lineTo(-80, -44); ctx.closePath(); ctx.fill();
       ctx.restore();
 
-      // Note 2 — above bottom card, centered
+      // Note 2 — above bottom card, centered, better contrast
       const cardStartY = wheelY + wheelSize + 90;
       ctx.save();
-      ctx.fillStyle = "rgba(167,139,250,0.35)"; ctx.font = "italic 400 22px 'Segoe Script', 'Brush Script MT', cursive, sans-serif"; ctx.textAlign = "center";
+      ctx.fillStyle = "rgba(200,180,240,0.7)"; ctx.font = "italic 400 22px 'Segoe Script', 'Brush Script MT', cursive, sans-serif"; ctx.textAlign = "center";
       ctx.translate(W / 2, cardStartY - 22); ctx.rotate(-0.04);
       ctx.fillText("Menos é mais. Escolho o que importa.", 0, 0);
       ctx.restore();
