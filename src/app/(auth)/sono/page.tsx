@@ -976,11 +976,12 @@ function SleepTrendChart({ logs, lang }: { logs: SleepLog[]; lang: Lang }) {
           y1={refGoodY}
           x2={pad.left + pw}
           y2={refGoodY}
-          stroke="oklch(0.58 0.18 270 / 0.30)"
+          stroke="oklch(0.58 0.18 270 / 0.50)"
           strokeWidth="1"
           strokeDasharray="3,6"
         />
-        <text x={pad.left + pw} y={refGoodY - 3} textAnchor="end" fontSize="8" fill="oklch(0.58 0.18 270 / 0.6)" fontFamily="inherit">70</text>
+        <rect x={pad.left + pw - 14} y={refGoodY - 12} width="14" height="14" rx="3" fill="oklch(0.58 0.18 270 / 0.18)" />
+        <text x={pad.left + pw - 7} y={refGoodY - 1} textAnchor="middle" fontSize="10" fontWeight="600" fill="oklch(0.58 0.18 270 / 0.85)" fontFamily="inherit">70</text>
 
         {/* Score threshold: 45 (warning) */}
         <line
@@ -988,11 +989,12 @@ function SleepTrendChart({ logs, lang }: { logs: SleepLog[]; lang: Lang }) {
           y1={refWarnY}
           x2={pad.left + pw}
           y2={refWarnY}
-          stroke="oklch(0.60 0.12 70 / 0.30)"
+          stroke="oklch(0.60 0.12 70 / 0.50)"
           strokeWidth="1"
           strokeDasharray="3,6"
         />
-        <text x={pad.left + pw} y={refWarnY - 3} textAnchor="end" fontSize="8" fill="oklch(0.60 0.12 70 / 0.6)" fontFamily="inherit">45</text>
+        <rect x={pad.left + pw - 14} y={refWarnY - 12} width="14" height="14" rx="3" fill="oklch(0.60 0.12 70 / 0.18)" />
+        <text x={pad.left + pw - 7} y={refWarnY - 1} textAnchor="middle" fontSize="10" fontWeight="600" fill="oklch(0.60 0.12 70 / 0.85)" fontFamily="inherit">45</text>
 
         {/* Area fill */}
         <path d={areaD} fill="url(#sleeptrend-grad)" />
