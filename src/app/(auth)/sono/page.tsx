@@ -49,13 +49,13 @@ function dateLocale(lang: Lang): string {
 function qualityColor(q: number | null): string {
   if (!q) return "var(--muted-foreground)";
   if (q <= 2) return "oklch(.5 .15 15)";
-  if (q === 3) return "oklch(.55 .12 60)";
-  return "oklch(.45 .15 160)";
+  if (q === 3) return "oklch(.60 .12 70)";
+  return "oklch(.58 .18 270)";
 }
 
 function scoreColor(s: number): string {
-  if (s >= 70) return "oklch(.45 .15 160)";
-  if (s >= 45) return "oklch(.55 .12 60)";
+  if (s >= 70) return "oklch(.58 .18 270)";
+  if (s >= 45) return "oklch(.60 .12 70)";
   return "oklch(.5 .15 15)";
 }
 
@@ -101,6 +101,8 @@ function ManualLogModal({ onClose, onSaved, lang }: { onClose: () => void; onSav
   const [interruptions, setInterruptions] = useState<number>(0);
   const [startTime, setStartTime] = useState("22:00");
   const [endTime, setEndTime] = useState("07:00");
+  const [notes, setNotes] = useState("");
+  const [showQualityGuide, setShowQualityGuide] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const save = async () => {
@@ -134,6 +136,7 @@ function ManualLogModal({ onClose, onSaved, lang }: { onClose: () => void; onSav
         interruptions,
         sleep_start: sleepStart,
         sleep_end: sleepEnd,
+        notes: interruptions > 0 && notes.trim() ? notes.trim() : null,
         source: "checkin",
       }),
     });
@@ -142,11 +145,22 @@ function ManualLogModal({ onClose, onSaved, lang }: { onClose: () => void; onSav
     onClose();
   };
 
+  const UN = "oklch(0.18 0.012 270)";   // unselected neutral bg
+  const UM = "oklch(0.58 0.04 270)";    // unselected muted text
+
   const label11 = (text: string) => (
     <p style={{ margin: "0 0 10px", fontSize: 11, fontWeight: 700, letterSpacing: ".1em", textTransform: "uppercase", color: "#9e96b5" }}>
       {text}
     </p>
   );
+
+  const qualityGuide = [
+    { emoji: QUALITY_EMOJI[1], label: getQualityLabels(lang)[1], desc: tFn(lang, "sono_qualidade_guia_1") },
+    { emoji: QUALITY_EMOJI[2], label: getQualityLabels(lang)[2], desc: tFn(lang, "sono_qualidade_guia_2") },
+    { emoji: QUALITY_EMOJI[3], label: getQualityLabels(lang)[3], desc: tFn(lang, "sono_qualidade_guia_3") },
+    { emoji: QUALITY_EMOJI[4], label: getQualityLabels(lang)[4], desc: tFn(lang, "sono_qualidade_guia_4") },
+    { emoji: QUALITY_EMOJI[5], label: getQualityLabels(lang)[5], desc: tFn(lang, "sono_qualidade_guia_5") },
+  ];
 
   return (
     <div
@@ -184,32 +198,74 @@ function ManualLogModal({ onClose, onSaved, lang }: { onClose: () => void; onSav
           </div>
         </div>
 
-        {label11(tFn(lang, "sono_como_foi"))}
+        {/* Quality label + info */}
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          {label11(tFn(lang, "sono_como_foi"))}
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); setShowQualityGuide(!showQualityGuide); }}
+            style={{
+              background: "none", border: 0, cursor: "pointer",
+              fontSize: 15, padding: "0 0 10px", lineHeight: 1,
+              color: showQualityGuide ? P : "oklch(0.50 0.03 270)",
+              transition: "color .2s ease",
+            }}
+            aria-label="Guia de qualidade"
+          >
+            ℹ️
+          </button>
+        </div>
+
+        {/* Quality guide expandable */}
+        {showQualityGuide && (
+          <div style={{
+            marginBottom: 14, padding: "12px 14px",
+            borderRadius: 14,
+            background: "oklch(0.17 0.015 270 / 0.6)",
+            border: "1px solid oklch(0.28 0.02 270 / 0.3)",
+          }}>
+            <p style={{ margin: "0 0 10px", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".08em", color: "#A78BFA" }}>
+              {tFn(lang, "sono_qualidade_guia")}
+            </p>
+            {qualityGuide.map((item, i) => (
+              <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: i < 4 ? 6 : 0 }}>
+                <span style={{ fontSize: 16, flexShrink: 0, width: 24, textAlign: "center" }}>{item.emoji}</span>
+                <div>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: "#e0d6ff" }}>{item.label}</span>
+                  <span style={{ fontSize: 11, color: "#9e96b5", marginLeft: 6 }}>{item.desc}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Quality buttons */}
         <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
           {[1, 2, 3, 4, 5].map((q) => (
             <button key={q} type="button" onClick={() => setQuality(q)} style={{
               flex: 1, padding: "10px 2px", borderRadius: 12, border: 0, cursor: "pointer",
               display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
-              background: quality === q ? PL : "oklch(.95 .005 160)",
+              background: quality === q ? PL : UN,
               outline: quality === q ? `2px solid ${P}` : "none",
               transition: "all .15s ease",
             }}>
               <span style={{ fontSize: 26 }}>{QUALITY_EMOJI[q]}</span>
-              <span style={{ fontSize: 9, fontWeight: 700, color: quality === q ? "oklch(.35 .1 160)" : "var(--muted-foreground)" }}>
+              <span style={{ fontSize: 9, fontWeight: 700, color: quality === q ? "oklch(0.45 0.18 270)" : UM }}>
                 {getQualityLabels(lang)[q]}
               </span>
             </button>
           ))}
         </div>
 
+        {/* Interruptions */}
         {label11(tFn(lang, "sono_acordou_noite"))}
-        <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+        <div style={{ display: "flex", gap: 8, marginBottom: interruptions > 0 ? 14 : 20 }}>
           {[0, 1, 2, 3, 4].map((n) => (
             <button key={n} type="button" onClick={() => setInterruptions(n)} style={{
               flex: 1, padding: "10px 4px", borderRadius: 12, border: 0, cursor: "pointer",
-              background: interruptions === n ? P : "oklch(.95 .005 160)",
+              background: interruptions === n ? P : UN,
               fontFamily: "inherit", fontSize: 13, fontWeight: 700,
-              color: interruptions === n ? "#fff" : "oklch(.4 .06 160)",
+              color: interruptions === n ? "#fff" : UM,
               transition: "all .15s ease",
             }}>
               {n === 4 ? "4+" : n === 0 ? tFn(lang, "nao") : `${n}×`}
@@ -217,11 +273,37 @@ function ManualLogModal({ onClose, onSaved, lang }: { onClose: () => void; onSav
           ))}
         </div>
 
+        {/* Notes when interrupted */}
+        {interruptions > 0 && (
+          <div style={{ marginBottom: 20 }}>
+            <p style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 700, letterSpacing: ".06em", textTransform: "uppercase", color: "#A78BFA" }}>
+              {tFn(lang, "sono_interruption_note_label")}
+            </p>
+            <input
+              type="text"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder={tFn(lang, "sono_interruption_note_placeholder")}
+              maxLength={120}
+              style={{
+                width: "100%", boxSizing: "border-box",
+                height: 42, borderRadius: 10,
+                border: "1px solid oklch(0.28 0.02 270 / 0.4)",
+                background: "oklch(0.14 0.012 270)",
+                padding: "0 12px",
+                color: "#e0d6ff",
+                fontFamily: "inherit", fontSize: 13, fontWeight: 500,
+                outline: "none",
+              }}
+            />
+          </div>
+        )}
+
         <button type="button" onClick={save} disabled={!quality || saving} style={{
           width: "100%", height: 50, borderRadius: 14, border: 0,
           cursor: !quality ? "not-allowed" : "pointer",
-          background: quality ? P : "oklch(.88 .02 160)",
-          color: quality ? "#fff" : "oklch(.6 .04 160)",
+          background: quality ? P : "oklch(0.18 0.012 270)",
+          color: quality ? "#fff" : "oklch(0.45 0.03 270)",
           fontFamily: "inherit", fontSize: 15, fontWeight: 700,
           opacity: saving ? 0.7 : 1, transition: "all .2s ease",
         }}>{saving ? tFn(lang, "salvando") : tFn(lang, "sono_salvar_alt")}</button>
@@ -248,6 +330,8 @@ function EditSleepModal({ log, onClose, onSaved, lang }: {
   const [endTime, setEndTime] = useState(toSPTime(log.sleep_end));
   const [quality, setQuality] = useState<number | null>(log.quality ?? null);
   const [interruptions, setInterruptions] = useState<number>(log.interruptions ?? 0);
+  const [notes, setNotes] = useState(log.notes ?? "");
+  const [showQualityGuide, setShowQualityGuide] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const save = async () => {
@@ -280,12 +364,16 @@ function EditSleepModal({ log, onClose, onSaved, lang }: {
         duration_min: durationMin,
         quality: quality ?? log.quality,
         interruptions,
+        notes: interruptions > 0 && notes.trim() ? notes.trim() : null,
       }),
     });
     setSaving(false);
     onSaved();
     onClose();
   };
+
+  const UN = "oklch(0.18 0.012 270)";
+  const UM = "oklch(0.58 0.04 270)";
 
   const dayLabel = new Date(log.date + "T12:00:00").toLocaleDateString(dateLocale(lang), {
     weekday: "long", day: "numeric", month: "long",
@@ -296,6 +384,14 @@ function EditSleepModal({ log, onClose, onSaved, lang }: {
       {text}
     </p>
   );
+
+  const qualityGuide = [
+    { emoji: QUALITY_EMOJI[1], label: getQualityLabels(lang)[1], desc: tFn(lang, "sono_qualidade_guia_1") },
+    { emoji: QUALITY_EMOJI[2], label: getQualityLabels(lang)[2], desc: tFn(lang, "sono_qualidade_guia_2") },
+    { emoji: QUALITY_EMOJI[3], label: getQualityLabels(lang)[3], desc: tFn(lang, "sono_qualidade_guia_3") },
+    { emoji: QUALITY_EMOJI[4], label: getQualityLabels(lang)[4], desc: tFn(lang, "sono_qualidade_guia_4") },
+    { emoji: QUALITY_EMOJI[5], label: getQualityLabels(lang)[5], desc: tFn(lang, "sono_qualidade_guia_5") },
+  ];
 
   return (
     <div onClick={onClose} style={{
@@ -333,13 +429,13 @@ function EditSleepModal({ log, onClose, onSaved, lang }: {
 
         {/* Interruptions */}
         {label11(tFn(lang, "sono_acordou_noite"))}
-        <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+        <div style={{ display: "flex", gap: 8, marginBottom: interruptions > 0 ? 14 : 20 }}>
           {[0, 1, 2, 3, 4].map((n) => (
             <button key={n} type="button" onClick={() => setInterruptions(n)} style={{
               flex: 1, padding: "10px 4px", borderRadius: 12, border: 0, cursor: "pointer",
-              background: interruptions === n ? P : "oklch(.95 .005 160)",
+              background: interruptions === n ? P : UN,
               fontFamily: "inherit", fontSize: 13, fontWeight: 700,
-              color: interruptions === n ? "#fff" : "oklch(.4 .06 160)",
+              color: interruptions === n ? "#fff" : UM,
               transition: "all .15s ease",
             }}>
               {n === 4 ? "4+" : n === 0 ? tFn(lang, "nao") : `${n}×`}
@@ -347,19 +443,85 @@ function EditSleepModal({ log, onClose, onSaved, lang }: {
           ))}
         </div>
 
-        {/* Quality */}
-        {label11(tFn(lang, "sono_qualidade_label"))}
+        {/* Notes when interrupted */}
+        {interruptions > 0 && (
+          <div style={{ marginBottom: 20 }}>
+            <p style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 700, letterSpacing: ".06em", textTransform: "uppercase", color: "#A78BFA" }}>
+              {tFn(lang, "sono_interruption_note_label")}
+            </p>
+            <input
+              type="text"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder={tFn(lang, "sono_interruption_note_placeholder")}
+              maxLength={120}
+              style={{
+                width: "100%", boxSizing: "border-box",
+                height: 42, borderRadius: 10,
+                border: "1px solid oklch(0.28 0.02 270 / 0.4)",
+                background: "oklch(0.14 0.012 270)",
+                padding: "0 12px",
+                color: "#e0d6ff",
+                fontFamily: "inherit", fontSize: 13, fontWeight: 500,
+                outline: "none",
+              }}
+            />
+          </div>
+        )}
+
+        {/* Quality label + info */}
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          {label11(tFn(lang, "sono_qualidade_label"))}
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); setShowQualityGuide(!showQualityGuide); }}
+            style={{
+              background: "none", border: 0, cursor: "pointer",
+              fontSize: 15, padding: "0 0 6px", lineHeight: 1,
+              color: showQualityGuide ? P : "oklch(0.50 0.03 270)",
+              transition: "color .2s ease",
+            }}
+            aria-label={tFn(lang, "sono_qualidade_guia")}
+          >
+            ℹ️
+          </button>
+        </div>
+
+        {/* Quality guide expandable */}
+        {showQualityGuide && (
+          <div style={{
+            marginBottom: 14, padding: "12px 14px",
+            borderRadius: 14,
+            background: "oklch(0.17 0.015 270 / 0.6)",
+            border: "1px solid oklch(0.28 0.02 270 / 0.3)",
+          }}>
+            <p style={{ margin: "0 0 10px", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".08em", color: "#A78BFA" }}>
+              {tFn(lang, "sono_qualidade_guia")}
+            </p>
+            {qualityGuide.map((item, i) => (
+              <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: i < 4 ? 6 : 0 }}>
+                <span style={{ fontSize: 16, flexShrink: 0, width: 24, textAlign: "center" }}>{item.emoji}</span>
+                <div>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: "#e0d6ff" }}>{item.label}</span>
+                  <span style={{ fontSize: 11, color: "#9e96b5", marginLeft: 6 }}>{item.desc}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Quality buttons */}
         <div style={{ display: "flex", gap: 8, marginBottom: 24 }}>
           {[1, 2, 3, 4, 5].map((q) => (
             <button key={q} type="button" onClick={() => setQuality(q)} style={{
               flex: 1, padding: "10px 2px", borderRadius: 12, border: 0, cursor: "pointer",
               display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
-              background: quality === q ? PL : "oklch(.95 .005 160)",
+              background: quality === q ? PL : UN,
               outline: quality === q ? `2px solid ${P}` : "none",
               transition: "all .15s ease",
             }}>
               <span style={{ fontSize: 22 }}>{QUALITY_EMOJI[q]}</span>
-              <span style={{ fontSize: 9, fontWeight: 700, color: quality === q ? "oklch(.35 .1 160)" : "var(--muted-foreground)" }}>
+              <span style={{ fontSize: 9, fontWeight: 700, color: quality === q ? "oklch(0.45 0.18 270)" : UM }}>
                 {getQualityLabels(lang)[q]}
               </span>
             </button>
