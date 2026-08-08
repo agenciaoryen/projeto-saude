@@ -90,12 +90,26 @@ export function LifeWheel({ done, totals, emojis, weekLabel, stones }: LifeWheel
     if (!svg) return;
     setSharing(true);
     try {
-      // ── Clone SVG & strip labels (we'll draw premium labels on canvas) ──
+      // ── Clone SVG & boost everything for export ──
       const clone = svg.cloneNode(true) as SVGSVGElement;
       clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
-      // Remove text + image elements (area labels, emojis, percentage dots) — keep structure
-      clone.querySelectorAll("text, image").forEach(el => el.remove());
-      // Boost structural elements for export clarity
+      // Boost text: make area labels & percentages bigger and more opaque
+      clone.querySelectorAll("text").forEach((el: Element) => {
+        const t = el as SVGElement;
+        const fs = parseFloat(t.getAttribute("font-size") || "8");
+        t.setAttribute("font-size", String(fs * 1.55));
+        const fill = t.getAttribute("fill");
+        // Boost opacity on rgba fills
+        if (fill && fill.includes("rgba")) {
+          t.setAttribute("fill", fill.replace(/[\d.]+\)$/, m => {
+            const v = parseFloat(m);
+            return `${Math.min(v * 2, 1)})`;
+          }));
+        }
+        // Make gray text lighter
+        if (fill && fill === "#6a657a") t.setAttribute("fill", "#b0aabf");
+      });
+      // Boost structural elements (rings, axes, polygons) for export clarity
       clone.querySelectorAll("polygon, line, circle").forEach((el: Element) => {
         const s = el as SVGElement;
         const stroke = s.getAttribute("stroke");
@@ -219,39 +233,18 @@ export function LifeWheel({ done, totals, emojis, weekLabel, stones }: LifeWheel
       ctx.drawImage(img, wheelX, wheelY, wheelSize, wheelSize);
 
       // Center luminous dot with halo
-      const centerGlow = ctx.createRadialGradient(wheelCx, wheelCy, 0, wheelCx, wheelCy, 24);
+      const centerGlow = ctx.createRadialGradient(wheelCx, wheelCy, 0, wheelCx, wheelCy, 28);
       centerGlow.addColorStop(0, "rgba(255,255,255,0.9)");
       centerGlow.addColorStop(0.2, "rgba(167,139,250,0.5)");
       centerGlow.addColorStop(0.6, "rgba(124,92,255,0.15)");
       centerGlow.addColorStop(1, "transparent");
       ctx.fillStyle = centerGlow; ctx.beginPath();
-      ctx.arc(wheelCx, wheelCy, 24, 0, Math.PI * 2); ctx.fill();
+      ctx.arc(wheelCx, wheelCy, 28, 0, Math.PI * 2); ctx.fill();
       // Tiny white dot
       ctx.fillStyle = "#FFFFFF"; ctx.beginPath();
-      ctx.arc(wheelCx, wheelCy, 3.5, 0, Math.PI * 2); ctx.fill();
+      ctx.arc(wheelCx, wheelCy, 4, 0, Math.PI * 2); ctx.fill();
 
-      // ── 5. AREA LABELS AROUND WHEEL ────────────────────────────
-      const labelDist = wheelSize * 0.465; // distance from wheel center — tight to wheel
-      AREAS.forEach((a, i) => {
-        const a2 = angle(i);
-        const lx = wheelCx + labelDist * Math.cos(a2);
-        const ly = wheelCy + labelDist * Math.sin(a2);
-        const pct = mounted ? progress[i] : 0;
-
-        // Colored dot indicator — bigger
-        ctx.fillStyle = a.color; ctx.beginPath();
-        ctx.arc(lx - 34, ly - 8, 7, 0, Math.PI * 2); ctx.fill();
-
-        // Area name — always vibrant color, no opacity fade
-        ctx.fillStyle = a.color; ctx.font = "600 21px Inter, system-ui, -apple-system, sans-serif"; ctx.textAlign = "left";
-        ctx.fillText(a.label, lx - 20, ly + 10);
-
-        // Percentage — bigger, vibrant
-        ctx.fillStyle = a.color; ctx.font = "800 25px Inter, system-ui, -apple-system, sans-serif"; ctx.textAlign = "left";
-        ctx.fillText(`${pct}%`, lx - 20, ly - 18);
-      });
-
-      // ── 6. HANDWRITTEN NOTES ───────────────────────────────────
+      // ── 5. HANDWRITTEN NOTES ───────────────────────────────────
       // Note 1 — right side, subtle handwritten style
       ctx.save();
       ctx.fillStyle = "rgba(167,139,250,0.4)"; ctx.font = "italic 400 24px 'Segoe Script', 'Brush Script MT', cursive, sans-serif"; ctx.textAlign = "right";
