@@ -708,7 +708,7 @@ function SleepToolbar({ config, onChange, onSave, saving, lang }: {
       {/* Calculator panel */}
       <div style={panelOuter(openPanel === "calculator")}>
         <div style={panelInner}>
-          <SleepCalculatorContent defaultBedtime={config.bedtime} lang={lang} />
+          <SleepCalculatorContent bedtime={config.bedtime} lang={lang} />
         </div>
       </div>
     </div>
@@ -866,15 +866,7 @@ function SleepConfigContent({ config, onChange, onSave, saving, lang }: {
 
 // ── Cycle calculator content (inside toolbar panel) ───────────────────────────
 
-function SleepCalculatorContent({ defaultBedtime = "23:00", lang = "pt" }: { defaultBedtime?: string; lang?: Lang }) {
-  const [bedtime, setBedtime] = useState(defaultBedtime);
-  const [synced, setSynced] = useState(defaultBedtime);
-
-  if (defaultBedtime !== synced) {
-    setSynced(defaultBedtime);
-    setBedtime(defaultBedtime);
-  }
-
+function SleepCalculatorContent({ bedtime = "23:00", lang = "pt" }: { bedtime?: string; lang?: Lang }) {
   const idealWakes = (() => {
     const [h, m] = bedtime.split(":").map(Number);
     const start = new Date();
@@ -882,22 +874,31 @@ function SleepCalculatorContent({ defaultBedtime = "23:00", lang = "pt" }: { def
     return sleepCycleTimes(start, [5, 6]);
   })();
 
+  // Formata bedtime para exibição (ex: "23:00")
+  const displayTime = (() => {
+    const [h, m] = bedtime.split(":").map(Number);
+    const d = new Date();
+    d.setHours(h, m, 0, 0);
+    return d.toLocaleTimeString(dateLocale(lang), { hour: "2-digit", minute: "2-digit" });
+  })();
+
   return (
     <div style={{ padding: "16px", display: "flex", flexDirection: "column", gap: 14 }}>
       <p style={{ margin: 0, fontSize: 12, color: "#9e96b5" }}>
         {tFn(lang, "sono_calc_desc")}
       </p>
-      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <label style={{ fontSize: 13, color: "#9e96b5", flexShrink: 0 }}>{tFn(lang, "sono_dormir_as")}</label>
-        <div style={{ ...timeInputWrap, flex: 1 }}>
-          <input
-            type="time"
-            value={bedtime}
-            onChange={(e) => setBedtime(e.target.value)}
-            style={timeInputStyle}
-          />
-        </div>
-      </div>
+
+      {/* Uses the bedtime from config — no duplicate input */}
+      <p style={{
+        margin: 0, fontSize: 13, color: "#e0d6ff", fontWeight: 600,
+        display: "flex", alignItems: "center", gap: 8,
+        padding: "8px 14px", borderRadius: 10,
+        background: "oklch(0.16 0.012 270)", border: "1px solid oklch(.28 .02 270 / .25)",
+      }}>
+        <span style={{ fontSize: 16 }}>🕐</span>
+        {tFn(lang, "sono_dormir_as")} {displayTime}
+      </p>
+
       <div>
         <p style={{ margin: "0 0 10px", fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "#9e96b5" }}>
           {tFn(lang, "sono_horarios_ideais")}
