@@ -19,7 +19,7 @@ import { NutritionChat } from "@/components/NutritionChat";
 import { MonthlyReport } from "@/components/MonthlyReport";
 import { FoodMoodCorrelation } from "@/components/FoodMoodCorrelation";
 import { WeeklyMirror } from "@/components/WeeklyMirror";
-import { Plus, ChevronDown } from "lucide-react";
+import { Plus, ChevronDown, Sun, Calendar } from "lucide-react";
 import type { Meal } from "@/types";
 
 type TabView = "dia" | "semana" | "mes";
@@ -211,30 +211,30 @@ export default function NutricaoPage() {
         </h1>
       </div>
 
-      {/* Tabs */}
+      {/* ── Segmented control Dia / Semana / Mês ──────────── */}
       <div className="px-6 pb-4">
-        <div
-          className="inline-flex w-full p-1 rounded-2xl"
-          style={{
-            background: "oklch(.16 .012 270 / .55)",
-            backdropFilter: "blur(8px)",
-            border: "1px solid oklch(.28 .02 270 / .5)",
-          }}
-        >
-          {(["dia", "semana", "mes"] as TabView[]).map((tview) => (
-            <button
-              key={tview}
-              type="button"
-              onClick={() => setTab(tview)}
-              className="flex-1 py-2 text-sm font-semibold rounded-xl transition-all"
+        <div style={{
+          display: "flex", borderRadius: 14, background: "#1a1530",
+          border: "1px solid rgba(167,139,250,0.15)", padding: 3,
+        }}>
+          {([
+            { key: "dia", icon: Sun, label: "Dia" },
+            { key: "semana", icon: Calendar, label: "Semana" },
+            { key: "mes", icon: Calendar, label: "Mês" },
+          ] as const).map(({ key, icon: Icon, label }) => (
+            <button key={key} type="button" onClick={() => setTab(key as TabView)}
               style={{
-                background: tab === tview ? "var(--primary)" : "transparent",
-                color: tab === tview ? "#fff" : "var(--muted-foreground)",
-                boxShadow: tab === tview ? "0 2px 8px -2px oklch(.58 .18 270 / .35)" : "none",
-                border: 0, cursor: "pointer", fontFamily: "inherit",
-              }}
-            >
-              {tview === "dia" ? "Dia" : tview === "semana" ? "Semana" : "Mês"}
+                flex: 1, padding: "10px 0", borderRadius: 12, border: 0,
+                cursor: "pointer", display: "flex", alignItems: "center",
+                justifyContent: "center", gap: 5, fontFamily: "inherit",
+                fontSize: 12, fontWeight: 600,
+                background: tab === key
+                  ? "linear-gradient(135deg, #7C5CFF, #A78BFA)"
+                  : "transparent",
+                color: tab === key ? "#fff" : "#9e96b5",
+                transition: "all 0.2s ease",
+              }}>
+              <Icon size={13} /> {label}
             </button>
           ))}
         </div>
