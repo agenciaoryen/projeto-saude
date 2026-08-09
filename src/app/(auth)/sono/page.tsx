@@ -942,8 +942,8 @@ function SleepTrendChart({ logs, lang }: { logs: SleepLog[]; lang: Lang }) {
   const avgScore = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
 
   const W = 600;
-  const H = 100;
-  const pad = { top: 14, right: 6, bottom: 18, left: 6 };
+  const H = 160;
+  const pad = { top: 18, right: 10, bottom: 26, left: 10 };
   const pw = W - pad.left - pad.right;
   const ph = H - pad.top - pad.bottom;
 
@@ -982,7 +982,7 @@ function SleepTrendChart({ logs, lang }: { logs: SleepLog[]; lang: Lang }) {
         background: "oklch(0.16 0.012 270)",
         borderRadius: 18,
         border: "1px solid oklch(0.28 0.02 270 / 0.5)",
-        padding: "14px 16px 10px",
+        padding: "16px 18px 12px",
       }}
     >
       {/* Header */}
@@ -996,7 +996,7 @@ function SleepTrendChart({ logs, lang }: { logs: SleepLog[]; lang: Lang }) {
       >
         <span
           style={{
-            fontSize: 10,
+            fontSize: 11,
             fontWeight: 700,
             letterSpacing: ".08em",
             textTransform: "uppercase",
@@ -1005,7 +1005,7 @@ function SleepTrendChart({ logs, lang }: { logs: SleepLog[]; lang: Lang }) {
         >
           📈 {tFn(lang, "sono_tendencia_30d")}
         </span>
-        <span style={{ fontSize: 10, color: "#9e96b5" }}>
+        <span style={{ fontSize: 11, color: "#9e96b5" }}>
           {tFn(lang, "sono_media")}: {avgScore}
         </span>
       </div>
@@ -1029,8 +1029,8 @@ function SleepTrendChart({ logs, lang }: { logs: SleepLog[]; lang: Lang }) {
           y1={avgY}
           x2={pad.left + pw}
           y2={avgY}
-          stroke="oklch(0.58 0.18 270 / 0.22)"
-          strokeWidth="1"
+          stroke="oklch(0.58 0.18 270 / 0.30)"
+          strokeWidth="1.5"
           strokeDasharray="5,4"
         />
 
@@ -1040,12 +1040,12 @@ function SleepTrendChart({ logs, lang }: { logs: SleepLog[]; lang: Lang }) {
           y1={refGoodY}
           x2={pad.left + pw}
           y2={refGoodY}
-          stroke="oklch(0.58 0.18 270 / 0.50)"
-          strokeWidth="1"
+          stroke="oklch(0.58 0.18 270 / 0.55)"
+          strokeWidth="1.5"
           strokeDasharray="3,6"
         />
-        <rect x={pad.left + pw - 14} y={refGoodY - 12} width="14" height="14" rx="3" fill="oklch(0.58 0.18 270 / 0.18)" />
-        <text x={pad.left + pw - 7} y={refGoodY - 1} textAnchor="middle" fontSize="10" fontWeight="600" fill="oklch(0.58 0.18 270 / 0.85)" fontFamily="inherit">70</text>
+        <rect x={pad.left + pw - 18} y={refGoodY - 14} width="18" height="16" rx="4" fill="oklch(0.58 0.18 270 / 0.20)" />
+        <text x={pad.left + pw - 9} y={refGoodY - 1} textAnchor="middle" fontSize="12" fontWeight="700" fill="oklch(0.58 0.18 270 / 0.90)" fontFamily="inherit">70</text>
 
         {/* Score threshold: 45 (warning) */}
         <line
@@ -1053,12 +1053,12 @@ function SleepTrendChart({ logs, lang }: { logs: SleepLog[]; lang: Lang }) {
           y1={refWarnY}
           x2={pad.left + pw}
           y2={refWarnY}
-          stroke="oklch(0.60 0.12 70 / 0.50)"
-          strokeWidth="1"
+          stroke="oklch(0.60 0.12 70 / 0.55)"
+          strokeWidth="1.5"
           strokeDasharray="3,6"
         />
-        <rect x={pad.left + pw - 14} y={refWarnY - 12} width="14" height="14" rx="3" fill="oklch(0.60 0.12 70 / 0.18)" />
-        <text x={pad.left + pw - 7} y={refWarnY - 1} textAnchor="middle" fontSize="10" fontWeight="600" fill="oklch(0.60 0.12 70 / 0.85)" fontFamily="inherit">45</text>
+        <rect x={pad.left + pw - 18} y={refWarnY - 14} width="18" height="16" rx="4" fill="oklch(0.60 0.12 70 / 0.20)" />
+        <text x={pad.left + pw - 9} y={refWarnY - 1} textAnchor="middle" fontSize="12" fontWeight="700" fill="oklch(0.60 0.12 70 / 0.90)" fontFamily="inherit">45</text>
 
         {/* Area fill */}
         <path d={areaD} fill="url(#sleeptrend-grad)" />
@@ -1068,7 +1068,7 @@ function SleepTrendChart({ logs, lang }: { logs: SleepLog[]; lang: Lang }) {
           d={lineD}
           fill="none"
           stroke="oklch(0.58 0.18 270)"
-          strokeWidth="2"
+          strokeWidth="2.5"
           strokeLinecap="round"
           strokeLinejoin="round"
         />
@@ -1086,10 +1086,10 @@ function SleepTrendChart({ logs, lang }: { logs: SleepLog[]; lang: Lang }) {
               key={i}
               cx={x}
               cy={y}
-              r={3.5}
+              r={5}
               fill="oklch(0.58 0.18 270)"
               stroke="#15151F"
-              strokeWidth="1.5"
+              strokeWidth="2"
             />
           );
         })}
@@ -1100,8 +1100,9 @@ function SleepTrendChart({ logs, lang }: { logs: SleepLog[]; lang: Lang }) {
         style={{
           display: "flex",
           justifyContent: "space-between",
-          marginTop: 2,
-          fontSize: 9,
+          marginTop: 4,
+          fontSize: 11,
+          fontWeight: 600,
           color: "oklch(0.55 0.03 270)",
         }}
       >
