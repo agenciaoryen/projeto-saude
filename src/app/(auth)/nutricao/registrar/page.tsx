@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useTranslation } from "@/lib/useTranslation";
 import { getMealTypeFromHour, mealTypeLabel, mealTypeEmoji } from "@/lib/meal-utils";
 import { compressImage, uploadToCloud } from "@/lib/photo-storage";
+import { invalidateFetchCache } from "@/lib/fetch-cache";
 import { Camera, ImageIcon, X, Plus, Check, ChevronLeft, ChevronDown, Sparkles, Star } from "lucide-react";
 import type { MealType, MealItem, Macros, MealClassification } from "@/types";
 import { toast } from "sonner";
@@ -214,6 +215,7 @@ export default function RegistrarRefeicaoPage() {
       });
       if (!res.ok) throw new Error();
       toast.success(t("refeicao_atualizada"));
+      invalidateFetchCache("/api/meals");
       router.push("/nutricao");
     } catch {
       toast.error(t("erro_salvar_refeicao"));
@@ -222,7 +224,10 @@ export default function RegistrarRefeicaoPage() {
     }
   };
 
-  const skipAnalysis = () => router.push("/nutricao");
+  const skipAnalysis = () => {
+    invalidateFetchCache("/api/meals");
+    router.push("/nutricao");
+  };
 
   const classInfo = analysisClass ? (CLASSIFICATION_STYLE[analysisClass] ?? CLASSIFICATION_STYLE.nao_identificada) : null;
 

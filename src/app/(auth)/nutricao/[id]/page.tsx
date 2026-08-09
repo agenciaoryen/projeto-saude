@@ -9,6 +9,7 @@ import {
   mealTypeLabel,
   classificationLabel,
 } from "@/lib/meal-utils";
+import { invalidateFetchCache } from "@/lib/fetch-cache";
 import { compressImage, uploadToCloud, photoUrl } from "@/lib/photo-storage";
 import { ArrowLeft, Camera, ImageIcon, X, Trash2, Plus, Loader2, Sparkles, Star } from "lucide-react";
 import type { MealType, MealItem, Macros, MealClassification, Meal } from "@/types";
@@ -192,8 +193,8 @@ export default function MealDetailPage() {
         return;
       }
       toast.success("Refeição deletada");
+      invalidateFetchCache("/api/meals");
       router.push("/nutricao");
-      router.refresh();
     } catch {
       toast.error("Erro ao deletar refeição");
     } finally {

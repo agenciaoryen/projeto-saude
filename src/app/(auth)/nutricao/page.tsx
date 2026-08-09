@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslation } from "@/lib/useTranslation";
 import { getLocalDate, getLocalDateFromISO, getWeekMondayDate } from "@/lib/utils";
-import { cachedFetch } from "@/lib/fetch-cache";
+import { cachedFetch, invalidateFetchCache } from "@/lib/fetch-cache";
 import { sumMacros, nutritionScore, getDailyKcalGoal, DEFAULT_DAILY_KCAL, mealTypeEmoji, mealTypeLabel } from "@/lib/meal-utils";
 import { MealCard } from "@/components/MealCard";
 import { NutritionSummary } from "@/components/NutritionSummary";
@@ -149,6 +149,7 @@ function NutricaoPage() {
       });
       // Refresh favorites after toggle
       if (favorited) {
+        invalidateFetchCache("/api/meals?favorited=true");
         const data = await cachedFetch<unknown[]>("/api/meals?favorited=true");
         if (Array.isArray(data)) setFavoriteMeals(data as Meal[]);
       }
@@ -178,7 +179,8 @@ function NutricaoPage() {
       });
       if (res.ok) {
         toast.success(`${mealTypeEmoji(fav.tipo_refeicao)} Refeição adicionada!`);
-        // Refresh today's meals
+        // Refresh today's meals (sem cache)
+        invalidateFetchCache("/api/meals");
         cachedFetch<unknown[]>("/api/meals").then((data) => {
           if (Array.isArray(data)) setMeals(data as Meal[]);
         });
