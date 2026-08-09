@@ -10,7 +10,7 @@ import { Camera, ImageIcon, X, Plus, Check, ChevronLeft, ChevronDown, Sparkles }
 import type { MealType, MealItem, Macros, MealClassification } from "@/types";
 import { toast } from "sonner";
 
-const HUE = 30;
+const HUE = 270;
 const MEAL_TYPES: MealType[] = ["cafe_da_manha", "almoco", "lanche", "jantar", "lanche_noturno"];
 
 type Stage = "capture" | "analyzing" | "results";

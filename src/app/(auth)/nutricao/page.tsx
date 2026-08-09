@@ -250,63 +250,101 @@ export default function NutricaoPage() {
             <button
               type="button"
               onClick={() => setShowQualityDetails(!showQualityDetails)}
-              className={`w-full text-left rounded-xl transition-all ${
-                todayQuality === "bom" ? "bg-green-50 hover:bg-green-100" :
-                todayQuality === "atencao" ? "bg-yellow-50 hover:bg-yellow-100" :
-                "bg-muted hover:bg-muted/70"
-              }`}
+              style={{
+                width: "100%", textAlign: "left", borderRadius: 12, cursor: "pointer",
+                fontFamily: "inherit", transition: "all .15s ease",
+                background: todayQuality === "bom"
+                  ? "oklch(0.45 0.15 160 / 0.08)"
+                  : todayQuality === "atencao"
+                  ? "oklch(0.60 0.12 70 / 0.08)"
+                  : "oklch(0.16 0.012 270 / 0.5)",
+                border: todayQuality === "bom"
+                  ? "1px solid oklch(0.45 0.15 160 / 0.15)"
+                  : todayQuality === "atencao"
+                  ? "1px solid oklch(0.60 0.12 70 / 0.15)"
+                  : "1px solid oklch(.28 .02 270 / .25)",
+              }}
             >
-              <div className="flex items-center justify-between px-4 py-3">
-                <span className={`text-sm font-medium ${
-                  todayQuality === "bom" ? "text-green-700" :
-                  todayQuality === "atencao" ? "text-yellow-700" :
-                  "text-muted-foreground"
-                }`}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px" }}>
+                <span style={{
+                  fontSize: 13, fontWeight: 600,
+                  color: todayQuality === "bom"
+                    ? "oklch(0.45 0.15 160)"
+                    : todayQuality === "atencao"
+                    ? "oklch(0.60 0.12 70)"
+                    : "#9e96b5",
+                }}>
                   {todayQuality === "bom" ? t("qualidade_bom") :
                    todayQuality === "atencao" ? t("qualidade_atencao") :
                    t("qualidade_sem_dados")}
                 </span>
-                <ChevronDown className={`size-4 text-muted-foreground transition-transform ${showQualityDetails ? "rotate-180" : ""}`} />
+                <ChevronDown style={{ width: 16, height: 16, color: "#9e96b5", transition: "transform .2s ease", transform: showQualityDetails ? "rotate(180deg)" : "rotate(0deg)" }} />
               </div>
 
               {showQualityDetails && qualityDiagnostic && todayQuality !== "sem_dados" && (
-                <div className="px-4 pb-4 space-y-3 text-sm">
+                <div style={{ padding: "0 16px 16px", display: "flex", flexDirection: "column", gap: 12, fontSize: 13 }}>
                   {/* Score */}
-                  <div className="flex items-center gap-2">
-                    <span className="text-muted-foreground">Score:</span>
-                    <span className={`font-bold ${qualityDiagnostic.score >= 80 ? "text-emerald-600" : qualityDiagnostic.score >= 60 ? "text-amber-600" : "text-red-600"}`}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ color: "#9e96b5" }}>Score:</span>
+                    <span style={{
+                      fontWeight: 700,
+                      color: qualityDiagnostic.score >= 80
+                        ? "oklch(0.45 0.15 160)"
+                        : qualityDiagnostic.score >= 60
+                        ? "oklch(0.60 0.12 70)"
+                        : "oklch(0.50 0.15 15)",
+                    }}>
                       {qualityDiagnostic.score}/100
                     </span>
-                    <span className="text-xs text-muted-foreground">
+                    <span style={{ fontSize: 11, color: "#9e96b5" }}>
                       ({qualityDiagnostic.freq} {qualityDiagnostic.freq === 1 ? "refeição" : "refeições"})
                     </span>
                   </div>
 
                   {/* Balanço de macros */}
-                  <div className="space-y-1.5">
-                    <p className="text-xs font-medium text-muted-foreground">Distribuição de macros</p>
-                    <div className="grid grid-cols-3 gap-1.5 text-center text-xs">
-                      <div className={`rounded-lg py-1.5 ${qualityDiagnostic.carbOk ? "bg-green-100 text-green-700" : "bg-red-50 text-red-600"}`}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    <p style={{ margin: 0, fontSize: 11, fontWeight: 600, color: "#9e96b5" }}>Distribuição de macros</p>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, textAlign: "center", fontSize: 11 }}>
+                      <div style={{
+                        borderRadius: 8, padding: "6px 0",
+                        background: qualityDiagnostic.carbOk ? "oklch(0.45 0.15 160 / 0.10)" : "oklch(0.50 0.15 15 / 0.08)",
+                        color: qualityDiagnostic.carbOk ? "oklch(0.45 0.15 160)" : "oklch(0.50 0.15 15)",
+                        fontWeight: 600,
+                      }}>
                         Carbs {qualityDiagnostic.carbPct}%
                       </div>
-                      <div className={`rounded-lg py-1.5 ${qualityDiagnostic.protOk ? "bg-green-100 text-green-700" : "bg-red-50 text-red-600"}`}>
+                      <div style={{
+                        borderRadius: 8, padding: "6px 0",
+                        background: qualityDiagnostic.protOk ? "oklch(0.45 0.15 160 / 0.10)" : "oklch(0.50 0.15 15 / 0.08)",
+                        color: qualityDiagnostic.protOk ? "oklch(0.45 0.15 160)" : "oklch(0.50 0.15 15)",
+                        fontWeight: 600,
+                      }}>
                         Prot {qualityDiagnostic.protPct}%
                       </div>
-                      <div className={`rounded-lg py-1.5 ${qualityDiagnostic.gordOk ? "bg-green-100 text-green-700" : "bg-red-50 text-red-600"}`}>
+                      <div style={{
+                        borderRadius: 8, padding: "6px 0",
+                        background: qualityDiagnostic.gordOk ? "oklch(0.45 0.15 160 / 0.10)" : "oklch(0.50 0.15 15 / 0.08)",
+                        color: qualityDiagnostic.gordOk ? "oklch(0.45 0.15 160)" : "oklch(0.50 0.15 15)",
+                        fontWeight: 600,
+                      }}>
                         Gord {qualityDiagnostic.gordPct}%
                       </div>
                     </div>
-                    <p className="text-[11px] text-muted-foreground">
+                    <p style={{ margin: 0, fontSize: 10, color: "#9e96b5" }}>
                       Ideal: 40-65% carb · 15-30% prot · 15-35% gord
                     </p>
                   </div>
 
                   {/* Alertas específicos */}
                   {qualityDiagnostic.issues.length > 0 && (
-                    <div className="space-y-1">
-                      <p className="text-xs font-medium text-muted-foreground">O que melhorar</p>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                      <p style={{ margin: 0, fontSize: 11, fontWeight: 600, color: "#9e96b5" }}>O que melhorar</p>
                       {qualityDiagnostic.issues.map((issue, i) => (
-                        <div key={i} className="flex items-center gap-2 text-xs text-yellow-700 bg-yellow-50 rounded-lg px-3 py-1.5">
+                        <div key={i} style={{
+                          display: "flex", alignItems: "center", gap: 8, fontSize: 11,
+                          color: "oklch(0.60 0.12 70)", background: "oklch(0.60 0.12 70 / 0.08)",
+                          borderRadius: 8, padding: "4px 12px",
+                        }}>
                           <span>⚠️</span> {issue}
                         </div>
                       ))}
@@ -315,9 +353,9 @@ export default function NutricaoPage() {
 
                   {/* Classificações do dia */}
                   {qualityDiagnostic.classCount.size > 0 && (
-                    <div className="space-y-1">
-                      <p className="text-xs font-medium text-muted-foreground">Classificações do dia</p>
-                      <div className="flex flex-wrap gap-1">
+                    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                      <p style={{ margin: 0, fontSize: 11, fontWeight: 600, color: "#9e96b5" }}>Classificações do dia</p>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
                         {[...qualityDiagnostic.classCount.entries()].map(([classif, count]) => (
                           <Badge key={classif} className={`text-[10px] ${classificationColor(classif as Meal["classificacao"] & string)}`}>
                             {classificationLabel(classif as Meal["classificacao"] & string)} ({count}x)
@@ -328,7 +366,10 @@ export default function NutricaoPage() {
                   )}
 
                   {todayQuality === "bom" && qualityDiagnostic.issues.length === 0 && (
-                    <p className="text-xs text-green-700 bg-green-100 rounded-lg px-3 py-2">
+                    <p style={{
+                      margin: 0, fontSize: 11, borderRadius: 8, padding: "8px 12px",
+                      color: "oklch(0.45 0.15 160)", background: "oklch(0.45 0.15 160 / 0.10)",
+                    }}>
                       Continue assim! Seus macros estão equilibrados e a frequência de refeições está boa.
                     </p>
                   )}

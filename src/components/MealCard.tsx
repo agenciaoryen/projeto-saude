@@ -66,7 +66,14 @@ export function MealCard({ meal, onClick }: { meal: Meal; onClick?: () => void }
                 {hora}
               </span>
               {isPending && (
-                <span className="text-[10px] bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 px-1.5 py-0.5 rounded-full ml-auto">
+                <span style={{
+                  fontSize: 10,
+                  background: "oklch(0.58 0.18 270 / 0.12)",
+                  color: "oklch(0.58 0.18 270)",
+                  padding: "2px 6px",
+                  borderRadius: 9999,
+                  marginLeft: "auto",
+                }}>
                   Pendente
                 </span>
               )}

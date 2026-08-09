@@ -65,12 +65,18 @@ export function NutritionChat() {
   };
 
   return (
-    <Card className="rounded-2xl border-emerald-200/50 dark:border-emerald-800/30 bg-gradient-to-br from-emerald-50/30 to-transparent dark:from-emerald-950/10">
+    <Card style={{ borderRadius: 16, border: "1px solid oklch(.58 .18 270 / .15)", background: "linear-gradient(135deg, oklch(.58 .18 270 / .06), transparent)" }}>
       <CardContent className="p-4 space-y-3">
         <div className="flex items-center gap-2">
-          <ChefHat className="size-4 text-emerald-600" />
+          <ChefHat style={{ width: 16, height: 16, color: "oklch(.58 .18 270)" }} />
           <span className="text-sm font-medium">Assistente Nutri</span>
-          <span className="text-[10px] bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 px-1.5 py-0.5 rounded-full">
+          <span style={{
+            fontSize: 10,
+            background: "oklch(.58 .18 270 / .12)",
+            color: "oklch(.58 .18 270)",
+            padding: "2px 6px",
+            borderRadius: 9999,
+          }}>
             IA
           </span>
           {!expanded && (
@@ -90,10 +96,20 @@ export function NutritionChat() {
             {messages.map((msg, i) => (
               <div
                 key={i}
-                className={`text-sm ${msg.role === "user"
-                  ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-200 ml-6 rounded-xl rounded-tr-sm px-3 py-2"
-                  : "bg-muted/60 mr-6 rounded-xl rounded-tl-sm px-3 py-2"
-                }`}
+                style={msg.role === "user" ? {
+                  fontSize: 13,
+                  background: "oklch(.58 .18 270 / .10)",
+                  color: "#e0d6ff",
+                  marginLeft: 24,
+                  borderRadius: "12px 12px 4px 12px",
+                  padding: "8px 12px",
+                } : {
+                  fontSize: 13,
+                  background: "oklch(.16 .012 270 / .6)",
+                  marginRight: 24,
+                  borderRadius: "12px 12px 12px 4px",
+                  padding: "8px 12px",
+                }}
               >
                 <p className="leading-relaxed whitespace-pre-wrap">{msg.content}</p>
               </div>
@@ -141,7 +157,7 @@ export function NutritionChat() {
           />
           <Button
             size="icon"
-            className="size-9 rounded-xl shrink-0 bg-emerald-600 hover:bg-emerald-700"
+            style={{ width: 36, height: 36, borderRadius: 12, background: "oklch(.58 .18 270)", flexShrink: 0 }}
             disabled={loading || !input.trim()}
             onClick={() => send()}
           >

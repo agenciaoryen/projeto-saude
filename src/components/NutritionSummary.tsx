@@ -13,16 +13,16 @@ export function NutritionSummary({ meals, label, kcalGoal = DEFAULT_DAILY_KCAL }
   const gordPct = totalG > 0 ? Math.round((total.gorduras_g / totalG) * 100) : 0;
 
   const score = hasData ? nutritionScore(analyzed) : 0;
-  const scoreColor = score >= 80 ? "text-emerald-500" : score >= 60 ? "text-amber-500" : "text-red-500";
+  const scoreColor = score >= 80 ? "oklch(0.45 0.15 160)" : score >= 60 ? "oklch(0.60 0.12 70)" : "oklch(0.50 0.15 15)";
 
   const kcalPct = hasData ? Math.min(Math.round((total.calorias_kcal / kcalGoal) * 100), 100) : 0;
-  const kcalPctColor = kcalPct >= 100 ? "bg-amber-500" : "bg-emerald-500";
+  const progressColor = kcalPct >= 100 ? "oklch(0.60 0.12 70)" : "oklch(0.45 0.15 160)";
 
   // Dados para o anel de macros
   const ringData = [
-    { pct: carbPct, color: "stroke-amber-400", label: "Carbs", grams: total.carboidratos_g },
-    { pct: protPct, color: "stroke-red-400", label: "Prot", grams: total.proteinas_g },
-    { pct: gordPct, color: "stroke-orange-400", label: "Gord", grams: total.gorduras_g },
+    { pct: carbPct, color: "oklch(0.60 0.12 70)", label: "Carbs", grams: total.carboidratos_g },
+    { pct: protPct, color: "oklch(0.50 0.15 15)", label: "Prot", grams: total.proteinas_g },
+    { pct: gordPct, color: "oklch(0.55 0.15 45)", label: "Gord", grams: total.gorduras_g },
   ].filter((d) => d.pct > 0);
 
   const ringCirc = 2 * Math.PI * 15; // ≈ 94.2
@@ -56,8 +56,7 @@ export function NutritionSummary({ meals, label, kcalGoal = DEFAULT_DAILY_KCAL }
                 <div className="space-y-0.5">
                   <div className="h-1.5 bg-muted rounded-full overflow-hidden">
                     <div
-                      className={`h-full rounded-full transition-all duration-700 ${kcalPctColor}`}
-                      style={{ width: `${Math.min(kcalPct, 100)}%` }}
+                      style={{ height: "100%", borderRadius: 9999, transition: "all .7s ease", background: progressColor, width: `${Math.min(kcalPct, 100)}%` }}
                     />
                   </div>
                   <p className="text-[10px] text-muted-foreground">
@@ -80,12 +79,11 @@ export function NutritionSummary({ meals, label, kcalGoal = DEFAULT_DAILY_KCAL }
                           key={seg.label}
                           cx="18" cy="18" r="15"
                           fill="none"
-                          stroke="currentColor"
+                          stroke={seg.color}
                           strokeWidth="3"
                           strokeDasharray={`${dashLen} ${ringCirc}`}
                           strokeDashoffset={offset}
                           strokeLinecap="round"
-                          className={seg.color}
                         />
                       );
                       return els;
@@ -94,7 +92,7 @@ export function NutritionSummary({ meals, label, kcalGoal = DEFAULT_DAILY_KCAL }
                   )}
                 </svg>
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <span className={`text-xs font-bold ${scoreColor}`}>{score}</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: scoreColor }}>{score}</span>
                 </div>
               </div>
             </div>
@@ -102,17 +100,17 @@ export function NutritionSummary({ meals, label, kcalGoal = DEFAULT_DAILY_KCAL }
             {/* Legenda */}
             <div className="grid grid-cols-3 gap-2 text-center text-[11px]">
               <div>
-                <span className="inline-block size-2.5 rounded-full bg-amber-400 mr-1 align-middle" />
+                <span style={{ display: "inline-block", width: 10, height: 10, borderRadius: "50%", background: "oklch(0.60 0.12 70)", marginRight: 4, verticalAlign: "middle" }} />
                 <span className="text-muted-foreground">Carbs</span>
                 <p className="font-medium tabular-nums">{total.carboidratos_g}g</p>
               </div>
               <div>
-                <span className="inline-block size-2.5 rounded-full bg-red-400 mr-1 align-middle" />
+                <span style={{ display: "inline-block", width: 10, height: 10, borderRadius: "50%", background: "oklch(0.50 0.15 15)", marginRight: 4, verticalAlign: "middle" }} />
                 <span className="text-muted-foreground">Prot</span>
                 <p className="font-medium tabular-nums">{total.proteinas_g}g</p>
               </div>
               <div>
-                <span className="inline-block size-2.5 rounded-full bg-orange-400 mr-1 align-middle" />
+                <span style={{ display: "inline-block", width: 10, height: 10, borderRadius: "50%", background: "oklch(0.55 0.15 45)", marginRight: 4, verticalAlign: "middle" }} />
                 <span className="text-muted-foreground">Gord</span>
                 <p className="font-medium tabular-nums">{total.gorduras_g}g</p>
               </div>

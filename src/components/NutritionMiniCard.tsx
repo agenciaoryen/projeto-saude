@@ -59,8 +59,9 @@ export function NutritionMiniCard() {
   // Tem refeições mas nenhuma analisada
   if (analyzed.length === 0) {
     return (
-      <Card className="rounded-2xl bg-amber-50/50 dark:bg-amber-950/10 border-amber-200 dark:border-amber-800 hover:bg-amber-50 dark:hover:bg-amber-950/20 transition-colors cursor-pointer"
-        onClick={() => router.push("/nutricao")}>
+      <Card style={{ borderRadius: 16, background: "oklch(.58 .18 270 / .06)", border: "1px solid oklch(.58 .18 270 / .15)", cursor: "pointer", transition: "all .15s ease" }}
+        onClick={() => router.push("/nutricao")}
+        className="hover:bg-muted/10">
         <CardContent className="p-4">
           <div className="flex items-center gap-3">
             <span className="text-2xl">⏳</span>
@@ -79,8 +80,8 @@ export function NutritionMiniCard() {
 
   // Refeições analisadas — card completo
   const score = nutritionScore(analyzed);
-  const scoreColor = score >= 80 ? "text-emerald-500" : score >= 60 ? "text-amber-500" : "text-red-500";
-  const scoreBg = score >= 80 ? "stroke-emerald-500" : score >= 60 ? "stroke-amber-500" : "stroke-red-500";
+  const scoreColorVal = score >= 80 ? "oklch(0.45 0.15 160)" : score >= 60 ? "oklch(0.60 0.12 70)" : "oklch(0.50 0.15 15)";
+  const scoreBgVal = scoreColorVal; // same for stroke
   const ringLen = 94.2;
   const dashLen = (score / 100) * ringLen;
 
@@ -101,13 +102,12 @@ export function NutritionMiniCard() {
             <svg className="size-full -rotate-90" viewBox="0 0 36 36">
               <circle cx="18" cy="18" r="15" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-muted/20" />
               <circle cx="18" cy="18" r="15" fill="none"
-                stroke="currentColor"
+                stroke={scoreBgVal}
                 strokeWidth="2.5"
                 strokeDasharray={`${dashLen} ${ringLen}`}
-                strokeLinecap="round"
-                className={scoreBg} />
+                strokeLinecap="round" />
             </svg>
-            <span className={`absolute inset-0 flex items-center justify-center text-sm font-bold ${scoreColor}`}>
+            <span style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: scoreColorVal }}>
               {score}
             </span>
           </div>
@@ -127,8 +127,11 @@ export function NutritionMiniCard() {
             <div className="space-y-0.5">
               <div className="h-1.5 bg-muted rounded-full overflow-hidden">
                 <div
-                  className={`h-full rounded-full transition-all duration-700 ${kcalPct >= 100 ? "bg-amber-500" : "bg-emerald-500"}`}
-                  style={{ width: `${Math.min(kcalPct, 100)}%` }}
+                  style={{
+                    height: "100%", borderRadius: 9999, transition: "all .7s ease",
+                    background: kcalPct >= 100 ? "oklch(0.60 0.12 70)" : "oklch(0.45 0.15 160)",
+                    width: `${Math.min(kcalPct, 100)}%`,
+                  }}
                 />
               </div>
               <p className="text-[10px] text-muted-foreground">
