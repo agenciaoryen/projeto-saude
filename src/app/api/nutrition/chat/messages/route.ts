@@ -2,7 +2,9 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { NextRequest, NextResponse } from "next/server";
 
-// GET — load user's chat messages
+const CHAT_TYPE = "nutrition";
+
+// GET — load nutrition chat messages
 export async function GET(req: NextRequest) {
   const supabase = await createServerSupabaseClient();
   const { data: { session } } = await supabase.auth.getSession();
@@ -10,14 +12,14 @@ export async function GET(req: NextRequest) {
   if (!user) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
 
   const { searchParams } = new URL(req.url);
-  const before = searchParams.get("before"); // cursor: load messages older than this
+  const before = searchParams.get("before");
 
   const admin = getSupabaseAdmin();
   let query = admin
     .from("chat_messages")
     .select("id, role, content, created_at")
     .eq("user_id", user.id)
-    .or("chat_type.is.null,chat_type.eq.maya")
+    .eq("chat_type", CHAT_TYPE)
     .order("created_at", { ascending: false })
     .limit(200);
 
@@ -34,7 +36,7 @@ export async function GET(req: NextRequest) {
   return response;
 }
 
-// POST — save a batch of new messages
+// POST — save a batch of new nutrition messages
 export async function POST(req: NextRequest) {
   const supabase = await createServerSupabaseClient();
   const { data: { session } } = await supabase.auth.getSession();
@@ -52,7 +54,7 @@ export async function POST(req: NextRequest) {
     user_id: user.id,
     role: m.role,
     content: m.content,
-    chat_type: "maya",
+    chat_type: CHAT_TYPE,
   }));
 
   const { error } = await admin.from("chat_messages").insert(rows);
