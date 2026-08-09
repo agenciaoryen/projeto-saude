@@ -11,7 +11,6 @@ import { NutritionSummary } from "@/components/NutritionSummary";
 import { WeeklyReport } from "@/components/WeeklyReport";
 import { QuickAddMeals } from "@/components/QuickAddMeals";
 import { NutritionTips } from "@/components/NutritionTips";
-import { NutritionGoalCard } from "@/components/NutritionGoalCard";
 import { NutritionChat } from "@/components/NutritionChat";
 import { MonthlyReport } from "@/components/MonthlyReport";
 import { FoodMoodCorrelation } from "@/components/FoodMoodCorrelation";
@@ -252,13 +251,9 @@ function NutricaoPage() {
 
         {/* ========== DIA ========== */}
         <div style={viewStyle(tab === "dia")}>
-          <NutritionQualityCard todayMeals={todayMeals} t={t} />
-          <NutritionGoalCard />
           <NutritionSummary meals={todayMeals} label={t("resumo_do_dia")} kcalGoal={kcalGoal} />
+          <NutritionQualityCard todayMeals={todayMeals} t={t} />
           <QuickAddMeals meals={meals} />
-          <NutritionTips />
-          <FoodMoodCorrelation meals={meals} />
-          <NutritionChat />
 
           {/* Lista de refeições */}
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -299,6 +294,10 @@ function NutricaoPage() {
                 ))
             )}
           </div>
+
+          <NutritionTips />
+          <FoodMoodCorrelation meals={meals} />
+          <NutritionChat />
         </div>
 
         {/* ========== SEMANA ========== */}
