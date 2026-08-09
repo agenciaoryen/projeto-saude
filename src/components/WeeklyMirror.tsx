@@ -15,6 +15,10 @@ function getWeekLabel(): string {
   return `${fmt(mon)} – ${fmt(sun)}`;
 }
 
+// ── Design tokens ──────────────────────────────────────────────
+const MUTED = "#9e96b5";
+const FOREGROUND = "#e0d6ff";
+
 export function WeeklyMirror() {
   const { t, lang } = useTranslation();
   const [narrative, setNarrative] = useState<string | null>(null);
@@ -53,14 +57,14 @@ export function WeeklyMirror() {
   if (loading) {
     return (
       <div
-        className="rounded-2xl p-4 flex items-center gap-3"
         style={{
-          background: "linear-gradient(135deg, oklch(.94 .04 280 / .3) 0%, oklch(.97 .02 200 / .2) 100%)",
-          border: "1px solid oklch(.6 .08 280 / .15)",
+          borderRadius: 16, padding: 16, display: "flex", alignItems: "center", gap: 12,
+          background: "linear-gradient(135deg, oklch(.58 .18 270 / .08) 0%, oklch(.65 .15 280 / .05) 100%)",
+          border: "1px solid oklch(.58 .18 270 / .15)",
         }}
       >
-        <Loader2 className="size-4 animate-spin shrink-0" style={{ color: "oklch(.5 .12 280)" }} />
-        <span className="text-sm text-muted-foreground">{t("preparando_espelho")}</span>
+        <Loader2 className="animate-spin" style={{ width: 16, height: 16, flexShrink: 0, color: "oklch(.58 .18 270)" }} />
+        <span style={{ fontSize: 13, color: MUTED }}>{t("preparando_espelho")}</span>
       </div>
     );
   }
@@ -71,34 +75,37 @@ export function WeeklyMirror() {
 
   return (
     <div
-      className="rounded-2xl overflow-hidden"
       style={{
-        background: "linear-gradient(135deg, oklch(.93 .05 280 / .25) 0%, oklch(.96 .03 200 / .2) 100%)",
-        border: "1px solid oklch(.6 .08 280 / .18)",
+        borderRadius: 16, overflow: "hidden",
+        background: "linear-gradient(135deg, oklch(.58 .18 270 / .10) 0%, oklch(.60 .15 280 / .06) 100%)",
+        border: "1px solid oklch(.58 .18 270 / .18)",
       }}
     >
       {/* Header — sempre visível, clicável */}
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="w-full text-left px-5 pt-4 pb-3 flex items-center justify-between"
-        style={{ background: "transparent", border: 0, cursor: "pointer" }}
+        style={{
+          width: "100%", textAlign: "left", padding: "16px 20px 12px",
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          background: "transparent", border: 0, cursor: "pointer",
+        }}
       >
-        <div className="flex items-center gap-2">
-          <Sparkles className="size-4 shrink-0" style={{ color: "oklch(.5 .14 280)" }} />
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <Sparkles style={{ width: 16, height: 16, flexShrink: 0, color: "oklch(.58 .18 270)" }} />
           <div>
-            <span className="text-sm font-semibold block" style={{ color: "oklch(.35 .08 280)" }}>
+            <span style={{ fontSize: 13, fontWeight: 600, display: "block", color: "oklch(.50 .14 280)" }}>
               {t("espelho_titulo")}
             </span>
-            <span className="text-[11px] text-muted-foreground tabular-nums">
+            <span style={{ fontSize: 11, color: MUTED, fontVariantNumeric: "tabular-nums" }}>
               {getWeekLabel()}
             </span>
           </div>
         </div>
         <ChevronDown
-          className="size-4 shrink-0 transition-transform duration-200"
           style={{
-            color: "oklch(.5 .08 280)",
+            width: 16, height: 16, flexShrink: 0, transition: "transform .2s ease",
+            color: "oklch(.55 .12 280)",
             transform: open ? "rotate(180deg)" : "rotate(0deg)",
           }}
         />
@@ -107,12 +114,13 @@ export function WeeklyMirror() {
       {/* Preview quando fechado */}
       {!open && (
         <div
-          className="px-5 pb-4"
-          style={{ borderTop: "1px solid oklch(.6 .08 280 / .08)" }}
+          style={{ padding: "0 20px 16px", borderTop: "1px solid oklch(.58 .18 270 / .08)" }}
         >
           <p
-            className="text-sm leading-relaxed line-clamp-2 mt-3"
-            style={{ color: "var(--muted-foreground)" }}
+            style={{
+              fontSize: 13, lineHeight: 1.6, color: MUTED, marginTop: 12,
+              display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
+            }}
           >
             {firstPara}
           </p>
@@ -121,22 +129,22 @@ export function WeeklyMirror() {
 
       {/* Narrativa completa quando aberto */}
       {open && (
-        <div
-          style={{ borderTop: "1px solid oklch(.6 .08 280 / .1)" }}
-        >
-          <div className="px-5 py-4 space-y-3">
+        <div style={{ borderTop: "1px solid oklch(.58 .18 270 / .10)" }}>
+          <div style={{ padding: "20px 20px 16px", display: "flex", flexDirection: "column", gap: 12 }}>
             {narrative.split(/\n+/).filter(Boolean).map((para, i) => (
               <p
                 key={i}
-                className="text-sm leading-relaxed"
-                style={{ color: i === 0 ? "var(--foreground)" : "var(--muted-foreground)" }}
+                style={{
+                  fontSize: 13, lineHeight: 1.6,
+                  color: i === 0 ? FOREGROUND : MUTED,
+                }}
               >
                 {para}
               </p>
             ))}
           </div>
-          <div className="px-5 pb-4">
-            <p className="text-[10px] text-muted-foreground italic">
+          <div style={{ padding: "0 20px 16px" }}>
+            <p style={{ fontSize: 10, color: MUTED, fontStyle: "italic" }}>
               {t("espelho_disclaimer")}
             </p>
           </div>

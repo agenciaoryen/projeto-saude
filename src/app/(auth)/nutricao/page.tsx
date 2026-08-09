@@ -314,12 +314,12 @@ function NutricaoPage() {
 
         {/* ========== SEMANA ========== */}
         <div style={viewStyle(tab === "semana")}>
-          <WeeklyMirror />
           <NutritionSummary
             meals={weekDays.flatMap((d) => d.meals)}
             label={t("resumo_da_semana")}
             kcalGoal={kcalGoal}
           />
+          <WeeklyMirror />
           <WeeklyReport meals={meals} weekDays={weekDays} />
 
           {/* Lista de refeições da semana */}

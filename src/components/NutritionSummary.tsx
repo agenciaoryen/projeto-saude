@@ -1,6 +1,10 @@
-import { Card, CardContent } from "@/components/ui/card";
+import React from "react";
 import { sumMacros, nutritionScore, DEFAULT_DAILY_KCAL } from "@/lib/meal-utils";
 import type { Meal } from "@/types";
+
+// ── Design tokens ──────────────────────────────────────────────
+const MUTED = "#9e96b5";
+const BORDER = "rgba(167,139,250,0.15)";
 
 export function NutritionSummary({ meals, label, kcalGoal = DEFAULT_DAILY_KCAL }: { meals: Meal[]; label: string; kcalGoal?: number }) {
   const analyzed = meals.filter((m) => m.macros && m.status_analise === "analisado");
@@ -28,96 +32,107 @@ export function NutritionSummary({ meals, label, kcalGoal = DEFAULT_DAILY_KCAL }
   const ringCirc = 2 * Math.PI * 15; // ≈ 94.2
 
   return (
-    <Card className="rounded-2xl bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
-      <CardContent className="p-4 space-y-4">
-        <div className="flex items-center justify-between">
-          <p className="text-sm font-medium">{label}</p>
-          {hasData && (
-            <span className="text-[11px] text-muted-foreground">
-              {analyzed.length} {analyzed.length === 1 ? "refeição" : "refeições"}
-            </span>
-          )}
-        </div>
-
-        {!hasData ? (
-          <p className="text-sm text-muted-foreground text-center py-4">
-            Nenhuma refeição analisada neste período.
-          </p>
-        ) : (
-          <>
-            {/* Kcal + Score lado a lado */}
-            <div className="flex items-center gap-5">
-              <div className="flex-1 text-center space-y-2">
-                <div>
-                  <span className="text-3xl font-bold tabular-nums">{total.calorias_kcal}</span>
-                  <span className="text-sm text-muted-foreground ml-1">kcal</span>
-                </div>
-                {/* Barra de progresso da meta */}
-                <div className="space-y-0.5">
-                  <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                    <div
-                      style={{ height: "100%", borderRadius: 9999, transition: "all .7s ease", background: progressColor, width: `${Math.min(kcalPct, 100)}%` }}
-                    />
-                  </div>
-                  <p className="text-[10px] text-muted-foreground">
-                    {kcalPct}% da meta · {kcalGoal} kcal
-                  </p>
-                </div>
-              </div>
-
-              {/* Anel de macros */}
-              <div className="relative size-16 shrink-0">
-                <svg className="size-full -rotate-90" viewBox="0 0 36 36">
-                  <circle cx="18" cy="18" r="15" fill="none" stroke="currentColor" strokeWidth="3" className="text-muted/20" />
-                  {ringData.reduce(
-                    (els, seg, i) => {
-                      const prevSum = ringData.slice(0, i).reduce((s, d) => s + d.pct, 0);
-                      const dashLen = (seg.pct / 100) * ringCirc;
-                      const offset = ringCirc - (prevSum / 100) * ringCirc;
-                      els.push(
-                        <circle
-                          key={seg.label}
-                          cx="18" cy="18" r="15"
-                          fill="none"
-                          stroke={seg.color}
-                          strokeWidth="3"
-                          strokeDasharray={`${dashLen} ${ringCirc}`}
-                          strokeDashoffset={offset}
-                          strokeLinecap="round"
-                        />
-                      );
-                      return els;
-                    },
-                    [] as JSX.Element[]
-                  )}
-                </svg>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span style={{ fontSize: 11, fontWeight: 700, color: scoreColor }}>{score}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Legenda */}
-            <div className="grid grid-cols-3 gap-2 text-center text-[11px]">
-              <div>
-                <span style={{ display: "inline-block", width: 10, height: 10, borderRadius: "50%", background: "oklch(0.60 0.12 70)", marginRight: 4, verticalAlign: "middle" }} />
-                <span className="text-muted-foreground">Carbs</span>
-                <p className="font-medium tabular-nums">{total.carboidratos_g}g</p>
-              </div>
-              <div>
-                <span style={{ display: "inline-block", width: 10, height: 10, borderRadius: "50%", background: "oklch(0.50 0.15 15)", marginRight: 4, verticalAlign: "middle" }} />
-                <span className="text-muted-foreground">Prot</span>
-                <p className="font-medium tabular-nums">{total.proteinas_g}g</p>
-              </div>
-              <div>
-                <span style={{ display: "inline-block", width: 10, height: 10, borderRadius: "50%", background: "oklch(0.55 0.15 45)", marginRight: 4, verticalAlign: "middle" }} />
-                <span className="text-muted-foreground">Gord</span>
-                <p className="font-medium tabular-nums">{total.gorduras_g}g</p>
-              </div>
-            </div>
-          </>
+    <div style={{
+      borderRadius: 16,
+      background: `linear-gradient(135deg, ${BORDER}, oklch(.58 .18 270 / .04))`,
+      border: `1px solid ${BORDER}`,
+      padding: 16,
+      display: "flex",
+      flexDirection: "column",
+      gap: 16,
+    }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <p style={{ fontSize: 13, fontWeight: 600, color: "#e0d6ff" }}>{label}</p>
+        {hasData && (
+          <span style={{ fontSize: 11, color: MUTED }}>
+            {analyzed.length} {analyzed.length === 1 ? "refeição" : "refeições"}
+          </span>
         )}
-      </CardContent>
-    </Card>
+      </div>
+
+      {!hasData ? (
+        <p style={{ fontSize: 13, color: MUTED, textAlign: "center", padding: "16px 0" }}>
+          Nenhuma refeição analisada neste período.
+        </p>
+      ) : (
+        <>
+          {/* Kcal + Score lado a lado */}
+          <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+            <div style={{ flex: 1, textAlign: "center", display: "flex", flexDirection: "column", gap: 8 }}>
+              <div>
+                <span style={{ fontSize: 28, fontWeight: 700, color: "#e0d6ff", fontVariantNumeric: "tabular-nums" }}>
+                  {total.calorias_kcal}
+                </span>
+                <span style={{ fontSize: 13, color: MUTED, marginLeft: 4 }}>kcal</span>
+              </div>
+              {/* Barra de progresso da meta */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                <div style={{ height: 4, borderRadius: 9999, background: "rgba(167,139,250,0.10)", overflow: "hidden" }}>
+                  <div
+                    style={{
+                      height: "100%", borderRadius: 9999, transition: "all .7s ease",
+                      background: progressColor, width: `${Math.min(kcalPct, 100)}%`,
+                    }}
+                  />
+                </div>
+                <p style={{ fontSize: 10, color: MUTED }}>
+                  {kcalPct}% da meta · {kcalGoal} kcal
+                </p>
+              </div>
+            </div>
+
+            {/* Anel de macros */}
+            <div style={{ position: "relative", width: 64, height: 64, flexShrink: 0 }}>
+              <svg style={{ width: "100%", height: "100%", transform: "rotate(-90deg)" }} viewBox="0 0 36 36">
+                <circle cx="18" cy="18" r="15" fill="none" stroke="rgba(167,139,250,0.12)" strokeWidth="3" />
+                {ringData.reduce(
+                  (els, seg, i) => {
+                    const prevSum = ringData.slice(0, i).reduce((s, d) => s + d.pct, 0);
+                    const dashLen = (seg.pct / 100) * ringCirc;
+                    const offset = ringCirc - (prevSum / 100) * ringCirc;
+                    els.push(
+                      <circle
+                        key={seg.label}
+                        cx="18" cy="18" r="15"
+                        fill="none"
+                        stroke={seg.color}
+                        strokeWidth="3"
+                        strokeDasharray={`${dashLen} ${ringCirc}`}
+                        strokeDashoffset={offset}
+                        strokeLinecap="round"
+                      />
+                    );
+                    return els;
+                  },
+                  [] as React.ReactElement[]
+                )}
+              </svg>
+              <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: scoreColor }}>{score}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Legenda */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, textAlign: "center", fontSize: 11 }}>
+            <div>
+              <span style={{ display: "inline-block", width: 10, height: 10, borderRadius: "50%", background: "oklch(0.60 0.12 70)", marginRight: 4, verticalAlign: "middle" }} />
+              <span style={{ color: MUTED }}>Carbs</span>
+              <p style={{ fontWeight: 600, color: "#e0d6ff", fontVariantNumeric: "tabular-nums" }}>{total.carboidratos_g}g</p>
+            </div>
+            <div>
+              <span style={{ display: "inline-block", width: 10, height: 10, borderRadius: "50%", background: "oklch(0.50 0.15 15)", marginRight: 4, verticalAlign: "middle" }} />
+              <span style={{ color: MUTED }}>Prot</span>
+              <p style={{ fontWeight: 600, color: "#e0d6ff", fontVariantNumeric: "tabular-nums" }}>{total.proteinas_g}g</p>
+            </div>
+            <div>
+              <span style={{ display: "inline-block", width: 10, height: 10, borderRadius: "50%", background: "oklch(0.55 0.15 45)", marginRight: 4, verticalAlign: "middle" }} />
+              <span style={{ color: MUTED }}>Gord</span>
+              <p style={{ fontWeight: 600, color: "#e0d6ff", fontVariantNumeric: "tabular-nums" }}>{total.gorduras_g}g</p>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
   );
 }

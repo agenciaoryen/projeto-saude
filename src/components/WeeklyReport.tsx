@@ -1,8 +1,7 @@
 import { useMemo } from "react";
-import { Card, CardContent } from "@/components/ui/card";
 import { sumMacros, nutritionScore, mealTypeLabel, mealTypeEmoji } from "@/lib/meal-utils";
 import { getLocalDateFromISO, getWeekMondayDate, getWeekSundayDate } from "@/lib/utils";
-import { TrendingUp, TrendingDown, Minus, ChefHat, Salad, Apple, Fish, Wheat } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus } from "lucide-react";
 import type { Meal, MealType } from "@/types";
 
 interface WeekDay {
@@ -21,6 +20,31 @@ const NUTRIENT_SOURCES: { nutrient: string; emoji: string; keywords: string[] }[
   { nutrient: "Ômega 3", emoji: "🐟", keywords: ["salmão", "sardinha", "atum", "bacalhau", "tilápia", "truta", "nozes", "linhaça", "chia"] },
   { nutrient: "Magnésio", emoji: "🔋", keywords: ["banana", "castanha", "amêndoa", "abacate", "espinafre", "cacau", "aveia", "feijão", "semente", "abóbora"] },
 ];
+
+// ── Design tokens ──────────────────────────────────────────────
+const MUTED = "#9e96b5";
+const BORDER = "rgba(167,139,250,0.15)";
+const PURPLE = "oklch(.58 .18 270)";
+const TEAL = "oklch(0.45 0.15 160)";
+const AMBER = "oklch(0.60 0.12 70)";
+
+const cardStyle: React.CSSProperties = {
+  borderRadius: 16,
+  background: "oklch(.17 .015 270 / .6)",
+  border: `1px solid ${BORDER}`,
+  padding: 16,
+  display: "flex",
+  flexDirection: "column",
+  gap: 12,
+};
+
+const sectionTitle: React.CSSProperties = {
+  fontSize: 13, fontWeight: 600, color: "#e0d6ff",
+};
+
+const mutedText: React.CSSProperties = {
+  fontSize: 11, color: MUTED,
+};
 
 export function WeeklyReport({ meals, weekDays }: { meals: Meal[]; weekDays: WeekDay[] }) {
   const mondayDate = getWeekMondayDate();
@@ -137,129 +161,150 @@ export function WeeklyReport({ meals, weekDays }: { meals: Meal[]; weekDays: Wee
   if (!hasWeekData) return null;
 
   return (
-    <div className="space-y-3">
-      {/* Tendência semanal */}
-      <Card className="rounded-2xl">
-        <CardContent className="p-4 space-y-3">
-          <p className="text-sm font-medium">📊 Comparação semanal</p>
-          <div className="flex items-center justify-between">
-            <div className="text-center flex-1">
-              <p className="text-xs text-muted-foreground">Esta semana</p>
-              <p className="text-xl font-bold tabular-nums">{thisWeekAvg || "–"}</p>
-              <p className="text-xs text-muted-foreground">kcal/dia</p>
-            </div>
-            <div className="flex flex-col items-center px-4">
-              {trend === "up" ? (
-                <TrendingUp className="size-5 text-amber-500" />
-              ) : trend === "down" ? (
-                <TrendingDown className="size-5 text-emerald-500" />
-              ) : (
-                <Minus className="size-5 text-muted-foreground" />
-              )}
-              {trendPct > 0 && (
-                <span className={`text-xs font-medium mt-0.5 ${trend === "up" ? "text-amber-500" : "text-emerald-500"}`}>
-                  {trendPct}%
-                </span>
-              )}
-            </div>
-            <div className="text-center flex-1">
-              <p className="text-xs text-muted-foreground">Semana passada</p>
-              <p className="text-lg font-semibold tabular-nums text-muted-foreground">{lastWeekAvg || "–"}</p>
-              <p className="text-xs text-muted-foreground">kcal/dia</p>
-            </div>
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      {/* ── Comparação semanal ─────────────────────────────── */}
+      <div style={cardStyle}>
+        <p style={sectionTitle}>📊 Comparação semanal</p>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ textAlign: "center", flex: 1 }}>
+            <p style={mutedText}>Esta semana</p>
+            <p style={{ fontSize: 22, fontWeight: 700, color: "#e0d6ff", fontVariantNumeric: "tabular-nums" }}>
+              {thisWeekAvg || "–"}
+            </p>
+            <p style={mutedText}>kcal/dia</p>
           </div>
-        </CardContent>
-      </Card>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "0 16px" }}>
+            {trend === "up" ? (
+              <TrendingUp style={{ width: 20, height: 20, color: PURPLE }} />
+            ) : trend === "down" ? (
+              <TrendingDown style={{ width: 20, height: 20, color: TEAL }} />
+            ) : (
+              <Minus style={{ width: 20, height: 20, color: MUTED }} />
+            )}
+            {trendPct > 0 && (
+              <span style={{
+                fontSize: 12, fontWeight: 600, marginTop: 2,
+                color: trend === "up" ? PURPLE : TEAL,
+              }}>
+                {trendPct}%
+              </span>
+            )}
+          </div>
+          <div style={{ textAlign: "center", flex: 1 }}>
+            <p style={mutedText}>Semana passada</p>
+            <p style={{ fontSize: 18, fontWeight: 600, color: MUTED, fontVariantNumeric: "tabular-nums" }}>
+              {lastWeekAvg || "–"}
+            </p>
+            <p style={mutedText}>kcal/dia</p>
+          </div>
+        </div>
+      </div>
 
-      {/* Melhor / Pior dia */}
+      {/* ── Melhor / Pior dia ──────────────────────────────── */}
       {(bestDay || worstDay) && bestDay?.date !== worstDay?.date && (
-        <div className="grid grid-cols-2 gap-2">
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
           {bestDay && (
-            <Card className="rounded-2xl bg-emerald-50/50 dark:bg-emerald-950/10 border-emerald-200">
-              <CardContent className="p-3 text-center">
-                <p className="text-xs text-muted-foreground">🌟 Melhor dia</p>
-                <p className="text-sm font-medium">{new Date(bestDay.date + "T12:00:00").toLocaleDateString("pt-BR", { weekday: "short", day: "numeric" })}</p>
-                <p className="text-lg font-bold text-emerald-600">{bestDay.score}</p>
-              </CardContent>
-            </Card>
+            <div style={{
+              borderRadius: 16, padding: 12, textAlign: "center",
+              background: `${TEAL} / 0.08`,
+              border: `1px solid ${TEAL} / 0.18`,
+            }}>
+              <p style={mutedText}>🌟 Melhor dia</p>
+              <p style={{ fontSize: 13, fontWeight: 500, color: "#e0d6ff" }}>
+                {new Date(bestDay.date + "T12:00:00").toLocaleDateString("pt-BR", { weekday: "short", day: "numeric" })}
+              </p>
+              <p style={{ fontSize: 20, fontWeight: 700, color: TEAL }}>{bestDay.score}</p>
+            </div>
           )}
           {worstDay && (
-            <Card className="rounded-2xl bg-amber-50/50 dark:bg-amber-950/10 border-amber-200">
-              <CardContent className="p-3 text-center">
-                <p className="text-xs text-muted-foreground">💡 A melhorar</p>
-                <p className="text-sm font-medium">{new Date(worstDay.date + "T12:00:00").toLocaleDateString("pt-BR", { weekday: "short", day: "numeric" })}</p>
-                <p className="text-lg font-bold text-amber-600">{worstDay.score}</p>
-              </CardContent>
-            </Card>
+            <div style={{
+              borderRadius: 16, padding: 12, textAlign: "center",
+              background: `${AMBER} / 0.08`,
+              border: `1px solid ${AMBER} / 0.18`,
+            }}>
+              <p style={mutedText}>💡 A melhorar</p>
+              <p style={{ fontSize: 13, fontWeight: 500, color: "#e0d6ff" }}>
+                {new Date(worstDay.date + "T12:00:00").toLocaleDateString("pt-BR", { weekday: "short", day: "numeric" })}
+              </p>
+              <p style={{ fontSize: 20, fontWeight: 700, color: AMBER }}>{worstDay.score}</p>
+            </div>
           )}
         </div>
       )}
 
-      {/* Distribuição por tipo de refeição */}
+      {/* ── Distribuição por tipo de refeição ──────────────── */}
       {mealTypeDist.length > 0 && (
-        <Card className="rounded-2xl">
-          <CardContent className="p-4 space-y-3">
-            <p className="text-sm font-medium">🍽️ Distribuição por refeição</p>
-            {mealTypeDist.map((d) => (
-              <div key={d.tipo} className="space-y-1">
-                <div className="flex items-center justify-between text-sm">
-                  <span>{d.emoji} {d.label}</span>
-                  <span className="text-muted-foreground text-xs">{d.kcal} kcal · {d.pct}%</span>
-                </div>
-                <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                  <div className="h-full bg-primary/60 rounded-full transition-all" style={{ width: `${Math.max(d.pct, 4)}%` }} />
-                </div>
+        <div style={cardStyle}>
+          <p style={sectionTitle}>🍽️ Distribuição por refeição</p>
+          {mealTypeDist.map((d) => (
+            <div key={d.tipo} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 13 }}>
+                <span style={{ color: "#e0d6ff" }}>{d.emoji} {d.label}</span>
+                <span style={mutedText}>{d.kcal} kcal · {d.pct}%</span>
+              </div>
+              <div style={{ height: 4, borderRadius: 9999, background: "rgba(167,139,250,0.10)", overflow: "hidden" }}>
+                <div style={{
+                  height: "100%", borderRadius: 9999, transition: "all .3s ease",
+                  background: `linear-gradient(90deg, ${PURPLE}, oklch(.65 .15 270))`,
+                  width: `${Math.max(d.pct, 4)}%`,
+                }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── Itens mais frequentes ──────────────────────────── */}
+      {topItems.length > 0 && (
+        <div style={cardStyle}>
+          <p style={sectionTitle}>🔁 O que mais apareceu</p>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {topItems.map(([nome, count]) => (
+              <span key={nome} style={{
+                fontSize: 12, background: "oklch(.22 .015 270 / .5)",
+                color: "#e0d6ff", padding: "4px 10px", borderRadius: 9999,
+              }}>
+                {nome} <span style={{ fontWeight: 600, color: PURPLE }}>{count}x</span>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Possíveis lacunas ──────────────────────────────── */}
+      {nutrientGaps.length > 0 && (
+        <div style={{
+          ...cardStyle,
+          background: `${AMBER} / 0.06`,
+          border: `1px solid ${AMBER} / 0.18`,
+        }}>
+          <p style={sectionTitle}>🔍 Possíveis lacunas</p>
+          {sparseData && (
+            <p style={{
+              fontSize: 12, color: "oklch(0.55 0.12 65)", lineHeight: 1.6,
+              background: `${AMBER} / 0.12`, borderRadius: 10, padding: "8px 12px",
+            }}>
+              Você registrou apenas {analyzedCount} {analyzedCount === 1 ? "refeição" : "refeições"} com análise esta semana. As lacunas abaixo provavelmente subestimam a realidade.
+            </p>
+          )}
+          <p style={{ fontSize: 12, color: MUTED, lineHeight: 1.6 }}>
+            {sparseData
+              ? "Com os dados disponíveis, estes nutrientes provavelmente estão em falta:"
+              : "Baseado nos alimentos registrados esta semana, estes nutrientes podem estar em falta:"}
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {nutrientGaps.map((gap) => (
+              <div key={gap.nutrient} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}>
+                <span style={{ fontSize: 18 }}>{gap.emoji}</span>
+                <span style={{ fontWeight: 500, color: "#e0d6ff" }}>{gap.nutrient}</span>
+                <span style={mutedText}>— sem fontes claras na semana</span>
               </div>
             ))}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Itens mais frequentes */}
-      {topItems.length > 0 && (
-        <Card className="rounded-2xl">
-          <CardContent className="p-4 space-y-2">
-            <p className="text-sm font-medium">🔁 O que mais apareceu</p>
-            <div className="flex flex-wrap gap-1.5">
-              {topItems.map(([nome, count]) => (
-                <span key={nome} className="text-xs bg-muted px-2.5 py-1 rounded-full text-muted-foreground">
-                  {nome} <span className="font-medium text-foreground">{count}x</span>
-                </span>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Possíveis lacunas */}
-      {nutrientGaps.length > 0 && (
-        <Card className="rounded-2xl border-amber-200/50 dark:border-amber-800/30 bg-amber-50/20 dark:bg-amber-950/10">
-          <CardContent className="p-4 space-y-3">
-            <p className="text-sm font-medium">🔍 Possíveis lacunas</p>
-            {sparseData && (
-              <p className="text-xs text-amber-700 bg-amber-100/60 rounded-lg px-3 py-2">
-                Você registrou apenas {analyzedCount} {analyzedCount === 1 ? "refeição" : "refeições"} com análise esta semana. As lacunas abaixo provavelmente subestimam a realidade.
-              </p>
-            )}
-            <p className="text-xs text-muted-foreground">
-              {sparseData
-                ? "Com os dados disponíveis, estes nutrientes provavelmente estão em falta:"
-                : "Baseado nos alimentos registrados esta semana, estes nutrientes podem estar em falta:"}
-            </p>
-            <div className="space-y-2">
-              {nutrientGaps.map((gap) => (
-                <div key={gap.nutrient} className="flex items-center gap-2 text-sm">
-                  <span className="text-lg">{gap.emoji}</span>
-                  <span className="font-medium">{gap.nutrient}</span>
-                  <span className="text-xs text-muted-foreground">— sem fontes claras na semana</span>
-                </div>
-              ))}
-            </div>
-            <p className="text-[10px] text-muted-foreground italic">
-              Análise baseada nos alimentos registrados. Pode não refletir sua ingestão real completa.
-            </p>
-          </CardContent>
-        </Card>
+          </div>
+          <p style={{ fontSize: 10, color: MUTED, fontStyle: "italic" }}>
+            Análise baseada nos alimentos registrados. Pode não refletir sua ingestão real completa.
+          </p>
+        </div>
       )}
     </div>
   );
