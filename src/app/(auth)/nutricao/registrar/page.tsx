@@ -2,7 +2,6 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/lib/useTranslation";
 import { getMealTypeFromHour, mealTypeLabel, mealTypeEmoji } from "@/lib/meal-utils";
 import { compressImage, uploadToCloud } from "@/lib/photo-storage";
@@ -10,10 +9,40 @@ import { Camera, ImageIcon, X, Plus, Check, ChevronLeft, ChevronDown, Sparkles }
 import type { MealType, MealItem, Macros, MealClassification } from "@/types";
 import { toast } from "sonner";
 
-const HUE = 270;
 const MEAL_TYPES: MealType[] = ["cafe_da_manha", "almoco", "lanche", "jantar", "lanche_noturno"];
+const MAX_PHOTOS = 3;
 
 type Stage = "capture" | "analyzing" | "results";
+
+// ── Design tokens ──────────────────────────────────────────────
+const MUTED = "#9e96b5";
+const BORDER = "rgba(167,139,250,0.15)";
+const PURPLE_HEX = "#7C5CFF";
+const PURPLE_OKLCH = "oklch(.58 .18 270)";
+const FOREGROUND = "#e0d6ff";
+const DARK_CARD = "oklch(.17 .015 270 / .6)";
+
+// ── Classification map matching actual API types ─────────────
+const CLASSIFICATION_STYLE: Record<string, { bg: string; text: string; emoji: string; label: string }> = {
+  equilibrada:      { bg: "oklch(0.45 0.15 160 / 0.12)", text: "oklch(0.45 0.15 160)", emoji: "✅", label: "Equilibrada" },
+  leve_proteina:    { bg: "oklch(0.60 0.12 70 / 0.12)",  text: "oklch(0.60 0.12 70)",  emoji: "💪", label: "Leve em proteína" },
+  alta_acucar:      { bg: "oklch(0.50 0.15 15 / 0.12)",  text: "oklch(0.50 0.15 15)",  emoji: "🍬", label: "Alta em açúcar" },
+  alta_gordura:     { bg: "oklch(0.55 0.15 45 / 0.12)",  text: "oklch(0.55 0.15 45)",  emoji: "🍟", label: "Alta em gordura" },
+  alta_sal:         { bg: "oklch(0.58 0.18 270 / 0.12)", text: "oklch(0.58 0.18 270)", emoji: "🧂", label: "Alta em sódio" },
+  vegetais_baixo:   { bg: "oklch(0.50 0.12 220 / 0.12)", text: "oklch(0.50 0.12 220)", emoji: "🥬", label: "Poucos vegetais" },
+  nao_identificada: { bg: "oklch(0.5 0 0 / 0.08)",        text: MUTED,                emoji: "❓", label: "Não identificada" },
+};
+
+const BG_GRADIENT: React.CSSProperties = {
+  background: `
+    radial-gradient(ellipse 80% 50% at 50% 0%, oklch(.58 .18 270 / .15) 0%, transparent 60%),
+    linear-gradient(180deg, oklch(.12 .012 270) 0%, oklch(.15 .015 270) 100%)
+  `,
+  fontFamily: "var(--font-sans)",
+  color: FOREGROUND,
+};
+
+// ── Helpers ────────────────────────────────────────────────────
 
 function formatDateTime(iso: string): string {
   const d = new Date(iso);
@@ -24,42 +53,7 @@ function formatDateTime(iso: string): string {
   return `${days[d.getDay()]} · ${String(d.getDate()).padStart(2, "0")} ${months[d.getMonth()]} · ${hh}:${mm}`;
 }
 
-function MacroTile({ label, value, hue }: { label: string; value: string | number; hue: number }) {
-  return (
-    <div
-      className="rounded-2xl text-center border"
-      style={{
-        padding: "11px 8px",
-        background: `linear-gradient(180deg, #fff, oklch(.97 .025 ${hue}))`,
-        borderColor: `oklch(.5 .12 ${hue} / .15)`,
-        boxShadow: "0 1px 2px oklch(.25 .02 270 / .04)",
-      }}
-    >
-      <p
-        className="m-0 text-lg font-extrabold tracking-tight leading-none tabular-nums"
-        style={{ color: `oklch(.32 .14 ${hue})` }}
-      >
-        {value}
-      </p>
-      <p
-        className="m-0 mt-1 text-[9.5px] font-bold tracking-wider uppercase"
-        style={{ color: `oklch(.5 .12 ${hue})` }}
-      >
-        {label}
-      </p>
-    </div>
-  );
-}
-
-const CLASSIFICATION_MAP: Record<string, { hue: number; emoji: string; label: string }> = {
-  equilibrada:      { hue: 145, emoji: "✓",  label: "Equilibrada" },
-  rica_em_proteina: { hue: 220, emoji: "💪", label: "Rica em proteína" },
-  rica_em_carbo:    { hue: 85,  emoji: "🌾", label: "Rica em carboidrato" },
-  leve:             { hue: 180, emoji: "🍃", label: "Leve" },
-  pesada:           { hue: 30,  emoji: "🔥", label: "Pesada" },
-  ultraprocessada:  { hue: 15,  emoji: "⚠️", label: "Ultraprocessada" },
-  nao_identificada: { hue: 200, emoji: "❓", label: "Não identificada" },
-};
+// ── Page ───────────────────────────────────────────────────────
 
 export default function RegistrarRefeicaoPage() {
   const { t } = useTranslation();
@@ -68,7 +62,6 @@ export default function RegistrarRefeicaoPage() {
   // --- Capture state ---
   const [photos, setPhotos] = useState<string[]>([]);
   const [photoPaths, setPhotoPaths] = useState<string[]>([]);
-  const MAX_PHOTOS = 3;
   const [description, setDescription] = useState("");
   const [mealType, setMealType] = useState<MealType>(() => getMealTypeFromHour(new Date().getHours()));
   const [saving, setSaving] = useState(false);
@@ -228,70 +221,69 @@ export default function RegistrarRefeicaoPage() {
 
   const skipAnalysis = () => router.push("/nutricao");
 
-  const classInfo = analysisClass ? (CLASSIFICATION_MAP[analysisClass] ?? CLASSIFICATION_MAP.nao_identificada) : null;
+  const classInfo = analysisClass ? (CLASSIFICATION_STYLE[analysisClass] ?? CLASSIFICATION_STYLE.nao_identificada) : null;
 
   return (
-    <div
-      className="relative min-h-screen pb-28"
-      style={{
-        background: `
-          radial-gradient(ellipse 80% 50% at 50% 0%, oklch(.58 .18 270 / .15) 0%, transparent 60%),
-          linear-gradient(180deg, oklch(.12 .012 270) 0%, oklch(.15 .015 270) 100%)
-        `,
-      }}
-    >
+    <div style={{ height: "100dvh", display: "flex", flexDirection: "column", ...BG_GRADIENT, overflow: "hidden" }}>
       {/* Hidden file inputs */}
-      <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden"
+      <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" style={{ display: "none" }}
         onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])} />
-      <input ref={fileInputRef} type="file" accept="image/*" className="hidden"
+      <input ref={fileInputRef} type="file" accept="image/*" style={{ display: "none" }}
         onChange={(e) => { if (e.target.files?.[0]) handleFile(e.target.files[0]); e.target.value = ""; }} />
 
-      {/* Floating back button */}
-      <button
-        onClick={() => router.back()}
-        className="absolute top-3.5 left-4 z-10 w-9 h-9 rounded-full flex items-center justify-center border-0"
-        style={{ background: "oklch(.16 .012 270 / .65)", backdropFilter: "blur(12px)" }}
-      >
-        <ChevronLeft className="w-4 h-4" />
-      </button>
-
-      {/* Header */}
-      <div className="px-5 pt-16 pb-1">
-        <p className="text-xs uppercase tracking-wider font-semibold text-muted-foreground">
-          Nutrição
-        </p>
-        <h1 className="mt-1 text-[30px] font-bold tracking-tight leading-[1.05]">
-          {stage === "results" ? "Sua refeição" : "Nova refeição"}
-        </h1>
-        <p className="mt-1 font-mono text-[11px] uppercase text-muted-foreground">
+      {/* ── Header ─────────────────────────────────────────── */}
+      <div style={{ padding: "12px 16px 8px", display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexShrink: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <button
+            onClick={() => router.back()}
+            style={{
+              width: 36, height: 36, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center",
+              background: "oklch(.16 .012 270 / .65)", backdropFilter: "blur(12px)", border: 0, cursor: "pointer",
+            }}
+          >
+            <ChevronLeft style={{ width: 16, height: 16, color: FOREGROUND }} />
+          </button>
+          <div>
+            <p style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: ".05em", fontWeight: 600, color: MUTED, margin: 0 }}>
+              Nutrição
+            </p>
+            <h1 style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.1, color: FOREGROUND, margin: "2px 0 0" }}>
+              {stage === "results" ? "Sua refeição" : "Nova refeição"}
+            </h1>
+          </div>
+        </div>
+        <p style={{ fontSize: 10, color: MUTED, textTransform: "uppercase", fontFamily: "monospace", margin: 0, paddingTop: 2 }}>
           {formatDateTime(dateTime)}
         </p>
       </div>
 
-      {/* Meal type chip */}
-      <div className="px-5 pt-3.5">
+      {/* ── Meal type chip ─────────────────────────────────── */}
+      <div style={{ padding: "0 16px 8px", flexShrink: 0 }}>
         <button
           onClick={() => setShowTypePicker(!showTypePicker)}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 pl-2 rounded-full cursor-pointer border text-xs font-bold"
           style={{
-            background: `oklch(.95 .04 ${HUE})`,
-            borderColor: `oklch(.5 .14 ${HUE} / .2)`,
-            color: `oklch(.32 .14 ${HUE})`,
+            display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 12px 5px 8px",
+            borderRadius: 9999, cursor: "pointer", border: `1px solid ${BORDER}`, fontFamily: "inherit",
+            fontSize: 12, fontWeight: 600, background: DARK_CARD, color: FOREGROUND,
           }}
         >
-          <span className="text-base leading-none">{mealTypeEmoji(mealType)}</span>
+          <span style={{ fontSize: 16, lineHeight: 1 }}>{mealTypeEmoji(mealType)}</span>
           {mealTypeLabel(mealType)}
-          <ChevronDown className="w-2.5 h-2.5" />
+          <ChevronDown style={{ width: 10, height: 10 }} />
         </button>
 
         {showTypePicker && (
-          <div className="mt-2 flex flex-wrap gap-1.5">
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
             {MEAL_TYPES.map((mt) => (
               <button
                 key={mt}
                 onClick={() => { setMealType(mt); setShowTypePicker(false); }}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors
-                  ${mt === mealType ? "bg-primary text-primary-foreground" : "bg-white/70 hover:bg-white"}`}
+                style={{
+                  padding: "6px 12px", borderRadius: 9999, fontSize: 12, fontWeight: 500,
+                  border: 0, cursor: "pointer", fontFamily: "inherit",
+                  background: mt === mealType ? PURPLE_HEX : "oklch(.22 .015 270 / .5)",
+                  color: mt === mealType ? "#fff" : FOREGROUND,
+                }}
               >
                 {mealTypeEmoji(mt)} {mealTypeLabel(mt)}
               </button>
@@ -300,359 +292,386 @@ export default function RegistrarRefeicaoPage() {
         )}
       </div>
 
-      {/* ── STAGE: capture ── */}
-      {stage === "capture" && (
-        <>
-          {/* Hero photo */}
-          <div className="px-3.5 pt-4">
+      {/* ── Content (scrollable if needed) ─────────────────── */}
+      <div style={{ flex: 1, overflowY: "auto", padding: "0 16px", minHeight: 0 }}>
+
+        {/* ── STAGE: capture ── */}
+        {stage === "capture" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {/* Photo area */}
             {photos.length === 0 ? (
               <div
-                className="aspect-[4/3] rounded-[22px] relative overflow-hidden border-[1.5px] border-dashed
-                           flex flex-col items-center justify-center cursor-pointer"
-                style={{
-                  background: `linear-gradient(135deg, oklch(.95 .04 ${HUE}) 0%, oklch(.88 .08 ${HUE}) 100%)`,
-                  borderColor: `oklch(.5 .14 ${HUE} / .4)`,
-                }}
                 onClick={() => cameraInputRef.current?.click()}
+                style={{
+                  borderRadius: 16, border: `1.5px dashed ${PURPLE_OKLCH} / 0.4`,
+                  background: `linear-gradient(135deg, ${PURPLE_OKLCH} / 0.06, ${PURPLE_OKLCH} / 0.02)`,
+                  display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+                  cursor: "pointer", padding: "28px 16px", gap: 8, position: "relative", overflow: "hidden",
+                }}
               >
-                <div
-                  className="absolute -right-5 -top-5 w-36 h-36 rounded-full pointer-events-none"
-                  style={{ background: `radial-gradient(circle, oklch(.5 .14 ${HUE} / .12), transparent 70%)` }}
-                />
-                <div
-                  className="w-16 h-16 rounded-full flex items-center justify-center mb-3 text-white"
-                  style={{
-                    background: `oklch(.5 .14 ${HUE})`,
-                    boxShadow: `0 8px 24px -8px oklch(.5 .14 ${HUE} / .5)`,
-                  }}
-                >
-                  <Camera className="w-7 h-7" strokeWidth={1.7} />
+                <div style={{
+                  position: "absolute", right: -20, top: -20, width: 144, height: 144, borderRadius: "50%",
+                  background: `radial-gradient(circle, ${PURPLE_OKLCH} / .12, transparent 70%)`, pointerEvents: "none",
+                }} />
+                <div style={{
+                  width: 48, height: 48, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center",
+                  background: PURPLE_HEX, boxShadow: `0 8px 24px -8px ${PURPLE_HEX} / .5`,
+                }}>
+                  <Camera style={{ width: 22, height: 22, color: "#fff", strokeWidth: 1.7 }} />
                 </div>
-                <p className="m-0 text-base font-bold tracking-tight" style={{ color: `oklch(.2 .04 ${HUE})` }}>
-                  Tire uma foto
+                <p style={{ fontSize: 14, fontWeight: 600, color: FOREGROUND, margin: 0 }}>Tire uma foto</p>
+                <p style={{ fontSize: 11, color: MUTED, textAlign: "center", maxWidth: 220, margin: 0 }}>
+                  A Maya identifica ingredientes e estima os macros
                 </p>
-                <p className="m-0 mt-1 text-xs text-center max-w-[220px]" style={{ color: `oklch(.42 .08 ${HUE})` }}>
-                  A Maya identifica os ingredientes e estima os macros automaticamente
-                </p>
-                <div className="flex gap-2 mt-4">
+                <div style={{ display: "flex", gap: 6 }}>
                   <button
                     onClick={(e) => { e.stopPropagation(); cameraInputRef.current?.click(); }}
-                    className="px-3.5 py-2 rounded-xl bg-white/80 backdrop-blur-sm text-xs font-semibold
-                               inline-flex items-center gap-1.5 shadow-sm"
-                    style={{ color: `oklch(.32 .14 ${HUE})` }}
+                    style={{
+                      padding: "6px 12px", borderRadius: 10, background: DARK_CARD, border: `1px solid ${BORDER}`,
+                      cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 600, color: FOREGROUND,
+                      display: "inline-flex", alignItems: "center", gap: 4,
+                    }}
                   >
-                    <Camera className="w-3.5 h-3.5" /> Câmera
+                    <Camera style={{ width: 14, height: 14 }} /> Câmera
                   </button>
                   <button
                     onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
-                    className="px-3.5 py-2 rounded-xl bg-white/80 backdrop-blur-sm text-xs font-semibold
-                               inline-flex items-center gap-1.5 shadow-sm"
-                    style={{ color: `oklch(.32 .14 ${HUE})` }}
+                    style={{
+                      padding: "6px 12px", borderRadius: 10, background: DARK_CARD, border: `1px solid ${BORDER}`,
+                      cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 600, color: FOREGROUND,
+                      display: "inline-flex", alignItems: "center", gap: 4,
+                    }}
                   >
-                    <ImageIcon className="w-3.5 h-3.5" /> Galeria
+                    <ImageIcon style={{ width: 14, height: 14 }} /> Galeria
                   </button>
                 </div>
               </div>
             ) : (
-              <>
-                <div className="grid grid-cols-2 gap-2">
+              <div>
+                <div style={{ display: "grid", gridTemplateColumns: photos.length === 1 ? "1fr" : "1fr 1fr", gap: 8 }}>
                   {photos.map((p, i) => (
-                    <div key={i} className="relative aspect-[4/3] rounded-2xl overflow-hidden">
-                      <img src={p} alt={`Refeição ${i + 1}`} className="w-full h-full object-cover" />
+                    <div key={i} style={{ position: "relative", borderRadius: 14, overflow: "hidden" }}>
+                      <img src={p} alt={`Refeição ${i + 1}`} style={{ width: "100%", aspectRatio: photos.length === 1 ? "16/9" : "4/3", objectFit: "cover", display: "block" }} />
                       <button
                         onClick={() => removePhoto(i)}
-                        className="absolute top-2 right-2 w-6 h-6 rounded-full bg-black/55 text-white
-                                   flex items-center justify-center"
+                        style={{
+                          position: "absolute", top: 8, right: 8, width: 24, height: 24, borderRadius: "50%",
+                          background: "rgba(0,0,0,0.55)", border: 0, cursor: "pointer",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                        }}
                       >
-                        <X className="w-3.5 h-3.5" />
+                        <X style={{ width: 14, height: 14, color: "#fff" }} />
                       </button>
                     </div>
                   ))}
                   {photos.length < MAX_PHOTOS && (
                     <button
                       onClick={() => fileInputRef.current?.click()}
-                      className="aspect-[4/3] rounded-2xl border-[1.5px] border-dashed
-                                 flex flex-col items-center justify-center gap-1 text-muted-foreground"
-                      style={{ borderColor: `oklch(.5 .14 ${HUE} / .4)` }}
+                      style={{
+                        borderRadius: 14, border: `1.5px dashed ${BORDER}`, background: "transparent",
+                        cursor: "pointer", fontFamily: "inherit",
+                        display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 4,
+                      }}
                     >
-                      <Plus className="w-5 h-5" />
-                      <span className="text-[10px]">Adicionar</span>
+                      <Plus style={{ width: 20, height: 20, color: MUTED }} />
+                      <span style={{ fontSize: 10, color: MUTED }}>Adicionar</span>
                     </button>
                   )}
                 </div>
-                <p className="text-[11px] text-center text-muted-foreground mt-2">
+                <p style={{ fontSize: 11, color: MUTED, textAlign: "center", marginTop: 8 }}>
                   {photos.length} de {MAX_PHOTOS} fotos
                 </p>
-              </>
+              </div>
             )}
-          </div>
 
-          {/* OR divider */}
-          <div className="px-6 pt-5 flex items-center gap-2.5">
-            <span className="flex-1 h-px" style={{ background: "oklch(.58 .18 270 / .15)" }} />
-            <span className="text-[10px] font-bold tracking-[.16em] text-muted-foreground">OU DESCREVA</span>
-            <span className="flex-1 h-px" style={{ background: "oklch(.58 .18 270 / .15)" }} />
-          </div>
-
-          {/* Description contenteditable */}
-          <div className="px-6 pt-4">
-            <div
-              contentEditable
-              suppressContentEditableWarning
-              role="textbox"
-              aria-multiline="true"
-              onInput={(e) => setDescription((e.target as HTMLElement).innerText)}
-              data-placeholder="Ex: salada com frango grelhado, arroz integral e abacate…"
-              className="outline-none text-base leading-[1.55] font-medium tracking-tight
-                         min-h-[60px] text-foreground
-                         empty:before:content-[attr(data-placeholder)] empty:before:text-foreground/35"
+            {/* Description */}
+            <textarea
+              placeholder="Ex: salada com frango grelhado, arroz integral e abacate…"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={2}
+              style={{
+                width: "100%", borderRadius: 14, border: `1px solid ${BORDER}`,
+                background: DARK_CARD, color: FOREGROUND, fontSize: 14, fontFamily: "inherit",
+                padding: "10px 14px", outline: "none", resize: "none",
+                boxSizing: "border-box", lineHeight: 1.5, minHeight: 56,
+              }}
             />
           </div>
+        )}
 
-          {/* Sticky save bar */}
-          <div
-            className="absolute bottom-0 inset-x-0 px-4 py-3 flex items-center gap-2.5"
-            style={{
-              background: `linear-gradient(180deg, transparent, oklch(.12 .012 270 / .85) 25%, oklch(.12 .012 270))`,
-            }}
-          >
-            <span className="flex-1 text-[11px] text-muted-foreground font-mono">
+        {/* ── STAGE: analyzing ── */}
+        {stage === "analyzing" && (
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 20, paddingTop: 16 }}>
+            <div style={{
+              width: "100%", borderRadius: 16, overflow: "hidden", position: "relative",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              background: `linear-gradient(135deg, ${PURPLE_OKLCH} / .15, ${PURPLE_OKLCH} / .05)`,
+              padding: "40px 0",
+            }}>
+              {photos[0] && (
+                <img
+                  src={photos[0]} alt=""
+                  style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", opacity: 0.4, filter: "blur(8px) saturate(1.3)" }}
+                />
+              )}
+              <div style={{
+                position: "absolute", inset: 0,
+                background: "linear-gradient(90deg, transparent 0%, oklch(1 0 0 / .35) 50%, transparent 100%)",
+                animation: "shimmer 1.6s linear infinite",
+              }} />
+              <div style={{ position: "relative", textAlign: "center" }}>
+                <div style={{
+                  width: 56, height: 56, borderRadius: "50%", margin: "0 auto 12px",
+                  background: "rgba(255,255,255,0.9)", backdropFilter: "blur(8px)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  boxShadow: "0 4px 16px rgba(0,0,0,0.15)", overflow: "hidden",
+                }}>
+                  <img
+                    src="/Maya.png" alt="Maya"
+                    style={{ width: 28, height: 28, borderRadius: "50%", objectFit: "cover", border: "2px solid white" }}
+                  />
+                </div>
+                <p style={{ fontSize: 14, fontWeight: 600, color: "#fff", textShadow: "0 1px 4px rgba(0,0,0,0.35)", margin: 0 }}>
+                  Maya está olhando…
+                </p>
+              </div>
+            </div>
+
+            <p style={{ fontSize: 13, color: MUTED, fontStyle: "italic", margin: 0 }}>
+              Identificando ingredientes e estimando os macros
+            </p>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 6, width: "100%" }}>
+              {[1, 2, 3, 4].map((i) => (
+                <div
+                  key={i}
+                  style={{
+                    aspectRatio: "1", borderRadius: 14,
+                    background: "linear-gradient(120deg, oklch(.16 .012 270), oklch(.19 .015 270), oklch(.16 .012 270))",
+                    backgroundSize: "200% 100%",
+                    animation: "shimmerBg 1.6s linear infinite",
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── STAGE: results ── */}
+        {stage === "results" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {/* Photo (compact) */}
+            {photos.length > 0 && (
+              <div style={{ borderRadius: 16, overflow: "hidden", position: "relative" }}>
+                <img src={photos[0]} alt="" style={{ width: "100%", maxHeight: 180, objectFit: "cover", display: "block" }} />
+                <span style={{
+                  position: "absolute", top: 10, right: 10, padding: "3px 10px", borderRadius: 9999,
+                  fontSize: 10, fontWeight: 700, letterSpacing: ".06em", textTransform: "uppercase",
+                  display: "inline-flex", alignItems: "center", gap: 4,
+                  background: PURPLE_HEX, color: "#fff",
+                }}>
+                  <Check style={{ width: 10, height: 10, strokeWidth: 3 }} /> Analisado
+                </span>
+              </div>
+            )}
+
+            {/* Macro tiles */}
+            <div>
+              <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".12em", textTransform: "uppercase", color: MUTED, margin: "0 0 8px 4px" }}>
+                Macros estimados
+              </p>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 6 }}>
+                {([
+                  { label: "Kcal", value: analysisMacros?.calorias_kcal ?? "—", color: "oklch(0.60 0.12 70)" },
+                  { label: "Carb", value: analysisMacros?.carboidratos_g != null ? `${analysisMacros.carboidratos_g}g` : "—", color: "oklch(0.55 0.15 45)" },
+                  { label: "Prot", value: analysisMacros?.proteinas_g != null ? `${analysisMacros.proteinas_g}g` : "—", color: "oklch(0.50 0.15 15)" },
+                  { label: "Gord", value: analysisMacros?.gorduras_g != null ? `${analysisMacros.gorduras_g}g` : "—", color: PURPLE_OKLCH },
+                ]).map(({ label, value, color }) => (
+                  <div key={label} style={{
+                    borderRadius: 14, textAlign: "center", padding: "8px 4px",
+                    background: `${color} / 0.10`, border: `1px solid ${color} / 0.18`,
+                  }}>
+                    <p style={{ fontSize: 16, fontWeight: 800, color: FOREGROUND, margin: 0, fontVariantNumeric: "tabular-nums" }}>
+                      {value}
+                    </p>
+                    <p style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".06em", color, margin: "2px 0 0" }}>
+                      {label}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Items */}
+            <div>
+              <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 8 }}>
+                <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".12em", textTransform: "uppercase", color: MUTED, margin: 0 }}>
+                  Identificados
+                </p>
+                <span style={{ fontSize: 11, color: MUTED }}>
+                  {analysisItems.length} {analysisItems.length === 1 ? "item" : "itens"}
+                </span>
+              </div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                {analysisItems.map((item, idx) => (
+                  <span key={idx} style={{
+                    display: "inline-flex", alignItems: "center", gap: 4,
+                    padding: "4px 10px", borderRadius: 9999, fontSize: 12,
+                    background: DARK_CARD, border: `1px solid ${BORDER}`,
+                  }}>
+                    <input
+                      value={item.nome}
+                      onChange={(e) => updateItemName(idx, e.target.value)}
+                      style={{
+                        background: "transparent", border: "none", outline: "none",
+                        fontSize: 12, color: FOREGROUND, fontFamily: "inherit",
+                        minWidth: 60, width: Math.max(60, item.nome.length * 8),
+                      }}
+                    />
+                    <button
+                      onClick={() => removeItem(idx)}
+                      style={{
+                        width: 16, height: 16, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center",
+                        flexShrink: 0, background: `${PURPLE_OKLCH} / .15`, border: 0, cursor: "pointer",
+                      }}
+                    >
+                      <X style={{ width: 9, height: 9, color: MUTED }} />
+                    </button>
+                  </span>
+                ))}
+
+                {addingItem ? (
+                  <input
+                    autoFocus
+                    value={newItemName}
+                    onChange={(e) => setNewItemName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") { addItem(); setAddingItem(false); }
+                      if (e.key === "Escape") { setAddingItem(false); setNewItemName(""); }
+                    }}
+                    onBlur={() => { if (newItemName.trim()) addItem(); setAddingItem(false); setNewItemName(""); }}
+                    placeholder="novo item"
+                    style={{
+                      padding: "4px 12px", borderRadius: 9999, fontSize: 12, fontFamily: "inherit",
+                      background: DARK_CARD, border: `1px solid ${PURPLE_OKLCH} / .35`,
+                      color: FOREGROUND, outline: "none",
+                    }}
+                  />
+                ) : (
+                  <button
+                    onClick={() => setAddingItem(true)}
+                    style={{
+                      padding: "4px 10px", borderRadius: 9999, border: `1.5px dashed ${BORDER}`,
+                      cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 600,
+                      display: "inline-flex", alignItems: "center", gap: 4,
+                      background: "transparent", color: MUTED,
+                    }}
+                  >
+                    <Plus style={{ width: 10, height: 10 }} /> Adicionar
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Classification */}
+            {classInfo && (
+              <div>
+                <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".12em", textTransform: "uppercase", color: MUTED, margin: "0 0 6px 4px" }}>
+                  Classificação
+                </p>
+                <span style={{
+                  display: "inline-flex", alignItems: "center", gap: 6,
+                  padding: "6px 14px", borderRadius: 12, fontSize: 13, fontWeight: 600,
+                  background: classInfo.bg, color: classInfo.text, border: `1px solid ${classInfo.text} / .18`,
+                }}>
+                  <span style={{ fontSize: 14 }}>{classInfo.emoji}</span>
+                  {classInfo.label}
+                </span>
+                {analysisObs && (
+                  <p style={{ fontSize: 12, color: MUTED, lineHeight: 1.45, fontStyle: "italic", margin: "6px 0 0" }}>
+                    {analysisObs}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* ── Bottom bar ─────────────────────────────────────── */}
+      <div style={{
+        flexShrink: 0, padding: "12px 16px",
+        background: `linear-gradient(180deg, transparent, oklch(.12 .012 270 / .85) 25%, oklch(.12 .012 270))`,
+        display: "flex", alignItems: "center", gap: 8,
+        borderTop: `1px solid ${BORDER}`,
+      }}>
+        {stage === "capture" && (
+          <>
+            <span style={{ flex: 1, fontSize: 11, color: MUTED, fontFamily: "monospace" }}>
               {photos.length > 0 && `${photos.length} foto${photos.length > 1 ? "s" : ""}`}
               {photos.length > 0 && description.trim() && " · "}
               {description.trim() && "1 descrição"}
               {!photos.length && !description.trim() && "Adicione foto ou descrição"}
             </span>
-            <Button
+            <button
               onClick={handleSave}
               disabled={saving || (!photos.length && !description.trim())}
-              className="h-12 px-[22px] rounded-2xl text-sm font-semibold gap-1.5 border-0"
               style={{
-                background: `oklch(.5 .14 ${HUE})`,
-                boxShadow: `0 4px 14px -4px oklch(.5 .14 ${HUE} / .5)`,
+                padding: "12px 22px", borderRadius: 14, border: 0, cursor: "pointer",
+                background: saving || (!photos.length && !description.trim())
+                  ? "oklch(.22 .015 270 / .6)"
+                  : PURPLE_HEX,
+                color: "#fff", fontSize: 14, fontWeight: 600, fontFamily: "inherit",
+                display: "inline-flex", alignItems: "center", gap: 6,
+                boxShadow: saving || (!photos.length && !description.trim())
+                  ? "none"
+                  : `0 4px 14px -4px ${PURPLE_HEX} / .5`,
+                opacity: saving || (!photos.length && !description.trim()) ? 0.5 : 1,
               }}
             >
               {photos.length > 0 ? "Analisar" : "Salvar"}
-              <Sparkles className="w-3.5 h-3.5" />
-            </Button>
-          </div>
-        </>
-      )}
+              <Sparkles style={{ width: 14, height: 14 }} />
+            </button>
+          </>
+        )}
 
-      {/* ── STAGE: analyzing ── */}
-      {stage === "analyzing" && (
-        <div className="px-6 pt-7">
-          <div
-            className="aspect-[4/3] rounded-[22px] overflow-hidden relative flex items-center justify-center"
-            style={{
-              background: `linear-gradient(135deg, oklch(.88 .08 ${HUE}) 0%, oklch(.75 .15 ${HUE}) 100%)`,
-            }}
-          >
-            {photos[0] && (
-              <img
-                src={photos[0]}
-                alt=""
-                className="absolute inset-0 w-full h-full object-cover opacity-40"
-                style={{ filter: "blur(8px) saturate(1.3)" }}
-              />
-            )}
-            <div
-              className="absolute inset-0 pointer-events-none"
-              style={{
-                background: "linear-gradient(90deg, transparent 0%, oklch(1 0 0 / .35) 50%, transparent 100%)",
-                animation: "shimmer 1.6s linear infinite",
-              }}
-            />
-            <div className="relative text-center">
-              <div
-                className="w-14 h-14 rounded-full mx-auto mb-3 bg-white/90 backdrop-blur-md
-                           flex items-center justify-center shadow-lg overflow-hidden"
-              >
-                <img
-                  src="/Maya.png"
-                  alt="Maya"
-                  className="w-7 h-7 rounded-full object-cover border-2 border-white"
-                  style={{ animation: "mealAnalyzePulse 2s ease-in-out infinite" }}
-                />
-              </div>
-              <p
-                className="m-0 text-sm font-semibold tracking-tight text-white"
-                style={{ textShadow: "0 1px 4px oklch(.25 .02 270 / .35)" }}
-              >
-                Maya está olhando…
-              </p>
-            </div>
-          </div>
-
-          <p className="mt-5 text-[13px] text-center italic text-muted-foreground">
-            Identificando ingredientes e estimando os macros
+        {stage === "analyzing" && (
+          <p style={{ flex: 1, fontSize: 13, color: MUTED, textAlign: "center", fontStyle: "italic", margin: 0 }}>
+            Analisando sua refeição...
           </p>
+        )}
 
-          <div className="mt-6 grid grid-cols-4 gap-1.5">
-            {[1, 2, 3, 4].map((i) => (
-              <div
-                key={i}
-                className="aspect-square rounded-2xl"
-                style={{
-                  background: "linear-gradient(120deg, oklch(.16 .012 270), oklch(.19 .015 270), oklch(.16 .012 270))",
-                  backgroundSize: "200% 100%",
-                  animation: "shimmerBg 1.6s linear infinite",
-                }}
-              />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* ── STAGE: results ── */}
-      {stage === "results" && (
-        <>
-          {/* Photo */}
-          {photos.length > 0 && (
-            <div className="px-3.5 pt-3.5">
-              <div className="aspect-[4/3] rounded-[22px] overflow-hidden relative">
-                <img src={photos[0]} alt="" className="w-full h-full object-cover" />
-                <span
-                  className="absolute top-2.5 right-2.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold
-                             tracking-[.08em] uppercase text-white inline-flex items-center gap-1"
-                  style={{ background: "oklch(.58 .18 270)" }}
-                >
-                  <Check className="w-2.5 h-2.5 stroke-[3]" /> Analisado
-                </span>
-              </div>
-            </div>
-          )}
-
-          {/* Macro tiles */}
-          <div className="px-3.5 pt-5">
-            <p
-              className="m-0 mb-2.5 ml-1.5 text-[10.5px] font-bold tracking-[.14em] uppercase"
-              style={{ color: `oklch(.45 .14 ${HUE})` }}
-            >
-              Macros estimados
-            </p>
-            <div className="grid grid-cols-4 gap-1.5">
-              <MacroTile label="Kcal" value={analysisMacros?.calorias_kcal ?? "—"} hue={30} />
-              <MacroTile label="Carb" value={analysisMacros?.carboidratos_g != null ? `${analysisMacros.carboidratos_g}g` : "—"} hue={85} />
-              <MacroTile label="Prot" value={analysisMacros?.proteinas_g != null ? `${analysisMacros.proteinas_g}g` : "—"} hue={220} />
-              <MacroTile label="Gord" value={analysisMacros?.gorduras_g != null ? `${analysisMacros.gorduras_g}g` : "—"} hue={270} />
-            </div>
-          </div>
-
-          {/* Items chips */}
-          <div className="px-6 pt-6">
-            <div className="flex items-baseline justify-between mb-2.5">
-              <p className="m-0 text-[10.5px] font-bold tracking-[.14em] uppercase text-muted-foreground">
-                Identificados
-              </p>
-              <span className="text-[11px] text-muted-foreground">
-                {analysisItems.length} {analysisItems.length === 1 ? "item" : "itens"}
-              </span>
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              {analysisItems.map((item, idx) => (
-                <span
-                  key={idx}
-                  className="inline-flex items-center gap-1.5 pl-3 pr-2.5 py-1.5 rounded-full bg-white border text-[12.5px] font-medium"
-                  style={{ borderColor: `oklch(.5 .14 ${HUE} / .15)` }}
-                >
-                  <input
-                    value={item.nome}
-                    onChange={(e) => updateItemName(idx, e.target.value)}
-                    className="bg-transparent border-none outline-none text-[12.5px]"
-                    style={{ minWidth: 60, width: `${Math.max(60, item.nome.length * 8)}px` }}
-                  />
-                  <button
-                    onClick={() => removeItem(idx)}
-                    className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0"
-                    style={{ background: "oklch(.58 .18 270 / .1)" }}
-                  >
-                    <X className="w-[9px] h-[9px] text-muted-foreground" />
-                  </button>
-                </span>
-              ))}
-
-              {addingItem ? (
-                <input
-                  autoFocus
-                  value={newItemName}
-                  onChange={(e) => setNewItemName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") { addItem(); setAddingItem(false); }
-                    if (e.key === "Escape") { setAddingItem(false); setNewItemName(""); }
-                  }}
-                  onBlur={() => { if (newItemName.trim()) addItem(); setAddingItem(false); setNewItemName(""); }}
-                  placeholder="novo item"
-                  className="px-3 py-1.5 rounded-full bg-white border outline-none text-[12.5px]"
-                  style={{ borderColor: `oklch(.5 .14 ${HUE} / .35)` }}
-                />
-              ) : (
-                <button
-                  onClick={() => setAddingItem(true)}
-                  className="px-2.5 py-1.5 rounded-full border-[1.5px] border-dashed cursor-pointer
-                             inline-flex items-center gap-1 text-xs font-semibold"
-                  style={{ borderColor: `oklch(.5 .14 ${HUE} / .35)`, color: `oklch(.42 .14 ${HUE})` }}
-                >
-                  <Plus className="w-2.5 h-2.5" /> Adicionar
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Classification badge */}
-          {classInfo && (
-            <div className="px-6 pt-5">
-              <p className="m-0 mb-2 text-[10.5px] font-bold tracking-[.14em] uppercase text-muted-foreground">
-                Classificação
-              </p>
-              <div
-                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border"
-                style={{
-                  background: `oklch(.93 .08 ${classInfo.hue})`,
-                  borderColor: `oklch(.45 .14 ${classInfo.hue} / .25)`,
-                }}
-              >
-                <span className="text-sm">{classInfo.emoji}</span>
-                <span className="text-[13px] font-semibold" style={{ color: `oklch(.32 .14 ${classInfo.hue})` }}>
-                  {classInfo.label}
-                </span>
-              </div>
-              {analysisObs && (
-                <p className="mt-2 text-[12px] text-muted-foreground leading-[1.45] italic">
-                  {analysisObs}
-                </p>
-              )}
-            </div>
-          )}
-
-          {/* Sticky dual bar */}
-          <div
-            className="absolute bottom-0 inset-x-0 px-4 py-3 flex items-center gap-2"
-            style={{
-              background: `linear-gradient(180deg, transparent, oklch(.12 .012 270 / .85) 25%, oklch(.12 .012 270))`,
-            }}
-          >
+        {stage === "results" && (
+          <>
             <button
               onClick={skipAnalysis}
-              className="h-11 px-3.5 rounded-xl bg-transparent border text-xs font-semibold text-muted-foreground flex-shrink-0"
-              style={{ borderColor: "oklch(.28 .02 270 / .5)" }}
+              style={{
+                padding: "10px 14px", borderRadius: 12, border: `1px solid oklch(.28 .02 270 / .5)`,
+                cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 600,
+                background: "transparent", color: MUTED, flexShrink: 0,
+              }}
             >
               Salvar sem análise
             </button>
-            <Button
+            <button
               onClick={confirmAnalysis}
               disabled={saving}
-              className="flex-1 h-[46px] rounded-2xl text-sm font-semibold gap-1.5 border-0"
               style={{
-                background: `oklch(.5 .14 ${HUE})`,
-                boxShadow: `0 4px 14px -4px oklch(.5 .14 ${HUE} / .5)`,
+                flex: 1, padding: "12px 16px", borderRadius: 14, border: 0, cursor: "pointer",
+                background: saving ? "oklch(.22 .015 270 / .6)" : PURPLE_HEX,
+                color: "#fff", fontSize: 14, fontWeight: 600, fontFamily: "inherit",
+                display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
+                boxShadow: saving ? "none" : `0 4px 14px -4px ${PURPLE_HEX} / .5`,
+                opacity: saving ? 0.5 : 1,
               }}
             >
               {saving ? "Salvando..." : "Confirmar e salvar"}
-              <Check className="w-3.5 h-3.5 stroke-[2.5]" />
-            </Button>
-          </div>
-        </>
-      )}
+              <Check style={{ width: 14, height: 14, strokeWidth: 2.5 }} />
+            </button>
+          </>
+        )}
+      </div>
     </div>
   );
 }
