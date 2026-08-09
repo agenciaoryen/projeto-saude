@@ -136,7 +136,7 @@ export function WeeklyMirror() {
                 key={i}
                 style={{
                   fontSize: 13, lineHeight: 1.6,
-                  color: i === 0 ? FOREGROUND : MUTED,
+                  color: FOREGROUND,
                 }}
               >
                 {para}
