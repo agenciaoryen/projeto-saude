@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { Loader2, Send, ChefHat, ChevronDown } from "lucide-react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { Loader2, Send, ChefHat, ChevronDown, ChevronUp } from "lucide-react";
 
 interface Message {
   role: "user" | "assistant";
   content: string;
+  createdAt?: string;
 }
 
 const WELCOME_MESSAGE: Message = {
@@ -20,24 +21,41 @@ const SUGGESTIONS = [
   "Minhas refeições estão equilibradas?",
 ];
 
+const PAGE_SIZE = 200;
+
 export function NutritionChat() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [hydrated, setHydrated] = useState(false);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingOlder, setLoadingOlder] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   // Load history on mount
-  useEffect(() => {
-    fetch("/api/nutrition/chat/messages")
+  const loadMessages = useCallback((before?: string) => {
+    const url = before
+      ? `/api/nutrition/chat/messages?before=${encodeURIComponent(before)}`
+      : "/api/nutrition/chat/messages";
+
+    return fetch(url)
       .then((res) => res.json())
       .then((rows: Array<{ role: string; content: string; created_at: string }>) => {
-        if (Array.isArray(rows) && rows.length > 0) {
-          const sorted = [...rows]
-            .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
-            .map((r) => ({ role: r.role as "user" | "assistant", content: r.content }));
-          setMessages(sorted);
+        if (!Array.isArray(rows)) return [];
+        return [...rows]
+          .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+          .map((r) => ({ role: r.role as "user" | "assistant", content: r.content, createdAt: r.created_at }));
+      });
+  }, []);
+
+  useEffect(() => {
+    loadMessages()
+      .then((msgs) => {
+        if (msgs.length > 0) {
+          setMessages(msgs);
+          setHasMore(msgs.length >= PAGE_SIZE);
           setExpanded(true);
         } else {
           setMessages([WELCOME_MESSAGE]);
@@ -48,7 +66,7 @@ export function NutritionChat() {
         setMessages([WELCOME_MESSAGE]);
         setHydrated(true);
       });
-  }, []);
+  }, [loadMessages]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -101,7 +119,38 @@ export function NutritionChat() {
     }
   };
 
+  const loadOlder = async () => {
+    // Find the oldest message with a createdAt timestamp
+    const oldest = messages.find((m) => m.createdAt);
+    if (!oldest?.createdAt || loadingOlder) return;
+
+    // Remember scroll height before prepending
+    const el = scrollRef.current;
+    const prevHeight = el?.scrollHeight ?? 0;
+
+    setLoadingOlder(true);
+    try {
+      const older = await loadMessages(oldest.createdAt);
+      if (older.length > 0) {
+        setMessages((prev) => [...older, ...prev]);
+        setHasMore(older.length >= PAGE_SIZE);
+      } else {
+        setHasMore(false);
+      }
+      // Maintain scroll position after prepending
+      requestAnimationFrame(() => {
+        if (el) el.scrollTop = el.scrollHeight - prevHeight;
+      });
+    } catch {
+      // silent
+    } finally {
+      setLoadingOlder(false);
+    }
+  };
+
   if (!hydrated) return null;
+
+  const showWelcome = messages.length === 1 && messages[0].content === WELCOME_MESSAGE.content;
 
   return (
     <div style={{
@@ -129,7 +178,26 @@ export function NutritionChat() {
 
       {/* Histórico de mensagens */}
       {expanded && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12, maxHeight: 288, overflowY: "auto" }}>
+        <div ref={scrollRef} style={{ display: "flex", flexDirection: "column", gap: 12, maxHeight: 288, overflowY: "auto" }}>
+
+          {/* Load older */}
+          {hasMore && (
+            <div style={{ textAlign: "center" }}>
+              <button type="button" onClick={loadOlder} disabled={loadingOlder}
+                style={{
+                  background: "none", border: 0, cursor: "pointer", fontFamily: "inherit",
+                  fontSize: 11, color: MUTED, display: "inline-flex", alignItems: "center", gap: 4,
+                  padding: "4px 12px",
+                }}>
+                {loadingOlder ? (
+                  <><Loader2 style={{ width: 12, height: 12, animation: "spin 1s linear infinite" }} /> Carregando...</>
+                ) : (
+                  <><ChevronUp style={{ width: 14, height: 14 }} /> Mensagens anteriores</>
+                )}
+              </button>
+            </div>
+          )}
+
           {messages.map((msg, i) => (
             <div key={i} style={msg.role === "user" ? {
               fontSize: 13, background: "oklch(.58 .18 270 / .10)", color: "#e0d6ff",
@@ -154,7 +222,7 @@ export function NutritionChat() {
       )}
 
       {/* Sugestões */}
-      {!expanded && messages.length <= 1 && (
+      {!expanded && showWelcome && (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
           {SUGGESTIONS.map((s) => (
             <button key={s} type="button" onClick={() => send(s)}
