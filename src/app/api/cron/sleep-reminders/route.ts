@@ -46,12 +46,22 @@ export async function GET(req: NextRequest) {
     const cfg = ((pref.context ?? {}) as Record<string, unknown>).sleep_config as {
       reminder_time?: string;
       wake_time?: string;
+      bedtime?: string;
       target_hours?: number;
     } | undefined;
     if (!cfg) continue;
 
     if (cfg.reminder_time === currentTime) {
-      const h = cfg.target_hours ?? 8;
+      // Calcula meta de sono da janela bedtime→wake (fallback ao target_hours legado ou 8h)
+      let h = cfg.target_hours ?? 8;
+      if (!cfg.target_hours && cfg.bedtime && cfg.wake_time) {
+        const [bh, bm] = cfg.bedtime.split(":").map(Number);
+        const [wh, wm] = cfg.wake_time.split(":").map(Number);
+        let bedMins = bh * 60 + bm;
+        let wakeMins = wh * 60 + wm;
+        if (wakeMins <= bedMins) wakeMins += 24 * 60;
+        h = (wakeMins - bedMins) / 60;
+      }
       totalSent += await sendPushToUser(pref.user_id, {
         title: "🌙 Hora de dormir",
         body: `Sua meta é ${h}h de sono esta noite. Descanse bem!`,

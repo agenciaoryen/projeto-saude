@@ -19,14 +19,22 @@ import { t as tFn, type Lang } from "@/lib/i18n";
 interface SleepConfig {
   bedtime: string;
   wake_time: string;
-  target_hours: number;
   reminder_time: string;
+}
+
+/** Calcula a janela de sono em horas entre bedtime e wake_time (trata virada de meia-noite) */
+function calcWindowHours(bedtime: string, wake_time: string): number {
+  const [bh, bm] = bedtime.split(":").map(Number);
+  const [wh, wm] = wake_time.split(":").map(Number);
+  let bedMins = bh * 60 + bm;
+  let wakeMins = wh * 60 + wm;
+  if (wakeMins <= bedMins) wakeMins += 24 * 60;
+  return (wakeMins - bedMins) / 60;
 }
 
 const DEFAULT_CONFIG: SleepConfig = {
   bedtime: "23:00",
   wake_time: "07:00",
-  target_hours: 8,
   reminder_time: "22:30",
 };
 
@@ -717,7 +725,6 @@ function SleepConfigContent({ config, onChange, onSave, saving, lang }: {
   lang: Lang;
 }) {
   const router = useRouter();
-  const TARGET_OPTIONS = [6, 7, 7.5, 8, 8.5, 9];
   const [pushState, setPushState] = useState<"granted" | "denied" | "default">("default");
 
   useEffect(() => {
@@ -764,64 +771,25 @@ function SleepConfigContent({ config, onChange, onSave, saving, lang }: {
         </div>
       </div>
 
-      {/* Target hours — sleep goal */}
-      {(() => {
-        const [bh, bm] = config.bedtime.split(":").map(Number);
-        const [wh, wm] = config.wake_time.split(":").map(Number);
-        let bedMins = bh * 60 + bm;
-        let wakeMins = wh * 60 + wm;
-        if (wakeMins <= bedMins) wakeMins += 24 * 60; // crosses midnight
-        const windowH = (wakeMins - bedMins) / 60;
-        const over = config.target_hours > windowH;
-
-        return (
-          <div>
-            <p style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "#9e96b5" }}>
-              {tFn(lang, "sono_meta")}
-            </p>
-
-            {/* Available window hint */}
-            <p style={{
-              margin: "0 0 8px", fontSize: 11.5, display: "flex", alignItems: "center", gap: 6,
-              color: over ? "oklch(0.60 0.12 70)" : "#9e96b5",
-            }}>
-              <span style={{
-                display: "inline-block", width: 6, height: 6, borderRadius: "50%",
-                background: over ? "oklch(0.60 0.12 70)" : "oklch(0.45 0.15 160)",
-              }} />
-              {tFn(lang, "sono_janela_disponivel")}: {windowH}h
-              {over && (
-                <span style={{ fontWeight: 600 }}>
-                  — {tFn(lang, "sono_meta_acima_janela")}
-                </span>
-              )}
-            </p>
-
-            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-              {TARGET_OPTIONS.map((h) => {
-                const optOver = h > windowH;
-                const isSelected = config.target_hours === h;
-                return (
-                  <button key={h} type="button" onClick={() => onChange({ ...config, target_hours: h })} style={{
-                    padding: "7px 13px", borderRadius: 9999, cursor: "pointer",
-                    border: isSelected ? "none" : optOver
-                      ? "1px solid oklch(0.50 0.12 70 / 0.30)"
-                      : "1px solid oklch(.28 .02 270 / .5)",
-                    background: isSelected
-                      ? (optOver ? "oklch(0.50 0.12 70)" : P)
-                      : "oklch(.16 .012 270)",
-                    fontFamily: "inherit", fontSize: 12, fontWeight: 600,
-                    color: isSelected ? "#fff" : optOver ? "oklch(0.60 0.12 70)" : "#e0d6ff",
-                    transition: "all .15s ease",
-                  }}>
-                    {h}h
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        );
-      })()}
+      {/* Auto-calculated sleep goal from bedtime → wake_time window */}
+      <div>
+        <p style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "#9e96b5" }}>
+          {tFn(lang, "sono_meta")}
+        </p>
+        <div style={{
+          display: "flex", alignItems: "center", gap: 8,
+          padding: "10px 14px", borderRadius: 10,
+          background: "oklch(0.16 0.012 270)", border: "1px solid oklch(.28 .02 270 / .25)",
+        }}>
+          <span style={{ fontSize: 20 }}>🎯</span>
+          <span style={{ fontSize: 13, fontWeight: 600, color: "#e0d6ff" }}>
+            {calcWindowHours(config.bedtime, config.wake_time)}h
+          </span>
+          <span style={{ fontSize: 11, color: "#9e96b5" }}>
+            {tFn(lang, "sono_meta_auto")}
+          </span>
+        </div>
+      </div>
 
       {/* Reminder time + push status */}
       <div>
@@ -1314,7 +1282,9 @@ export default function SonoPage() {
     setConfigSaving(true);
     try {
       const prefs = await fetch("/api/preferences").then((r) => r.json()).catch(() => ({}));
-      const ctx = { ...(prefs?.context ?? {}), sleep_config: config };
+      // Inclui target_hours calculado para compatibilidade com cron de lembrete
+      const configToSave = { ...config, target_hours: calcWindowHours(config.bedtime, config.wake_time) };
+      const ctx = { ...(prefs?.context ?? {}), sleep_config: configToSave };
       await fetch("/api/preferences", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1379,7 +1349,7 @@ export default function SonoPage() {
                 { icon: "🌙", label: tFn(lang, "sono_avg_noite"), value: stats!.avgDurationMin > 0 ? formatDuration(stats!.avgDurationMin) : "–", sub: "média da semana", color: "#e0d6ff" },
                 { icon: "⭐", label: tFn(lang, "sono_avg_qualidade"), value: stats!.avgQuality > 0 ? `${stats!.avgQuality}/5` : "–", sub: stats!.avgQuality > 0 ? QUALITY_EMOJI[Math.round(stats!.avgQuality)] : "", color: qualityColor(stats!.avgQuality) },
                 { icon: "📊", label: tFn(lang, "sono_consistencia"), value: `${stats!.consistencyScore}`, sub: "de 100", color: scoreColor(stats!.consistencyScore) },
-                { icon: "🎯", label: "Meta de sono", value: config ? `${config.target_hours}h` : "–", sub: stats!.avgDurationMin > 0 ? `${formatDuration(stats!.avgDurationMin)} médio` : "sem dados", color: "#5EEAD4" },
+                { icon: "🎯", label: "Meta de sono", value: config ? `${calcWindowHours(config.bedtime, config.wake_time)}h` : "–", sub: stats!.avgDurationMin > 0 ? `${formatDuration(stats!.avgDurationMin)} médio` : "sem dados", color: "#5EEAD4" },
               ].map((card) => (
                 <div key={card.label} style={{
                   background: "oklch(0.16 0.012 270)",
