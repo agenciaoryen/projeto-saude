@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { toast } from "sonner";
-import { useTranslation } from "@/lib/useTranslation";
+
 import {
   mealTypeEmoji,
   mealTypeLabel,
@@ -121,8 +121,6 @@ export default function MealDetailPage() {
   const router = useRouter();
   const params = useParams();
   const id = params.id as string;
-  const { t } = useTranslation();
-
   const [meal, setMeal] = useState<Meal | null>(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
@@ -141,6 +139,8 @@ export default function MealDetailPage() {
   const [obs, setObs] = useState("");
   const [newItemName, setNewItemName] = useState("");
   const [showTypePicker, setShowTypePicker] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
@@ -165,15 +165,22 @@ export default function MealDetailPage() {
   }, [id]);
 
   const handleDelete = async () => {
-    if (!confirm(t("confirmar_deletar"))) return;
-    const res = await fetch(`/api/meals?id=${id}`, { method: "DELETE" });
-    if (!res.ok) {
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/meals?id=${id}`, { method: "DELETE" });
+      if (!res.ok) {
+        toast.error("Erro ao deletar refeição");
+        return;
+      }
+      toast.success("Refeição deletada");
+      router.push("/nutricao");
+      router.refresh();
+    } catch {
       toast.error("Erro ao deletar refeição");
-      return;
+    } finally {
+      setDeleting(false);
+      setShowDeleteConfirm(false);
     }
-    toast.success("Refeição deletada");
-    router.push("/nutricao");
-    router.refresh();
   };
 
   const handleAnalyze = async () => {
@@ -396,7 +403,7 @@ export default function MealDetailPage() {
               <button type="button" style={btnSm} onClick={() => setEditing(true)}>
                 Editar
               </button>
-              <button type="button" style={{ ...btnSm, color: RED, borderColor: "oklch(0.50 0.15 15 / 0.25)" }} onClick={handleDelete}>
+              <button type="button" style={{ ...btnSm, color: RED, borderColor: "oklch(0.50 0.15 15 / 0.25)" }} onClick={() => setShowDeleteConfirm(true)}>
                 <Trash2 style={{ width: 14, height: 14 }} />
               </button>
             </div>
@@ -766,6 +773,61 @@ export default function MealDetailPage() {
           </>
         )}
       </div>
+
+      {/* ── Delete confirmation modal ──────────────────────── */}
+      {showDeleteConfirm && (
+        <div onClick={() => setShowDeleteConfirm(false)}
+          style={{
+            position: "fixed", inset: 0, zIndex: 200,
+            background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            padding: 24,
+          }}>
+          <div onClick={(e) => e.stopPropagation()}
+            style={{
+              width: "100%", maxWidth: 340, borderRadius: 20,
+              background: "#151520", border: `1px solid ${BORDER}`,
+              padding: 24, display: "flex", flexDirection: "column", gap: 16,
+              boxShadow: "0 20px 60px rgba(0,0,0,0.5)",
+            }}>
+            <div style={{ textAlign: "center" }}>
+              <span style={{ fontSize: 40 }}>🗑️</span>
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: FOREGROUND, margin: "8px 0 4px" }}>
+                Deletar refeição
+              </h3>
+              <p style={{ fontSize: 13, color: MUTED, lineHeight: 1.5 }}>
+                Tem certeza que deseja deletar esta refeição? Esta ação não pode ser desfeita.
+              </p>
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={deleting}
+                style={{
+                  flex: 1, padding: "10px 0", borderRadius: 12,
+                  border: `1px solid ${BORDER}`, background: "transparent",
+                  color: FOREGROUND, fontSize: 14, fontWeight: 600,
+                  cursor: "pointer", fontFamily: "inherit",
+                }}>
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={deleting}
+                style={{
+                  flex: 1, padding: "10px 0", borderRadius: 12, border: 0,
+                  background: "oklch(0.50 0.15 15)", color: "#fff",
+                  fontSize: 14, fontWeight: 600, cursor: "pointer",
+                  fontFamily: "inherit", opacity: deleting ? 0.6 : 1,
+                }}>
+                {deleting ? "Deletando..." : "Deletar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
