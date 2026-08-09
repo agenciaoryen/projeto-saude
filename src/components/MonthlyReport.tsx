@@ -1,22 +1,45 @@
 "use client";
 
 import { useMemo } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { sumMacros, classificationLabel, classificationColor } from "@/lib/meal-utils";
-import { getLocalDateFromISO } from "@/lib/utils";
-import { TrendingUp, TrendingDown, Minus, ChefHat, Salad, Apple, Fish, Wheat } from "lucide-react";
+import { sumMacros } from "@/lib/meal-utils";
+import { TrendingUp, TrendingDown, Minus } from "lucide-react";
 import type { Meal } from "@/types";
 
-// Mapeamento de alimentos → nutrientes prováveis (regras simples)
-const NUTRIENT_SOURCES: { nutrient: string; emoji: string; keywords: string[]; icon: typeof ChefHat }[] = [
-  { nutrient: "Ferro", emoji: "🩸", keywords: ["feijão", "lentilha", "carne", "bovina", "figado", "beterraba", "espinafre", "grao", "grão de bico", "castanha"], icon: ChefHat },
-  { nutrient: "Cálcio", emoji: "🦴", keywords: ["leite", "queijo", "iogurte", "coalhada", "requeijão", "brócolis", "couve", "gergelim", "amêndoa", "tofu"], icon: ChefHat },
-  { nutrient: "Vitamina C", emoji: "🍊", keywords: ["laranja", "limão", "acerola", "kiwi", "morango", "manga", "abacaxi", "tomate", "pimentão", "brócolis"], icon: Salad },
-  { nutrient: "Fibras", emoji: "🌾", keywords: ["aveia", "chia", "linhaça", "granola", "cereal", "integral", "farelo", "ameixa", "mamão", "legume"], icon: Wheat },
-  { nutrient: "Ômega 3", emoji: "🐟", keywords: ["salmão", "sardinha", "atum", "bacalhau", "tilápia", "truta", "nozes", "linhaça", "chia"], icon: Fish },
-  { nutrient: "Magnésio", emoji: "🔋", keywords: ["banana", "castanha", "amêndoa", "abacate", "espinafre", "cacau", "aveia", "feijão", "semente", "abóbora"], icon: Apple },
+const NUTRIENT_SOURCES: { nutrient: string; emoji: string; keywords: string[] }[] = [
+  { nutrient: "Ferro", emoji: "🩸", keywords: ["feijão", "lentilha", "carne", "bovina", "figado", "beterraba", "espinafre", "grao", "grão de bico", "castanha"] },
+  { nutrient: "Cálcio", emoji: "🦴", keywords: ["leite", "queijo", "iogurte", "coalhada", "requeijão", "brócolis", "couve", "gergelim", "amêndoa", "tofu"] },
+  { nutrient: "Vitamina C", emoji: "🍊", keywords: ["laranja", "limão", "acerola", "kiwi", "morango", "manga", "abacaxi", "tomate", "pimentão", "brócolis"] },
+  { nutrient: "Fibras", emoji: "🌾", keywords: ["aveia", "chia", "linhaça", "granola", "cereal", "integral", "farelo", "ameixa", "mamão", "legume"] },
+  { nutrient: "Ômega 3", emoji: "🐟", keywords: ["salmão", "sardinha", "atum", "bacalhau", "tilápia", "truta", "nozes", "linhaça", "chia"] },
+  { nutrient: "Magnésio", emoji: "🔋", keywords: ["banana", "castanha", "amêndoa", "abacate", "espinafre", "cacau", "aveia", "feijão", "semente", "abóbora"] },
 ];
+
+// ── Design tokens ──────────────────────────────────────────────
+const MUTED = "#9e96b5";
+const BORDER = "rgba(167,139,250,0.15)";
+const PURPLE = "oklch(.58 .18 270)";
+const TEAL = "oklch(0.45 0.15 160)";
+const AMBER = "oklch(0.60 0.12 70)";
+const RED = "oklch(0.50 0.15 15)";
+const FOREGROUND = "#e0d6ff";
+
+const cardStyle: React.CSSProperties = {
+  borderRadius: 16,
+  background: "oklch(.17 .015 270 / .6)",
+  border: `1px solid ${BORDER}`,
+  padding: 16,
+  display: "flex",
+  flexDirection: "column",
+  gap: 12,
+};
+
+const sectionTitle: React.CSSProperties = {
+  fontSize: 13, fontWeight: 600, color: FOREGROUND,
+};
+
+const mutedText: React.CSSProperties = {
+  fontSize: 11, color: MUTED,
+};
 
 interface MonthData {
   total: number;
@@ -32,7 +55,7 @@ export function MonthlyReport({ meals, monthStats }: { meals: Meal[]; monthStats
     const allItems = analyzed.flatMap((m) => (m.itens || []).map((i) => i.nome.toLowerCase().trim()));
     const uniqueItems = new Set(allItems);
     const varietyScore = uniqueItems.size >= 20 ? "Excelente" : uniqueItems.size >= 12 ? "Boa" : uniqueItems.size >= 6 ? "Regular" : "Baixa";
-    const varietyColor = uniqueItems.size >= 20 ? "text-emerald-600" : uniqueItems.size >= 12 ? "text-amber-600" : "text-red-600";
+    const varietyColor = uniqueItems.size >= 20 ? TEAL : uniqueItems.size >= 12 ? AMBER : RED;
 
     // Top itens
     const itemFreq = new Map<string, number>();
@@ -53,13 +76,13 @@ export function MonthlyReport({ meals, monthStats }: { meals: Meal[]; monthStats
     }
 
     // Lacunas de micronutrientes
-    const nutrientGaps: { nutrient: string; emoji: string; icon: typeof ChefHat }[] = [];
+    const nutrientGaps: { nutrient: string; emoji: string }[] = [];
     for (const source of NUTRIENT_SOURCES) {
       const found = allItems.some((item) =>
         source.keywords.some((kw) => item.includes(kw))
       );
       if (!found) {
-        nutrientGaps.push(source);
+        nutrientGaps.push({ nutrient: source.nutrient, emoji: source.emoji });
       }
     }
 
@@ -106,147 +129,155 @@ export function MonthlyReport({ meals, monthStats }: { meals: Meal[]; monthStats
   if (monthStats.total === 0) return null;
 
   return (
-    <div className="space-y-3">
-      {/* Variedade alimentar */}
-      <Card className="rounded-2xl">
-        <CardContent className="p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-medium">🥗 Variedade alimentar</p>
-            <span className={`text-sm font-bold ${analysis.varietyColor}`}>
-              {analysis.varietyScore}
-            </span>
-          </div>
-          <div className="flex items-center gap-2 text-sm">
-            <span className="text-2xl font-bold">{analysis.uniqueItems.size}</span>
-            <span className="text-muted-foreground text-xs">
-              {analysis.uniqueItems.size === 1 ? "alimento diferente" : "alimentos diferentes"} no mês
-            </span>
-          </div>
-          {analysis.uniqueItems.size < 12 && (
-            <p className="text-xs text-muted-foreground bg-muted/50 rounded-lg p-2">
-              Quanto mais variada a alimentação, mais nutrientes diferentes seu corpo recebe. Tente incluir algo novo essa semana.
-            </p>
-          )}
-        </CardContent>
-      </Card>
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      {/* ── Variedade alimentar ────────────────────────────── */}
+      <div style={cardStyle}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <p style={sectionTitle}>🥗 Variedade alimentar</p>
+          <span style={{ fontSize: 13, fontWeight: 700, color: analysis.varietyColor }}>
+            {analysis.varietyScore}
+          </span>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}>
+          <span style={{ fontSize: 24, fontWeight: 700, color: FOREGROUND }}>{analysis.uniqueItems.size}</span>
+          <span style={mutedText}>
+            {analysis.uniqueItems.size === 1 ? "alimento diferente" : "alimentos diferentes"} no mês
+          </span>
+        </div>
+        {analysis.uniqueItems.size < 12 && (
+          <p style={{
+            fontSize: 12, color: MUTED, lineHeight: 1.6,
+            background: "oklch(.22 .015 270 / .5)", borderRadius: 10, padding: "8px 12px",
+          }}>
+            Quanto mais variada a alimentação, mais nutrientes diferentes seu corpo recebe. Tente incluir algo novo essa semana.
+          </p>
+        )}
+      </div>
 
-      {/* Tendência de kcal por semana */}
+      {/* ── Média kcal por semana ──────────────────────────── */}
       {analysis.weeklyKcal.some((w) => w.count > 0) && (
-        <Card className="rounded-2xl">
-          <CardContent className="p-4 space-y-3">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium">📈 Média kcal por semana</span>
-              {analysis.trend === "up" && <TrendingUp className="size-4 text-amber-500" />}
-              {analysis.trend === "down" && <TrendingDown className="size-4 text-emerald-500" />}
-              {analysis.trend === "stable" && <Minus className="size-4 text-muted-foreground" />}
-            </div>
-            <div className="flex items-end gap-1 h-20">
-              {analysis.weeklyKcal.map((w) => {
-                const maxKcal = Math.max(...analysis.weeklyKcal.map((x) => x.kcal), 1);
-                const height = (w.kcal / maxKcal) * 100;
+        <div style={cardStyle}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={sectionTitle}>📈 Média kcal por semana</span>
+            {analysis.trend === "up" && <TrendingUp style={{ width: 16, height: 16, color: PURPLE }} />}
+            {analysis.trend === "down" && <TrendingDown style={{ width: 16, height: 16, color: TEAL }} />}
+            {analysis.trend === "stable" && <Minus style={{ width: 16, height: 16, color: MUTED }} />}
+          </div>
+          <div style={{ display: "flex", alignItems: "flex-end", gap: 4, height: 80 }}>
+            {analysis.weeklyKcal.map((w) => {
+              const maxKcal = Math.max(...analysis.weeklyKcal.map((x) => x.kcal), 1);
+              const height = (w.kcal / maxKcal) * 100;
+              return (
+                <div key={w.label} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+                  <span style={{ fontSize: 10, fontWeight: 500, color: FOREGROUND, fontVariantNumeric: "tabular-nums" }}>
+                    {w.kcal > 0 ? w.kcal : "-"}
+                  </span>
+                  <div
+                    style={{
+                      width: "100%", borderRadius: "4px 4px 0 0", transition: "all .3s ease",
+                      background: `linear-gradient(180deg, ${PURPLE}, oklch(.50 .18 270 / .6))`,
+                      height: `${Math.max(height, 4)}%`,
+                      opacity: w.count > 0 ? 1 : 0.3,
+                    }}
+                  />
+                  <span style={{ fontSize: 10, color: MUTED }}>{w.label}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ── Distribuição por tipo ──────────────────────────── */}
+      {analysis.byType.size > 0 && (
+        <div style={cardStyle}>
+          <p style={sectionTitle}>🍽️ Distribuição por refeição</p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {[...analysis.byType.entries()]
+              .sort((a, b) => b[1].kcal - a[1].kcal)
+              .map(([type, data]) => {
+                const typeLabels: Record<string, string> = {
+                  cafe_da_manha: "Café da manhã",
+                  almoco: "Almoço",
+                  lanche: "Lanche",
+                  jantar: "Jantar",
+                  lanche_noturno: "Lanche noturno",
+                };
+                const typeEmojis: Record<string, string> = {
+                  cafe_da_manha: "🌅",
+                  almoco: "☀️",
+                  lanche: "🍪",
+                  jantar: "🌙",
+                  lanche_noturno: "🌃",
+                };
                 return (
-                  <div key={w.label} className="flex-1 flex flex-col items-center gap-1">
-                    <span className="text-[10px] font-medium tabular-nums">
-                      {w.kcal > 0 ? w.kcal : "-"}
+                  <div key={type} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}>
+                    <span>{typeEmojis[type] || "🍽️"}</span>
+                    <span style={{ flex: 1, color: FOREGROUND }}>{typeLabels[type] || type}</span>
+                    <span style={mutedText}>{data.count}x</span>
+                    <span style={{ fontWeight: 600, color: FOREGROUND, width: 64, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+                      {Math.round(data.kcal)} kcal
                     </span>
-                    <div
-                      className="w-full bg-emerald-200 dark:bg-emerald-800 rounded-t-md transition-all"
-                      style={{ height: `${Math.max(height, 4)}%`, opacity: w.count > 0 ? 1 : 0.3 }}
-                    />
-                    <span className="text-[10px] text-muted-foreground">{w.label}</span>
                   </div>
                 );
               })}
-            </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
-      {/* Top alimentos */}
+      {/* ── Mais consumidos ────────────────────────────────── */}
       {analysis.topItems.length > 0 && (
-        <Card className="rounded-2xl">
-          <CardContent className="p-4 space-y-3">
-            <p className="text-sm font-medium">⭐ Mais consumidos</p>
-            <div className="flex flex-wrap gap-1.5">
-              {analysis.topItems.map(([name, count]) => (
-                <span key={name} className="inline-flex items-center gap-1 px-2.5 py-1 bg-muted/60 rounded-full text-xs">
-                  {name}
-                  <span className="text-[10px] text-muted-foreground">{count}x</span>
-                </span>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        <div style={cardStyle}>
+          <p style={sectionTitle}>⭐ Mais consumidos</p>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {analysis.topItems.map(([name, count]) => (
+              <span key={name} style={{
+                display: "inline-flex", alignItems: "center", gap: 4,
+                padding: "4px 10px", borderRadius: 9999, fontSize: 12,
+                background: "oklch(.22 .015 270 / .5)", color: FOREGROUND,
+              }}>
+                {name}
+                <span style={{ fontSize: 10, color: MUTED }}>{count}x</span>
+              </span>
+            ))}
+          </div>
+        </div>
       )}
 
-      {/* Lacunas de micronutrientes */}
+      {/* ── Possíveis lacunas ──────────────────────────────── */}
       {analysis.nutrientGaps.length > 0 && (
-        <Card className="rounded-2xl border-amber-200/50 dark:border-amber-800/30 bg-amber-50/20 dark:bg-amber-950/10">
-          <CardContent className="p-4 space-y-3">
-            <p className="text-sm font-medium">🔍 Possíveis lacunas</p>
-            {monthStats.total < 15 && (
-              <p className="text-xs text-amber-700 bg-amber-100/60 rounded-lg px-3 py-2">
-                Você registrou apenas {monthStats.total} {monthStats.total === 1 ? "refeição" : "refeições"} com análise este mês. As lacunas abaixo provavelmente subestimam a realidade.
-              </p>
-            )}
-            <p className="text-xs text-muted-foreground">
-              {monthStats.total < 15
-                ? "Com os dados disponíveis, estes nutrientes provavelmente estão em falta:"
-                : "Baseado nos alimentos registrados, estes nutrientes podem estar em falta:"}
+        <div style={{
+          ...cardStyle,
+          background: `${AMBER} / 0.06`,
+          border: `1px solid ${AMBER} / 0.18`,
+        }}>
+          <p style={sectionTitle}>🔍 Possíveis lacunas</p>
+          {monthStats.total < 15 && (
+            <p style={{
+              fontSize: 12, color: "oklch(0.55 0.12 65)", lineHeight: 1.6,
+              background: `${AMBER} / 0.12`, borderRadius: 10, padding: "8px 12px",
+            }}>
+              Você registrou apenas {monthStats.total} {monthStats.total === 1 ? "refeição" : "refeições"} com análise este mês. As lacunas abaixo provavelmente subestimam a realidade.
             </p>
-            <div className="space-y-2">
-              {analysis.nutrientGaps.map((gap) => (
-                <div key={gap.nutrient} className="flex items-center gap-2 text-sm">
-                  <span className="text-lg">{gap.emoji}</span>
-                  <span className="font-medium">{gap.nutrient}</span>
-                  <span className="text-xs text-muted-foreground">
-                    — sem fontes claras no mês
-                  </span>
-                </div>
-              ))}
-            </div>
-            <p className="text-[10px] text-muted-foreground italic">
-              Análise baseada nos alimentos registrados. Pode não refletir sua ingestão real completa.
-            </p>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Distribuição por tipo */}
-      {analysis.byType.size > 0 && (
-        <Card className="rounded-2xl">
-          <CardContent className="p-4 space-y-3">
-            <p className="text-sm font-medium">🍽️ Distribuição por refeição</p>
-            <div className="space-y-2">
-              {[...analysis.byType.entries()]
-                .sort((a, b) => b[1].kcal - a[1].kcal)
-                .map(([type, data]) => {
-                  const typeLabels: Record<string, string> = {
-                    cafe_da_manha: "Café da manhã",
-                    almoco: "Almoço",
-                    lanche: "Lanche",
-                    jantar: "Jantar",
-                    lanche_noturno: "Lanche noturno",
-                  };
-                  const typeEmojis: Record<string, string> = {
-                    cafe_da_manha: "🌅",
-                    almoco: "☀️",
-                    lanche: "🍪",
-                    jantar: "🌙",
-                    lanche_noturno: "🌃",
-                  };
-                  return (
-                    <div key={type} className="flex items-center gap-2 text-sm">
-                      <span>{typeEmojis[type] || "🍽️"}</span>
-                      <span className="flex-1">{typeLabels[type] || type}</span>
-                      <span className="text-muted-foreground text-xs">{data.count}x</span>
-                      <span className="font-medium tabular-nums w-16 text-right">{Math.round(data.kcal)} kcal</span>
-                    </div>
-                  );
-                })}
-            </div>
-          </CardContent>
-        </Card>
+          )}
+          <p style={{ fontSize: 12, color: MUTED, lineHeight: 1.6 }}>
+            {monthStats.total < 15
+              ? "Com os dados disponíveis, estes nutrientes provavelmente estão em falta:"
+              : "Baseado nos alimentos registrados, estes nutrientes podem estar em falta:"}
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {analysis.nutrientGaps.map((gap) => (
+              <div key={gap.nutrient} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}>
+                <span style={{ fontSize: 18 }}>{gap.emoji}</span>
+                <span style={{ fontWeight: 500, color: FOREGROUND }}>{gap.nutrient}</span>
+                <span style={mutedText}>— sem fontes claras no mês</span>
+              </div>
+            ))}
+          </div>
+          <p style={{ fontSize: 10, color: MUTED, fontStyle: "italic" }}>
+            Análise baseada nos alimentos registrados. Pode não refletir sua ingestão real completa.
+          </p>
+        </div>
       )}
     </div>
   );
