@@ -596,7 +596,7 @@ function SleepHistoryRow({ log, onEdit, lang }: { log: SleepLog; onEdit: (log: S
 function SleepToolbar({ config, onChange, onSave, saving, lang }: {
   config: SleepConfig;
   onChange: (c: SleepConfig) => void;
-  onSave: () => void;
+  onSave: () => Promise<void>;
   saving: boolean;
   lang: Lang;
 }) {
@@ -720,12 +720,25 @@ function SleepToolbar({ config, onChange, onSave, saving, lang }: {
 function SleepConfigContent({ config, onChange, onSave, saving, lang }: {
   config: SleepConfig;
   onChange: (c: SleepConfig) => void;
-  onSave: () => void;
+  onSave: () => Promise<void>;
   saving: boolean;
   lang: Lang;
 }) {
   const router = useRouter();
   const [pushState, setPushState] = useState<"granted" | "denied" | "default">("default");
+  const [original, setOriginal] = useState<SleepConfig | null>(null);
+
+  // Snapshot original config on mount to detect changes
+  useEffect(() => {
+    if (!original) setOriginal({ ...config });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const dirty = original
+    ? config.bedtime !== original.bedtime ||
+      config.wake_time !== original.wake_time ||
+      config.reminder_time !== original.reminder_time
+    : false;
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -851,13 +864,18 @@ function SleepConfigContent({ config, onChange, onSave, saving, lang }: {
         </div>
       </div>
 
-      <button type="button" onClick={onSave} disabled={saving} style={{
-        width: "100%", height: 44, borderRadius: 12, border: 0,
-        cursor: saving ? "not-allowed" : "pointer",
-        background: P, color: "#fff",
-        fontFamily: "inherit", fontSize: 14, fontWeight: 700,
-        opacity: saving ? 0.7 : 1, transition: "opacity .15s ease",
-      }}>
+      <button
+        type="button"
+        onClick={async () => { await onSave(); setOriginal({ ...config }); }}
+        disabled={!dirty || saving}
+        style={{
+          width: "100%", height: 44, borderRadius: 12, border: 0,
+          cursor: !dirty || saving ? "not-allowed" : "pointer",
+          background: P, color: "#fff",
+          fontFamily: "inherit", fontSize: 14, fontWeight: 700,
+          opacity: !dirty || saving ? 0.4 : 1, transition: "opacity .15s ease",
+        }}
+      >
         {saving ? tFn(lang, "salvando") : tFn(lang, "sono_salvar_config")}
       </button>
     </div>
