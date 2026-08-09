@@ -193,11 +193,17 @@ export default function NutricaoPage() {
       <button
         type="button"
         onClick={() => router.push("/nutricao/registrar")}
-        className="absolute top-4 right-4 z-10 w-9 h-9 rounded-full flex items-center justify-center shadow-md cursor-pointer border-0"
-        style={{ background: "var(--primary)", color: "#fff" }}
+        style={{
+          position: "absolute", top: 16, right: 16, zIndex: 10,
+          width: 44, height: 44, borderRadius: "50%",
+          background: "#7C5CFF", border: 0, cursor: "pointer",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          boxShadow: "0 4px 20px rgba(124,92,255,0.4)",
+          color: "#fff",
+        }}
         aria-label="Registrar refeição"
       >
-        <Plus className="w-4 h-4" />
+        <Plus size={20} />
       </button>
 
       {/* Header */}
