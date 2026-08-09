@@ -16,7 +16,7 @@ import { MonthlyReport } from "@/components/MonthlyReport";
 import { FoodMoodCorrelation } from "@/components/FoodMoodCorrelation";
 import { WeeklyMirror } from "@/components/WeeklyMirror";
 import { NutritionQualityCard } from "@/components/NutritionQualityCard";
-import { Plus, Sun, Calendar } from "lucide-react";
+import { Plus, Sun, Calendar, Sparkles } from "lucide-react";
 import type { Meal } from "@/types";
 
 type TabView = "dia" | "semana" | "mes";
@@ -83,6 +83,7 @@ function NutricaoPage() {
   const [tab, setTab] = useState<TabView>(initialTab);
   const [todayDisplay, setTodayDisplay] = useState("");
   const [kcalGoal, setKcalGoal] = useState(DEFAULT_DAILY_KCAL);
+  const [showChat, setShowChat] = useState(false);
 
   // Sync tab when URL param changes
   useEffect(() => {
@@ -195,7 +196,19 @@ function NutricaoPage() {
   return (
     <div style={{ position: "relative", minHeight: "100dvh", overflowX: "hidden", paddingBottom: 128, ...BG_GRADIENT }}>
 
-      {/* FAB */}
+      {/* FABs */}
+      <button type="button" onClick={() => setShowChat(true)}
+        style={{
+          position: "fixed", bottom: 148, right: 20, zIndex: 40,
+          width: 56, height: 56, borderRadius: "50%",
+          background: "#1a1530", border: "1.5px solid rgba(167,139,250,0.3)",
+          cursor: "pointer",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          boxShadow: "0 4px 20px rgba(124,92,255,0.25)",
+        }}>
+        <Sparkles size={24} color="#A78BFA" />
+      </button>
+
       <button type="button" onClick={() => router.push("/nutricao/registrar")}
         style={{
           position: "fixed", bottom: 84, right: 20, zIndex: 40,
@@ -297,7 +310,6 @@ function NutricaoPage() {
 
           <NutritionTips />
           <FoodMoodCorrelation meals={meals} />
-          <NutritionChat />
         </div>
 
         {/* ========== SEMANA ========== */}
@@ -347,6 +359,43 @@ function NutricaoPage() {
         </div>
 
       </div>
+
+      {/* ── AI Chat Modal ────────────────────────────────── */}
+      {showChat && (
+        <div onClick={() => setShowChat(false)}
+          style={{
+            position: "fixed", inset: 0, zIndex: 100,
+            background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)",
+            display: "flex", alignItems: "flex-end", justifyContent: "center",
+          }}>
+          <div onClick={(e) => e.stopPropagation()}
+            style={{
+              width: "100%", maxWidth: 480, maxHeight: "85dvh",
+              background: "#151520", borderRadius: "24px 24px 0 0",
+              display: "flex", flexDirection: "column", overflow: "hidden",
+              border: "1px solid rgba(167,139,250,0.15)",
+            }}>
+            {/* Header */}
+            <div style={{
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+              padding: "16px 20px", borderBottom: "1px solid rgba(167,139,250,0.1)",
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <Sparkles size={18} color="#A78BFA" />
+                <span style={{ fontSize: 15, fontWeight: 700, color: "#e0d6ff" }}>Assistente IA</span>
+              </div>
+              <button type="button" onClick={() => setShowChat(false)}
+                style={{ background: "none", border: 0, color: MUTED, fontSize: 20, cursor: "pointer", padding: "4px 8px" }}>
+                ✕
+              </button>
+            </div>
+            {/* Chat body */}
+            <div style={{ flex: 1, overflow: "auto", padding: "0 16px" }}>
+              <NutritionChat />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
