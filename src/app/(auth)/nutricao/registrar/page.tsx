@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useTranslation } from "@/lib/useTranslation";
 import { getMealTypeFromHour, mealTypeLabel, mealTypeEmoji } from "@/lib/meal-utils";
 import { compressImage, uploadToCloud } from "@/lib/photo-storage";
-import { Camera, ImageIcon, X, Plus, Check, ChevronLeft, ChevronDown, Sparkles } from "lucide-react";
+import { Camera, ImageIcon, X, Plus, Check, ChevronLeft, ChevronDown, Sparkles, Star } from "lucide-react";
 import type { MealType, MealItem, Macros, MealClassification } from "@/types";
 import { toast } from "sonner";
 
@@ -81,6 +81,7 @@ export default function RegistrarRefeicaoPage() {
   const [analysisMacros, setAnalysisMacros] = useState<Macros | null>(null);
   const [analysisClass, setAnalysisClass] = useState<MealClassification | null>(null);
   const [analysisObs, setAnalysisObs] = useState("");
+  const [favorited, setFavorited] = useState(false);
   const [newItemName, setNewItemName] = useState("");
   const [addingItem, setAddingItem] = useState(false);
 
@@ -117,6 +118,7 @@ export default function RegistrarRefeicaoPage() {
           fotos: photoPaths,
           texto_livre: description.trim(),
           status_analise: "pendente",
+          favorited,
           itens: [],
           macros: null,
           classificacao: null,
@@ -207,6 +209,7 @@ export default function RegistrarRefeicaoPage() {
           texto_livre: description.trim(),
           fotos: photoPaths,
           status_analise: "analisado",
+          favorited,
         }),
       });
       if (!res.ok) throw new Error();
@@ -595,6 +598,26 @@ export default function RegistrarRefeicaoPage() {
                 )}
               </div>
             )}
+
+            {/* Favorite toggle */}
+            <button
+              type="button"
+              onClick={() => setFavorited(!favorited)}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                padding: "6px 14px", borderRadius: 12, fontSize: 13, fontWeight: 600,
+                border: `1px solid ${favorited ? "#fbbf24 / .35" : BORDER}`,
+                background: favorited ? "oklch(0.95 0.18 90 / 0.10)" : DARK_CARD,
+                color: favorited ? "#fbbf24" : MUTED, cursor: "pointer",
+                fontFamily: "inherit", alignSelf: "flex-start",
+              }}
+            >
+              <Star style={{
+                width: 16, height: 16,
+                fill: favorited ? "#fbbf24" : "none",
+              }} />
+              {favorited ? "Favoritada" : "Favoritar refeição"}
+            </button>
           </div>
         )}
       </div>

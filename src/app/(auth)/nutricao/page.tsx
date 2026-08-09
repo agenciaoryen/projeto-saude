@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslation } from "@/lib/useTranslation";
 import { getLocalDate, getLocalDateFromISO, getWeekMondayDate } from "@/lib/utils";
 import { cachedFetch } from "@/lib/fetch-cache";
-import { sumMacros, nutritionScore, getDailyKcalGoal, DEFAULT_DAILY_KCAL } from "@/lib/meal-utils";
+import { sumMacros, nutritionScore, getDailyKcalGoal, DEFAULT_DAILY_KCAL, mealTypeEmoji, mealTypeLabel } from "@/lib/meal-utils";
 import { MealCard } from "@/components/MealCard";
 import { NutritionSummary } from "@/components/NutritionSummary";
 import { WeeklyReport } from "@/components/WeeklyReport";
@@ -16,8 +16,9 @@ import { MonthlyReport } from "@/components/MonthlyReport";
 import { FoodMoodCorrelation } from "@/components/FoodMoodCorrelation";
 import { WeeklyMirror } from "@/components/WeeklyMirror";
 import { NutritionQualityCard } from "@/components/NutritionQualityCard";
-import { Plus, Sun, Calendar, Sparkles } from "lucide-react";
+import { Plus, Sun, Calendar, Sparkles, Star } from "lucide-react";
 import type { Meal } from "@/types";
+import { toast } from "sonner";
 
 type TabView = "dia" | "semana" | "mes";
 
@@ -84,6 +85,8 @@ function NutricaoPage() {
   const [todayDisplay, setTodayDisplay] = useState("");
   const [kcalGoal, setKcalGoal] = useState(DEFAULT_DAILY_KCAL);
   const [showChat, setShowChat] = useState(false);
+  const [favoriteMeals, setFavoriteMeals] = useState<Meal[]>([]);
+  const [addingFav, setAddingFav] = useState<string | null>(null);
 
   // Sync tab when URL param changes
   useEffect(() => {
@@ -114,12 +117,78 @@ function NutricaoPage() {
       .catch(() => setLoading(false));
   }, []);
 
+  useEffect(() => {
+    cachedFetch<unknown[]>("/api/meals?favorited=true")
+      .then((data) => {
+        if (Array.isArray(data)) setFavoriteMeals(data as Meal[]);
+      })
+      .catch(() => {});
+  }, []);
+
   const switchTab = (mode: TabView) => {
     setTab(mode);
     const url = new URL(window.location.href);
     if (mode === "dia") url.searchParams.delete("tab");
     else url.searchParams.set("tab", mode);
     window.history.replaceState({}, "", url.toString());
+  };
+
+  const handleToggleFavorite = async (mealId: string, favorited: boolean) => {
+    // Optimistic update in both lists
+    setMeals((prev) => prev.map((m) => (m.id === mealId ? { ...m, favorited } : m)));
+    setFavoriteMeals((prev) =>
+      favorited
+        ? prev // will refresh from API
+        : prev.filter((m) => m.id !== mealId)
+    );
+    try {
+      await fetch("/api/meals", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: mealId, favorited }),
+      });
+      // Refresh favorites after toggle
+      if (favorited) {
+        const data = await cachedFetch<unknown[]>("/api/meals?favorited=true");
+        if (Array.isArray(data)) setFavoriteMeals(data as Meal[]);
+      }
+    } catch {
+      // Rollback
+      setMeals((prev) => prev.map((m) => (m.id === mealId ? { ...m, favorited: !favorited } : m)));
+    }
+  };
+
+  const handleFavoriteQuickAdd = async (fav: Meal) => {
+    setAddingFav(fav.id);
+    try {
+      const res = await fetch("/api/meals", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          data_hora: new Date().toISOString(),
+          tipo_refeicao: fav.tipo_refeicao,
+          itens: fav.itens || [],
+          macros: fav.macros || undefined,
+          classificacao: fav.classificacao || undefined,
+          observacao: fav.observacao || "",
+          texto_livre: fav.texto_livre || fav.itens?.map((i) => i.nome).join(", ") || "",
+          fotos: fav.fotos || [],
+          status_analise: "analisado",
+        }),
+      });
+      if (res.ok) {
+        toast.success(`${mealTypeEmoji(fav.tipo_refeicao)} Refeição adicionada!`);
+        // Refresh today's meals
+        cachedFetch<unknown[]>("/api/meals").then((data) => {
+          if (Array.isArray(data)) setMeals(data as Meal[]);
+        });
+      } else {
+        toast.error("Erro ao adicionar");
+      }
+    } catch {
+      toast.error("Erro ao adicionar");
+    }
+    setAddingFav(null);
   };
 
   // ── Derived data ────────────────────────────────────────────
@@ -268,6 +337,60 @@ function NutricaoPage() {
           <NutritionQualityCard todayMeals={todayMeals} t={t} />
           <QuickAddMeals meals={meals} />
 
+          {/* ── Favoritas ─────────────────────────────────── */}
+          {favoriteMeals.length > 0 && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <p style={{ fontSize: 14, fontWeight: 500, color: "#e0d6ff", display: "flex", alignItems: "center", gap: 6 }}>
+                <Star style={{ width: 16, height: 16, color: "#fbbf24", fill: "#fbbf24" }} />
+                Refeições favoritas
+              </p>
+              <div style={{
+                display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4,
+                scrollbarWidth: "none", msOverflowStyle: "none",
+              }}>
+                {favoriteMeals.map((fav) => {
+                  const isLoading = addingFav === fav.id;
+                  return (
+                    <button
+                      key={fav.id}
+                      type="button"
+                      disabled={isLoading}
+                      onClick={() => handleFavoriteQuickAdd(fav)}
+                      style={{
+                        flexShrink: 0, textAlign: "left", minWidth: 150, maxWidth: 200,
+                        borderRadius: 14, padding: 12,
+                        background: "oklch(.17 .015 270 / .6)",
+                        border: `1px solid ${BORDER}`,
+                        cursor: isLoading ? "default" : "pointer",
+                        opacity: isLoading ? 0.5 : 1,
+                        fontFamily: "inherit",
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+                        <span style={{ fontSize: 14 }}>{mealTypeEmoji(fav.tipo_refeicao)}</span>
+                        <span style={{ fontSize: 11, fontWeight: 500, color: "#e0d6ff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {fav.itens?.length ? fav.itens.map((i) => i.nome).join(", ") : mealTypeLabel(fav.tipo_refeicao)}
+                        </span>
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                        <span style={{ fontSize: 11, color: MUTED }}>
+                          {fav.macros ? `${fav.macros.calorias_kcal} kcal` : "Sem macros"}
+                        </span>
+                        <span style={{
+                          fontSize: 10, fontWeight: 600, color: "#A78BFA",
+                          display: "inline-flex", alignItems: "center", gap: 2,
+                        }}>
+                          <Plus style={{ width: 12, height: 12 }} />
+                          {isLoading ? "..." : "Add"}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Lista de refeições */}
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             <p style={sectionTitle}>{t("refeicoes_hoje")}</p>
@@ -303,7 +426,7 @@ function NutricaoPage() {
               todayMeals
                 .sort((a, b) => new Date(b.data_hora).getTime() - new Date(a.data_hora).getTime())
                 .map((meal) => (
-                  <MealCard key={meal.id} meal={meal} onClick={() => router.push(`/nutricao/${meal.id}`)} />
+                  <MealCard key={meal.id} meal={meal} onClick={() => router.push(`/nutricao/${meal.id}`)} onToggleFavorite={handleToggleFavorite} />
                 ))
             )}
           </div>
@@ -341,7 +464,7 @@ function NutricaoPage() {
                     {day.meals
                       .sort((a, b) => new Date(b.data_hora).getTime() - new Date(a.data_hora).getTime())
                       .map((meal) => (
-                        <MealCard key={meal.id} meal={meal} onClick={() => router.push(`/nutricao/${meal.id}`)} />
+                        <MealCard key={meal.id} meal={meal} onClick={() => router.push(`/nutricao/${meal.id}`)} onToggleFavorite={handleToggleFavorite} />
                       ))}
                   </div>
                 ))

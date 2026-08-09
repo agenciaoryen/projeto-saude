@@ -53,6 +53,21 @@ export async function GET(req: NextRequest) {
       return NextResponse.json(data || []);
     }
 
+    // Favorited meals
+    const favorited = searchParams.get("favorited");
+    if (favorited === "true") {
+      const { data, error } = await admin
+        .from("meals")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("favorited", true)
+        .order("data_hora", { ascending: false })
+        .limit(50);
+
+      if (error) throw error;
+      return NextResponse.json(data || []);
+    }
+
     const { data, error } = await admin
       .from("meals")
       .select("*")
@@ -97,6 +112,7 @@ export async function POST(req: NextRequest) {
       observacao: body.observacao ?? "",
       texto_livre: body.texto_livre ?? "",
       status_analise: body.status_analise ?? "pendente",
+      favorited: body.favorited ?? false,
     };
 
     // Only set data_hora on insert or when explicitly provided (preserve original on update)

@@ -94,6 +94,7 @@ export interface Meal {
   observacao: string;
   texto_livre: string;
   status_analise: MealAnalysisStatus;
+  favorited?: boolean;
   criado_em: string;
 }
 

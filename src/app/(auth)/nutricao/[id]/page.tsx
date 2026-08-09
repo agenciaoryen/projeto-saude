@@ -10,7 +10,7 @@ import {
   classificationLabel,
 } from "@/lib/meal-utils";
 import { compressImage, uploadToCloud, photoUrl } from "@/lib/photo-storage";
-import { ArrowLeft, Camera, ImageIcon, X, Trash2, Plus, Loader2, Sparkles } from "lucide-react";
+import { ArrowLeft, Camera, ImageIcon, X, Trash2, Plus, Loader2, Sparkles, Star } from "lucide-react";
 import type { MealType, MealItem, Macros, MealClassification, Meal } from "@/types";
 
 const MEAL_TYPES: MealType[] = [
@@ -163,6 +163,25 @@ export default function MealDetailPage() {
       })
       .catch(() => setLoading(false));
   }, [id]);
+
+  const toggleFavorite = async () => {
+    if (!meal) return;
+    const newFav = !meal.favorited;
+    // Optimistic update
+    setMeal((prev) => prev ? { ...prev, favorited: newFav } : prev);
+    try {
+      const res = await fetch("/api/meals", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: meal.id, favorited: newFav }),
+      });
+      if (!res.ok) throw new Error();
+    } catch {
+      // Rollback
+      setMeal((prev) => prev ? { ...prev, favorited: !newFav } : prev);
+      toast.error("Erro ao favoritar");
+    }
+  };
 
   const handleDelete = async () => {
     setDeleting(true);
@@ -388,7 +407,21 @@ export default function MealDetailPage() {
               {saving ? "Salvando..." : "Salvar"}
             </button>
           ) : (
-            <div style={{ display: "flex", gap: 8 }}>
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <button
+                type="button"
+                onClick={toggleFavorite}
+                style={{
+                  background: "none", border: 0, cursor: "pointer", padding: 4, display: "flex",
+                }}
+                aria-label={meal.favorited ? "Desfavoritar" : "Favoritar"}
+              >
+                <Star style={{
+                  width: 20, height: 20,
+                  color: meal.favorited ? "#fbbf24" : MUTED,
+                  fill: meal.favorited ? "#fbbf24" : "none",
+                }} />
+              </button>
               {meal.status_analise === "pendente" && (
                 <button
                   type="button"
