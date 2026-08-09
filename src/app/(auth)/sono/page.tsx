@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState, useCallback, useMemo } from "react";
-import { Moon, Clock, Plus } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Moon, Clock, Plus, BellRing, BellOff } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   computeSleepStats,
@@ -11,6 +12,7 @@ import {
 } from "@/lib/sleep-utils";
 import type { SleepLog, SleepStats } from "@/types";
 import { getLocalDate } from "@/lib/utils";
+import { hasPushPermission } from "@/lib/push-utils";
 import { useTranslation } from "@/lib/useTranslation";
 import { t as tFn, type Lang } from "@/lib/i18n";
 
@@ -714,7 +716,20 @@ function SleepConfigContent({ config, onChange, onSave, saving, lang }: {
   saving: boolean;
   lang: Lang;
 }) {
+  const router = useRouter();
   const TARGET_OPTIONS = [6, 7, 7.5, 8, 8.5, 9];
+  const [pushState, setPushState] = useState<"granted" | "denied" | "default">("default");
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (hasPushPermission()) {
+      setPushState("granted");
+    } else if ("Notification" in window && Notification.permission === "denied") {
+      setPushState("denied");
+    } else {
+      setPushState("default");
+    }
+  }, []);
 
   return (
     <div style={{ padding: "16px", display: "flex", flexDirection: "column", gap: 14 }}>
@@ -749,7 +764,7 @@ function SleepConfigContent({ config, onChange, onSave, saving, lang }: {
         </div>
       </div>
 
-      {/* Target hours */}
+      {/* Target hours — sleep goal */}
       <div>
         <p style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "#9e96b5" }}>
           {tFn(lang, "sono_meta")}
@@ -770,14 +785,56 @@ function SleepConfigContent({ config, onChange, onSave, saving, lang }: {
         </div>
       </div>
 
-      {/* Reminder time */}
+      {/* Reminder time + push status */}
       <div>
         <p style={{ margin: "0 0 6px", fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "#9e96b5" }}>
           {tFn(lang, "sono_lembrete_noturno")}
         </p>
-        <p style={{ margin: "0 0 8px", fontSize: 12, color: "#9e96b5" }}>
-          {tFn(lang, "sono_lembrete_push_desc")}
-        </p>
+
+        {/* Push notification status badge */}
+        {pushState === "granted" ? (
+          <div style={{
+            display: "flex", alignItems: "center", gap: 6,
+            padding: "6px 10px", borderRadius: 8, marginBottom: 8,
+            background: "oklch(0.45 0.15 160 / 0.10)", border: "1px solid oklch(0.45 0.15 160 / 0.20)",
+          }}>
+            <BellRing size={13} style={{ color: "oklch(0.45 0.15 160)", flexShrink: 0 }} />
+            <span style={{ fontSize: 11.5, fontWeight: 600, color: "oklch(0.45 0.15 160)" }}>
+              {tFn(lang, "sono_push_active")}
+            </span>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => router.push("/perfil")}
+            style={{
+              display: "flex", alignItems: "center", gap: 6,
+              padding: "6px 10px", borderRadius: 8, marginBottom: 8, cursor: "pointer",
+              width: "100%", fontFamily: "inherit", textAlign: "left",
+              background: pushState === "denied"
+                ? "oklch(0.45 0.15 15 / 0.10)"
+                : "oklch(0.50 0.10 70 / 0.08)",
+              border: pushState === "denied"
+                ? "1px solid oklch(0.45 0.15 15 / 0.20)"
+                : "1px solid oklch(0.50 0.10 70 / 0.18)",
+            }}>
+            {pushState === "denied" ? (
+              <BellOff size={13} style={{ color: "oklch(0.50 0.15 15)", flexShrink: 0 }} />
+            ) : (
+              <BellRing size={13} style={{ color: "oklch(0.60 0.12 70)", flexShrink: 0 }} />
+            )}
+            <span style={{
+              fontSize: 11.5, fontWeight: 600, flex: 1, lineHeight: 1.3,
+              color: pushState === "denied"
+                ? "oklch(0.50 0.15 15)"
+                : "oklch(0.60 0.12 70)",
+            }}>
+              {pushState === "denied" ? tFn(lang, "sono_push_denied") : tFn(lang, "sono_push_inactive")}
+            </span>
+            <span style={{ fontSize: 11, color: "#9e96b5", flexShrink: 0 }}>→</span>
+          </button>
+        )}
+
         <div style={timeInputWrap}>
           <input
             type="time"
