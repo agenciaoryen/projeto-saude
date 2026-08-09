@@ -199,14 +199,14 @@ function NutricaoPage() {
       {/* FABs */}
       <button type="button" onClick={() => setShowChat(true)}
         style={{
-          position: "fixed", bottom: 148, right: 20, zIndex: 40,
-          width: 56, height: 56, borderRadius: "50%",
+          position: "fixed", bottom: 148, right: 24, zIndex: 40,
+          width: 44, height: 44, borderRadius: "50%",
           background: "#1a1530", border: "1.5px solid rgba(167,139,250,0.3)",
           cursor: "pointer",
           display: "flex", alignItems: "center", justifyContent: "center",
           boxShadow: "0 4px 20px rgba(124,92,255,0.25)",
         }}>
-        <Sparkles size={24} color="#A78BFA" />
+        <Sparkles size={20} color="#A78BFA" />
       </button>
 
       <button type="button" onClick={() => router.push("/nutricao/registrar")}
