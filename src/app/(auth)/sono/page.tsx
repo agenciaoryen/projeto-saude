@@ -765,25 +765,63 @@ function SleepConfigContent({ config, onChange, onSave, saving, lang }: {
       </div>
 
       {/* Target hours — sleep goal */}
-      <div>
-        <p style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "#9e96b5" }}>
-          {tFn(lang, "sono_meta")}
-        </p>
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-          {TARGET_OPTIONS.map((h) => (
-            <button key={h} type="button" onClick={() => onChange({ ...config, target_hours: h })} style={{
-              padding: "7px 13px", borderRadius: 9999, cursor: "pointer",
-              border: config.target_hours === h ? "none" : "1px solid oklch(.28 .02 270 / .5)",
-              background: config.target_hours === h ? P : "oklch(.16 .012 270)",
-              fontFamily: "inherit", fontSize: 12, fontWeight: 600,
-              color: config.target_hours === h ? "#fff" : "#e0d6ff",
-              transition: "all .15s ease",
+      {(() => {
+        const [bh, bm] = config.bedtime.split(":").map(Number);
+        const [wh, wm] = config.wake_time.split(":").map(Number);
+        let bedMins = bh * 60 + bm;
+        let wakeMins = wh * 60 + wm;
+        if (wakeMins <= bedMins) wakeMins += 24 * 60; // crosses midnight
+        const windowH = (wakeMins - bedMins) / 60;
+        const over = config.target_hours > windowH;
+
+        return (
+          <div>
+            <p style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "#9e96b5" }}>
+              {tFn(lang, "sono_meta")}
+            </p>
+
+            {/* Available window hint */}
+            <p style={{
+              margin: "0 0 8px", fontSize: 11.5, display: "flex", alignItems: "center", gap: 6,
+              color: over ? "oklch(0.60 0.12 70)" : "#9e96b5",
             }}>
-              {h % 1 === 0 ? `${h}h` : `${h}h`}
-            </button>
-          ))}
-        </div>
-      </div>
+              <span style={{
+                display: "inline-block", width: 6, height: 6, borderRadius: "50%",
+                background: over ? "oklch(0.60 0.12 70)" : "oklch(0.45 0.15 160)",
+              }} />
+              {tFn(lang, "sono_janela_disponivel")}: {windowH}h
+              {over && (
+                <span style={{ fontWeight: 600 }}>
+                  — {tFn(lang, "sono_meta_acima_janela")}
+                </span>
+              )}
+            </p>
+
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {TARGET_OPTIONS.map((h) => {
+                const optOver = h > windowH;
+                const isSelected = config.target_hours === h;
+                return (
+                  <button key={h} type="button" onClick={() => onChange({ ...config, target_hours: h })} style={{
+                    padding: "7px 13px", borderRadius: 9999, cursor: "pointer",
+                    border: isSelected ? "none" : optOver
+                      ? "1px solid oklch(0.50 0.12 70 / 0.30)"
+                      : "1px solid oklch(.28 .02 270 / .5)",
+                    background: isSelected
+                      ? (optOver ? "oklch(0.50 0.12 70)" : P)
+                      : "oklch(.16 .012 270)",
+                    fontFamily: "inherit", fontSize: 12, fontWeight: 600,
+                    color: isSelected ? "#fff" : optOver ? "oklch(0.60 0.12 70)" : "#e0d6ff",
+                    transition: "all .15s ease",
+                  }}>
+                    {h}h
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Reminder time + push status */}
       <div>
