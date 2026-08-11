@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { Plus, Star, ChevronDown, Clock, X, Check } from "lucide-react";
+import { toast } from "sonner";
 import type { TaskArea } from "@/types";
 import {
   AREA_CONFIG, ALL_AREAS, AREA_LABELS, DAY_NAMES, DAY_FULL,
@@ -11,6 +12,9 @@ import { LifeWheel } from "@/components/planejamento/LifeWheel";
 import { MayaStrategyCard } from "@/components/planejamento/MayaStrategyCard";
 import { WeekMetricsGrid } from "@/components/planejamento/WeekMetricsGrid";
 import { FocusStones } from "@/components/planejamento/FocusStones";
+import { PlanningModeToggle } from "@/components/planejamento/PlanningModeToggle";
+import { PlanningCompanion } from "@/components/planejamento/PlanningCompanion";
+import type { PlanningCompanionResponse } from "@/types";
 
 // ── Mini Radar ──────────────────────────────────────────────────
 
@@ -77,6 +81,13 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
   const [planMetrics, setPlanMetrics] = useState<{ strongest: string; weakest: string; balance: number; variation: number }>({ strongest: "—", weakest: "—", balance: 50, variation: 0 });
   const [insightLoading, setInsightLoading] = useState(true);
 
+  // ── Modo Planejamento ──
+  const [planningMode, setPlanningMode] = useState<"view" | "plan">("view");
+  const [companionLoading, setCompanionLoading] = useState(false);
+  const [companionData, setCompanionData] = useState<PlanningCompanionResponse | null>(null);
+  const [firstName, setFirstName] = useState("");
+  const [activeGoals, setActiveGoals] = useState<any[]>([]);
+
   const fetchPlan = async () => {
     try {
       const res = await fetch(`/api/weekly-plans?week=${currentWeekStart}`);
@@ -102,6 +113,20 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
       })
       .catch(() => {})
       .finally(() => setInsightLoading(false));
+    // Fetch user profile for planning mode
+    fetch("/api/preferences")
+      .then(r => r.json())
+      .then(d => {
+        if (d?.name) setFirstName(d.name.split(" ")[0]);
+      })
+      .catch(() => {});
+    // Fetch active goals for planning mode
+    fetch("/api/goals")
+      .then(r => r.json())
+      .then(d => {
+        if (Array.isArray(d)) setActiveGoals(d);
+      })
+      .catch(() => {});
   }, [selectedDate]);
 
   // Lock body scroll when editor is open
@@ -207,6 +232,103 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
     }
   };
 
+  // ── Planning Companion callbacks ──
+
+  const requestCompanion = async () => {
+    setCompanionLoading(true);
+    try {
+      const areasWithTasks = ALL_AREAS.filter(a => (taskCountsByArea[a] || 0) > 0);
+      const emptyAreas = ALL_AREAS.filter(a => (taskCountsByArea[a] || 0) === 0);
+      const res = await fetch("/api/maya/planning-companion", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          weekStart: currentWeekStart,
+          planState: {
+            stones: [currentPlan?.main_focus, currentPlan?.main_focus_2, currentPlan?.main_focus_3],
+            areasWithTasks,
+            emptyAreas,
+            totalTasks: tasks.length,
+            doneTasks: tasks.filter((t: any) => t.status === "concluida").length,
+            linkedGoalIds: activeGoals.map((g: any) => g.id),
+          },
+        }),
+      });
+      const data = await res.json();
+      setCompanionData(data);
+    } catch {
+      setCompanionData(null);
+    } finally {
+      setCompanionLoading(false);
+    }
+  };
+
+  const addTaskFromSuggestion = async (title: string, area: string, dayOfWeek?: number) => {
+    const res = await fetch("/api/weekly-plans/tasks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title,
+        area,
+        day_of_week: dayOfWeek ?? null,
+        task_type: "crescimento",
+        week_start: currentWeekStart,
+      }),
+    });
+    if (res.ok) {
+      const newTask = await res.json();
+      setTasks((prev: any[]) => [...prev, newTask]);
+      toast.success(`"${title}" adicionada`, {
+        description: `Área: ${AREA_LABELS[area as TaskArea] || area}`,
+      });
+      return true;
+    }
+    toast.error("Erro ao adicionar tarefa");
+    return false;
+  };
+
+  const setStoneFromSuggestion = async (rank: number, text: string) => {
+    const labels = ["I", "II", "III"];
+    if (!currentPlan?.id) {
+      const res = await fetch("/api/weekly-plans", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          week_start: currentWeekStart,
+          main_focus: rank === 1 ? text : "",
+          main_focus_2: rank === 2 ? text : "",
+          main_focus_3: rank === 3 ? text : "",
+        }),
+      });
+      if (res.ok) {
+        await fetchPlan();
+        toast.success(`Pedra ${labels[rank - 1]} definida`, {
+          description: `"${text.slice(0, 50)}"`,
+        });
+      } else {
+        toast.error("Erro ao definir pedra");
+      }
+      return;
+    }
+    const body: Record<string, string> = {};
+    if (rank === 1) body.main_focus = text;
+    if (rank === 2) body.main_focus_2 = text;
+    if (rank === 3) body.main_focus_3 = text;
+    const res = await fetch(`/api/weekly-plans/${currentPlan.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (res.ok) {
+      await fetchPlan();
+      toast.success(`Pedra ${labels[rank - 1]} atualizada`, {
+        description: `"${text.slice(0, 50)}"`,
+      });
+    } else {
+      toast.error("Erro ao atualizar pedra");
+    }
+  };
+
   const stones = [currentPlan?.main_focus, currentPlan?.main_focus_2, currentPlan?.main_focus_3]
     .filter(Boolean)
     .map((text, i) => ({ rank: i + 1, text: text!, area: undefined as string | undefined }));
@@ -215,8 +337,30 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
 
   return (
     <div style={{ marginBottom: 20 }}>
-      {/* Maya Strategy Card */}
-      <MayaStrategyCard insight={planInsight} loading={insightLoading} />
+      {/* ── Mode Toggle ── */}
+      <PlanningModeToggle mode={planningMode} onChange={setPlanningMode} />
+
+      {/* ── Modo Planejar ── */}
+      {planningMode === "plan" && (
+        <PlanningCompanion
+          companionData={companionData}
+          loading={companionLoading}
+          firstName={firstName}
+          stones={[currentPlan?.main_focus, currentPlan?.main_focus_2, currentPlan?.main_focus_3]}
+          areasWithTasks={ALL_AREAS.filter(a => (taskTotalByArea[a] || 0) > 0)}
+          tasksByArea={(area: string) => tasks.filter((t: any) => t.area === area)}
+          onRequestCompanion={requestCompanion}
+          onAddTask={addTaskFromSuggestion}
+          onSetStone={setStoneFromSuggestion}
+          planMetrics={planMetrics}
+        />
+      )}
+
+      {/* ── Modo Visualizar (dashboard atual) ── */}
+      {planningMode === "view" && (
+        <>
+          {/* Maya Strategy Card */}
+          <MayaStrategyCard insight={planInsight} loading={insightLoading} />
 
       {/* Life Wheel */}
       <LifeWheel
@@ -860,6 +1004,8 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
         </div>
       )}
       <style>{`@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }`}</style>
+        </>
+      )}
     </div>
   );
 }

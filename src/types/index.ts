@@ -325,3 +325,30 @@ export interface AgendaItem {
   created_at: string;
   updated_at: string;
 }
+
+// ── Planning Companion ───────────────────────────────────────────
+
+export interface SuggestedTask {
+  title: string;
+  taskType: "manutencao" | "crescimento";
+}
+
+export interface AreaSuggestion {
+  area: string;
+  areaLabel: string;
+  message: string;
+  suggestedTasks: SuggestedTask[];
+}
+
+export interface PlanningStoneSuggestion {
+  rank: 1 | 2 | 3;
+  text: string;
+  rationale: string;
+}
+
+export interface PlanningCompanionResponse {
+  greeting: string;
+  strategicFeedback: string;
+  suggestedStones?: PlanningStoneSuggestion[];
+  areaSuggestions?: AreaSuggestion[];
+}
