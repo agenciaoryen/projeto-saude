@@ -147,7 +147,13 @@ export async function POST(req: NextRequest) {
       data_hora: body.data_hora || new Date().toISOString(),
     };
 
-    if (error) throw error;
+    const { data: created, error: insertError } = await admin
+      .from("meals")
+      .insert(row)
+      .select()
+      .single();
+
+    if (insertError) throw insertError;
     // Auto-sync ate_well + refresh specialists
     syncAteWell(admin, user.id).catch(() => {});
     analyzeAllSpecialists(user.id).catch(() => {});
