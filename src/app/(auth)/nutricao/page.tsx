@@ -15,7 +15,7 @@ import { MonthlyReport } from "@/components/MonthlyReport";
 import { FoodMoodCorrelation } from "@/components/FoodMoodCorrelation";
 import { WeeklyMirror } from "@/components/WeeklyMirror";
 import { NutritionQualityCard } from "@/components/NutritionQualityCard";
-import { Plus, Sun, Calendar, Sparkles, Star } from "lucide-react";
+import { Plus, Sun, Calendar, Sparkles, Star, X } from "lucide-react";
 import type { Meal } from "@/types";
 import { toast } from "sonner";
 
@@ -351,40 +351,69 @@ function NutricaoPage() {
                 {favoriteMeals.map((fav) => {
                   const isLoading = addingFav === fav.id;
                   return (
-                    <button
+                    <div
                       key={fav.id}
-                      type="button"
-                      disabled={isLoading}
-                      onClick={() => handleFavoriteQuickAdd(fav)}
                       style={{
                         flexShrink: 0, textAlign: "left", minWidth: 150, maxWidth: 200,
                         borderRadius: 14, padding: 12,
                         background: "oklch(.17 .015 270 / .6)",
                         border: `1px solid ${BORDER}`,
-                        cursor: isLoading ? "default" : "pointer",
                         opacity: isLoading ? 0.5 : 1,
-                        fontFamily: "inherit",
+                        position: "relative",
                       }}
                     >
-                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
-                        <span style={{ fontSize: 14 }}>{mealTypeEmoji(fav.tipo_refeicao)}</span>
-                        <span style={{ fontSize: 11, fontWeight: 500, color: "#e0d6ff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                          {fav.itens?.length ? fav.itens.map((i) => i.nome).join(", ") : mealTypeLabel(fav.tipo_refeicao)}
-                        </span>
-                      </div>
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                        <span style={{ fontSize: 11, color: MUTED }}>
-                          {fav.macros ? `${fav.macros.calorias_kcal} kcal` : "Sem macros"}
-                        </span>
-                        <span style={{
-                          fontSize: 10, fontWeight: 600, color: "#A78BFA",
-                          display: "inline-flex", alignItems: "center", gap: 2,
-                        }}>
-                          <Plus style={{ width: 12, height: 12 }} />
-                          {isLoading ? "..." : "Add"}
-                        </span>
-                      </div>
-                    </button>
+                      {/* Unfavorite button — top right */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleToggleFavorite(fav.id, false);
+                        }}
+                        style={{
+                          position: "absolute", top: 8, right: 8,
+                          width: 22, height: 22, borderRadius: "50%",
+                          background: "oklch(.22 .015 270 / .5)", border: 0,
+                          cursor: "pointer", display: "flex",
+                          alignItems: "center", justifyContent: "center",
+                          padding: 0,
+                        }}
+                        aria-label="Remover dos favoritos"
+                      >
+                        <X style={{ width: 12, height: 12, color: MUTED }} />
+                      </button>
+
+                      {/* Quick-add area */}
+                      <button
+                        type="button"
+                        disabled={isLoading}
+                        onClick={() => handleFavoriteQuickAdd(fav)}
+                        style={{
+                          width: "100%", textAlign: "left", padding: 0,
+                          background: "none", border: 0,
+                          cursor: isLoading ? "default" : "pointer",
+                          fontFamily: "inherit",
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6, paddingRight: 24 }}>
+                          <span style={{ fontSize: 14 }}>{mealTypeEmoji(fav.tipo_refeicao)}</span>
+                          <span style={{ fontSize: 11, fontWeight: 500, color: "#e0d6ff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {fav.itens?.length ? fav.itens.map((i) => i.nome).join(", ") : mealTypeLabel(fav.tipo_refeicao)}
+                          </span>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                          <span style={{ fontSize: 11, color: MUTED }}>
+                            {fav.macros ? `${fav.macros.calorias_kcal} kcal` : "Sem macros"}
+                          </span>
+                          <span style={{
+                            fontSize: 10, fontWeight: 600, color: "#A78BFA",
+                            display: "inline-flex", alignItems: "center", gap: 2,
+                          }}>
+                            <Plus style={{ width: 12, height: 12 }} />
+                            {isLoading ? "..." : "Add"}
+                          </span>
+                        </div>
+                      </button>
+                    </div>
                   );
                 })}
               </div>
