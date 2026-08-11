@@ -9,7 +9,6 @@ import { sumMacros, nutritionScore, getDailyKcalGoal, DEFAULT_DAILY_KCAL, mealTy
 import { MealCard } from "@/components/MealCard";
 import { NutritionSummary } from "@/components/NutritionSummary";
 import { WeeklyReport } from "@/components/WeeklyReport";
-import { QuickAddMeals } from "@/components/QuickAddMeals";
 import { NutritionTips } from "@/components/NutritionTips";
 import { NutritionChat } from "@/components/NutritionChat";
 import { MonthlyReport } from "@/components/MonthlyReport";
@@ -337,7 +336,6 @@ function NutricaoPage() {
         <div style={viewStyle(tab === "dia")}>
           <NutritionSummary meals={todayMeals} label={t("resumo_do_dia")} kcalGoal={kcalGoal} />
           <NutritionQualityCard todayMeals={todayMeals} t={t} />
-          <QuickAddMeals meals={meals} />
 
           {/* ── Favoritas ─────────────────────────────────── */}
           {favoriteMeals.length > 0 && (

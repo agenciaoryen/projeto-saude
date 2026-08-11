@@ -101,26 +101,21 @@ export async function POST(req: NextRequest) {
 
     const isUpdate = !!body.id;
 
-    const row: Record<string, unknown> = {
-      user_id: user.id,
-      tipo_refeicao: body.tipo_refeicao || "almoco",
-      foto_path: body.foto_path ?? null,
-      fotos: body.fotos ?? [],
-      itens: body.itens ?? [],
-      macros: body.macros ?? null,
-      classificacao: body.classificacao ?? null,
-      observacao: body.observacao ?? "",
-      texto_livre: body.texto_livre ?? "",
-      status_analise: body.status_analise ?? "pendente",
-      favorited: body.favorited ?? false,
-    };
-
-    // Only set data_hora on insert or when explicitly provided (preserve original on update)
-    if (!isUpdate || body.data_hora) {
-      row.data_hora = body.data_hora || new Date().toISOString();
-    }
-
     if (isUpdate) {
+      // ── UPDATE: only update fields explicitly provided ──────
+      const row: Record<string, unknown> = {};
+      if (body.tipo_refeicao !== undefined) row.tipo_refeicao = body.tipo_refeicao;
+      if (body.foto_path !== undefined) row.foto_path = body.foto_path;
+      if (body.fotos !== undefined) row.fotos = body.fotos;
+      if (body.itens !== undefined) row.itens = body.itens;
+      if (body.macros !== undefined) row.macros = body.macros;
+      if (body.classificacao !== undefined) row.classificacao = body.classificacao;
+      if (body.observacao !== undefined) row.observacao = body.observacao;
+      if (body.texto_livre !== undefined) row.texto_livre = body.texto_livre;
+      if (body.status_analise !== undefined) row.status_analise = body.status_analise;
+      if (body.favorited !== undefined) row.favorited = body.favorited;
+      if (body.data_hora !== undefined) row.data_hora = body.data_hora;
+
       const { data: updated, error } = await admin
         .from("meals")
         .update(row)
@@ -136,11 +131,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(updated);
     }
 
-    const { data: created, error } = await admin
-      .from("meals")
-      .insert(row)
-      .select()
-      .single();
+    // ── INSERT: full row with defaults ────────────────────────
+    const row: Record<string, unknown> = {
+      user_id: user.id,
+      tipo_refeicao: body.tipo_refeicao || "almoco",
+      foto_path: body.foto_path ?? null,
+      fotos: body.fotos ?? [],
+      itens: body.itens ?? [],
+      macros: body.macros ?? null,
+      classificacao: body.classificacao ?? null,
+      observacao: body.observacao ?? "",
+      texto_livre: body.texto_livre ?? "",
+      status_analise: body.status_analise ?? "pendente",
+      favorited: body.favorited ?? false,
+      data_hora: body.data_hora || new Date().toISOString(),
+    };
 
     if (error) throw error;
     // Auto-sync ate_well + refresh specialists
