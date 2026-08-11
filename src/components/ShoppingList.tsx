@@ -171,32 +171,36 @@ export function ShoppingList() {
 
   // ── Drag & drop ────────────────────────────────────────────
 
-  const handleDragStart = (index: number) => {
+  const handleDragStart = (e: React.DragEvent, index: number) => {
     if (selectionMode) return;
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", String(index));
     dragIndex.current = index;
   };
 
-  const handleDragOver = (e: React.DragEvent, index: number) => {
+  const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+  };
+
+  const handleDragOverIndex = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
     dragOverIndex.current = index;
   };
 
-  const handleDrop = (index: number) => {
+  const handleDrop = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
     const from = dragIndex.current;
-    if (from === null || from === index) {
-      dragIndex.current = null;
-      dragOverIndex.current = null;
-      return;
-    }
+    dragIndex.current = null;
+    dragOverIndex.current = null;
+
+    if (from === null || from === index) return;
 
     const reordered = reorder(items, from, index);
-    // Reassign positions
     const withPositions = reordered.map((item, i) => ({ ...item, position: i }));
     setItems(withPositions);
     persistOrder(withPositions);
-
-    dragIndex.current = null;
-    dragOverIndex.current = null;
   };
 
   const handleDragEnd = () => {
@@ -399,9 +403,9 @@ export function ShoppingList() {
                 <div
                   key={item.id}
                   draggable={!selectionMode}
-                  onDragStart={() => handleDragStart(index)}
-                  onDragOver={(e) => handleDragOver(e, index)}
-                  onDrop={() => handleDrop(index)}
+                  onDragStart={(e) => handleDragStart(e, index)}
+                  onDragOver={(e) => handleDragOverIndex(e, index)}
+                  onDrop={(e) => handleDrop(e, index)}
                   onDragEnd={handleDragEnd}
                   style={{
                     display: "flex", alignItems: "center", gap: 8,
