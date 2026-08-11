@@ -36,6 +36,9 @@ async function persistOrder(items: ShoppingItem[]) {
   }
 }
 
+// Rough item height for spacing calculations
+const ITEM_HEIGHT = 52; // px (10 padding top + ~24 content + 10 padding bottom + 4 gap + 4 border/margin)
+
 export function ShoppingList() {
   const { t } = useTranslation();
   const [items, setItems] = useState<ShoppingItem[]>([]);
@@ -46,21 +49,27 @@ export function ShoppingList() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // ── Mouse/touch drag state ──────────────────────────────────
+  // ── Pointer drag state ─────────────────────────────────────
 
   const listRef = useRef<HTMLDivElement>(null);
   const drag = useRef<{
     active: boolean;
     fromIndex: number;
     overIndex: number;
-    startY: number;
-    itemHeight: number;
     pointerId: number;
-  }>({ active: false, fromIndex: -1, overIndex: -1, startY: 0, itemHeight: 0, pointerId: -1 });
+    startY: number;       // pointer clientY at mousedown
+    itemTop: number;      // original bounding rect top of dragged item
+    itemLeft: number;     // original bounding rect left
+    itemWidth: number;    // original bounding rect width
+  }>({
+    active: false, fromIndex: -1, overIndex: -1, pointerId: -1,
+    startY: 0, itemTop: 0, itemLeft: 0, itemWidth: 0,
+  });
 
   // Visual state for re-renders
   const [dragFrom, setDragFrom] = useState<number | null>(null);
   const [dragOver, setDragOver] = useState<number | null>(null);
+  const [dragY, setDragY] = useState(0); // current pointer Y for transform
 
   const loadItems = useCallback(async () => {
     try {
@@ -107,24 +116,27 @@ export function ShoppingList() {
     e.preventDefault();
     e.stopPropagation();
 
-    const el = (e.target as HTMLElement).closest("[data-drag-row]") as HTMLElement | null;
-    const itemHeight = el?.offsetHeight || 52;
+    const row = (e.target as HTMLElement).closest("[data-drag-row]") as HTMLElement | null;
+    if (!row) return;
+    const rect = row.getBoundingClientRect();
 
     drag.current = {
       active: true,
       fromIndex: index,
       overIndex: index,
-      startY: e.clientY,
-      itemHeight,
       pointerId: e.pointerId,
+      startY: e.clientY,
+      itemTop: rect.top,
+      itemLeft: rect.left,
+      itemWidth: rect.width,
     };
 
     setDragFrom(index);
     setDragOver(index);
+    setDragY(e.clientY);
 
-    // Capture pointer for reliable tracking
     try {
-      (e.target as HTMLElement).setPointerCapture(e.pointerId);
+      row.setPointerCapture(e.pointerId);
     } catch {
       // ignore
     }
@@ -134,6 +146,8 @@ export function ShoppingList() {
     if (!drag.current.active) return;
     if (e.pointerId !== drag.current.pointerId) return;
     e.preventDefault();
+
+    setDragY(e.clientY);
 
     const overIndex = getOverIndex(e.clientY);
     if (overIndex !== drag.current.overIndex) {
@@ -149,7 +163,7 @@ export function ShoppingList() {
 
     const { fromIndex, overIndex } = drag.current;
 
-    // Reset drag state
+    // Reset
     drag.current.active = false;
     setDragFrom(null);
     setDragOver(null);
@@ -194,7 +208,7 @@ export function ShoppingList() {
     }
   };
 
-  // ── Toggle (checked ↔ unchecked) + auto-reorder ────────────
+  // ── Toggle + auto-reorder ──────────────────────────────────
 
   const handleToggle = async (item: ShoppingItem) => {
     if (selectionMode || drag.current.active) return;
@@ -242,7 +256,7 @@ export function ShoppingList() {
     }
   };
 
-  // ── Limpar concluídos (uncheck only) ───────────────────────
+  // ── Limpar concluídos ──────────────────────────────────────
 
   const handleClearChecked = async () => {
     const checked = items.filter((i) => i.checked);
@@ -362,53 +376,30 @@ export function ShoppingList() {
             {!selectionMode ? (
               <>
                 <button type="button" onClick={() => setSelectionMode(true)}
-                  style={{
-                    background: "none", border: 0, cursor: "pointer",
-                    fontSize: 11, color: MUTED, fontFamily: "inherit",
-                    display: "inline-flex", alignItems: "center", gap: 4,
-                  }}>
-                  <CheckSquare style={{ width: 12, height: 12 }} />
-                  Selecionar
+                  style={{ background: "none", border: 0, cursor: "pointer", fontSize: 11, color: MUTED, fontFamily: "inherit", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                  <CheckSquare style={{ width: 12, height: 12 }} />Selecionar
                 </button>
                 {checkedCount > 0 && (
                   <button type="button" onClick={handleClearChecked}
-                    style={{
-                      background: "none", border: 0, cursor: "pointer",
-                      fontSize: 11, color: MUTED, fontFamily: "inherit",
-                      display: "inline-flex", alignItems: "center", gap: 4,
-                    }}>
-                    <Minus style={{ width: 12, height: 12 }} />
-                    Limpar concluídos
+                    style={{ background: "none", border: 0, cursor: "pointer", fontSize: 11, color: MUTED, fontFamily: "inherit", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                    <Minus style={{ width: 12, height: 12 }} />Limpar concluídos
                   </button>
                 )}
               </>
             ) : (
               <>
                 <button type="button" onClick={allSelected ? deselectAll : selectAll}
-                  style={{
-                    background: "none", border: 0, cursor: "pointer",
-                    fontSize: 11, color: MUTED, fontFamily: "inherit",
-                    display: "inline-flex", alignItems: "center", gap: 4,
-                  }}>
-                  <Square style={{ width: 12, height: 12 }} />
-                  {allSelected ? "Desmarcar todos" : "Selecionar todos"}
+                  style={{ background: "none", border: 0, cursor: "pointer", fontSize: 11, color: MUTED, fontFamily: "inherit", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                  <Square style={{ width: 12, height: 12 }} />{allSelected ? "Desmarcar todos" : "Selecionar todos"}
                 </button>
                 {selectedIds.size > 0 && (
                   <button type="button" onClick={deleteSelected}
-                    style={{
-                      background: "none", border: 0, cursor: "pointer",
-                      fontSize: 11, color: "oklch(0.55 0.18 15)", fontFamily: "inherit",
-                      display: "inline-flex", alignItems: "center", gap: 4, fontWeight: 600,
-                    }}>
-                    <Trash2 style={{ width: 12, height: 12 }} />
-                    Excluir ({selectedIds.size})
+                    style={{ background: "none", border: 0, cursor: "pointer", fontSize: 11, color: "oklch(0.55 0.18 15)", fontFamily: "inherit", display: "inline-flex", alignItems: "center", gap: 4, fontWeight: 600 }}>
+                    <Trash2 style={{ width: 12, height: 12 }} />Excluir ({selectedIds.size})
                   </button>
                 )}
                 <button type="button" onClick={exitSelection}
-                  style={{
-                    background: "none", border: 0, cursor: "pointer",
-                    fontSize: 11, color: "#A78BFA", fontFamily: "inherit", fontWeight: 600,
-                  }}>
+                  style={{ background: "none", border: 0, cursor: "pointer", fontSize: 11, color: "#A78BFA", fontFamily: "inherit", fontWeight: 600 }}>
                   Cancelar
                 </button>
               </>
@@ -422,33 +413,63 @@ export function ShoppingList() {
         ref={listRef}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
-        style={{ flex: 1, overflowY: "auto", minHeight: 0, touchAction: "none" }}
+        style={{ flex: 1, overflowY: "auto", overflowX: "visible", minHeight: 0, touchAction: "none" }}
       >
         {loading ? (
-          <p style={{ textAlign: "center", color: MUTED, fontSize: 13, padding: "24px 0" }}>
-            Carregando...
-          </p>
+          <p style={{ textAlign: "center", color: MUTED, fontSize: 13, padding: "24px 0" }}>Carregando...</p>
         ) : items.length === 0 ? (
-          <div style={{
-            textAlign: "center", padding: "32px 16px",
-            display: "flex", flexDirection: "column", alignItems: "center", gap: 12,
-          }}>
+          <div style={{ textAlign: "center", padding: "32px 16px", display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
             <ShoppingCart style={{ width: 40, height: 40, color: MUTED, opacity: 0.5 }} />
             <div>
-              <p style={{ fontWeight: 500, color: FOREGROUND, fontSize: 14, margin: 0 }}>
-                {t("lista_vazia")}
-              </p>
-              <p style={{ fontSize: 12, color: MUTED, lineHeight: 1.5, margin: "4px 0 0" }}>
-                {t("lista_vazia_desc")}
-              </p>
+              <p style={{ fontWeight: 500, color: FOREGROUND, fontSize: 14, margin: 0 }}>{t("lista_vazia")}</p>
+              <p style={{ fontSize: 12, color: MUTED, lineHeight: 1.5, margin: "4px 0 0" }}>{t("lista_vazia_desc")}</p>
             </div>
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             {items.map((item, index) => {
               const isSelected = selectedIds.has(item.id);
-              const isDragFrom = dragFrom === index;
+              const isDragging = dragFrom === index;
               const isDragOverTarget = dragOver === index && dragFrom !== index && dragFrom !== null;
+              const isActive = drag.current.active;
+
+              // ── Drag transform for the item being dragged ────
+              let dragStyle: React.CSSProperties = {};
+              if (isDragging && drag.current.active) {
+                const deltaY = dragY - drag.current.startY;
+                dragStyle = {
+                  transform: `translateY(${deltaY}px) scale(1.03)`,
+                  zIndex: 50,
+                  boxShadow: "0 8px 32px rgba(124,92,255,0.35), 0 2px 8px rgba(0,0,0,0.4)",
+                  borderColor: PURPLE_HEX,
+                  background: "oklch(.22 .03 270 / .95)",
+                  transition: "box-shadow 0.15s, border-color 0.15s, background 0.15s",
+                };
+              }
+
+              // ── Gap for target item ──────────────────────────
+              let gapStyle: React.CSSProperties = {};
+              if (isDragOverTarget && dragFrom !== null) {
+                const goingDown = dragOver! > dragFrom;
+                gapStyle = {
+                  [goingDown ? "marginBottom" : "marginTop"]: ITEM_HEIGHT,
+                  transition: "margin 0.2s ease",
+                };
+              }
+
+              // ── Shift items between from and over ────────────
+              let shiftStyle: React.CSSProperties = {};
+              if (isActive && !isDragging && dragFrom !== null && dragOver !== null) {
+                const from = dragFrom;
+                const to = dragOver;
+                if (from < to && index > from && index <= to) {
+                  // Items between move UP
+                  shiftStyle = { transform: `translateY(-${ITEM_HEIGHT}px)`, transition: "transform 0.2s ease" };
+                } else if (from > to && index >= to && index < from) {
+                  // Items between move DOWN
+                  shiftStyle = { transform: `translateY(${ITEM_HEIGHT}px)`, transition: "transform 0.2s ease" };
+                }
+              }
 
               return (
                 <div
@@ -457,22 +478,15 @@ export function ShoppingList() {
                   style={{
                     display: "flex", alignItems: "center", gap: 8,
                     padding: "10px 10px 10px 6px", borderRadius: 12,
-                    background: isSelected
-                      ? `${PURPLE_HEX}20`
-                      : item.checked
-                        ? "transparent"
-                        : DARK_CARD,
-                    border: isSelected
-                      ? `1px solid ${PURPLE_HEX}`
-                      : isDragOverTarget
-                        ? `1px dashed ${PURPLE_HEX}`
-                        : item.checked
-                          ? "1px solid transparent"
-                          : `1px solid ${BORDER}`,
-                    opacity: isDragFrom ? 0.4 : 1,
-                    transition: "border 0.15s, opacity 0.15s",
+                    background: isSelected ? `${PURPLE_HEX}20` : item.checked ? "transparent" : DARK_CARD,
+                    border: isSelected ? `1px solid ${PURPLE_HEX}` : item.checked ? "1px solid transparent" : `1px solid ${BORDER}`,
+                    opacity: isDragging ? 0.9 : 1,
                     userSelect: "none",
                     WebkitUserSelect: "none",
+                    position: isDragging ? "relative" : "static",
+                    ...dragStyle,
+                    ...gapStyle,
+                    ...shiftStyle,
                   }}
                 >
                   {/* Drag handle */}
@@ -493,16 +507,8 @@ export function ShoppingList() {
                   {/* Selection checkbox */}
                   {selectionMode && (
                     <button type="button" onClick={() => toggleSelection(item.id)}
-                      style={{
-                        width: 22, height: 22, flexShrink: 0,
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        background: "none", border: 0, cursor: "pointer", padding: 0,
-                      }}>
-                      {isSelected ? (
-                        <CheckSquare style={{ width: 20, height: 20, color: PURPLE_HEX }} />
-                      ) : (
-                        <Square style={{ width: 20, height: 20, color: MUTED }} />
-                      )}
+                      style={{ width: 22, height: 22, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "none", border: 0, cursor: "pointer", padding: 0 }}>
+                      {isSelected ? <CheckSquare style={{ width: 20, height: 20, color: PURPLE_HEX }} /> : <Square style={{ width: 20, height: 20, color: MUTED }} />}
                     </button>
                   )}
 
@@ -513,8 +519,7 @@ export function ShoppingList() {
                         width: 22, height: 22, borderRadius: 6, flexShrink: 0,
                         border: item.checked ? "none" : `1.5px solid ${BORDER}`,
                         background: item.checked ? PURPLE_HEX : "transparent",
-                        cursor: "pointer", display: "flex",
-                        alignItems: "center", justifyContent: "center",
+                        cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
                         transition: "all 0.15s",
                       }}>
                       {item.checked && (
@@ -526,13 +531,11 @@ export function ShoppingList() {
                   )}
 
                   {/* Name */}
-                  <span
-                    onClick={() => !selectionMode && handleToggle(item)}
+                  <span onClick={() => !selectionMode && handleToggle(item)}
                     style={{
                       flex: 1, fontSize: 14, minWidth: 0,
                       color: item.checked ? MUTED : FOREGROUND,
                       textDecoration: item.checked ? "line-through" : "none",
-                      transition: "all 0.2s",
                       cursor: selectionMode ? "default" : "pointer",
                     }}>
                     {item.item_name}
@@ -540,27 +543,15 @@ export function ShoppingList() {
 
                   {/* Category tag */}
                   {item.category !== "geral" && (
-                    <span style={{
-                      fontSize: 10, fontWeight: 600,
-                      padding: "2px 8px", borderRadius: 9999,
-                      background: "oklch(.58 .18 270 / .10)",
-                      color: "oklch(.58 .18 270)",
-                      textTransform: "uppercase", letterSpacing: ".04em",
-                    }}>
+                    <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 9999, background: "oklch(.58 .18 270 / .10)", color: "oklch(.58 .18 270)", textTransform: "uppercase", letterSpacing: ".04em" }}>
                       {item.category}
                     </span>
                   )}
 
                   {/* Delete */}
                   {!selectionMode && (
-                    <button type="button"
-                      onClick={(e) => { e.stopPropagation(); handleDelete(item.id); }}
-                      style={{
-                        width: 26, height: 26, borderRadius: "50%", flexShrink: 0,
-                        background: "none", border: 0, cursor: "pointer",
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        opacity: 0.4,
-                      }}>
+                    <button type="button" onClick={(e) => { e.stopPropagation(); handleDelete(item.id); }}
+                      style={{ width: 26, height: 26, borderRadius: "50%", flexShrink: 0, background: "none", border: 0, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", opacity: 0.4 }}>
                       <X style={{ width: 14, height: 14, color: MUTED }} />
                     </button>
                   )}
