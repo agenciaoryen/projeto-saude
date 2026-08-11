@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useTranslation } from "@/lib/useTranslation";
 import { cachedFetch, invalidateFetchCache } from "@/lib/fetch-cache";
-import { Plus, X, ShoppingCart, Trash2 } from "lucide-react";
+import { Plus, X, ShoppingCart, Trash2, CheckSquare, Square, Minus } from "lucide-react";
 import { toast } from "sonner";
 import type { ShoppingItem } from "@/types";
 
@@ -20,9 +20,11 @@ export function ShoppingList() {
   const [loading, setLoading] = useState(true);
   const [input, setInput] = useState("");
   const [adding, setAdding] = useState(false);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const loadItems = async () => {
+  const loadItems = useCallback(async () => {
     try {
       const data = await cachedFetch<ShoppingItem[]>("/api/shopping-list");
       if (Array.isArray(data)) setItems(data);
@@ -31,11 +33,11 @@ export function ShoppingList() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadItems();
-  }, []);
+  }, [loadItems]);
 
   const handleAdd = async () => {
     const name = input.trim();
@@ -60,7 +62,7 @@ export function ShoppingList() {
   };
 
   const handleToggle = async (item: ShoppingItem) => {
-    // Optimistic update
+    if (selectionMode) return; // no toggle in selection mode
     setItems((prev) =>
       prev.map((i) => (i.id === item.id ? { ...i, checked: !i.checked } : i))
     );
@@ -72,7 +74,6 @@ export function ShoppingList() {
       });
       if (!res.ok) throw new Error();
     } catch {
-      // Rollback
       setItems((prev) =>
         prev.map((i) => (i.id === item.id ? { ...i, checked: item.checked } : i))
       );
@@ -86,22 +87,90 @@ export function ShoppingList() {
       if (!res.ok) throw new Error();
     } catch {
       toast.error("Erro ao remover");
-      loadItems(); // refresh
-    }
-  };
-
-  const handleClearChecked = async () => {
-    const checkedIds = items.filter((i) => i.checked).map((i) => i.id);
-    if (checkedIds.length === 0) return;
-    setItems((prev) => prev.filter((i) => !i.checked));
-    try {
-      const res = await fetch("/api/shopping-list?clearChecked=true", { method: "DELETE" });
-      if (!res.ok) throw new Error();
-    } catch {
-      toast.error("Erro ao limpar");
       loadItems();
     }
   };
+
+  // "Limpar concluídos" now just unchecks — doesn't delete
+  const handleClearChecked = async () => {
+    const checked = items.filter((i) => i.checked);
+    if (checked.length === 0) return;
+
+    // Optimistic
+    setItems((prev) => prev.map((i) => (i.checked ? { ...i, checked: false } : i)));
+
+    // Batch uncheck via PATCH
+    let failed = false;
+    for (const item of checked) {
+      try {
+        const res = await fetch("/api/shopping-list", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: item.id, checked: false }),
+        });
+        if (!res.ok) failed = true;
+      } catch {
+        failed = true;
+      }
+    }
+    if (failed) {
+      toast.error("Erro ao desmarcar alguns itens");
+      loadItems(); // refresh to get true state
+    }
+  };
+
+  // ── Selection mode ─────────────────────────────────────────
+
+  const toggleSelection = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const selectAll = () => {
+    const allIds = new Set(items.map((i) => i.id));
+    setSelectedIds(allIds);
+  };
+
+  const deselectAll = () => {
+    setSelectedIds(new Set());
+  };
+
+  const deleteSelected = async () => {
+    if (selectedIds.size === 0) return;
+    const toDelete = [...selectedIds];
+
+    // Optimistic
+    setItems((prev) => prev.filter((i) => !selectedIds.has(i.id)));
+    setSelectedIds(new Set());
+    setSelectionMode(false);
+
+    let failed = false;
+    for (const id of toDelete) {
+      try {
+        const res = await fetch(`/api/shopping-list?id=${id}`, { method: "DELETE" });
+        if (!res.ok) failed = true;
+      } catch {
+        failed = true;
+      }
+    }
+    if (failed) {
+      toast.error("Erro ao remover alguns itens");
+      loadItems();
+    } else {
+      toast.success(`${toDelete.length} item(ns) removido(s)`);
+    }
+  };
+
+  const exitSelection = () => {
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+  };
+
+  const allSelected = items.length > 0 && selectedIds.size === items.length;
 
   const uncheckedCount = items.filter((i) => !i.checked).length;
   const checkedCount = items.filter((i) => i.checked).length;
@@ -139,30 +208,89 @@ export function ShoppingList() {
         </button>
       </div>
 
-      {/* ── Count ─────────────────────────────────────────── */}
-      {!loading && (
+      {/* ── Toolbar (count + actions) ──────────────────────── */}
+      {!loading && items.length > 0 && (
         <div style={{
           display: "flex", alignItems: "center", justifyContent: "space-between",
-          marginBottom: 8, flexShrink: 0,
+          marginBottom: 8, flexShrink: 0, gap: 8, flexWrap: "wrap",
         }}>
           <span style={{ fontSize: 11, color: MUTED }}>
             {uncheckedCount} {uncheckedCount === 1 ? "pendente" : "pendentes"}
             {checkedCount > 0 && ` · ${checkedCount} concluído${checkedCount > 1 ? "s" : ""}`}
           </span>
-          {checkedCount > 0 && (
-            <button
-              type="button"
-              onClick={handleClearChecked}
-              style={{
-                background: "none", border: 0, cursor: "pointer",
-                fontSize: 11, color: MUTED, fontFamily: "inherit",
-                display: "inline-flex", alignItems: "center", gap: 4,
-              }}
-            >
-              <Trash2 style={{ width: 12, height: 12 }} />
-              {t("lista_limpar")}
-            </button>
-          )}
+          <div style={{ display: "flex", gap: 6 }}>
+            {!selectionMode ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setSelectionMode(true)}
+                  style={{
+                    background: "none", border: 0, cursor: "pointer",
+                    fontSize: 11, color: MUTED, fontFamily: "inherit",
+                    display: "inline-flex", alignItems: "center", gap: 4,
+                  }}
+                >
+                  <CheckSquare style={{ width: 12, height: 12 }} />
+                  Selecionar
+                </button>
+                {checkedCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleClearChecked}
+                    style={{
+                      background: "none", border: 0, cursor: "pointer",
+                      fontSize: 11, color: MUTED, fontFamily: "inherit",
+                      display: "inline-flex", alignItems: "center", gap: 4,
+                    }}
+                  >
+                    <Minus style={{ width: 12, height: 12 }} />
+                    Limpar concluídos
+                  </button>
+                )}
+              </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={allSelected ? deselectAll : selectAll}
+                  style={{
+                    background: "none", border: 0, cursor: "pointer",
+                    fontSize: 11, color: MUTED, fontFamily: "inherit",
+                    display: "inline-flex", alignItems: "center", gap: 4,
+                  }}
+                >
+                  <Square style={{ width: 12, height: 12 }} />
+                  {allSelected ? "Desmarcar todos" : "Selecionar todos"}
+                </button>
+                {selectedIds.size > 0 && (
+                  <button
+                    type="button"
+                    onClick={deleteSelected}
+                    style={{
+                      background: "none", border: 0, cursor: "pointer",
+                      fontSize: 11, color: "oklch(0.55 0.18 15)", fontFamily: "inherit",
+                      display: "inline-flex", alignItems: "center", gap: 4,
+                      fontWeight: 600,
+                    }}
+                  >
+                    <Trash2 style={{ width: 12, height: 12 }} />
+                    Excluir ({selectedIds.size})
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={exitSelection}
+                  style={{
+                    background: "none", border: 0, cursor: "pointer",
+                    fontSize: 11, color: "#A78BFA", fontFamily: "inherit",
+                    fontWeight: 600,
+                  }}
+                >
+                  Cancelar
+                </button>
+              </>
+            )}
+          </div>
         </div>
       )}
 
@@ -189,75 +317,109 @@ export function ShoppingList() {
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            {items.map((item) => (
-              <div
-                key={item.id}
-                style={{
-                  display: "flex", alignItems: "center", gap: 10,
-                  padding: "10px 12px", borderRadius: 12,
-                  background: item.checked ? "transparent" : DARK_CARD,
-                  border: item.checked ? "1px solid transparent" : `1px solid ${BORDER}`,
-                  transition: "all 0.2s",
-                }}
-              >
-                {/* Checkbox */}
-                <button
-                  type="button"
-                  onClick={() => handleToggle(item)}
+            {items.map((item) => {
+              const isSelected = selectedIds.has(item.id);
+              return (
+                <div
+                  key={item.id}
                   style={{
-                    width: 22, height: 22, borderRadius: 6, flexShrink: 0,
-                    border: item.checked ? "none" : `1.5px solid ${BORDER}`,
-                    background: item.checked ? PURPLE_HEX : "transparent",
-                    cursor: "pointer", display: "flex",
-                    alignItems: "center", justifyContent: "center",
-                    transition: "all 0.15s",
+                    display: "flex", alignItems: "center", gap: 10,
+                    padding: "10px 12px", borderRadius: 12,
+                    background: item.checked ? "transparent" : DARK_CARD,
+                    border: isSelected
+                      ? `1px solid ${PURPLE_HEX}`
+                      : item.checked
+                        ? "1px solid transparent"
+                        : `1px solid ${BORDER}`,
+                    transition: "all 0.2s",
                   }}
                 >
-                  {item.checked && (
-                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                      <path d="M2.5 6L5 8.5L9.5 3.5" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
+                  {/* Selection checkbox (only in selection mode) */}
+                  {selectionMode && (
+                    <button
+                      type="button"
+                      onClick={() => toggleSelection(item.id)}
+                      style={{
+                        width: 22, height: 22, flexShrink: 0,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        background: "none", border: 0, cursor: "pointer", padding: 0,
+                      }}
+                    >
+                      {isSelected ? (
+                        <CheckSquare style={{ width: 20, height: 20, color: PURPLE_HEX }} />
+                      ) : (
+                        <Square style={{ width: 20, height: 20, color: MUTED }} />
+                      )}
+                    </button>
                   )}
-                </button>
 
-                {/* Name */}
-                <span style={{
-                  flex: 1, fontSize: 14, minWidth: 0,
-                  color: item.checked ? MUTED : FOREGROUND,
-                  textDecoration: item.checked ? "line-through" : "none",
-                  transition: "all 0.2s",
-                }}>
-                  {item.item_name}
-                </span>
+                  {/* Completed checkbox (hidden in selection mode) */}
+                  {!selectionMode && (
+                    <button
+                      type="button"
+                      onClick={() => handleToggle(item)}
+                      style={{
+                        width: 22, height: 22, borderRadius: 6, flexShrink: 0,
+                        border: item.checked ? "none" : `1.5px solid ${BORDER}`,
+                        background: item.checked ? PURPLE_HEX : "transparent",
+                        cursor: "pointer", display: "flex",
+                        alignItems: "center", justifyContent: "center",
+                        transition: "all 0.15s",
+                      }}
+                    >
+                      {item.checked && (
+                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                          <path d="M2.5 6L5 8.5L9.5 3.5" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      )}
+                    </button>
+                  )}
 
-                {/* Category tag (only if not 'geral') */}
-                {item.category !== "geral" && (
-                  <span style={{
-                    fontSize: 10, fontWeight: 600,
-                    padding: "2px 8px", borderRadius: 9999,
-                    background: "oklch(.58 .18 270 / .10)",
-                    color: "oklch(.58 .18 270)",
-                    textTransform: "uppercase", letterSpacing: ".04em",
-                  }}>
-                    {item.category}
+                  {/* Name */}
+                  <span
+                    onClick={() => !selectionMode && handleToggle(item)}
+                    style={{
+                      flex: 1, fontSize: 14, minWidth: 0,
+                      color: item.checked ? MUTED : FOREGROUND,
+                      textDecoration: item.checked ? "line-through" : "none",
+                      transition: "all 0.2s",
+                      cursor: selectionMode ? "default" : "pointer",
+                    }}
+                  >
+                    {item.item_name}
                   </span>
-                )}
 
-                {/* Delete */}
-                <button
-                  type="button"
-                  onClick={() => handleDelete(item.id)}
-                  style={{
-                    width: 26, height: 26, borderRadius: "50%", flexShrink: 0,
-                    background: "none", border: 0, cursor: "pointer",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    opacity: 0.4,
-                  }}
-                >
-                  <X style={{ width: 14, height: 14, color: MUTED }} />
-                </button>
-              </div>
-            ))}
+                  {/* Category tag */}
+                  {item.category !== "geral" && (
+                    <span style={{
+                      fontSize: 10, fontWeight: 600,
+                      padding: "2px 8px", borderRadius: 9999,
+                      background: "oklch(.58 .18 270 / .10)",
+                      color: "oklch(.58 .18 270)",
+                      textTransform: "uppercase", letterSpacing: ".04em",
+                    }}>
+                      {item.category}
+                    </span>
+                  )}
+
+                  {/* Delete (only outside selection mode) */}
+                  {!selectionMode && (
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(item.id)}
+                      style={{
+                        width: 26, height: 26, borderRadius: "50%", flexShrink: 0,
+                        background: "none", border: 0, cursor: "pointer",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        opacity: 0.4,
+                      }}
+                    >
+                      <X style={{ width: 14, height: 14, color: MUTED }} />
+                    </button>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
