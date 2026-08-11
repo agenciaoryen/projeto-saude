@@ -874,14 +874,9 @@ export default function MayaChatPage() {
             tabIndex={-1}
             className="rounded-full size-10 shrink-0 inline-flex items-center justify-center border-0 cursor-pointer disabled:opacity-50 disabled:cursor-default"
             style={{ background: "var(--maya-primary)" }}
-            onTouchStart={(e) => {
+            onPointerDown={(e) => {
               e.preventDefault();
               // Synchronously refocus textarea — keyboard never leaves on iOS
-              textareaRef.current?.focus();
-              sendMessage();
-            }}
-            onMouseDown={(e) => {
-              e.preventDefault();
               textareaRef.current?.focus();
               sendMessage();
             }}
