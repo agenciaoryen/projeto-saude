@@ -402,8 +402,6 @@ export function ShoppingList() {
               return (
                 <div
                   key={item.id}
-                  draggable={!selectionMode}
-                  onDragStart={(e) => handleDragStart(e, index)}
                   onDragOver={(e) => handleDragOverIndex(e, index)}
                   onDrop={(e) => handleDrop(e, index)}
                   onDragEnd={handleDragEnd}
@@ -424,12 +422,13 @@ export function ShoppingList() {
                           : `1px solid ${BORDER}`,
                     opacity: isDragging ? 0.4 : 1,
                     transition: "all 0.15s",
-                    cursor: selectionMode ? "default" : "grab",
                   }}
                 >
                   {/* Drag handle (grip icon) — only outside selection mode */}
                   {!selectionMode && (
                     <div
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, index)}
                       style={{
                         width: 18, height: 28, flexShrink: 0,
                         display: "flex", alignItems: "center", justifyContent: "center",
