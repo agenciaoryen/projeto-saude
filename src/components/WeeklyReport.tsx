@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { sumMacros, nutritionScore, mealTypeLabel, mealTypeEmoji } from "@/lib/meal-utils";
+import { detectNutrientGaps } from "@/lib/nutrient-data";
 import { getLocalDateFromISO, getWeekMondayDate, getWeekSundayDate } from "@/lib/utils";
 import { TrendingUp, TrendingDown, Minus } from "lucide-react";
 import type { Meal, MealType } from "@/types";
@@ -11,15 +12,6 @@ interface WeekDay {
   kcal: number;
   score: number;
 }
-
-const NUTRIENT_SOURCES: { nutrient: string; emoji: string; keywords: string[] }[] = [
-  { nutrient: "Ferro", emoji: "🩸", keywords: ["feijão", "lentilha", "carne", "bovina", "figado", "beterraba", "espinafre", "grao", "grão de bico", "castanha"] },
-  { nutrient: "Cálcio", emoji: "🦴", keywords: ["leite", "queijo", "iogurte", "coalhada", "requeijão", "brócolis", "couve", "gergelim", "amêndoa", "tofu"] },
-  { nutrient: "Vitamina C", emoji: "🍊", keywords: ["laranja", "limão", "acerola", "kiwi", "morango", "manga", "abacaxi", "tomate", "pimentão", "brócolis"] },
-  { nutrient: "Fibras", emoji: "🌾", keywords: ["aveia", "chia", "linhaça", "granola", "cereal", "integral", "farelo", "ameixa", "mamão", "legume"] },
-  { nutrient: "Ômega 3", emoji: "🐟", keywords: ["salmão", "sardinha", "atum", "bacalhau", "tilápia", "truta", "nozes", "linhaça", "chia"] },
-  { nutrient: "Magnésio", emoji: "🔋", keywords: ["banana", "castanha", "amêndoa", "abacate", "espinafre", "cacau", "aveia", "feijão", "semente", "abóbora"] },
-];
 
 // ── Design tokens ──────────────────────────────────────────────
 const MUTED = "#9e96b5";
@@ -147,9 +139,7 @@ export function WeeklyReport({ meals, weekDays }: { meals: Meal[]; weekDays: Wee
       return d >= mondayDate && d <= sundayDate && m.status_analise === "analisado";
     });
     const allItems = weekMeals.flatMap((m) => (m.itens || []).map((i) => i.nome.toLowerCase().trim()));
-    const gaps = NUTRIENT_SOURCES.filter(
-      (src) => !allItems.some((item) => src.keywords.some((kw) => item.includes(kw)))
-    );
+    const gaps = detectNutrientGaps(allItems);
     return {
       nutrientGaps: gaps,
       analyzedCount: weekMeals.length,
@@ -292,12 +282,16 @@ export function WeeklyReport({ meals, weekDays }: { meals: Meal[]; weekDays: Wee
               ? "Com os dados disponíveis, estes nutrientes provavelmente estão em falta:"
               : "Baseado nos alimentos registrados esta semana, estes nutrientes podem estar em falta:"}
           </p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {nutrientGaps.map((gap) => (
-              <div key={gap.nutrient} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}>
-                <span style={{ fontSize: 18 }}>{gap.emoji}</span>
-                <span style={{ fontWeight: 500, color: "#e0d6ff" }}>{gap.nutrient}</span>
-                <span style={mutedText}>— sem fontes claras na semana</span>
+              <div key={gap.nutrient}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, marginBottom: 4 }}>
+                  <span style={{ fontSize: 18 }}>{gap.emoji}</span>
+                  <span style={{ fontWeight: 500, color: "#e0d6ff" }}>{gap.nutrient}</span>
+                </div>
+                <p style={{ fontSize: 11, color: MUTED, lineHeight: 1.5, margin: 0, paddingLeft: 26 }}>
+                  💡 Experimente: {gap.sources.join(", ")}
+                </p>
               </div>
             ))}
           </div>

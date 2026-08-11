@@ -2,17 +2,9 @@
 
 import { useMemo } from "react";
 import { sumMacros } from "@/lib/meal-utils";
+import { detectNutrientGaps } from "@/lib/nutrient-data";
 import { TrendingUp, TrendingDown, Minus } from "lucide-react";
 import type { Meal } from "@/types";
-
-const NUTRIENT_SOURCES: { nutrient: string; emoji: string; keywords: string[] }[] = [
-  { nutrient: "Ferro", emoji: "🩸", keywords: ["feijão", "lentilha", "carne", "bovina", "figado", "beterraba", "espinafre", "grao", "grão de bico", "castanha"] },
-  { nutrient: "Cálcio", emoji: "🦴", keywords: ["leite", "queijo", "iogurte", "coalhada", "requeijão", "brócolis", "couve", "gergelim", "amêndoa", "tofu"] },
-  { nutrient: "Vitamina C", emoji: "🍊", keywords: ["laranja", "limão", "acerola", "kiwi", "morango", "manga", "abacaxi", "tomate", "pimentão", "brócolis"] },
-  { nutrient: "Fibras", emoji: "🌾", keywords: ["aveia", "chia", "linhaça", "granola", "cereal", "integral", "farelo", "ameixa", "mamão", "legume"] },
-  { nutrient: "Ômega 3", emoji: "🐟", keywords: ["salmão", "sardinha", "atum", "bacalhau", "tilápia", "truta", "nozes", "linhaça", "chia"] },
-  { nutrient: "Magnésio", emoji: "🔋", keywords: ["banana", "castanha", "amêndoa", "abacate", "espinafre", "cacau", "aveia", "feijão", "semente", "abóbora"] },
-];
 
 // ── Design tokens ──────────────────────────────────────────────
 const MUTED = "#9e96b5";
@@ -76,15 +68,7 @@ export function MonthlyReport({ meals, monthStats }: { meals: Meal[]; monthStats
     }
 
     // Lacunas de micronutrientes
-    const nutrientGaps: { nutrient: string; emoji: string }[] = [];
-    for (const source of NUTRIENT_SOURCES) {
-      const found = allItems.some((item) =>
-        source.keywords.some((kw) => item.includes(kw))
-      );
-      if (!found) {
-        nutrientGaps.push({ nutrient: source.nutrient, emoji: source.emoji });
-      }
-    }
+    const nutrientGaps = detectNutrientGaps(allItems);
 
     // Tendência semanal dentro do mês
     const weeklyKcal: { label: string; kcal: number; count: number }[] = [];
@@ -265,12 +249,16 @@ export function MonthlyReport({ meals, monthStats }: { meals: Meal[]; monthStats
               ? "Com os dados disponíveis, estes nutrientes provavelmente estão em falta:"
               : "Baseado nos alimentos registrados, estes nutrientes podem estar em falta:"}
           </p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {analysis.nutrientGaps.map((gap) => (
-              <div key={gap.nutrient} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}>
-                <span style={{ fontSize: 18 }}>{gap.emoji}</span>
-                <span style={{ fontWeight: 500, color: FOREGROUND }}>{gap.nutrient}</span>
-                <span style={mutedText}>— sem fontes claras no mês</span>
+              <div key={gap.nutrient}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, marginBottom: 4 }}>
+                  <span style={{ fontSize: 18 }}>{gap.emoji}</span>
+                  <span style={{ fontWeight: 500, color: FOREGROUND }}>{gap.nutrient}</span>
+                </div>
+                <p style={{ fontSize: 11, color: MUTED, lineHeight: 1.5, margin: 0, paddingLeft: 26 }}>
+                  💡 Experimente: {gap.sources.join(", ")}
+                </p>
               </div>
             ))}
           </div>
