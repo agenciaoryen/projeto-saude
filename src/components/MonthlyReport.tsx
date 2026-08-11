@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { sumMacros } from "@/lib/meal-utils";
 import { detectNutrientGaps } from "@/lib/nutrient-data";
-import { TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, ShoppingCart } from "lucide-react";
 import type { Meal } from "@/types";
 
 // ── Design tokens ──────────────────────────────────────────────
@@ -39,7 +39,7 @@ interface MonthData {
   classCount: Map<string, number>;
 }
 
-export function MonthlyReport({ meals, monthStats }: { meals: Meal[]; monthStats: MonthData }) {
+export function MonthlyReport({ meals, monthStats, onAddToShoppingList }: { meals: Meal[]; monthStats: MonthData; onAddToShoppingList?: (items: { item_name: string; category: string }[]) => void }) {
   const analysis = useMemo(() => {
     const analyzed = meals.filter((m) => m.macros && m.status_analise === "analisado");
 
@@ -259,6 +259,22 @@ export function MonthlyReport({ meals, monthStats }: { meals: Meal[]; monthStats
                 <p style={{ fontSize: 11, color: MUTED, lineHeight: 1.5, margin: 0, paddingLeft: 26 }}>
                   💡 Experimente: {gap.sources.join(", ")}
                 </p>
+                {onAddToShoppingList && gap.sources.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => onAddToShoppingList(gap.sources.map((s) => ({ item_name: s, category: gap.nutrient })))}
+                    style={{
+                      fontSize: 11, fontWeight: 600, color: "#A78BFA",
+                      background: "oklch(.22 .015 270 / .5)", border: 0,
+                      borderRadius: 8, padding: "4px 10px", cursor: "pointer",
+                      fontFamily: "inherit", display: "inline-flex",
+                      alignItems: "center", gap: 4, marginTop: 6, marginLeft: 26,
+                    }}
+                  >
+                    <ShoppingCart style={{ width: 12, height: 12 }} />
+                    Adicionar à lista
+                  </button>
+                )}
               </div>
             ))}
           </div>

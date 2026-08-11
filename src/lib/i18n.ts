@@ -297,6 +297,14 @@ const translations: Record<Lang, Record<string, string>> = {
     comeu_bem_auto: "Baseado nas suas {{n}} refeições de hoje",
     registrar_agora: "Registrar agora",
 
+    // Lista de compras
+    lista_compras: "Lista de compras",
+    lista_vazia: "Sua lista está vazia",
+    lista_vazia_desc: "Adicione itens que precisa comprar. Você também pode adicionar alimentos sugeridos pelas lacunas nutricionais.",
+    lista_input_placeholder: "Adicionar item...",
+    lista_limpar: "Limpar concluídos",
+    lista_adicionar_lacuna: "🛒 Adicionar à lista",
+
     // Features — O Fio (DayThread)
     fio_titulo: "O fio da semana",
     fio_descricao: "Como os dias se conectam. Setas mostram a direção do fluxo.",
@@ -886,6 +894,14 @@ const translations: Record<Lang, Record<string, string>> = {
     comeu_bem_auto: "Basado en tus {{n}} comidas de hoy",
     registrar_agora: "Registrar ahora",
 
+    // Lista de compras
+    lista_compras: "Lista de compras",
+    lista_vazia: "Tu lista está vacía",
+    lista_vazia_desc: "Añade artículos que necesitas comprar. También puedes añadir alimentos sugeridos por los vacíos nutricionales.",
+    lista_input_placeholder: "Añadir artículo...",
+    lista_limpar: "Limpiar completados",
+    lista_adicionar_lacuna: "🛒 Añadir a la lista",
+
     // Features — O Fio (DayThread)
     fio_titulo: "El hilo de la semana",
     fio_descricao: "Cómo los días se conectan. Las flechas muestran la dirección del flujo.",
@@ -1472,6 +1488,14 @@ const translations: Record<Lang, Record<string, string>> = {
     // Check-in integration
     comeu_bem_auto: "Based on your {{n}} meals today",
     registrar_agora: "Log now",
+
+    // Shopping list
+    lista_compras: "Shopping list",
+    lista_vazia: "Your list is empty",
+    lista_vazia_desc: "Add items you need to buy. You can also add foods suggested by nutritional gaps.",
+    lista_input_placeholder: "Add item...",
+    lista_limpar: "Clear completed",
+    lista_adicionar_lacuna: "🛒 Add to list",
 
     // Features — O Fio (DayThread)
     fio_titulo: "The week's thread",

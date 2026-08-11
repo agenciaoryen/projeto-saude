@@ -15,7 +15,8 @@ import { MonthlyReport } from "@/components/MonthlyReport";
 import { FoodMoodCorrelation } from "@/components/FoodMoodCorrelation";
 import { WeeklyMirror } from "@/components/WeeklyMirror";
 import { NutritionQualityCard } from "@/components/NutritionQualityCard";
-import { Plus, Sun, Calendar, Sparkles, Star, X } from "lucide-react";
+import { Plus, Sun, Calendar, Sparkles, Star, X, ShoppingCart } from "lucide-react";
+import { ShoppingList } from "@/components/ShoppingList";
 import type { Meal } from "@/types";
 import { toast } from "sonner";
 
@@ -84,6 +85,7 @@ function NutricaoPage() {
   const [todayDisplay, setTodayDisplay] = useState("");
   const [kcalGoal, setKcalGoal] = useState(DEFAULT_DAILY_KCAL);
   const [showChat, setShowChat] = useState(false);
+  const [showShoppingList, setShowShoppingList] = useState(false);
   const [favoriteMeals, setFavoriteMeals] = useState<Meal[]>([]);
   const [addingFav, setAddingFav] = useState<string | null>(null);
 
@@ -192,6 +194,25 @@ function NutricaoPage() {
     setAddingFav(null);
   };
 
+  const handleAddToShoppingList = async (items: { item_name: string; category: string }[]) => {
+    try {
+      const res = await fetch("/api/shopping-list", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        toast.success(`${data.length} item(ns) adicionado(s) à lista! 🛒`);
+        invalidateFetchCache("/api/shopping-list");
+      } else {
+        toast.error("Erro ao adicionar");
+      }
+    } catch {
+      toast.error("Erro ao adicionar");
+    }
+  };
+
   // ── Derived data ────────────────────────────────────────────
 
   const todayMeals = useMemo(() => {
@@ -277,6 +298,18 @@ function NutricaoPage() {
           boxShadow: "0 4px 20px rgba(124,92,255,0.25)",
         }}>
         <Sparkles size={20} color="#A78BFA" />
+      </button>
+
+      <button type="button" onClick={() => setShowShoppingList(true)}
+        style={{
+          position: "fixed", bottom: 116, right: 24, zIndex: 40,
+          width: 44, height: 44, borderRadius: "50%",
+          background: "#1a1530", border: "1.5px solid rgba(167,139,250,0.3)",
+          cursor: "pointer",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          boxShadow: "0 4px 20px rgba(124,92,255,0.25)",
+        }}>
+        <ShoppingCart size={20} color="#A78BFA" />
       </button>
 
       <button type="button" onClick={() => router.push("/nutricao/registrar")}
@@ -472,7 +505,7 @@ function NutricaoPage() {
             kcalGoal={kcalGoal}
           />
           <WeeklyMirror />
-          <WeeklyReport meals={meals} weekDays={weekDays} />
+          <WeeklyReport meals={meals} weekDays={weekDays} onAddToShoppingList={handleAddToShoppingList} />
 
           {/* Lista de refeições da semana */}
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -504,7 +537,7 @@ function NutricaoPage() {
         {/* ========== MÊS ========== */}
         <div style={viewStyle(tab === "mes")}>
           <NutritionSummary meals={monthMeals} label={t("resumo_do_mes")} kcalGoal={kcalGoal} />
-          <MonthlyReport meals={monthMeals} monthStats={monthStats} />
+          <MonthlyReport meals={monthMeals} monthStats={monthStats} onAddToShoppingList={handleAddToShoppingList} />
           {monthStats.total === 0 && (
             <p style={emptyState}>{t("sem_dados_suficientes")}</p>
           )}
@@ -544,6 +577,44 @@ function NutricaoPage() {
             {/* Chat body */}
             <div style={{ flex: 1, overflow: "auto", padding: "0 16px" }}>
               <NutritionChat />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Shopping List Modal ─────────────────────────── */}
+      {showShoppingList && (
+        <div onClick={() => setShowShoppingList(false)}
+          style={{
+            position: "fixed", inset: 0, zIndex: 100,
+            background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)",
+            display: "flex", alignItems: "flex-end", justifyContent: "center",
+          }}>
+          <div onClick={(e) => e.stopPropagation()}
+            style={{
+              width: "100%", maxWidth: 480, maxHeight: "85dvh",
+              background: "#151520", borderRadius: "24px 24px 0 0",
+              display: "flex", flexDirection: "column", overflow: "hidden",
+              border: "1px solid rgba(167,139,250,0.15)",
+            }}>
+            {/* Header */}
+            <div style={{
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+              padding: "16px 20px", borderBottom: "1px solid rgba(167,139,250,0.1)",
+              flexShrink: 0,
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <ShoppingCart size={18} color="#A78BFA" />
+                <span style={{ fontSize: 15, fontWeight: 700, color: "#e0d6ff" }}>{t("lista_compras")}</span>
+              </div>
+              <button type="button" onClick={() => setShowShoppingList(false)}
+                style={{ background: "none", border: 0, color: MUTED, fontSize: 20, cursor: "pointer", padding: "4px 8px" }}>
+                ✕
+              </button>
+            </div>
+            {/* Shopping list body */}
+            <div style={{ flex: 1, overflow: "auto", padding: "16px 20px", paddingBottom: "max(24px, env(safe-area-inset-bottom))" }}>
+              <ShoppingList />
             </div>
           </div>
         </div>

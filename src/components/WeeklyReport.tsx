@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { sumMacros, nutritionScore, mealTypeLabel, mealTypeEmoji } from "@/lib/meal-utils";
 import { detectNutrientGaps } from "@/lib/nutrient-data";
 import { getLocalDateFromISO, getWeekMondayDate, getWeekSundayDate } from "@/lib/utils";
-import { TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, ShoppingCart } from "lucide-react";
 import type { Meal, MealType } from "@/types";
 
 interface WeekDay {
@@ -38,7 +38,7 @@ const mutedText: React.CSSProperties = {
   fontSize: 11, color: MUTED,
 };
 
-export function WeeklyReport({ meals, weekDays }: { meals: Meal[]; weekDays: WeekDay[] }) {
+export function WeeklyReport({ meals, weekDays, onAddToShoppingList }: { meals: Meal[]; weekDays: WeekDay[]; onAddToShoppingList?: (items: { item_name: string; category: string }[]) => void }) {
   const mondayDate = getWeekMondayDate();
   const sundayDate = getWeekSundayDate();
 
@@ -292,6 +292,22 @@ export function WeeklyReport({ meals, weekDays }: { meals: Meal[]; weekDays: Wee
                 <p style={{ fontSize: 11, color: MUTED, lineHeight: 1.5, margin: 0, paddingLeft: 26 }}>
                   💡 Experimente: {gap.sources.join(", ")}
                 </p>
+                {onAddToShoppingList && gap.sources.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => onAddToShoppingList(gap.sources.map((s) => ({ item_name: s, category: gap.nutrient })))}
+                    style={{
+                      fontSize: 11, fontWeight: 600, color: "#A78BFA",
+                      background: "oklch(.22 .015 270 / .5)", border: 0,
+                      borderRadius: 8, padding: "4px 10px", cursor: "pointer",
+                      fontFamily: "inherit", display: "inline-flex",
+                      alignItems: "center", gap: 4, marginTop: 6, marginLeft: 26,
+                    }}
+                  >
+                    <ShoppingCart style={{ width: 12, height: 12 }} />
+                    Adicionar à lista
+                  </button>
+                )}
               </div>
             ))}
           </div>

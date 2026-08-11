@@ -111,6 +111,15 @@ export interface MealFormData {
   status_analise: MealAnalysisStatus;
 }
 
+export interface ShoppingItem {
+  id: string;
+  user_id: string;
+  item_name: string;
+  category: string;
+  checked: boolean;
+  created_at: string;
+}
+
 // ── Sleep ─────────────────────────────────────────────────────────────────────
 
 export type SleepSource = "checkin" | "battery" | "visibility" | "google_fit";
