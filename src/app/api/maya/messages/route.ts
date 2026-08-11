@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
   const admin = getSupabaseAdmin();
   let query = admin
     .from("chat_messages")
-    .select("id, role, content, created_at")
+    .select("id, role, content, image_urls, created_at")
     .eq("user_id", user.id)
     .or("chat_type.is.null,chat_type.eq.maya")
     .order("created_at", { ascending: false })
@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
 
   const body = await req.json();
-  const messages = body.messages as Array<{ role: string; content: string }> | undefined;
+  const messages = body.messages as Array<{ role: string; content: string; image_urls?: string[] }> | undefined;
   if (!messages || !Array.isArray(messages) || messages.length === 0) {
     return NextResponse.json({ error: "messages array obrigatório" }, { status: 400 });
   }
@@ -52,6 +52,7 @@ export async function POST(req: NextRequest) {
     user_id: user.id,
     role: m.role,
     content: m.content,
+    image_urls: m.image_urls || [],
     chat_type: "maya",
   }));
 

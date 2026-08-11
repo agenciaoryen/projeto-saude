@@ -2,27 +2,29 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useTranslation } from "@/lib/useTranslation";
-import { Send, ArrowLeft } from "lucide-react";
+import { Send, ArrowLeft, Image as ImageIcon } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { MayaAvatar } from "@/components/MayaAvatar";
 import { useViewportHeight } from "@/hooks/useViewportHeight";
 import { useChatScroll } from "@/hooks/useChatScroll";
 import { useAutoResizeTextarea } from "@/hooks/useAutoResizeTextarea";
+import { compressImage, uploadToCloud, photoUrl } from "@/lib/photo-storage";
 
 interface Message {
   role: "user" | "assistant";
   content: string;
+  imageUrls?: string[];
   time: string;
   date: string;
   seen?: boolean;
   synced?: boolean;
-  action?: { label: string; href: string };
+  action?: { label: string; href: string } | null;
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────
 
 async function persistWithRetry(
-  messages: Array<{ role: string; content: string }>,
+  messages: Array<{ role: string; content: string; image_urls?: string[] }>,
   retries = 3,
 ): Promise<boolean> {
   for (let i = 0; i < retries; i++) {
@@ -187,12 +189,15 @@ export default function MayaChatPage() {
   const [hydrated, setHydrated] = useState(false);
   const [showLoadMore, setShowLoadMore] = useState(false);
   const [userName, setUserName] = useState("");
+  const [selectedImages, setSelectedImages] = useState<string[]>([]); // base64 previews
+  const [uploadingImages, setUploadingImages] = useState(false);
 
   // ── Refs ──
   const sentinelRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const sendingRef = useRef(false);
   const nudgeActionRef = useRef<{ label: string; href: string } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ── Chat scroll management ──
   const { handleScroll } = useChatScroll({
@@ -240,10 +245,11 @@ export default function MayaChatPage() {
                 ) ?? 0,
               )
               .map((m: unknown) => {
-                const msg = m as { role: string; content: string; created_at: string };
+                const msg = m as { role: string; content: string; image_urls?: string[]; created_at: string };
                 return {
                   role: msg.role as "user" | "assistant",
                   content: msg.content,
+                  imageUrls: msg.image_urls || [],
                   time: new Date(msg.created_at).toLocaleTimeString("pt-BR", {
                     hour: "2-digit",
                     minute: "2-digit",
@@ -405,9 +411,10 @@ export default function MayaChatPage() {
         .sort((a: { created_at: string }, b: { created_at: string }) =>
           a.created_at.localeCompare(b.created_at),
         )
-        .map((m: { role: string; content: string; created_at: string }) => ({
+        .map((m: { role: string; content: string; image_urls?: string[]; created_at: string }) => ({
           role: m.role as "user" | "assistant",
           content: m.content,
+          imageUrls: m.image_urls || [],
           time: new Date(m.created_at).toLocaleTimeString("pt-BR", {
             hour: "2-digit",
             minute: "2-digit",
@@ -434,16 +441,57 @@ export default function MayaChatPage() {
     return () => obs.disconnect();
   }, [hydrated, messages.length]);
 
+  // ── Image picker handlers ──
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    const remaining = 3 - selectedImages.length;
+    const toProcess = Array.from(files).slice(0, remaining);
+
+    for (const file of toProcess) {
+      try {
+        const base64 = await compressImage(file);
+        setSelectedImages((prev) => [...prev, base64]);
+      } catch {
+        // skip corrupted files
+      }
+    }
+    // Reset input so the same file can be selected again
+    e.target.value = "";
+  };
+
+  const removeSelectedImage = (index: number) => {
+    setSelectedImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
   // ── Send message ──
   const sendMessage = useCallback(async () => {
     const trimmed = input.trim();
-    if (!trimmed || sending || sendingRef.current) return;
+    const hasImages = selectedImages.length > 0;
+    if ((!trimmed && !hasImages) || sending || sendingRef.current) return;
+
+    // 1. Upload images to Supabase Storage (before creating the message)
+    let uploadedPaths: string[] = [];
+    if (hasImages) {
+      setUploadingImages(true);
+      try {
+        uploadedPaths = await Promise.all(
+          selectedImages.map((img) => uploadToCloud(img, "chat")),
+        );
+      } catch {
+        setUploadingImages(false);
+        // TODO: show toast/error to user
+        return;
+      }
+    }
 
     const now = formatTime();
     const nowDate = formatDate();
     const userMsg: Message = {
       role: "user",
-      content: trimmed,
+      content: trimmed || "📷",
+      imageUrls: uploadedPaths,
       time: now,
       date: nowDate,
       seen: false,
@@ -451,21 +499,20 @@ export default function MayaChatPage() {
     const updated = [...messages, userMsg];
     setMessages(updated);
     setInput("");
+    setSelectedImages([]);
+    setUploadingImages(false);
     setSending(true);
     sendingRef.current = true;
 
     // Safety net: keep keyboard open after send
-    // (onTouchStart + onMouseDown on the button handle the primary case,
-    // but this catches any edge case where focus still gets lost)
     requestAnimationFrame(() => {
       textareaRef.current?.focus();
     });
 
     // Persist user message first so DB order is correct
-    await persistWithRetry([{ role: "user", content: trimmed }]);
+    await persistWithRetry([{ role: "user", content: userMsg.content, image_urls: uploadedPaths }]);
 
     // Mark as "read" immediately — Maya received the message
-    // (before the API call, before the typing indicator)
     setMessages((prev) => {
       const updated2 = [...prev];
       for (let i = updated2.length - 1; i >= 0; i--) {
@@ -478,9 +525,10 @@ export default function MayaChatPage() {
     });
 
     try {
-      const contextMsgs = updated.slice(-20).map(({ role, content, date, time }) => ({
+      const contextMsgs = updated.slice(-20).map(({ role, content, imageUrls, date, time }) => ({
         role,
         content,
+        image_urls: imageUrls,
         date,
         time,
       }));
@@ -516,7 +564,7 @@ export default function MayaChatPage() {
         },
       ]);
     }
-  }, [input, sending, messages, t, deliverParts]);
+  }, [input, sending, messages, selectedImages, t, deliverParts]);
 
   // ── Keyboard handler ──
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -528,7 +576,7 @@ export default function MayaChatPage() {
 
   // ── Derived ──
   const welcomeMessage = t("maya_welcome");
-  const busy = sending || typing;
+  const busy = sending || typing || uploadingImages;
   const containerHeight =
     viewportH > 200 ? `${viewportH}px` : "100dvh";
 
@@ -670,6 +718,27 @@ export default function MayaChatPage() {
                   }}
                 >
                   {msg.content}
+                  {/* Images attached to the message */}
+                  {msg.imageUrls && msg.imageUrls.length > 0 && (
+                    <div
+                      className={`grid gap-1 mt-1.5 ${
+                        msg.imageUrls.length === 1 ? "grid-cols-1" : "grid-cols-2"
+                      }`}
+                    >
+                      {msg.imageUrls.map((path, idx) => (
+                        <img
+                          key={idx}
+                          src={photoUrl(path)!}
+                          alt={`Foto ${idx + 1}`}
+                          className="w-full object-cover rounded-md cursor-pointer"
+                          style={{
+                            maxHeight: msg.imageUrls!.length === 1 ? 200 : 120,
+                          }}
+                          onClick={() => window.open(photoUrl(path)!, "_blank")}
+                        />
+                      ))}
+                    </div>
+                  )}
                   {msg.action && (
                     <a
                       href={msg.action.href}
@@ -736,7 +805,55 @@ export default function MayaChatPage() {
             : "calc(32px + env(safe-area-inset-bottom, 16px))",
         }}
       >
+        {/* Image previews */}
+        {selectedImages.length > 0 && (
+          <div className="flex gap-2 mb-2 overflow-x-auto">
+            {selectedImages.map((img, i) => (
+              <div key={i} className="relative shrink-0">
+                <img
+                  src={img}
+                  alt={`Foto ${i + 1}`}
+                  className="w-16 h-16 object-cover rounded-lg"
+                />
+                <button
+                  type="button"
+                  onClick={() => removeSelectedImage(i)}
+                  className="absolute -top-1.5 -right-1.5 size-5 rounded-full flex items-center justify-center text-[10px] text-white"
+                  style={{ background: "rgba(0,0,0,0.6)" }}
+                  aria-label="Remover foto"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
         <div className="flex items-end gap-2">
+          {/* Hidden file input */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            style={{ display: "none" }}
+            onChange={handleFileSelect}
+          />
+
+          {/* Camera/gallery button */}
+          {selectedImages.length < 3 && (
+            <button
+              type="button"
+              className="rounded-full size-10 shrink-0 inline-flex items-center justify-center border-0 cursor-pointer disabled:opacity-50"
+              style={{ background: "var(--muted)" }}
+              onClick={() => fileInputRef.current?.click()}
+              disabled={busy}
+              aria-label="Anexar foto"
+            >
+              <ImageIcon className="size-5" style={{ color: "var(--muted-foreground)" }} />
+            </button>
+          )}
+
           <textarea
             ref={textareaRef}
             value={input}
@@ -768,7 +885,7 @@ export default function MayaChatPage() {
               textareaRef.current?.focus();
               sendMessage();
             }}
-            disabled={!input.trim() || busy}
+            disabled={(!input.trim() && selectedImages.length === 0) || busy}
           >
             <Send className="size-4" color="#fff" />
           </button>

@@ -3,27 +3,75 @@ import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { buildMayaSystemPrompt, GoalSummary, WeekPlanSummary, SpecialistSummaries } from "@/lib/maya";
 import { getLatestInsights } from "@/lib/specialists";
 import { calculateStreak, getWeekMondayDate } from "@/lib/utils";
-import { callLLM } from "@/lib/llm";
+import { toImageBlock } from "@/lib/llm";
 import { NextResponse } from "next/server";
 
-// Chat-style call with message history
+// ── Helpers ──────────────────────────────────────────────────────────
+
+/** Fetch an image from Supabase Storage and return as a base64 data URL */
+async function fetchImageAsBase64(path: string): Promise<string> {
+  const admin = getSupabaseAdmin();
+  const { data, error } = await admin.storage.from("user-content").download(path);
+  if (error || !data) throw new Error(`Failed to fetch image: ${path}`);
+  const buffer = Buffer.from(await data.arrayBuffer());
+  const mimeType = path.endsWith(".png")
+    ? "image/png"
+    : path.endsWith(".webp")
+      ? "image/webp"
+      : "image/jpeg";
+  return `data:${mimeType};base64,${buffer.toString("base64")}`;
+}
+
+// Chat-style call with message history — Claude (Anthropic) with multimodal support
 async function chatLLM(
   system: string,
-  messages: { role: string; content: string }[],
-  maxTokens = 500
+  messages: { role: string; content: string; image_urls?: string[] }[],
+  maxTokens = 400
 ): Promise<string> {
-  const apiKey = process.env.DEEPSEEK_API_KEY || "";
-  const response = await fetch("https://api.deepseek.com/v1/chat/completions", {
+  const apiKey = process.env.ANTHROPIC_API_KEY || "";
+
+  // Convert messages to Anthropic format.
+  // User messages with image_urls get ContentBlock[] (text + images).
+  const anthropicMessages = await Promise.all(
+    messages.map(async (m) => {
+      // Only user messages carry images; assistant messages are plain text
+      if (m.role === "user" && m.image_urls?.length) {
+        const blocks: Array<Record<string, unknown>> = [
+          { type: "text", text: m.content },
+        ];
+        for (const path of m.image_urls) {
+          const base64 = await fetchImageAsBase64(path);
+          blocks.push(toImageBlock(base64));
+        }
+        return { role: "user", content: blocks };
+      }
+      return { role: m.role, content: m.content };
+    })
+  );
+
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
-    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+    },
     body: JSON.stringify({
-      model: "deepseek-chat", max_tokens: maxTokens, temperature: 0.7,
-      messages: [{ role: "system", content: system }, ...messages],
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: maxTokens,
+      temperature: 0.7,
+      system,
+      messages: anthropicMessages,
     }),
   });
-  if (!response.ok) { const err = await response.text(); throw new Error(`LLM error: ${err.slice(0,200)}`); }
+
+  if (!response.ok) {
+    const err = await response.text();
+    throw new Error(`Claude API error (${response.status}): ${err.slice(0, 200)}`);
+  }
+
   const data = await response.json();
-  return data.choices?.[0]?.message?.content || "";
+  return data.content?.[0]?.text || "";
 }
 
 export async function POST(request: Request) {
@@ -37,7 +85,7 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const messages: { role: string; content: string; date?: string; time?: string }[] = body.messages || [];
+    const messages: { role: string; content: string; image_urls?: string[]; date?: string; time?: string }[] = body.messages || [];
     const clientTz = body.timezone || "America/Sao_Paulo";
     const clientHour = body.localHour;
     const clientDate = body.localDate;
@@ -149,10 +197,11 @@ export async function POST(request: Request) {
 	      currentDate = now.toLocaleDateString("en-CA", { timeZone: clientTz });
 	    }
 
-    // Send messages WITHOUT date annotations — the LLM learns to mimic [date] format
+    // Send messages WITH image_urls for multimodal support
     const anthropicMessages = messages.map((m) => ({
       role: m.role,
       content: m.content,
+      image_urls: (m as { image_urls?: string[] }).image_urls,
     }));
 
     const systemPrompt = buildMayaSystemPrompt({
