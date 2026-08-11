@@ -22,7 +22,8 @@ export async function GET(request: Request) {
   const bucket = path.startsWith("meals/") ? "meals" :
                  path.startsWith("diary/") ? "diary" :
                  path.startsWith("avatars/") ? "avatars" :
-                 path.startsWith("porques/") ? "porques" : null;
+                 path.startsWith("porques/") ? "porques" :
+                 path.startsWith("chat/") ? "chat" : null;
   if (!bucket) {
     return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
   }
