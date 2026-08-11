@@ -300,18 +300,6 @@ function NutricaoPage() {
         <Sparkles size={20} color="#A78BFA" />
       </button>
 
-      <button type="button" onClick={() => setShowShoppingList(true)}
-        style={{
-          position: "fixed", bottom: 116, right: 24, zIndex: 40,
-          width: 44, height: 44, borderRadius: "50%",
-          background: "#1a1530", border: "1.5px solid rgba(167,139,250,0.3)",
-          cursor: "pointer",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          boxShadow: "0 4px 20px rgba(124,92,255,0.25)",
-        }}>
-        <ShoppingCart size={20} color="#A78BFA" />
-      </button>
-
       <button type="button" onClick={() => router.push("/nutricao/registrar")}
         style={{
           position: "fixed", bottom: 84, right: 20, zIndex: 40,
@@ -324,13 +312,24 @@ function NutricaoPage() {
       </button>
 
       {/* Header */}
-      <div style={{ padding: "24px 24px 16px" }}>
-        <p style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: ".05em", fontWeight: 600, color: MUTED }}>
-          {todayDisplay}
-        </p>
-        <h1 style={{ marginTop: 4, fontSize: 36, fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.05, color: "#e0d6ff" }}>
-          Nutrição
-        </h1>
+      <div style={{ padding: "24px 24px 16px", display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+        <div>
+          <p style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: ".05em", fontWeight: 600, color: MUTED }}>
+            {todayDisplay}
+          </p>
+          <h1 style={{ marginTop: 4, fontSize: 36, fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.05, color: "#e0d6ff" }}>
+            Nutrição
+          </h1>
+        </div>
+        <button type="button" onClick={() => setShowShoppingList(true)}
+          style={{
+            width: 44, height: 44, borderRadius: 14, flexShrink: 0,
+            background: "oklch(.17 .015 270 / .6)", border: `1px solid ${BORDER}`,
+            cursor: "pointer",
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}>
+          <ShoppingCart size={20} color="#A78BFA" />
+        </button>
       </div>
 
       {/* ── Segmented control Dia / Semana / Mês ──────────── */}
