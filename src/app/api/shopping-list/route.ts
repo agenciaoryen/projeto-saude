@@ -14,12 +14,13 @@ export async function GET(req: NextRequest) {
 
   try {
     const admin = getSupabaseAdmin();
-    // Unchecked first, then by created_at
+    // Unchecked first, then by position, then by created_at
     const { data, error } = await admin
       .from("shopping_items")
       .select("*")
       .eq("user_id", user.id)
       .order("checked", { ascending: true })
+      .order("position", { ascending: true })
       .order("created_at", { ascending: true });
 
     if (error) throw error;
@@ -47,12 +48,23 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const admin = getSupabaseAdmin();
 
+    // Get next position (max position + 1) for the user
+    const { data: maxRow } = await admin
+      .from("shopping_items")
+      .select("position")
+      .eq("user_id", user.id)
+      .order("position", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const nextPosition = (maxRow?.position ?? -1) + 1;
+
     // Bulk insert: { items: [{ item_name, category? }] }
     if (body.items && Array.isArray(body.items)) {
-      const rows = body.items.map((it: { item_name: string; category?: string }) => ({
+      const rows = body.items.map((it: { item_name: string; category?: string }, i: number) => ({
         user_id: user.id,
         item_name: it.item_name,
         category: it.category || "geral",
+        position: nextPosition + i,
       }));
 
       const { data, error } = await admin
@@ -75,6 +87,7 @@ export async function POST(req: NextRequest) {
         user_id: user.id,
         item_name: body.item_name.trim(),
         category: body.category || "geral",
+        position: nextPosition,
       })
       .select()
       .single();
@@ -90,7 +103,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// PATCH /api/shopping-list
+// PATCH /api/shopping-list  —  partial update OR batch reorder
 export async function PATCH(req: NextRequest) {
   const supabase = await createServerSupabaseClient();
   const { data: { session }, error: authError } = await supabase.auth.getSession();
@@ -102,16 +115,43 @@ export async function PATCH(req: NextRequest) {
 
   try {
     const body = await req.json();
+    const admin = getSupabaseAdmin();
+
+    // Batch reorder: { reorder: [{ id, position }] }
+    if (body.reorder && Array.isArray(body.reorder)) {
+      // Build a single UPDATE with CASE WHEN for each id
+      // Use a raw update via upsert or individual updates
+      // For simplicity and reliability, do individual updates in a transaction-like loop
+      const results = [];
+      for (const item of body.reorder) {
+        if (!item.id) continue;
+        const { data, error } = await admin
+          .from("shopping_items")
+          .update({ position: item.position })
+          .eq("id", item.id)
+          .eq("user_id", user.id)
+          .select()
+          .single();
+        if (error) {
+          console.error("Reorder error for", item.id, error);
+          continue;
+        }
+        results.push(data);
+      }
+      return NextResponse.json({ success: true, count: results.length });
+    }
+
+    // Single item update
     if (!body.id) {
       return NextResponse.json({ error: "ID obrigatório" }, { status: 400 });
     }
 
-    const admin = getSupabaseAdmin();
     const updates: Record<string, unknown> = {};
 
     if (body.item_name !== undefined) updates.item_name = body.item_name;
     if (body.category !== undefined) updates.category = body.category;
     if (body.checked !== undefined) updates.checked = body.checked;
+    if (body.position !== undefined) updates.position = body.position;
 
     if (Object.keys(updates).length === 0) {
       return NextResponse.json({ error: "Nenhum campo para atualizar" }, { status: 400 });

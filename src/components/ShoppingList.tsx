@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useTranslation } from "@/lib/useTranslation";
 import { cachedFetch, invalidateFetchCache } from "@/lib/fetch-cache";
-import { Plus, X, ShoppingCart, Trash2, CheckSquare, Square, Minus } from "lucide-react";
+import { Plus, X, ShoppingCart, Trash2, CheckSquare, Square, Minus, GripVertical } from "lucide-react";
 import { toast } from "sonner";
 import type { ShoppingItem } from "@/types";
 
@@ -14,6 +14,30 @@ const PURPLE_HEX = "#7C5CFF";
 const FOREGROUND = "#e0d6ff";
 const DARK_CARD = "oklch(.17 .015 270 / .6)";
 
+// ── Helpers ────────────────────────────────────────────────────
+
+/** Reorder an array by moving an item from one index to another */
+function reorder<T>(list: T[], startIndex: number, endIndex: number): T[] {
+  const result = Array.from(list);
+  const [removed] = result.splice(startIndex, 1);
+  result.splice(endIndex, 0, removed);
+  return result;
+}
+
+/** Reassign sequential positions and persist to API */
+async function persistOrder(items: ShoppingItem[]) {
+  const payload = items.map((item, i) => ({ id: item.id, position: i }));
+  try {
+    await fetch("/api/shopping-list", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reorder: payload }),
+    });
+  } catch {
+    // silent
+  }
+}
+
 export function ShoppingList() {
   const { t } = useTranslation();
   const [items, setItems] = useState<ShoppingItem[]>([]);
@@ -23,6 +47,10 @@ export function ShoppingList() {
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Drag state
+  const dragIndex = useRef<number | null>(null);
+  const dragOverIndex = useRef<number | null>(null);
 
   const loadItems = useCallback(async () => {
     try {
@@ -38,6 +66,8 @@ export function ShoppingList() {
   useEffect(() => {
     loadItems();
   }, [loadItems]);
+
+  // ── Add ────────────────────────────────────────────────────
 
   const handleAdd = async () => {
     const name = input.trim();
@@ -61,24 +91,45 @@ export function ShoppingList() {
     }
   };
 
+  // ── Toggle (checked ↔ unchecked) + auto-reorder ────────────
+
   const handleToggle = async (item: ShoppingItem) => {
-    if (selectionMode) return; // no toggle in selection mode
-    setItems((prev) =>
-      prev.map((i) => (i.id === item.id ? { ...i, checked: !i.checked } : i))
-    );
+    if (selectionMode) return;
+
+    const newChecked = !item.checked;
+    // Optimistic: update checked state
+    setItems((prev) => {
+      const updated = prev.map((i) =>
+        i.id === item.id ? { ...i, checked: newChecked } : i
+      );
+      // Sort: unchecked first (by position), then checked (by position)
+      const unchecked = updated.filter((i) => !i.checked);
+      const checked = updated.filter((i) => i.checked);
+      return [...unchecked, ...checked];
+    });
+
     try {
       const res = await fetch("/api/shopping-list", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: item.id, checked: !item.checked }),
+        body: JSON.stringify({ id: item.id, checked: newChecked }),
       });
       if (!res.ok) throw new Error();
+
+      // Persist the new order
+      const unchecked = items
+        .filter((i) => i.id !== item.id && !i.checked)
+        .concat(newChecked ? [] : [{ ...item, checked: false }]);
+      const checked = items
+        .filter((i) => i.id !== item.id && i.checked)
+        .concat(newChecked ? [{ ...item, checked: true }] : []);
+      await persistOrder([...unchecked, ...checked]);
     } catch {
-      setItems((prev) =>
-        prev.map((i) => (i.id === item.id ? { ...i, checked: item.checked } : i))
-      );
+      loadItems(); // rollback on error
     }
   };
+
+  // ── Delete ─────────────────────────────────────────────────
 
   const handleDelete = async (id: string) => {
     setItems((prev) => prev.filter((i) => i.id !== id));
@@ -91,15 +142,14 @@ export function ShoppingList() {
     }
   };
 
-  // "Limpar concluídos" now just unchecks — doesn't delete
+  // ── Limpar concluídos (uncheck only) ───────────────────────
+
   const handleClearChecked = async () => {
     const checked = items.filter((i) => i.checked);
     if (checked.length === 0) return;
 
-    // Optimistic
     setItems((prev) => prev.map((i) => (i.checked ? { ...i, checked: false } : i)));
 
-    // Batch uncheck via PATCH
     let failed = false;
     for (const item of checked) {
       try {
@@ -115,8 +165,43 @@ export function ShoppingList() {
     }
     if (failed) {
       toast.error("Erro ao desmarcar alguns itens");
-      loadItems(); // refresh to get true state
+      loadItems();
     }
+  };
+
+  // ── Drag & drop ────────────────────────────────────────────
+
+  const handleDragStart = (index: number) => {
+    if (selectionMode) return;
+    dragIndex.current = index;
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    dragOverIndex.current = index;
+  };
+
+  const handleDrop = (index: number) => {
+    const from = dragIndex.current;
+    if (from === null || from === index) {
+      dragIndex.current = null;
+      dragOverIndex.current = null;
+      return;
+    }
+
+    const reordered = reorder(items, from, index);
+    // Reassign positions
+    const withPositions = reordered.map((item, i) => ({ ...item, position: i }));
+    setItems(withPositions);
+    persistOrder(withPositions);
+
+    dragIndex.current = null;
+    dragOverIndex.current = null;
+  };
+
+  const handleDragEnd = () => {
+    dragIndex.current = null;
+    dragOverIndex.current = null;
   };
 
   // ── Selection mode ─────────────────────────────────────────
@@ -131,8 +216,7 @@ export function ShoppingList() {
   };
 
   const selectAll = () => {
-    const allIds = new Set(items.map((i) => i.id));
-    setSelectedIds(allIds);
+    setSelectedIds(new Set(items.map((i) => i.id)));
   };
 
   const deselectAll = () => {
@@ -143,7 +227,6 @@ export function ShoppingList() {
     if (selectedIds.size === 0) return;
     const toDelete = [...selectedIds];
 
-    // Optimistic
     setItems((prev) => prev.filter((i) => !selectedIds.has(i.id)));
     setSelectedIds(new Set());
     setSelectionMode(false);
@@ -171,13 +254,14 @@ export function ShoppingList() {
   };
 
   const allSelected = items.length > 0 && selectedIds.size === items.length;
-
   const uncheckedCount = items.filter((i) => !i.checked).length;
   const checkedCount = items.filter((i) => i.checked).length;
 
+  // ── Render ──────────────────────────────────────────────────
+
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
-      {/* ── Input ─────────────────────────────────────────── */}
+      {/* Input */}
       <div style={{ display: "flex", gap: 8, padding: "0 0 12px", flexShrink: 0 }}>
         <input
           ref={inputRef}
@@ -208,7 +292,7 @@ export function ShoppingList() {
         </button>
       </div>
 
-      {/* ── Toolbar (count + actions) ──────────────────────── */}
+      {/* Toolbar */}
       {!loading && items.length > 0 && (
         <div style={{
           display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -250,42 +334,31 @@ export function ShoppingList() {
               </>
             ) : (
               <>
-                <button
-                  type="button"
-                  onClick={allSelected ? deselectAll : selectAll}
+                <button type="button" onClick={allSelected ? deselectAll : selectAll}
                   style={{
                     background: "none", border: 0, cursor: "pointer",
                     fontSize: 11, color: MUTED, fontFamily: "inherit",
                     display: "inline-flex", alignItems: "center", gap: 4,
-                  }}
-                >
+                  }}>
                   <Square style={{ width: 12, height: 12 }} />
                   {allSelected ? "Desmarcar todos" : "Selecionar todos"}
                 </button>
                 {selectedIds.size > 0 && (
-                  <button
-                    type="button"
-                    onClick={deleteSelected}
+                  <button type="button" onClick={deleteSelected}
                     style={{
                       background: "none", border: 0, cursor: "pointer",
                       fontSize: 11, color: "oklch(0.55 0.18 15)", fontFamily: "inherit",
-                      display: "inline-flex", alignItems: "center", gap: 4,
-                      fontWeight: 600,
-                    }}
-                  >
+                      display: "inline-flex", alignItems: "center", gap: 4, fontWeight: 600,
+                    }}>
                     <Trash2 style={{ width: 12, height: 12 }} />
                     Excluir ({selectedIds.size})
                   </button>
                 )}
-                <button
-                  type="button"
-                  onClick={exitSelection}
+                <button type="button" onClick={exitSelection}
                   style={{
                     background: "none", border: 0, cursor: "pointer",
-                    fontSize: 11, color: "#A78BFA", fontFamily: "inherit",
-                    fontWeight: 600,
-                  }}
-                >
+                    fontSize: 11, color: "#A78BFA", fontFamily: "inherit", fontWeight: 600,
+                  }}>
                   Cancelar
                 </button>
               </>
@@ -294,7 +367,7 @@ export function ShoppingList() {
         </div>
       )}
 
-      {/* ── List ──────────────────────────────────────────── */}
+      {/* List */}
       <div style={{ flex: 1, overflowY: "auto", minHeight: 0 }}>
         {loading ? (
           <p style={{ textAlign: "center", color: MUTED, fontSize: 13, padding: "24px 0" }}>
@@ -317,24 +390,54 @@ export function ShoppingList() {
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            {items.map((item) => {
+            {items.map((item, index) => {
               const isSelected = selectedIds.has(item.id);
+              const isDragging = dragIndex.current === index;
+              const isDragOver = dragOverIndex.current === index && dragIndex.current !== index;
+
               return (
                 <div
                   key={item.id}
+                  draggable={!selectionMode}
+                  onDragStart={() => handleDragStart(index)}
+                  onDragOver={(e) => handleDragOver(e, index)}
+                  onDrop={() => handleDrop(index)}
+                  onDragEnd={handleDragEnd}
                   style={{
-                    display: "flex", alignItems: "center", gap: 10,
-                    padding: "10px 12px", borderRadius: 12,
-                    background: item.checked ? "transparent" : DARK_CARD,
+                    display: "flex", alignItems: "center", gap: 8,
+                    padding: "10px 10px 10px 6px", borderRadius: 12,
+                    background: isSelected
+                      ? `${PURPLE_HEX}20`
+                      : item.checked
+                        ? "transparent"
+                        : DARK_CARD,
                     border: isSelected
                       ? `1px solid ${PURPLE_HEX}`
-                      : item.checked
-                        ? "1px solid transparent"
-                        : `1px solid ${BORDER}`,
-                    transition: "all 0.2s",
+                      : isDragOver
+                        ? `1px dashed ${PURPLE_HEX}`
+                        : item.checked
+                          ? "1px solid transparent"
+                          : `1px solid ${BORDER}`,
+                    opacity: isDragging ? 0.4 : 1,
+                    transition: "all 0.15s",
+                    cursor: selectionMode ? "default" : "grab",
                   }}
                 >
-                  {/* Selection checkbox (only in selection mode) */}
+                  {/* Drag handle (grip icon) — only outside selection mode */}
+                  {!selectionMode && (
+                    <div
+                      style={{
+                        width: 18, height: 28, flexShrink: 0,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        cursor: "grab", color: MUTED, opacity: 0.5,
+                        touchAction: "none",
+                      }}
+                    >
+                      <GripVertical style={{ width: 14, height: 14 }} />
+                    </div>
+                  )}
+
+                  {/* Selection checkbox */}
                   {selectionMode && (
                     <button
                       type="button"
@@ -353,7 +456,7 @@ export function ShoppingList() {
                     </button>
                   )}
 
-                  {/* Completed checkbox (hidden in selection mode) */}
+                  {/* Completed checkbox */}
                   {!selectionMode && (
                     <button
                       type="button"
@@ -402,11 +505,11 @@ export function ShoppingList() {
                     </span>
                   )}
 
-                  {/* Delete (only outside selection mode) */}
+                  {/* Delete (outside selection mode) */}
                   {!selectionMode && (
                     <button
                       type="button"
-                      onClick={() => handleDelete(item.id)}
+                      onClick={(e) => { e.stopPropagation(); handleDelete(item.id); }}
                       style={{
                         width: 26, height: 26, borderRadius: "50%", flexShrink: 0,
                         background: "none", border: 0, cursor: "pointer",
