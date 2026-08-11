@@ -16,7 +16,6 @@ const DARK_CARD = "oklch(.17 .015 270 / .6)";
 
 // ── Helpers ────────────────────────────────────────────────────
 
-/** Reorder an array by moving an item from one index to another */
 function reorder<T>(list: T[], startIndex: number, endIndex: number): T[] {
   const result = Array.from(list);
   const [removed] = result.splice(startIndex, 1);
@@ -24,7 +23,6 @@ function reorder<T>(list: T[], startIndex: number, endIndex: number): T[] {
   return result;
 }
 
-/** Reassign sequential positions and persist to API */
 async function persistOrder(items: ShoppingItem[]) {
   const payload = items.map((item, i) => ({ id: item.id, position: i }));
   try {
@@ -48,9 +46,21 @@ export function ShoppingList() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Drag state
-  const dragIndex = useRef<number | null>(null);
-  const dragOverIndex = useRef<number | null>(null);
+  // ── Mouse/touch drag state ──────────────────────────────────
+
+  const listRef = useRef<HTMLDivElement>(null);
+  const drag = useRef<{
+    active: boolean;
+    fromIndex: number;
+    overIndex: number;
+    startY: number;
+    itemHeight: number;
+    pointerId: number;
+  }>({ active: false, fromIndex: -1, overIndex: -1, startY: 0, itemHeight: 0, pointerId: -1 });
+
+  // Visual state for re-renders
+  const [dragFrom, setDragFrom] = useState<number | null>(null);
+  const [dragOver, setDragOver] = useState<number | null>(null);
 
   const loadItems = useCallback(async () => {
     try {
@@ -66,6 +76,99 @@ export function ShoppingList() {
   useEffect(() => {
     loadItems();
   }, [loadItems]);
+
+  // ── Calculate over index from cursor Y ─────────────────────
+
+  const getOverIndex = useCallback((clientY: number): number => {
+    const list = listRef.current;
+    if (!list) return drag.current.fromIndex;
+
+    const children = list.querySelectorAll<HTMLElement>("[data-drag-row]");
+    let bestIndex = drag.current.fromIndex;
+    let bestDist = Infinity;
+
+    children.forEach((el, i) => {
+      const rect = el.getBoundingClientRect();
+      const mid = rect.top + rect.height / 2;
+      const dist = Math.abs(clientY - mid);
+      if (dist < bestDist) {
+        bestDist = dist;
+        bestIndex = i;
+      }
+    });
+
+    return bestIndex;
+  }, []);
+
+  // ── Pointer event handlers ─────────────────────────────────
+
+  const handlePointerDown = useCallback((e: React.PointerEvent, index: number) => {
+    if (selectionMode) return;
+    e.preventDefault();
+    e.stopPropagation();
+
+    const el = (e.target as HTMLElement).closest("[data-drag-row]") as HTMLElement | null;
+    const itemHeight = el?.offsetHeight || 52;
+
+    drag.current = {
+      active: true,
+      fromIndex: index,
+      overIndex: index,
+      startY: e.clientY,
+      itemHeight,
+      pointerId: e.pointerId,
+    };
+
+    setDragFrom(index);
+    setDragOver(index);
+
+    // Capture pointer for reliable tracking
+    try {
+      (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    } catch {
+      // ignore
+    }
+  }, [selectionMode]);
+
+  const handlePointerMove = useCallback((e: React.PointerEvent) => {
+    if (!drag.current.active) return;
+    if (e.pointerId !== drag.current.pointerId) return;
+    e.preventDefault();
+
+    const overIndex = getOverIndex(e.clientY);
+    if (overIndex !== drag.current.overIndex) {
+      drag.current.overIndex = overIndex;
+      setDragOver(overIndex);
+    }
+  }, [getOverIndex]);
+
+  const handlePointerUp = useCallback((e: React.PointerEvent) => {
+    if (!drag.current.active) return;
+    if (e.pointerId !== drag.current.pointerId) return;
+    e.preventDefault();
+
+    const { fromIndex, overIndex } = drag.current;
+
+    // Reset drag state
+    drag.current.active = false;
+    setDragFrom(null);
+    setDragOver(null);
+
+    try {
+      (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+    } catch {
+      // ignore
+    }
+
+    if (fromIndex !== overIndex && fromIndex >= 0 && overIndex >= 0) {
+      setItems((prev) => {
+        const reordered = reorder(prev, fromIndex, overIndex);
+        const withPositions = reordered.map((item, i) => ({ ...item, position: i }));
+        persistOrder(withPositions);
+        return withPositions;
+      });
+    }
+  }, []);
 
   // ── Add ────────────────────────────────────────────────────
 
@@ -94,15 +197,13 @@ export function ShoppingList() {
   // ── Toggle (checked ↔ unchecked) + auto-reorder ────────────
 
   const handleToggle = async (item: ShoppingItem) => {
-    if (selectionMode) return;
+    if (selectionMode || drag.current.active) return;
 
     const newChecked = !item.checked;
-    // Optimistic: update checked state
     setItems((prev) => {
       const updated = prev.map((i) =>
         i.id === item.id ? { ...i, checked: newChecked } : i
       );
-      // Sort: unchecked first (by position), then checked (by position)
       const unchecked = updated.filter((i) => !i.checked);
       const checked = updated.filter((i) => i.checked);
       return [...unchecked, ...checked];
@@ -116,7 +217,6 @@ export function ShoppingList() {
       });
       if (!res.ok) throw new Error();
 
-      // Persist the new order
       const unchecked = items
         .filter((i) => i.id !== item.id && !i.checked)
         .concat(newChecked ? [] : [{ ...item, checked: false }]);
@@ -125,7 +225,7 @@ export function ShoppingList() {
         .concat(newChecked ? [{ ...item, checked: true }] : []);
       await persistOrder([...unchecked, ...checked]);
     } catch {
-      loadItems(); // rollback on error
+      loadItems();
     }
   };
 
@@ -169,45 +269,6 @@ export function ShoppingList() {
     }
   };
 
-  // ── Drag & drop ────────────────────────────────────────────
-
-  const handleDragStart = (e: React.DragEvent, index: number) => {
-    if (selectionMode) return;
-    e.dataTransfer.effectAllowed = "move";
-    e.dataTransfer.setData("text/plain", String(index));
-    dragIndex.current = index;
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
-  };
-
-  const handleDragOverIndex = (e: React.DragEvent, index: number) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
-    dragOverIndex.current = index;
-  };
-
-  const handleDrop = (e: React.DragEvent, index: number) => {
-    e.preventDefault();
-    const from = dragIndex.current;
-    dragIndex.current = null;
-    dragOverIndex.current = null;
-
-    if (from === null || from === index) return;
-
-    const reordered = reorder(items, from, index);
-    const withPositions = reordered.map((item, i) => ({ ...item, position: i }));
-    setItems(withPositions);
-    persistOrder(withPositions);
-  };
-
-  const handleDragEnd = () => {
-    dragIndex.current = null;
-    dragOverIndex.current = null;
-  };
-
   // ── Selection mode ─────────────────────────────────────────
 
   const toggleSelection = (id: string) => {
@@ -219,13 +280,8 @@ export function ShoppingList() {
     });
   };
 
-  const selectAll = () => {
-    setSelectedIds(new Set(items.map((i) => i.id)));
-  };
-
-  const deselectAll = () => {
-    setSelectedIds(new Set());
-  };
+  const selectAll = () => setSelectedIds(new Set(items.map((i) => i.id)));
+  const deselectAll = () => setSelectedIds(new Set());
 
   const deleteSelected = async () => {
     if (selectedIds.size === 0) return;
@@ -281,17 +337,13 @@ export function ShoppingList() {
             boxSizing: "border-box",
           }}
         />
-        <button
-          type="button"
-          onClick={handleAdd}
-          disabled={adding || !input.trim()}
+        <button type="button" onClick={handleAdd} disabled={adding || !input.trim()}
           style={{
             width: 44, height: 44, borderRadius: 12, border: 0, cursor: "pointer",
             background: input.trim() ? PURPLE_HEX : "oklch(.22 .015 270 / .5)",
             color: "#fff", display: "flex", alignItems: "center", justifyContent: "center",
             opacity: input.trim() ? 1 : 0.4, flexShrink: 0,
-          }}
-        >
+          }}>
           <Plus style={{ width: 20, height: 20 }} />
         </button>
       </div>
@@ -309,28 +361,22 @@ export function ShoppingList() {
           <div style={{ display: "flex", gap: 6 }}>
             {!selectionMode ? (
               <>
-                <button
-                  type="button"
-                  onClick={() => setSelectionMode(true)}
+                <button type="button" onClick={() => setSelectionMode(true)}
                   style={{
                     background: "none", border: 0, cursor: "pointer",
                     fontSize: 11, color: MUTED, fontFamily: "inherit",
                     display: "inline-flex", alignItems: "center", gap: 4,
-                  }}
-                >
+                  }}>
                   <CheckSquare style={{ width: 12, height: 12 }} />
                   Selecionar
                 </button>
                 {checkedCount > 0 && (
-                  <button
-                    type="button"
-                    onClick={handleClearChecked}
+                  <button type="button" onClick={handleClearChecked}
                     style={{
                       background: "none", border: 0, cursor: "pointer",
                       fontSize: 11, color: MUTED, fontFamily: "inherit",
                       display: "inline-flex", alignItems: "center", gap: 4,
-                    }}
-                  >
+                    }}>
                     <Minus style={{ width: 12, height: 12 }} />
                     Limpar concluídos
                   </button>
@@ -372,7 +418,12 @@ export function ShoppingList() {
       )}
 
       {/* List */}
-      <div style={{ flex: 1, overflowY: "auto", minHeight: 0 }}>
+      <div
+        ref={listRef}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        style={{ flex: 1, overflowY: "auto", minHeight: 0, touchAction: "none" }}
+      >
         {loading ? (
           <p style={{ textAlign: "center", color: MUTED, fontSize: 13, padding: "24px 0" }}>
             Carregando...
@@ -396,15 +447,13 @@ export function ShoppingList() {
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             {items.map((item, index) => {
               const isSelected = selectedIds.has(item.id);
-              const isDragging = dragIndex.current === index;
-              const isDragOver = dragOverIndex.current === index && dragIndex.current !== index;
+              const isDragFrom = dragFrom === index;
+              const isDragOverTarget = dragOver === index && dragFrom !== index && dragFrom !== null;
 
               return (
                 <div
                   key={item.id}
-                  onDragOver={(e) => handleDragOverIndex(e, index)}
-                  onDrop={(e) => handleDrop(e, index)}
-                  onDragEnd={handleDragEnd}
+                  data-drag-row
                   style={{
                     display: "flex", alignItems: "center", gap: 8,
                     padding: "10px 10px 10px 6px", borderRadius: 12,
@@ -415,42 +464,40 @@ export function ShoppingList() {
                         : DARK_CARD,
                     border: isSelected
                       ? `1px solid ${PURPLE_HEX}`
-                      : isDragOver
+                      : isDragOverTarget
                         ? `1px dashed ${PURPLE_HEX}`
                         : item.checked
                           ? "1px solid transparent"
                           : `1px solid ${BORDER}`,
-                    opacity: isDragging ? 0.4 : 1,
-                    transition: "all 0.15s",
+                    opacity: isDragFrom ? 0.4 : 1,
+                    transition: "border 0.15s, opacity 0.15s",
+                    userSelect: "none",
+                    WebkitUserSelect: "none",
                   }}
                 >
-                  {/* Drag handle (grip icon) — only outside selection mode */}
+                  {/* Drag handle */}
                   {!selectionMode && (
                     <div
-                      draggable
-                      onDragStart={(e) => handleDragStart(e, index)}
+                      onPointerDown={(e) => handlePointerDown(e, index)}
                       style={{
-                        width: 18, height: 28, flexShrink: 0,
+                        width: 24, height: 32, flexShrink: 0,
                         display: "flex", alignItems: "center", justifyContent: "center",
                         cursor: "grab", color: MUTED, opacity: 0.5,
                         touchAction: "none",
                       }}
                     >
-                      <GripVertical style={{ width: 14, height: 14 }} />
+                      <GripVertical style={{ width: 16, height: 16 }} />
                     </div>
                   )}
 
                   {/* Selection checkbox */}
                   {selectionMode && (
-                    <button
-                      type="button"
-                      onClick={() => toggleSelection(item.id)}
+                    <button type="button" onClick={() => toggleSelection(item.id)}
                       style={{
                         width: 22, height: 22, flexShrink: 0,
                         display: "flex", alignItems: "center", justifyContent: "center",
                         background: "none", border: 0, cursor: "pointer", padding: 0,
-                      }}
-                    >
+                      }}>
                       {isSelected ? (
                         <CheckSquare style={{ width: 20, height: 20, color: PURPLE_HEX }} />
                       ) : (
@@ -461,9 +508,7 @@ export function ShoppingList() {
 
                   {/* Completed checkbox */}
                   {!selectionMode && (
-                    <button
-                      type="button"
-                      onClick={() => handleToggle(item)}
+                    <button type="button" onClick={() => handleToggle(item)}
                       style={{
                         width: 22, height: 22, borderRadius: 6, flexShrink: 0,
                         border: item.checked ? "none" : `1.5px solid ${BORDER}`,
@@ -471,8 +516,7 @@ export function ShoppingList() {
                         cursor: "pointer", display: "flex",
                         alignItems: "center", justifyContent: "center",
                         transition: "all 0.15s",
-                      }}
-                    >
+                      }}>
                       {item.checked && (
                         <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
                           <path d="M2.5 6L5 8.5L9.5 3.5" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -490,8 +534,7 @@ export function ShoppingList() {
                       textDecoration: item.checked ? "line-through" : "none",
                       transition: "all 0.2s",
                       cursor: selectionMode ? "default" : "pointer",
-                    }}
-                  >
+                    }}>
                     {item.item_name}
                   </span>
 
@@ -508,18 +551,16 @@ export function ShoppingList() {
                     </span>
                   )}
 
-                  {/* Delete (outside selection mode) */}
+                  {/* Delete */}
                   {!selectionMode && (
-                    <button
-                      type="button"
+                    <button type="button"
                       onClick={(e) => { e.stopPropagation(); handleDelete(item.id); }}
                       style={{
                         width: 26, height: 26, borderRadius: "50%", flexShrink: 0,
                         background: "none", border: 0, cursor: "pointer",
                         display: "flex", alignItems: "center", justifyContent: "center",
                         opacity: 0.4,
-                      }}
-                    >
+                      }}>
                       <X style={{ width: 14, height: 14, color: MUTED }} />
                     </button>
                   )}
