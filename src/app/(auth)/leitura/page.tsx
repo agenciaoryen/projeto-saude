@@ -1,13 +1,18 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useTranslation } from "@/lib/useTranslation";
-import { cachedFetch } from "@/lib/fetch-cache";
-import { BookOpen, Search, Library } from "lucide-react";
-import { BookCard } from "@/components/BookCard";
-import { BookReader } from "@/components/BookReader";
+import {
+  BookOpen, Plus, Flame, Target, Library, BarChart3, Clock, FileText,
+} from "lucide-react";
 import { toast } from "sonner";
-import type { GutendexBook, GutendexResponse, UserBook } from "@/types";
+import type { ReadingBook, ReadingSession, ReadingSettings } from "@/types";
+import { ReadingBookCard } from "@/components/ReadingBookCard";
+import { ReadingAddBookModal, type BookFormValues } from "@/components/ReadingAddBookModal";
+import { ReadingLogSessionModal, type SessionFormValues } from "@/components/ReadingLogSessionModal";
+import {
+  getLocalDate, getWeekMondayDate, getWeekSundayDate, calculateStreak,
+} from "@/lib/utils";
 
 // ── Design tokens ──────────────────────────────────────────────
 const BG_GRADIENT: React.CSSProperties = {
@@ -27,561 +32,591 @@ const PURPLE_HEX = "#7C5CFF";
 const FOREGROUND = "#e0d6ff";
 const CARD_BG = "oklch(.17 .015 270 / .6)";
 
-const CATEGORIES = [
-  { key: "PT Romance", label: "📖 Romance" },
-  { key: "PT Poesia", label: "🪶 Poesia" },
-  { key: "PT Contos", label: "📜 Contos" },
-  { key: "philosophy", label: "🤔 Filosofia" },
-  { key: "PT História", label: "🏛️ História" },
-  { key: "PT Teatro", label: "🎭 Teatro" },
-  { key: "PT Infantil e Juvenil", label: "🧒 Infantil" },
-];
-
-const LANGUAGES = [
-  { code: "", label: "🌐 Todos" },
-  { code: "pt", label: "🇧🇷 PT" },
-  { code: "en", label: "🇺🇸 EN" },
-  { code: "es", label: "🇪🇸 ES" },
-];
-
 // ── Page ────────────────────────────────────────────────────────
 
 export default function LeituraPage() {
-  const { t, lang: userLang } = useTranslation();
-  const [tab, setTab] = useState<"explorar" | "biblioteca">("explorar");
-  const [search, setSearch] = useState("");
-  const [books, setBooks] = useState<GutendexBook[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [searched, setSearched] = useState(false);
-  const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const { t } = useTranslation();
+  const [tab, setTab] = useState<"estante" | "stats">("estante");
+  const [books, setBooks] = useState<ReadingBook[]>([]);
+  const [sessions, setSessions] = useState<ReadingSession[]>([]);
+  const [settings, setSettings] = useState<ReadingSettings>({ daily_goal_type: "minutes", daily_goal_value: 15 });
+  const [loading, setLoading] = useState(true);
 
-  // Filtro de idioma — null = usar idioma do perfil, "" = todos, "pt"/"en"/"es" = específico
-  const [langOverride, setLangOverride] = useState<string | null>(null);
-  const effectiveLang = langOverride !== null ? langOverride : userLang;
+  // Modals
+  const [addModal, setAddModal] = useState(false);
+  const [editingBook, setEditingBook] = useState<ReadingBook | null>(null);
+  const [logModal, setLogModal] = useState(false);
+  const [logBookId, setLogBookId] = useState<string | null>(null);
 
-  // Biblioteca
-  const [savedBooks, setSavedBooks] = useState<UserBook[]>([]);
-  const [savedMap, setSavedMap] = useState<Map<number, UserBook>>(new Map());
-
-  // Detail modal
-  const [detailBook, setDetailBook] = useState<GutendexBook | null>(null);
-
-  // Reader
-  const [reader, setReader] = useState<{
-    htmlUrl: string;
-    title: string;
-    bookId: number;
-    savedId?: string;
-    progress: number;
-  } | null>(null);
-
-  // ── Load saved books ──────────────────────────────────────────
-
-  const loadSaved = useCallback(async () => {
+  const loadAll = useCallback(async () => {
     try {
-      const data = await cachedFetch<UserBook[]>("/api/leitura/biblioteca");
-      if (Array.isArray(data)) {
-        setSavedBooks(data);
-        const map = new Map<number, UserBook>();
-        data.forEach((b) => map.set(b.book_id, b));
-        setSavedMap(map);
-      }
-    } catch { /* silent */ }
-  }, []);
-
-  useEffect(() => { loadSaved(); }, [loadSaved]);
-
-  // ── Search / Browse ──────────────────────────────────────────
-
-  const doSearch = useCallback(async (query: string, category?: string | null, langCode?: string) => {
-    setLoading(true);
-    setSearched(true);
-    try {
-      const params = new URLSearchParams();
-      if (category) {
-        // `topic` casa com bookshelves do Gutenberg (inclusive as "PT *" em português)
-        params.set("topic", category);
-      } else if (query.trim()) {
-        params.set("search", query.trim());
-      } else {
-        // Default: literatura em português (mais relevante pro público)
-        params.set("topic", "PT Romance");
-      }
-      if (langCode) {
-        params.set("languages", langCode);
-      }
-      params.set("sort", "popular");
-      const url = `https://gutendex.com/books/?${params.toString()}`;
-      const data = await cachedFetch<GutendexResponse>(url);
-      if (data && Array.isArray(data.results)) {
-        setBooks(data.results);
-      }
+      const [b, s, st] = await Promise.all([
+        fetch("/api/leitura/books").then((r) => r.json()),
+        fetch("/api/leitura/sessions").then((r) => r.json()),
+        fetch("/api/leitura/settings").then((r) => r.json()),
+      ]);
+      if (Array.isArray(b)) setBooks(b);
+      if (Array.isArray(s)) setSessions(s);
+      if (st && typeof st === "object") setSettings(st);
     } catch {
-      toast.error("Erro ao buscar livros");
+      /* silent */
     } finally {
       setLoading(false);
     }
   }, []);
 
-  // Initial load — usa idioma do perfil como default
-  useEffect(() => {
-    doSearch("", null, effectiveLang);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { loadAll(); }, [loadAll]);
 
-  // Search on Enter
-  const handleSearchKey = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      setActiveCategory(null);
-      setLangOverride(null); // busca livre usa idioma do perfil
-      doSearch(search, null, userLang);
-    }
+  const activeBooks = useMemo(
+    () => books.filter((b) => b.status === "lendo" || b.status === "quero_ler"),
+    [books]
+  );
+
+  // ── Stats ─────────────────────────────────────────────────────
+
+  const stats = useMemo(() => {
+    const dates = Array.from(new Set(sessions.map((s) => s.date))).sort((a, b) => b.localeCompare(a));
+    const streak = calculateStreak(dates);
+    const today = getLocalDate();
+
+    const todaySessions = sessions.filter((s) => s.date === today);
+    const todayPages = todaySessions.reduce((a, s) => a + s.pages_read, 0);
+    const todayMinutes = todaySessions.reduce((a, s) => a + s.minutes_read, 0);
+
+    const goalType = settings.daily_goal_type;
+    const goalValue = settings.daily_goal_value;
+    const todayProgress = goalType === "pages" ? todayPages : todayMinutes;
+    const goalReached = goalValue > 0 && todayProgress >= goalValue;
+
+    const monday = getWeekMondayDate();
+    const sunday = getWeekSundayDate();
+    const weekSessions = sessions.filter((s) => s.date >= monday && s.date <= sunday);
+    const weekPages = weekSessions.reduce((a, s) => a + s.pages_read, 0);
+    const weekMinutes = weekSessions.reduce((a, s) => a + s.minutes_read, 0);
+    const weekDays = new Set(weekSessions.map((s) => s.date)).size;
+
+    const monthPrefix = today.slice(0, 7);
+    const monthSessions = sessions.filter((s) => s.date.startsWith(monthPrefix));
+    const monthPages = monthSessions.reduce((a, s) => a + s.pages_read, 0);
+    const monthMinutes = monthSessions.reduce((a, s) => a + s.minutes_read, 0);
+    const monthDays = new Set(monthSessions.map((s) => s.date)).size;
+
+    return {
+      streak,
+      todayPages,
+      todayMinutes,
+      todayProgress,
+      goalType,
+      goalValue,
+      goalReached,
+      weekPages,
+      weekMinutes,
+      weekDays,
+      monthPages,
+      monthMinutes,
+      monthDays,
+      booksReading: books.filter((b) => b.status === "lendo").length,
+      booksCompleted: books.filter((b) => b.status === "concluido").length,
+    };
+  }, [sessions, settings, books]);
+
+  // ── Actions ───────────────────────────────────────────────────
+
+  const openAdd = () => { setEditingBook(null); setAddModal(true); };
+  const openEdit = (book: ReadingBook) => { setEditingBook(book); setAddModal(true); };
+  const openLog = (book: ReadingBook | null) => {
+    setLogBookId(book?.id || null);
+    setLogModal(true);
   };
 
-  const handleCategory = (cat: typeof CATEGORIES[0]) => {
-    const newCat = activeCategory === cat.key ? null : cat.key;
-    setActiveCategory(newCat);
-    setSearch("");
-    if (newCat) {
-      // Categoria ativa → mostrar todos os idiomas (mais resultados)
-      setLangOverride("");
-      doSearch("", newCat, "");
-    } else {
-      // Desmarcou → voltar ao idioma do perfil
-      setLangOverride(null);
-      doSearch("", null, userLang);
-    }
-  };
-
-  const handleLangChange = (code: string) => {
-    // null = "usar idioma do perfil", "" = "todos"
-    setLangOverride(code === userLang ? null : code);
-    doSearch(search, activeCategory, code === userLang ? userLang : code);
-  };
-
-  // ── Book actions ──────────────────────────────────────────────
-
-  const handleSave = async (book: GutendexBook) => {
+  const saveBook = async (values: BookFormValues) => {
     try {
-      const author = book.authors?.[0]?.name || null;
-      const coverUrl = book.formats?.["image/jpeg"] || null;
-      const res = await fetch("/api/leitura/biblioteca", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ book_id: book.id, title: book.title, author, cover_url: coverUrl, status: "want_to_read" }),
-      });
+      const payload = {
+        title: values.title,
+        author: values.author || null,
+        emoji: values.emoji,
+        genre: values.genre || null,
+        total_pages: values.total_pages ? Number(values.total_pages) : null,
+        current_page: values.current_page ? Number(values.current_page) : 0,
+        status: values.status,
+      };
+      const res = editingBook
+        ? await fetch("/api/leitura/books", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...payload, id: editingBook.id }) })
+        : await fetch("/api/leitura/books", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       if (res.ok) {
-        toast.success("Livro salvo!");
-        await loadSaved();
+        toast.success(editingBook ? "Livro atualizado!" : "Livro adicionado à estante 📚");
+        setAddModal(false);
+        setEditingBook(null);
+        await loadAll();
+      } else {
+        toast.error("Erro ao salvar livro");
       }
     } catch {
-      toast.error("Erro ao salvar");
+      toast.error("Erro ao salvar livro");
     }
   };
 
-  const handleRemove = async (saved: UserBook) => {
+  const deleteBook = async (book: ReadingBook) => {
+    if (!window.confirm(`Remover "${book.title}" da sua estante?`)) return;
     try {
-      const res = await fetch(`/api/leitura/biblioteca?id=${saved.id}`, { method: "DELETE" });
+      const res = await fetch(`/api/leitura/books?id=${book.id}`, { method: "DELETE" });
       if (res.ok) {
         toast.success("Livro removido");
-        await loadSaved();
+        await loadAll();
       }
     } catch {
       toast.error("Erro ao remover");
     }
   };
 
-  const handleRead = (book: GutendexBook) => {
-    // Usar URL direto do cache HTTPS — o /ebooks/{id}.html.images redireciona pra HTTP (bloqueado)
-    // Padrão: https://www.gutenberg.org/cache/epub/{bookId}/pg{bookId}-images.html
-    const htmlUrl = `https://www.gutenberg.org/cache/epub/${book.id}/pg${book.id}-images.html`;
-    const saved = savedMap.get(book.id);
-    setReader({
-      htmlUrl,
-      title: book.title,
-      bookId: book.id,
-      savedId: saved?.id,
-      progress: saved?.progress || 0,
-    });
-  };
-
-  const handleProgress = async (progress: number) => {
-    const saved = reader?.savedId;
-    if (!saved) return;
+  const completeBook = async (book: ReadingBook) => {
     try {
-      await fetch("/api/leitura/biblioteca", {
+      const res = await fetch("/api/leitura/books", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: saved, progress }),
+        body: JSON.stringify({ id: book.id, status: "concluido", total_pages: book.total_pages }),
       });
-    } catch { /* silent */ }
-  };
-
-  const handleStartReading = async () => {
-    if (!reader?.savedId) return;
-    try {
-      await fetch("/api/leitura/biblioteca", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: reader.savedId, status: "reading" }),
-      });
-      await loadSaved();
-    } catch { /* silent */ }
-  };
-
-  const handleCloseReader = async () => {
-    // Save final progress before closing
-    if (reader?.savedId) {
-      try {
-        await fetch("/api/leitura/biblioteca", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id: reader.savedId, progress: reader.progress }),
-        });
-      } catch { /* silent */ }
-    }
-    setReader(null);
-    await loadSaved();
-  };
-
-  const handleMarkComplete = async (saved: UserBook) => {
-    try {
-      await fetch("/api/leitura/biblioteca", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: saved.id, status: "completed" }),
-      });
-      await loadSaved();
-      toast.success("Leitura concluída! 🎉");
+      if (res.ok) {
+        toast.success("Leitura concluída! 🎉");
+        await loadAll();
+      }
     } catch {
-      toast.error("Erro ao atualizar");
+      toast.error("Erro ao concluir");
     }
   };
 
-  // ── Filtered saved ────────────────────────────────────────────
+  const reopenBook = async (book: ReadingBook) => {
+    try {
+      const res = await fetch("/api/leitura/books", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: book.id, status: "lendo" }),
+      });
+      if (res.ok) {
+        toast.success("Livro reaberto");
+        await loadAll();
+      }
+    } catch {
+      toast.error("Erro ao reabrir");
+    }
+  };
 
-  const wantToRead = savedBooks.filter((b) => b.status === "want_to_read");
-  const reading = savedBooks.filter((b) => b.status === "reading");
-  const completed = savedBooks.filter((b) => b.status === "completed");
+  const saveSession = async (values: SessionFormValues) => {
+    try {
+      const res = await fetch("/api/leitura/sessions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          book_id: values.book_id || null,
+          book_title: values.book_title,
+          date: values.date,
+          pages_read: Number(values.pages_read) || 0,
+          minutes_read: Number(values.minutes_read) || 0,
+        }),
+      });
+      if (res.ok) {
+        toast.success("Leitura registrada! 🔥");
+        setLogModal(false);
+        await loadAll();
+      } else {
+        toast.error("Erro ao registrar leitura");
+      }
+    } catch {
+      toast.error("Erro ao registrar leitura");
+    }
+  };
+
+  const deleteSession = async (session: ReadingSession) => {
+    try {
+      const res = await fetch(`/api/leitura/sessions?id=${session.id}`, { method: "DELETE" });
+      if (res.ok) await loadAll();
+    } catch {
+      /* silent */
+    }
+  };
+
+  const saveSettings = async (goalType: "pages" | "minutes", goalValue: number) => {
+    try {
+      const res = await fetch("/api/leitura/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ daily_goal_type: goalType, daily_goal_value: goalValue }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSettings(data);
+        toast.success("Meta salva!");
+      }
+    } catch {
+      toast.error("Erro ao salvar meta");
+    }
+  };
+
+  // ── Grouping ──────────────────────────────────────────────────
+
+  const lendo = books.filter((b) => b.status === "lendo");
+  const queroLer = books.filter((b) => b.status === "quero_ler");
+  const concluidos = books.filter((b) => b.status === "concluido");
+  const abandonados = books.filter((b) => b.status === "abandonado");
+
+  const recentSessions = useMemo(() => sessions.slice(0, 10), [sessions]);
 
   // ── Render ────────────────────────────────────────────────────
 
   return (
     <div style={{ ...BG_GRADIENT, paddingBottom: 100 }}>
       {/* Header */}
-      <div style={{ padding: "22px 20px 4px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <BookOpen size={24} color="#A78BFA" />
-          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: FOREGROUND }}>
-            Leitura
-          </h1>
+      <div style={{ padding: "22px 20px 12px" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <BookOpen size={24} color="#A78BFA" />
+            <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: FOREGROUND }}>
+              {t("leitura")}
+            </h1>
+          </div>
+          <button type="button" onClick={() => openLog(activeBooks[0] || null)}
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              padding: "9px 16px", borderRadius: 9999, border: 0, cursor: "pointer",
+              background: PURPLE_HEX, color: "#fff", fontSize: 13, fontWeight: 700,
+              fontFamily: "inherit",
+            }}>
+            <Plus style={{ width: 16, height: 16 }} /> Registrar leitura
+          </button>
+        </div>
+      </div>
+
+      {/* Resumo de hoje */}
+      <div style={{ padding: "0 20px 12px" }}>
+        <div style={{
+          display: "flex", gap: 10, padding: 14, borderRadius: 16,
+          background: CARD_BG, border: `1px solid ${BORDER}`,
+        }}>
+          <StatPill icon={<Flame style={{ width: 18, height: 18 }} />} value={stats.streak} label="dias" color="#FF9A5C" />
+          <div style={{ width: 1, background: BORDER, flexShrink: 0 }} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <span style={{ fontSize: 12, color: MUTED, fontWeight: 600, display: "flex", alignItems: "center", gap: 5 }}>
+                <Target style={{ width: 13, height: 13 }} />
+                Meta de hoje
+              </span>
+              <span style={{ fontSize: 11, color: stats.goalReached ? "oklch(0.55 0.15 160)" : MUTED, fontWeight: 700 }}>
+                {stats.todayProgress}/{stats.goalValue} {stats.goalType === "pages" ? "pág" : "min"}
+              </span>
+            </div>
+            <div style={{
+              height: 6, borderRadius: 9999, marginTop: 8,
+              background: "oklch(.22 .015 270 / .5)", overflow: "hidden",
+            }}>
+              <div style={{
+                height: "100%", borderRadius: 9999,
+                background: stats.goalReached ? "oklch(0.55 0.15 160)" : PURPLE_HEX,
+                width: `${Math.min(100, (stats.todayProgress / Math.max(1, stats.goalValue)) * 100)}%`,
+                transition: "width 0.5s ease",
+              }} />
+            </div>
+            <p style={{ margin: "6px 0 0", fontSize: 11, color: MUTED }}>
+              {stats.todayPages} páginas · {stats.todayMinutes} min hoje
+            </p>
+          </div>
         </div>
       </div>
 
       {/* Tabs */}
-      <div style={{ padding: "12px 20px", display: "flex", gap: 6 }}>
-        {(["explorar", "biblioteca"] as const).map((t) => (
-          <button key={t} type="button" onClick={() => setTab(t)}
+      <div style={{ padding: "0 20px 12px", display: "flex", gap: 6 }}>
+        {([{ key: "estante", label: "Estante", icon: <Library style={{ width: 14, height: 14 }} /> },
+           { key: "stats", label: "Estatísticas", icon: <BarChart3 style={{ width: 14, height: 14 }} /> }] as const).map((tb) => (
+          <button key={tb.key} type="button" onClick={() => setTab(tb.key)}
             style={{
-              padding: "8px 18px", borderRadius: 9999, border: 0, cursor: "pointer",
+              padding: "8px 16px", borderRadius: 9999, border: 0, cursor: "pointer",
               fontFamily: "inherit", fontSize: 13, fontWeight: 600,
-              background: tab === t ? PURPLE_HEX : CARD_BG,
-              color: tab === t ? "#fff" : MUTED,
+              background: tab === tb.key ? PURPLE_HEX : CARD_BG,
+              color: tab === tb.key ? "#fff" : MUTED,
               display: "flex", alignItems: "center", gap: 6,
             }}>
-            {t === "explorar" ? <Search style={{ width: 14, height: 14 }} /> : <Library style={{ width: 14, height: 14 }} />}
-            {t === "explorar" ? "Explorar" : "Minha Biblioteca"}
+            {tb.icon}{tb.label}
           </button>
         ))}
       </div>
 
-      {/* ── Explorar ────────────────────────────────────────────── */}
-      {tab === "explorar" && (
+      {/* ── Estante ──────────────────────────────────────────────── */}
+      {tab === "estante" && (
         <div style={{ padding: "0 20px" }}>
-          {/* Search bar */}
-          <div style={{
-            display: "flex", gap: 8, marginBottom: 12,
-            background: CARD_BG, borderRadius: 14, padding: "4px 4px 4px 16px",
-            border: `1px solid ${BORDER}`, alignItems: "center",
-          }}>
-            <Search style={{ width: 16, height: 16, color: MUTED, flexShrink: 0 }} />
-            <input
-              type="text" value={search} onChange={(e) => setSearch(e.target.value)}
-              onKeyDown={handleSearchKey}
-              placeholder="Buscar livros..."
-              style={{
-                flex: 1, height: 40, background: "transparent", border: 0,
-                color: FOREGROUND, fontSize: 14, fontFamily: "inherit",
-                outline: "none",
-              }}
-            />
-          </div>
+          <button type="button" onClick={openAdd}
+            style={{
+              width: "100%", padding: "12px", borderRadius: 12, cursor: "pointer",
+              background: "transparent", border: `1px dashed ${PURPLE_HEX}50`,
+              color: "#A78BFA", fontSize: 13, fontWeight: 700, fontFamily: "inherit",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+              marginBottom: 16,
+            }}>
+            <Plus style={{ width: 15, height: 15 }} /> Adicionar livro
+          </button>
 
-          {/* Language filter */}
-          <div style={{
-            display: "flex", gap: 6, marginBottom: 10, overflowX: "auto",
-            paddingBottom: 2, scrollbarWidth: "none",
-          }}>
-            {LANGUAGES.map((lang) => {
-              const isActive = lang.code === effectiveLang || (lang.code === "" && effectiveLang === "");
-              return (
-                <button key={lang.code || "all"} type="button"
-                  onClick={() => handleLangChange(lang.code)}
-                  style={{
-                    padding: "5px 12px", borderRadius: 9999, cursor: "pointer",
-                    fontFamily: "inherit", fontSize: 11, fontWeight: 700,
-                    background: isActive ? `${PURPLE_HEX}30` : "oklch(.20 .015 270 / .4)",
-                    color: isActive ? "#A78BFA" : MUTED,
-                    whiteSpace: "nowrap", flexShrink: 0,
-                    border: isActive ? `1px solid ${PURPLE_HEX}50` : "1px solid transparent",
-                    transition: "all 0.15s ease",
-                  }}>
-                  {lang.label}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Categories */}
-          <div style={{
-            display: "flex", gap: 8, marginBottom: 16, overflowX: "auto",
-            paddingBottom: 4, scrollbarWidth: "none",
-          }}>
-            {CATEGORIES.map((cat) => (
-              <button key={cat.key} type="button"
-                onClick={() => handleCategory(cat)}
-                style={{
-                  padding: "6px 14px", borderRadius: 9999, cursor: "pointer",
-                  fontFamily: "inherit", fontSize: 12, fontWeight: 600,
-                  background: activeCategory === cat.key ? `${PURPLE_HEX}25` : "oklch(.20 .015 270 / .5)",
-                  color: activeCategory === cat.key ? "#A78BFA" : MUTED,
-                  whiteSpace: "nowrap", flexShrink: 0,
-                  border: activeCategory === cat.key ? `1px solid ${PURPLE_HEX}40` : "1px solid transparent",
-                  transition: "all 0.15s ease",
-                }}>
-                {cat.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Results */}
           {loading ? (
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} style={{
-                  height: 120, borderRadius: 14, background: CARD_BG,
-                  border: `1px solid ${BORDER}`, animation: "pulse 2s infinite",
-                }} />
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} style={{ height: 120, borderRadius: 14, background: CARD_BG, border: `1px solid ${BORDER}` }} />
               ))}
             </div>
-          ) : books.length === 0 && searched ? (
-            <div style={{ textAlign: "center", padding: "40px 16px" }}>
-              <span style={{ fontSize: 48 }}>📚</span>
-              <p style={{ color: MUTED, fontSize: 14, marginTop: 12 }}>Nenhum livro encontrado</p>
-            </div>
+          ) : books.length === 0 ? (
+            <EmptyState
+              emoji="📚"
+              title="Sua estante está vazia"
+              subtitle="Adicione o livro que você está lendo (ou quer ler) e comece a acompanhar seu hábito de leitura."
+              cta="Adicionar primeiro livro"
+              onCta={openAdd}
+            />
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {books.map((book) => (
-                <BookCard
-                  key={book.id}
-                  book={book}
-                  saved={savedMap.get(book.id) || null}
-                  onSave={handleSave}
-                  onRead={handleRead}
-                  onRemove={handleRemove}
-                />
-              ))}
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              <BookGroup title="Lendo" count={lendo.length} color="#A78BFA">
+                {lendo.map((b) => (
+                  <ReadingBookCard key={b.id} book={b}
+                    onLogSession={openLog} onComplete={completeBook}
+                    onReopen={reopenBook} onEdit={openEdit} onDelete={deleteBook} />
+                ))}
+              </BookGroup>
+
+              <BookGroup title="Quero ler" count={queroLer.length} color={MUTED}>
+                {queroLer.map((b) => (
+                  <ReadingBookCard key={b.id} book={b}
+                    onLogSession={openLog} onComplete={completeBook}
+                    onReopen={reopenBook} onEdit={openEdit} onDelete={deleteBook} />
+                ))}
+              </BookGroup>
+
+              <BookGroup title="Concluídos" count={concluidos.length} color="oklch(0.55 0.15 160)">
+                {concluidos.map((b) => (
+                  <ReadingBookCard key={b.id} book={b}
+                    onLogSession={openLog} onComplete={completeBook}
+                    onReopen={reopenBook} onEdit={openEdit} onDelete={deleteBook} />
+                ))}
+              </BookGroup>
+
+              <BookGroup title="Abandonados" count={abandonados.length} color="oklch(0.6 0.12 20)">
+                {abandonados.map((b) => (
+                  <ReadingBookCard key={b.id} book={b}
+                    onLogSession={openLog} onComplete={completeBook}
+                    onReopen={reopenBook} onEdit={openEdit} onDelete={deleteBook} />
+                ))}
+              </BookGroup>
             </div>
           )}
         </div>
       )}
 
-      {/* ── Biblioteca Tabs ─────────────────────────────────────── */}
-      {tab === "biblioteca" && (
-        <div style={{ padding: "0 20px" }}>
-          {savedBooks.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "48px 16px" }}>
-              <span style={{ fontSize: 48 }}>📖</span>
-              <p style={{ color: FOREGROUND, fontSize: 15, fontWeight: 600, margin: "12px 0 4px" }}>
-                Sua estante está vazia
-              </p>
-              <p style={{ color: MUTED, fontSize: 13, lineHeight: 1.5 }}>
-                Explore a aba "Explorar" e salve livros que você quer ler
-              </p>
+      {/* ── Estatísticas ─────────────────────────────────────────── */}
+      {tab === "stats" && (
+        <div style={{ padding: "0 20px", display: "flex", flexDirection: "column", gap: 14 }}>
+          {/* Contadores */}
+          <div style={{ display: "flex", gap: 10 }}>
+            <MiniStat icon="📖" value={stats.booksReading} label="Lendo" />
+            <MiniStat icon="✅" value={stats.booksCompleted} label="Concluídos" />
+            <MiniStat icon="🔥" value={stats.streak} label="Sequência" />
+          </div>
+
+          {/* Semana / Mês */}
+          <SummaryCard icon={<Clock style={{ width: 16, height: 16 }} />} title="Esta semana">
+            <SummaryRow label="Páginas" value={stats.weekPages} />
+            <SummaryRow label="Minutos" value={stats.weekMinutes} />
+            <SummaryRow label="Dias lendo" value={`${stats.weekDays} de 7`} />
+          </SummaryCard>
+
+          <SummaryCard icon={<FileText style={{ width: 16, height: 16 }} />} title="Este mês">
+            <SummaryRow label="Páginas" value={stats.monthPages} />
+            <SummaryRow label="Minutos" value={stats.monthMinutes} />
+            <SummaryRow label="Dias lendo" value={stats.monthDays} />
+          </SummaryCard>
+
+          {/* Meta */}
+          <GoalCard
+            goalType={settings.daily_goal_type}
+            goalValue={settings.daily_goal_value}
+            onSave={saveSettings}
+          />
+
+          {/* Histórico recente */}
+          {recentSessions.length > 0 && (
+            <div>
+              <h3 style={{ fontSize: 13, fontWeight: 600, color: FOREGROUND, margin: "0 0 8px" }}>
+                Últimos registros
+              </h3>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {recentSessions.map((s) => (
+                  <div key={s.id} style={{
+                    display: "flex", alignItems: "center", gap: 10, padding: "10px 12px",
+                    borderRadius: 12, background: CARD_BG, border: `1px solid ${BORDER}`,
+                  }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: FOREGROUND, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {s.book_title}
+                      </p>
+                      <p style={{ margin: "2px 0 0", fontSize: 11, color: MUTED }}>
+                        {formatDate(s.date)} · {s.pages_read} pág · {s.minutes_read} min
+                      </p>
+                    </div>
+                    <button type="button" onClick={() => deleteSession(s)}
+                      style={{ background: "none", border: 0, color: MUTED, cursor: "pointer", fontSize: 14 }}>
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
             </div>
-          ) : (
-            <>
-              {/* Lendo */}
-              {reading.length > 0 && (
-                <div style={{ marginBottom: 20 }}>
-                  <h3 style={{ fontSize: 13, fontWeight: 600, color: "#A78BFA", margin: "0 0 8px", display: "flex", alignItems: "center", gap: 6 }}>
-                    <BookOpen style={{ width: 14, height: 14 }} /> Lendo ({reading.length})
-                  </h3>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                    {reading.map((saved) => (
-                      <SavedBookCard key={saved.id} saved={saved}
-                        onRead={() => {
-                          // Cache HTTPS direto — evita redirect HTTP do /ebooks/
-                          const htmlUrl = `https://www.gutenberg.org/cache/epub/${saved.book_id}/pg${saved.book_id}-images.html`;
-                          setReader({ htmlUrl, title: saved.title, bookId: saved.book_id, savedId: saved.id, progress: saved.progress });
-                        }}
-                        onRemove={handleRemove}
-                        onComplete={handleMarkComplete}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Quero Ler */}
-              {wantToRead.length > 0 && (
-                <div style={{ marginBottom: 20 }}>
-                  <h3 style={{ fontSize: 13, fontWeight: 600, color: MUTED, margin: "0 0 8px" }}>
-                    Quero Ler ({wantToRead.length})
-                  </h3>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                    {wantToRead.map((saved) => (
-                      <SavedBookCard key={saved.id} saved={saved}
-                        onRead={() => {
-                          const htmlUrl = `https://www.gutenberg.org/cache/epub/${saved.book_id}/pg${saved.book_id}-images.html`;
-                          setReader({ htmlUrl, title: saved.title, bookId: saved.book_id, savedId: saved.id, progress: 0 });
-                        }}
-                        onRemove={handleRemove}
-                        onComplete={() => handleMarkComplete(saved)}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Concluídos */}
-              {completed.length > 0 && (
-                <div style={{ marginBottom: 20 }}>
-                  <h3 style={{ fontSize: 13, fontWeight: 600, color: MUTED, margin: "0 0 8px" }}>
-                    Concluídos ({completed.length})
-                  </h3>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                    {completed.map((saved) => (
-                      <SavedBookCard key={saved.id} saved={saved}
-                        onRemove={handleRemove}
-                        isCompleted
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-            </>
           )}
         </div>
       )}
 
-      {/* ── Reader ──────────────────────────────────────────────── */}
-      {reader && (
-        <BookReader
-          htmlUrl={reader.htmlUrl}
-          title={reader.title}
-          bookId={reader.bookId}
-          savedId={reader.savedId}
-          initialProgress={reader.progress}
-          onProgress={handleProgress}
-          onStart={handleStartReading}
-          onClose={handleCloseReader}
+      {/* ── Modals ───────────────────────────────────────────────── */}
+      {addModal && (
+        <ReadingAddBookModal
+          initial={editingBook}
+          onClose={() => { setAddModal(false); setEditingBook(null); }}
+          onSave={saveBook}
+        />
+      )}
+      {logModal && (
+        <ReadingLogSessionModal
+          books={activeBooks}
+          initialBookId={logBookId}
+          onClose={() => setLogModal(false)}
+          onSave={saveSession}
         />
       )}
     </div>
   );
 }
 
-// ── Saved Book Mini Card ────────────────────────────────────────
+// ── Sub-components ──────────────────────────────────────────────
 
-function SavedBookCard({
-  saved,
-  onRead,
-  onRemove,
-  onComplete,
-  isCompleted,
-}: {
-  saved: UserBook;
-  onRead?: () => void;
-  onRemove: (saved: UserBook) => void;
-  onComplete?: (saved: UserBook) => void;
-  isCompleted?: boolean;
-}) {
+function StatPill({ icon, value, label, color }: { icon: React.ReactNode; value: number; label: string; color: string }) {
   return (
-    <div style={{
-      display: "flex", alignItems: "center", gap: 10, padding: 10, borderRadius: 12,
-      background: CARD_BG, border: `1px solid ${BORDER}`,
-    }}>
-      {/* Cover thumbnail */}
-      <div style={{
-        width: 44, height: 60, borderRadius: 6, flexShrink: 0,
-        background: "oklch(.22 .015 270 / .5)",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        overflow: "hidden",
-      }}>
-        {saved.cover_url ? (
-          <img src={saved.cover_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-        ) : (
-          <span style={{ fontSize: 20 }}>📖</span>
-        )}
-      </div>
-
-      {/* Info */}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: FOREGROUND, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {saved.title}
-        </p>
-        {saved.author && <p style={{ margin: "2px 0 0", fontSize: 11, color: MUTED }}>{saved.author}</p>}
-
-        {/* Progress bar for reading */}
-        {saved.status === "reading" && saved.progress > 0 && (
-          <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6 }}>
-            <div style={{
-              flex: 1, maxWidth: 100, height: 3, borderRadius: 9999,
-              background: "oklch(.22 .015 270 / .5)", overflow: "hidden",
-            }}>
-              <div style={{ height: "100%", borderRadius: 9999, background: PURPLE_HEX, width: `${Math.min(saved.progress, 100)}%` }} />
-            </div>
-            <span style={{ fontSize: 10, color: PURPLE_HEX, fontWeight: 700 }}>{saved.progress}%</span>
-          </div>
-        )}
-      </div>
-
-      {/* Actions */}
-      {!isCompleted && (
-        <div style={{ display: "flex", gap: 4 }}>
-          {onRead && (
-            <button type="button" onClick={onRead}
-              style={{
-                fontSize: 11, fontWeight: 600, color: "#fff", background: PURPLE_HEX,
-                border: 0, borderRadius: 8, padding: "5px 12px", cursor: "pointer",
-                fontFamily: "inherit", whiteSpace: "nowrap",
-              }}>
-              {saved.status === "reading" ? "Continuar" : "Ler"}
-            </button>
-          )}
-          {onComplete && (
-            <button type="button" onClick={() => onComplete(saved)}
-              style={{
-                fontSize: 11, fontWeight: 600, color: MUTED,
-                background: "transparent", border: 0,
-                padding: "5px 6px", cursor: "pointer", fontFamily: "inherit",
-              }}>
-              ✓
-            </button>
-          )}
-          <button type="button" onClick={() => onRemove(saved)}
-            style={{
-              fontSize: 11, fontWeight: 600, color: MUTED,
-              background: "transparent", border: 0,
-              padding: "5px 6px", cursor: "pointer", fontFamily: "inherit",
-            }}>
-            ✕
-          </button>
-        </div>
-      )}
-      {isCompleted && (
-        <span style={{ fontSize: 11, color: "oklch(0.45 0.15 160)", fontWeight: 600 }}>✓ Lido</span>
-      )}
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minWidth: 64, flexShrink: 0 }}>
+      <span style={{ color }}>{icon}</span>
+      <span style={{ fontSize: 22, fontWeight: 800, color: "#fff", lineHeight: 1.2 }}>{value}</span>
+      <span style={{ fontSize: 10, color: MUTED }}>{label}</span>
     </div>
   );
+}
+
+function MiniStat({ icon, value, label }: { icon: string; value: number; label: string }) {
+  return (
+    <div style={{
+      flex: 1, padding: "12px 8px", borderRadius: 14, textAlign: "center",
+      background: CARD_BG, border: `1px solid ${BORDER}`,
+    }}>
+      <div style={{ fontSize: 20 }}>{icon}</div>
+      <div style={{ fontSize: 20, fontWeight: 800, color: "#fff", marginTop: 2 }}>{value}</div>
+      <div style={{ fontSize: 10, color: MUTED }}>{label}</div>
+    </div>
+  );
+}
+
+function SummaryCard({ icon, title, children }: { icon: React.ReactNode; title: string; children: React.ReactNode }) {
+  return (
+    <div style={{ padding: 14, borderRadius: 16, background: CARD_BG, border: `1px solid ${BORDER}` }}>
+      <h3 style={{ margin: "0 0 10px", fontSize: 13, fontWeight: 600, color: "#A78BFA", display: "flex", alignItems: "center", gap: 6 }}>
+        {icon} {title}
+      </h3>
+      {children}
+    </div>
+  );
+}
+
+function SummaryRow({ label, value }: { label: string; value: number | string }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0" }}>
+      <span style={{ fontSize: 12, color: MUTED }}>{label}</span>
+      <span style={{ fontSize: 13, fontWeight: 700, color: FOREGROUND }}>{value}</span>
+    </div>
+  );
+}
+
+function GoalCard({ goalType, goalValue, onSave }: {
+  goalType: "pages" | "minutes";
+  goalValue: number;
+  onSave: (type: "pages" | "minutes", value: number) => void;
+}) {
+  const [type, setType] = useState<"pages" | "minutes">(goalType);
+  const [value, setValue] = useState(String(goalValue));
+
+  useEffect(() => {
+    setType(goalType);
+    setValue(String(goalValue));
+  }, [goalType, goalValue]);
+
+  return (
+    <div style={{ padding: 14, borderRadius: 16, background: CARD_BG, border: `1px solid ${BORDER}` }}>
+      <h3 style={{ margin: "0 0 10px", fontSize: 13, fontWeight: 600, color: "#A78BFA", display: "flex", alignItems: "center", gap: 6 }}>
+        <Target style={{ width: 15, height: 15 }} /> Meta diária
+      </h3>
+      <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
+        {([{ v: "pages", label: "Páginas" }, { v: "minutes", label: "Minutos" }] as const).map((o) => (
+          <button key={o.v} type="button" onClick={() => setType(o.v)}
+            style={{
+              flex: 1, padding: "8px", borderRadius: 10, cursor: "pointer",
+              fontFamily: "inherit", fontSize: 12, fontWeight: 700,
+              background: type === o.v ? `${PURPLE_HEX}30` : "oklch(.20 .015 270 / .4)",
+              color: type === o.v ? "#A78BFA" : MUTED,
+              border: type === o.v ? `1px solid ${PURPLE_HEX}50` : "1px solid transparent",
+            }}>
+            {o.label}
+          </button>
+        ))}
+      </div>
+      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <input value={value} onChange={(e) => setValue(e.target.value.replace(/\D/g, ""))}
+          inputMode="numeric"
+          style={{
+            flex: 1, padding: "10px 12px", borderRadius: 10, background: "oklch(.20 .015 270 / .5)",
+            border: `1px solid ${BORDER}`, color: FOREGROUND, fontSize: 14, fontFamily: "inherit", outline: "none",
+          }} />
+        <button type="button" onClick={() => onSave(type, Math.max(1, Number(value) || 1))}
+          style={{
+            padding: "10px 16px", borderRadius: 10, border: 0, cursor: "pointer",
+            background: PURPLE_HEX, color: "#fff", fontSize: 13, fontWeight: 700, fontFamily: "inherit",
+          }}>
+          Salvar
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function EmptyState({ emoji, title, subtitle, cta, onCta }: {
+  emoji: string; title: string; subtitle: string; cta: string; onCta: () => void;
+}) {
+  return (
+    <div style={{ textAlign: "center", padding: "40px 16px" }}>
+      <span style={{ fontSize: 48 }}>{emoji}</span>
+      <p style={{ color: FOREGROUND, fontSize: 15, fontWeight: 600, margin: "12px 0 4px" }}>{title}</p>
+      <p style={{ color: MUTED, fontSize: 13, lineHeight: 1.5, maxWidth: 300, margin: "0 auto 16px" }}>{subtitle}</p>
+      <button type="button" onClick={onCta}
+        style={{
+          padding: "10px 20px", borderRadius: 9999, border: 0, cursor: "pointer",
+          background: PURPLE_HEX, color: "#fff", fontSize: 13, fontWeight: 700, fontFamily: "inherit",
+        }}>
+        {cta}
+      </button>
+    </div>
+  );
+}
+
+function BookGroup({ title, count, color, children }: {
+  title: string; count: number; color: string; children: React.ReactNode;
+}) {
+  if (count === 0) return null;
+  return (
+    <div>
+      <h3 style={{ fontSize: 13, fontWeight: 600, color, margin: "0 0 8px" }}>
+        {title} ({count})
+      </h3>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>{children}</div>
+    </div>
+  );
+}
+
+function formatDate(dateStr: string): string {
+  const [y, m, d] = dateStr.split("-");
+  return `${d}/${m}/${y}`;
 }

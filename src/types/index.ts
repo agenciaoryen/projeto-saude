@@ -406,40 +406,41 @@ export interface AreaVision {
   updated_at: string;
 }
 
-// ── Leitura ──────────────────────────────────────────────────────
+// ── Controlador de Leitura ──────────────────────────────────────
 
-export interface UserBook {
+export type ReadingStatus = "quero_ler" | "lendo" | "concluido" | "abandonado";
+
+export interface ReadingBook {
   id: string;
   user_id: string;
-  book_id: number;
   title: string;
   author: string | null;
-  cover_url: string | null;
-  status: "want_to_read" | "reading" | "completed";
-  progress: number;
+  emoji: string | null;
+  genre: string | null;
   total_pages: number | null;
+  current_page: number;
+  status: ReadingStatus;
+  notes: string | null;
   started_at: string | null;
   completed_at: string | null;
   created_at: string;
+  updated_at: string;
 }
 
-export interface GutendexBook {
-  id: number;
-  title: string;
-  authors: { name: string; birth_year: number; death_year: number }[];
-  summaries: string[];
-  subjects: string[];
-  bookshelves: string[];
-  languages: string[];
-  copyright: boolean;
-  media_type: string;
-  formats: Record<string, string>;
-  download_count: number;
+export interface ReadingSession {
+  id: string;
+  user_id: string;
+  book_id: string | null;
+  book_title: string;
+  date: string;          // YYYY-MM-DD (data local do usuário)
+  pages_read: number;
+  minutes_read: number;
+  created_at: string;
 }
 
-export interface GutendexResponse {
-  count: number;
-  next: string | null;
-  previous: string | null;
-  results: GutendexBook[];
+export type ReadingGoalType = "pages" | "minutes";
+
+export interface ReadingSettings {
+  daily_goal_type: ReadingGoalType;
+  daily_goal_value: number;
 }
