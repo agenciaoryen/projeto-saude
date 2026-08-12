@@ -40,7 +40,9 @@ const modalInputStyle: React.CSSProperties = {
 };
 
 export default function ComunidadePage() {
+  // Comunidade oculta temporariamente — remover redirect ao reativar
   const router = useRouter();
+  useEffect(() => { router.push("/dashboard"); }, [router]);
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);

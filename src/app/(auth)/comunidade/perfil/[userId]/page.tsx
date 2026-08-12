@@ -31,7 +31,9 @@ function timeAgo(dateStr: string): string {
 }
 
 export default function CommunityProfilePage() {
+  // Comunidade oculta temporariamente — remover redirect ao reativar
   const router = useRouter();
+  useEffect(() => { router.push("/dashboard"); }, [router]);
   const { userId } = useParams<{ userId: string }>();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
