@@ -305,6 +305,24 @@ const translations: Record<Lang, Record<string, string>> = {
     lista_limpar: "Limpar concluídos",
     lista_adicionar_lacuna: "🛒 Adicionar à lista",
 
+    // Módulo Leitura
+    leitura: "Leitura",
+    leitura_buscar: "Buscar livros...",
+    leitura_explorar: "Explorar",
+    leitura_biblioteca: "Minha Biblioteca",
+    leitura_vazio: "Nenhum livro encontrado",
+    leitura_estante_vazia: "Sua estante está vazia",
+    leitura_estante_vazia_desc: "Explore a aba \"Explorar\" e salve livros que você quer ler",
+    leitura_salvo: "Livro salvo!",
+    leitura_removido: "Livro removido",
+    leitura_lendo: "Lendo",
+    leitura_quero_ler: "Quero Ler",
+    leitura_concluidos: "Concluídos",
+    leitura_sem_conteudo: "Conteúdo não disponível para este livro",
+    leitura_erro_buscar: "Erro ao buscar livros",
+    leitura_erro_salvar: "Erro ao salvar",
+    leitura_erro_remover: "Erro ao remover",
+
     // Features — O Fio (DayThread)
     fio_titulo: "O fio da semana",
     fio_descricao: "Como os dias se conectam. Setas mostram a direção do fluxo.",
@@ -902,6 +920,24 @@ const translations: Record<Lang, Record<string, string>> = {
     lista_limpar: "Limpiar completados",
     lista_adicionar_lacuna: "🛒 Añadir a la lista",
 
+    // Módulo Leitura
+    leitura: "Lectura",
+    leitura_buscar: "Buscar libros...",
+    leitura_explorar: "Explorar",
+    leitura_biblioteca: "Mi Biblioteca",
+    leitura_vazio: "No se encontraron libros",
+    leitura_estante_vazia: "Tu estantería está vacía",
+    leitura_estante_vazia_desc: "Explora la pestaña \"Explorar\" y guarda libros que quieras leer",
+    leitura_salvo: "¡Libro guardado!",
+    leitura_removido: "Libro eliminado",
+    leitura_lendo: "Leyendo",
+    leitura_quero_ler: "Quiero Leer",
+    leitura_concluidos: "Completados",
+    leitura_sem_conteudo: "Contenido no disponible para este libro",
+    leitura_erro_buscar: "Error al buscar libros",
+    leitura_erro_salvar: "Error al guardar",
+    leitura_erro_remover: "Error al eliminar",
+
     // Features — O Fio (DayThread)
     fio_titulo: "El hilo de la semana",
     fio_descricao: "Cómo los días se conectan. Las flechas muestran la dirección del flujo.",
@@ -1496,6 +1532,24 @@ const translations: Record<Lang, Record<string, string>> = {
     lista_input_placeholder: "Add item...",
     lista_limpar: "Clear completed",
     lista_adicionar_lacuna: "🛒 Add to list",
+
+    // Módulo Leitura
+    leitura: "Reading",
+    leitura_buscar: "Search books...",
+    leitura_explorar: "Explore",
+    leitura_biblioteca: "My Library",
+    leitura_vazio: "No books found",
+    leitura_estante_vazia: "Your shelf is empty",
+    leitura_estante_vazia_desc: "Explore the \"Explore\" tab and save books you want to read",
+    leitura_salvo: "Book saved!",
+    leitura_removido: "Book removed",
+    leitura_lendo: "Reading",
+    leitura_quero_ler: "Want to Read",
+    leitura_concluidos: "Completed",
+    leitura_sem_conteudo: "Content not available for this book",
+    leitura_erro_buscar: "Error searching books",
+    leitura_erro_salvar: "Error saving",
+    leitura_erro_remover: "Error removing",
 
     // Features — O Fio (DayThread)
     fio_titulo: "The week's thread",
