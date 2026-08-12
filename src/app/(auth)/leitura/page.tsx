@@ -28,11 +28,13 @@ const FOREGROUND = "#e0d6ff";
 const CARD_BG = "oklch(.17 .015 270 / .6)";
 
 const CATEGORIES = [
-  { key: "conduct of life", label: "🧠 Autodesenvolvimento" },
-  { key: "philosophy", label: "🏛️ Filosofia" },
-  { key: "success", label: "💰 Sucesso" },
-  { key: "stoicism", label: "🗿 Estoicismo" },
-  { key: "psychology", label: "🔍 Psicologia" },
+  { key: "PT Romance", label: "📖 Romance" },
+  { key: "PT Poesia", label: "🪶 Poesia" },
+  { key: "PT Contos", label: "📜 Contos" },
+  { key: "philosophy", label: "🤔 Filosofia" },
+  { key: "PT História", label: "🏛️ História" },
+  { key: "PT Teatro", label: "🎭 Teatro" },
+  { key: "PT Infantil e Juvenil", label: "🧒 Infantil" },
 ];
 
 const LANGUAGES = [
@@ -97,18 +99,13 @@ export default function LeituraPage() {
     try {
       const params = new URLSearchParams();
       if (category) {
-        // Usar `topic` (bookshelf) — funciona com filtro de idioma, ao contrário de `search`
-        // "stoicism" não tem bookshelf no Gutenberg, usar search mesmo
-        if (category === "stoicism") {
-          params.set("search", category);
-        } else {
-          params.set("topic", category);
-        }
+        // `topic` casa com bookshelves do Gutenberg (inclusive as "PT *" em português)
+        params.set("topic", category);
       } else if (query.trim()) {
         params.set("search", query.trim());
       } else {
-        // Default: popular philosophy
-        params.set("topic", "philosophy");
+        // Default: literatura em português (mais relevante pro público)
+        params.set("topic", "PT Romance");
       }
       if (langCode) {
         params.set("languages", langCode);
@@ -330,7 +327,7 @@ export default function LeituraPage() {
                 <button key={lang.code || "all"} type="button"
                   onClick={() => handleLangChange(lang.code)}
                   style={{
-                    padding: "5px 12px", borderRadius: 9999, border: 0, cursor: "pointer",
+                    padding: "5px 12px", borderRadius: 9999, cursor: "pointer",
                     fontFamily: "inherit", fontSize: 11, fontWeight: 700,
                     background: isActive ? `${PURPLE_HEX}30` : "oklch(.20 .015 270 / .4)",
                     color: isActive ? "#A78BFA" : MUTED,
@@ -353,7 +350,7 @@ export default function LeituraPage() {
               <button key={cat.key} type="button"
                 onClick={() => handleCategory(cat)}
                 style={{
-                  padding: "6px 14px", borderRadius: 9999, border: 0, cursor: "pointer",
+                  padding: "6px 14px", borderRadius: 9999, cursor: "pointer",
                   fontFamily: "inherit", fontSize: 12, fontWeight: 600,
                   background: activeCategory === cat.key ? `${PURPLE_HEX}25` : "oklch(.20 .015 270 / .5)",
                   color: activeCategory === cat.key ? "#A78BFA" : MUTED,
