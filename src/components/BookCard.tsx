@@ -26,11 +26,13 @@ export function BookCard({ book, saved, onSave, onRead, onRemove }: Props) {
 
   return (
     <div
+      onClick={() => onRead(book)}
       style={{
         display: "flex", gap: 12, padding: 12, borderRadius: 14,
         background: saved ? `${PURPLE_HEX}10` : CARD_BG,
         border: `1px solid ${saved ? `${PURPLE_HEX}40` : BORDER}`,
         transition: "border-color 0.2s, background 0.2s",
+        cursor: "pointer",
       }}
     >
       {/* Cover */}
@@ -103,7 +105,7 @@ export function BookCard({ book, saved, onSave, onRead, onRemove }: Props) {
           {saved ? (
             <>
               {saved.status === "want_to_read" && (
-                <button type="button" onClick={() => onRead(book)}
+                <button type="button" onClick={(e) => { e.stopPropagation(); onRead(book); }}
                   style={{
                     fontSize: 11, fontWeight: 600, color: "#fff", background: PURPLE_HEX,
                     border: 0, borderRadius: 8, padding: "5px 12px", cursor: "pointer",
@@ -113,7 +115,7 @@ export function BookCard({ book, saved, onSave, onRead, onRemove }: Props) {
                 </button>
               )}
               {saved.status === "reading" && (
-                <button type="button" onClick={() => onRead(book)}
+                <button type="button" onClick={(e) => { e.stopPropagation(); onRead(book); }}
                   style={{
                     fontSize: 11, fontWeight: 600, color: "#A78BFA", background: `${PURPLE_HEX}20`,
                     border: 0, borderRadius: 8, padding: "5px 12px", cursor: "pointer",
@@ -122,7 +124,7 @@ export function BookCard({ book, saved, onSave, onRead, onRemove }: Props) {
                   <BookOpen style={{ width: 12, height: 12 }} /> Continuar ({Math.round(saved.progress)}%)
                 </button>
               )}
-              <button type="button" onClick={() => onRemove(saved)}
+              <button type="button" onClick={(e) => { e.stopPropagation(); onRemove(saved); }}
                 style={{
                   fontSize: 11, fontWeight: 600, color: MUTED, background: "transparent",
                   border: 0, borderRadius: 8, padding: "5px 8px", cursor: "pointer",
@@ -132,7 +134,7 @@ export function BookCard({ book, saved, onSave, onRead, onRemove }: Props) {
               </button>
             </>
           ) : (
-            <button type="button" onClick={() => onSave(book)}
+            <button type="button" onClick={(e) => { e.stopPropagation(); onSave(book); }}
               style={{
                 fontSize: 11, fontWeight: 600, color: "#A78BFA",
                 background: `${PURPLE_HEX}15`, border: 0,

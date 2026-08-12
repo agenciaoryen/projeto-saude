@@ -161,11 +161,13 @@ export default function LeituraPage() {
   };
 
   const handleRead = (book: GutendexBook) => {
-    const htmlUrl = book.formats?.["text/html"];
+    let htmlUrl = book.formats?.["text/html"];
     if (!htmlUrl) {
       toast.error("Conteúdo não disponível para este livro");
       return;
     }
+    // Gutendex retorna URLs HTTP — forçar HTTPS para evitar Mixed Content block
+    htmlUrl = htmlUrl.replace(/^http:\/\//, "https://");
     const saved = savedMap.get(book.id);
     setReader({
       htmlUrl,
@@ -369,7 +371,7 @@ export default function LeituraPage() {
                           // Precisa buscar o book da API
                           cachedFetch<GutendexBook>(`https://gutendex.com/books/${saved.book_id}/`)
                             .then((book) => {
-                              const htmlUrl = book.formats?.["text/html"];
+                              const htmlUrl = book.formats?.["text/html"]?.replace(/^http:\/\//, "https://");
                               if (!htmlUrl) { toast.error("Conteúdo indisponível"); return; }
                               setReader({ htmlUrl, title: book.title, bookId: book.id, savedId: saved.id, progress: saved.progress });
                             }).catch(() => toast.error("Erro ao carregar livro"));
@@ -394,7 +396,7 @@ export default function LeituraPage() {
                         onRead={() => {
                           cachedFetch<GutendexBook>(`https://gutendex.com/books/${saved.book_id}/`)
                             .then((book) => {
-                              const htmlUrl = book.formats?.["text/html"];
+                              const htmlUrl = book.formats?.["text/html"]?.replace(/^http:\/\//, "https://");
                               if (!htmlUrl) { toast.error("Conteúdo indisponível"); return; }
                               setReader({ htmlUrl, title: book.title, bookId: book.id, savedId: saved.id, progress: 0 });
                             }).catch(() => toast.error("Erro ao carregar livro"));
