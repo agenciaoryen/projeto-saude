@@ -22,6 +22,7 @@ export interface GoalSummary {
   guardianName: string | null;
   reward: string | null;
   punishment: string | null;
+  linkedKRs?: { title: string; progress: number }[];
 }
 
 export interface WeekPlanSummary {

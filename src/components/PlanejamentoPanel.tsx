@@ -14,7 +14,8 @@ import { WeekMetricsGrid } from "@/components/planejamento/WeekMetricsGrid";
 import { FocusStones } from "@/components/planejamento/FocusStones";
 import { PlanningModeToggle } from "@/components/planejamento/PlanningModeToggle";
 import { PlanningCompanion } from "@/components/planejamento/PlanningCompanion";
-import type { PlanningCompanionResponse } from "@/types";
+import { QuickOKRWidget } from "@/components/planejamento/QuickOKRWidget";
+import type { PlanningCompanionResponse, QuarterlyCycle } from "@/types";
 
 // ── Mini Radar ──────────────────────────────────────────────────
 
@@ -87,6 +88,8 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
   const [companionData, setCompanionData] = useState<PlanningCompanionResponse | null>(null);
   const [firstName, setFirstName] = useState("");
   const [activeGoals, setActiveGoals] = useState<any[]>([]);
+  const [activeCycle, setActiveCycle] = useState<QuarterlyCycle | null>(null);
+  const [okrLoading, setOkrLoading] = useState(true);
 
   const fetchPlan = async () => {
     try {
@@ -127,6 +130,18 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
         if (Array.isArray(d)) setActiveGoals(d);
       })
       .catch(() => {});
+    // Fetch active quarterly cycle for OKR widget
+    setOkrLoading(true);
+    fetch("/api/quarterly-cycles")
+      .then(r => r.json())
+      .then(d => {
+        if (Array.isArray(d)) {
+          const active = d.find((c: QuarterlyCycle) => c.status === "active") || null;
+          setActiveCycle(active);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setOkrLoading(false));
   }, [selectedDate]);
 
   // Lock body scroll when editor is open
@@ -353,6 +368,7 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
           onAddTask={addTaskFromSuggestion}
           onSetStone={setStoneFromSuggestion}
           planMetrics={planMetrics}
+          activeCycle={activeCycle}
         />
       )}
 
@@ -372,6 +388,11 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
 
       {/* Week Metrics */}
       <WeekMetricsGrid metrics={planMetrics} />
+
+      {/* Quick OKR Widget */}
+      <div style={{ marginBottom: 12 }}>
+        <QuickOKRWidget activeCycle={activeCycle} loading={okrLoading} />
+      </div>
 
       {/* Focus Stones Carousel */}
       <FocusStones

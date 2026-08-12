@@ -40,6 +40,7 @@ interface PlanningCompanionProps {
   onAddTask: (title: string, area: string, dayOfWeek?: number) => Promise<boolean>;
   onSetStone: (rank: number, text: string) => Promise<void>;
   planMetrics: { strongest: string; weakest: string; balance: number; variation: number };
+  activeCycle?: import("@/types").QuarterlyCycle | null;
 }
 
 type Tab = "overview" | "areas" | "stones";

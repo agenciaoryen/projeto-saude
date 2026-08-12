@@ -17,6 +17,26 @@ interface PlanState {
   linkedGoalIds: string[];
 }
 
+interface ActiveKR {
+  title: string;
+  current: number;
+  target: number;
+  unit: string;
+  pct: number;
+  area: string | null;
+  status: string;
+  linkedGoalTitle: string | null;
+}
+
+interface ActiveQuarterlyCycle {
+  label: string;
+  theme: string | null;
+  keyResults: ActiveKR[];
+  totalKRs: number;
+  doneKRs: number;
+  avgPct: number;
+}
+
 interface PlanningCompanionResponse {
   greeting: string;
   strategicFeedback: string;
@@ -45,7 +65,7 @@ const AREA_EMOJIS: Record<string, string> = {
 
 // ── Planning-specific system prompt ────────────────────────────────
 
-function buildPlanningPrompt(planState: PlanState): string {
+function buildPlanningPrompt(planState: PlanState, quarterlyData?: ActiveQuarterlyCycle | null): string {
   const stonesList = planState.stones.filter(Boolean).map((s, i) => `  Pedra ${i + 1}: "${s}"`).join("\n") || "  (nenhuma pedra definida ainda)";
   const areasWithList = planState.areasWithTasks.length > 0
     ? planState.areasWithTasks.map(a => `  ${AREA_EMOJIS[a] || "•"} ${AREA_LABELS[a] || a}`).join("\n")
@@ -53,6 +73,26 @@ function buildPlanningPrompt(planState: PlanState): string {
   const emptyList = planState.emptyAreas.length > 0
     ? planState.emptyAreas.map(a => `  ${AREA_EMOJIS[a] || "•"} ${AREA_LABELS[a] || a}`).join("\n")
     : "  (todas as áreas têm tarefas — muito bom!)";
+
+  // Build quarterly OKR section if available
+  let quarterlySection = "";
+  if (quarterlyData) {
+    const krLines = quarterlyData.keyResults.map(kr => {
+      const areaLabel = kr.area ? `${AREA_EMOJIS[kr.area] || "•"} ${AREA_LABELS[kr.area] || kr.area}` : "sem área";
+      const linkedGoal = kr.linkedGoalTitle ? ` (meta: "${kr.linkedGoalTitle}")` : "";
+      const done = kr.status === "completed" ? "✅" : "🔄";
+      return `  ${done} [${kr.pct}%] ${kr.title} — ${kr.current}/${kr.target}${kr.unit}${linkedGoal} · ${areaLabel}`;
+    }).join("\n") || "  (nenhum KR definido)";
+
+    quarterlySection = `
+### OKRs DO TRIMESTRE ATUAL (${quarterlyData.label})
+${quarterlyData.theme ? `Tema: "${quarterlyData.theme}"` : "Sem tema definido"}
+Progresso: ${quarterlyData.doneKRs}/${quarterlyData.totalKRs} KRs concluídos · ${quarterlyData.avgPct}% de progresso médio
+
+**Key Results ativos:**
+${krLines}
+`;
+  }
 
   return `
 
@@ -71,7 +111,7 @@ ${areasWithList}
 ${emptyList}
 
 **Total:** ${planState.totalTasks} tarefas planejadas, ${planState.doneTasks} concluídas.
-
+${quarterlySection}
 ### SUA MISSÃO NESTE MODO
 
 Você é uma estrategista. Os dados acima são o MAPA. Seu conhecimento do usuário (diário, check-ins, metas, memórias, especialistas) é a INTELIGÊNCIA. Combine os dois para ajudar a pessoa a tomar melhores decisões.
@@ -110,6 +150,11 @@ Você DEVE responder EXATAMENTE neste formato JSON (sem texto antes ou depois):
 
 **REGRAS IMPORTANTES:**
 - Use SEMPRE o nome da pessoa se disponível
+- Se houver OKRs trimestrais, RELACIONE suas sugestões com os KRs ativos:
+  * Se há KRs com pouco progresso, sugira pedras e tarefas que avancem especificamente esses KRs
+  * Se um KR está próximo da meta (≥80%), celebre e incentive o sprint final
+  * Se um KR está travado (0%), pergunte se ainda faz sentido ou se precisa de ajuste
+  * Se uma pedra atual se alinha com um KR, mencione essa conexão
 - Se houver áreas vazias, dê sugestões para CADA uma delas
 - Se o diário mencionou algo relevante, conecte ("Você escreveu 'me sinto sobrecarregada' e carreira tem 7 tarefas...")
 - Se metas ativas estão paradas, lembre com leveza
@@ -117,7 +162,7 @@ Você DEVE responder EXATAMENTE neste formato JSON (sem texto antes ou depois):
 - NUNCA sugira tarefas genéricas ("Fazer exercício") — sempre contextualize ("Caminhar no parque que você gosta" se isso estiver nas memórias)
 - Se não há informação suficiente para personalizar, seja honesta e encorajadora
 - suggestedStones: sugira 0-3 pedras. Se as pedras atuais já são boas, retorne array vazio
-- areaSuggestions: foque nas áreas VAZIAS primeiro, depois nas que têm poucas tarefas
+- areaSuggestions: foque nas áreas VAZIAS primeiro, depois nas que têm poucas tarefas. Considere também áreas dos KRs ativos
 - taskType: "manutencao" para hábitos/rotina, "crescimento" para coisas novas/expansão
 - NUNCA invente dados. Se não sabe algo sobre a pessoa, não finja que sabe.
 - TEXTO PLANO, sem markdown.`;
@@ -144,7 +189,7 @@ export async function POST(request: Request) {
     const admin = getSupabaseAdmin();
 
     // ── Fetch user context (same pattern as POST /api/maya) ──
-    const [prefsRes, checkInsRes, diaryRes, memoriesRes, goalsRes, weekPlanRes, specialistRes] = await Promise.all([
+    const [prefsRes, checkInsRes, diaryRes, memoriesRes, goalsRes, weekPlanRes, specialistRes, quarterlyRes] = await Promise.all([
       admin.from("user_preferences").select("context").eq("user_id", user.id).single(),
       admin.from("check_ins").select("*").eq("user_id", user.id).order("date", { ascending: false }).limit(7),
       admin.from("diary_entries").select("*").eq("user_id", user.id).order("date", { ascending: false }).limit(10),
@@ -156,6 +201,11 @@ export async function POST(request: Request) {
       admin.from("weekly_plans").select(`*, weekly_reviews(*), weekly_focus_goals(goal_id)`)
         .eq("user_id", user.id).eq("week_start", weekStart).maybeSingle(),
       getLatestInsights(user.id).catch(() => null),
+      admin.from("quarterly_cycles")
+        .select(`*, key_results(*), quarterly_reviews(*)`)
+        .eq("user_id", user.id).eq("status", "active")
+        .order("position", { foreignTable: "key_results", ascending: true })
+        .maybeSingle(),
     ]);
 
     const context = (prefsRes.data?.context || {}) as Record<string, unknown>;
@@ -223,6 +273,57 @@ export async function POST(request: Request) {
         focusGoalCount: ((weekPlanRaw.weekly_focus_goals as unknown[]) || []).length,
         hasReview: !!review,
         reviewScore: review ? (review.week_score as number) : null,
+      };
+    }
+
+    // ── Build active quarterly cycle data ──
+    let quarterlyData: ActiveQuarterlyCycle | null = null;
+    const quarterlyCycle = quarterlyRes.data as Record<string, unknown> | null;
+    if (quarterlyCycle) {
+      const krs = (quarterlyCycle.key_results as Record<string, unknown>[]) || [];
+      const activeKRs: ActiveKR[] = [];
+
+      for (const kr of krs) {
+        const current = kr.current as number;
+        const target = kr.target as number;
+        const pct = target > 0 ? Math.min(100, Math.round((current / target) * 100)) : 0;
+
+        // Look up linked goal title
+        let linkedGoalTitle: string | null = null;
+        if (kr.linked_goal_id) {
+          const linkedGoal = activeGoals.find(g => {
+            const rawGoal = rawGoals.find((rg: Record<string, unknown>) => rg.id === kr.linked_goal_id);
+            return rawGoal && rawGoal.title === g.title;
+          });
+          // simpler: find from rawGoals directly
+          const rg = rawGoals.find((rg: Record<string, unknown>) => rg.id === kr.linked_goal_id);
+          if (rg) linkedGoalTitle = rg.title as string;
+        }
+
+        activeKRs.push({
+          title: kr.title as string,
+          current,
+          target,
+          unit: kr.unit as string,
+          pct,
+          area: (kr.area as string) || null,
+          status: kr.status as string,
+          linkedGoalTitle,
+        });
+      }
+
+      const doneKRs = activeKRs.filter(k => k.status === "completed").length;
+      const avgPct = activeKRs.length > 0
+        ? Math.round(activeKRs.reduce((sum, k) => sum + k.pct, 0) / activeKRs.length)
+        : 0;
+
+      quarterlyData = {
+        label: quarterlyCycle.label as string,
+        theme: (quarterlyCycle.theme as string) || null,
+        keyResults: activeKRs,
+        totalKRs: activeKRs.length,
+        doneKRs,
+        avgPct,
       };
     }
 
@@ -297,7 +398,7 @@ export async function POST(request: Request) {
     });
 
     // ── Append planning-specific prompt ──
-    const fullPrompt = systemPrompt + buildPlanningPrompt(planState);
+    const fullPrompt = systemPrompt + buildPlanningPrompt(planState, quarterlyData);
 
     // ── Call LLM ──
     const userMessage = `Analise o plano da semana e me ajude como conselheira estratégica. Responda APENAS o JSON no formato especificado, sem texto antes ou depois.`;
