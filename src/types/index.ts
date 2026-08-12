@@ -352,3 +352,47 @@ export interface PlanningCompanionResponse {
   suggestedStones?: PlanningStoneSuggestion[];
   areaSuggestions?: AreaSuggestion[];
 }
+
+// ── Quarterly OKRs ───────────────────────────────────────────
+
+export interface KeyResult {
+  id: string;
+  cycle_id: string;
+  user_id: string;
+  title: string;
+  target: number;
+  current: number;
+  unit: string;
+  area: string | null;
+  linked_goal_id: string | null;
+  status: "active" | "completed";
+  position: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface QuarterlyReview {
+  id: string;
+  cycle_id: string;
+  overall_score: number;
+  biggest_win: string;
+  main_learning: string;
+  what_to_carry_forward: string;
+  created_at: string;
+}
+
+export interface QuarterlyCycle {
+  id: string;
+  user_id: string;
+  label: string;
+  year: number;
+  quarter: number;
+  start_date: string;
+  end_date: string;
+  theme: string | null;
+  status: "active" | "completed";
+  created_at: string;
+  updated_at: string;
+  key_results?: KeyResult[];
+  review?: QuarterlyReview | null;
+}
