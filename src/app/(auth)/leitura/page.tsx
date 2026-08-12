@@ -367,7 +367,6 @@ export default function LeituraPage() {
                           // Cache HTTPS direto — evita redirect HTTP do /ebooks/
                           const htmlUrl = `https://www.gutenberg.org/cache/epub/${saved.book_id}/pg${saved.book_id}-images.html`;
                           setReader({ htmlUrl, title: saved.title, bookId: saved.book_id, savedId: saved.id, progress: saved.progress });
-                            }
                         }}
                         onRemove={handleRemove}
                         onComplete={handleMarkComplete}
