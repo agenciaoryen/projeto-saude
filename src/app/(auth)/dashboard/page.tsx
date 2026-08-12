@@ -9,6 +9,7 @@ import { MayaHero } from "@/components/MayaHero";
 import { TodayStrip } from "@/components/TodayStrip";
 import { RecentThread, type ThreadDay } from "@/components/RecentThread";
 import { ModuloPreviewCard } from "@/components/ModuloPreviewCard";
+import { OutrosRecursos } from "@/components/OutrosRecursos";
 import { CheckinProgress } from "@/components/CheckinProgress";
 import { InsightsCarousel } from "@/components/InsightsCarousel";
 import { EvolucaoSpark } from "@/components/EvolucaoSpark";
@@ -283,6 +284,9 @@ export default function DashboardPage() {
           <NutricaoPreview loading={loading} />
         </div>
       </div>
+
+      {/* ═══ OUTROS RECURSOS ═══ */}
+      <OutrosRecursos />
 
       {/* ═══ O FIO ═══ */}
       <RecentThread days={weekDays} totalHabits={totalHabits} userGender={userGender} />
