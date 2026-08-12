@@ -636,11 +636,11 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
             <input value={newTaskTitle} onChange={e => setNewTaskTitle(e.target.value)} placeholder="Título" autoFocus style={inputS} />
             <p style={{ fontSize: 10, color: "#A78BFA", margin: "12px 0 6px", fontWeight: 600, textTransform: "uppercase", letterSpacing: ".08em" }}>Área</p>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 4 }}>
-              {ALL_AREAS.slice(0,9).map(a => {
+              {ALL_AREAS.filter(a => a !== "outros").map(a => {
                 const area = AREA_CONFIG[a];
                 return (
                 <button key={a} type="button" onClick={() => setNewTaskArea(a)}
-                  style={{ padding: "8px 4px", borderRadius: 10, border: newTaskArea === a ? "2px solid #7C5CFF" : "1px solid rgba(167,139,250,0.15)", background: newTaskArea === a ? "rgba(124,92,255,0.1)" : "#0B0B10", cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6 }}>
+                  style={{ padding: "8px 4px", borderRadius: 10, border: newTaskArea === a ? "2px solid #7C5CFF" : "1px solid rgba(167,139,250,0.15)", background: newTaskArea === a ? "rgba(124,92,255,0.1)" : "#0B0B10", cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
                   <span style={{ fontSize: 16 }}>{area?.emoji}</span>
                   <span style={{ fontSize: 10, fontWeight: 600, color: newTaskArea === a ? "#A78BFA" : "#9e96b5" }}>{
                     (AREA_LABELS as Record<string, string>)[a] || a
@@ -798,11 +798,11 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
                 {/* Area */}
                 <p style={{ fontSize: 10, color: "#9e96b5", margin: "0 0 4px" }}>Área</p>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 3, marginBottom: 10 }}>
-                  {ALL_AREAS.slice(0,9).map(a => {
+                  {ALL_AREAS.filter(a => a !== "outros").map(a => {
                     const area = AREA_CONFIG[a];
                     return (
                     <button key={a} type="button" onClick={() => setPlanEditArea(a)}
-                      style={{ padding: "6px 4px", borderRadius: 8, border: planEditArea === a ? "1.5px solid #7C5CFF" : "1px solid rgba(167,139,250,0.12)", background: planEditArea === a ? "rgba(124,92,255,0.1)" : "#0B0B10", cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 4 }}>
+                      style={{ padding: "6px 4px", borderRadius: 8, border: planEditArea === a ? "1.5px solid #7C5CFF" : "1px solid rgba(167,139,250,0.12)", background: planEditArea === a ? "rgba(124,92,255,0.1)" : "#0B0B10", cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
                       <span style={{ fontSize: 12 }}>{area?.emoji}</span>
                       <span style={{ fontSize: 9, fontWeight: 600, color: planEditArea === a ? "#A78BFA" : "#9e96b5" }}>{(AREA_LABELS as Record<string, string>)[a] || a}</span>
                     </button>
@@ -883,15 +883,14 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
                   if (!confirm("Remover esta pedra?")) return;
                   const rank = planEditStoneRank;
                   const stoneField = rank === 1 ? "main_focus" : rank === 2 ? "main_focus_2" : "main_focus_3";
-                  if (!plan) return;
-                  const res = await fetch(`/api/weekly-plans/${plan.id}`, {
+                  if (!currentPlan) return;
+                  const res = await fetch(`/api/weekly-plans/${currentPlan.id}`, {
                     method: "PATCH",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ [stoneField]: null }),
                   });
                   if (res.ok) {
-                    const updated = await res.json();
-                    setPlan(updated);
+                    await fetchPlan();
                     setEditingPlanTask(null);
                   }
                 } else {
@@ -909,15 +908,14 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
                   // Save as stone (plan API)
                   const rank = planEditStoneRank;
                   const stoneField = rank === 1 ? "main_focus" : rank === 2 ? "main_focus_2" : "main_focus_3";
-                  if (!plan) return;
-                  const res = await fetch(`/api/weekly-plans/${plan.id}`, {
+                  if (!currentPlan) return;
+                  const res = await fetch(`/api/weekly-plans/${currentPlan.id}`, {
                     method: "PATCH",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ [stoneField]: planEditTitle.trim() || null }),
                   });
                   if (res.ok) {
-                    const updated = await res.json();
-                    setPlan(updated);
+                    await fetchPlan();
                     setEditingPlanTask(null);
                   }
                 } else {
@@ -1001,20 +999,38 @@ export function PlanejamentoPanel({ selectedDate }: { selectedDate?: string }) {
               <button type="button" onClick={() => setShowStoneEditor(false)}
                 style={{ flex: 1, padding: 14, borderRadius: 14, border: "1px solid rgba(167,139,250,0.2)", background: "transparent", color: "#9e96b5", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Cancelar</button>
               <button type="button" onClick={async () => {
-                if (!plan) return;
-                const res = await fetch(`/api/weekly-plans/${plan.id}`, {
-                  method: "PATCH",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    main_focus: stone1.trim() || null,
-                    main_focus_2: stone2.trim() || null,
-                    main_focus_3: stone3.trim() || null,
-                  }),
-                });
-                if (res.ok) {
-                  const updated = await res.json();
-                  setPlan(updated);
-                  setShowStoneEditor(false);
+                if (currentPlan?.id) {
+                  // Existing plan — PATCH
+                  const res = await fetch(`/api/weekly-plans/${currentPlan.id}`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      main_focus: stone1.trim() || null,
+                      main_focus_2: stone2.trim() || null,
+                      main_focus_3: stone3.trim() || null,
+                    }),
+                  });
+                  if (res.ok) {
+                    await fetchPlan();
+                    setShowStoneEditor(false);
+                  }
+                } else {
+                  // No plan yet (future week) — POST
+                  const res = await fetch("/api/weekly-plans", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      week_start: currentWeekStart,
+                      main_focus: stone1.trim() || "",
+                      main_focus_2: stone2.trim() || "",
+                      main_focus_3: stone3.trim() || "",
+                    }),
+                  });
+                  if (res.ok) {
+                    await fetchPlan();
+                    setShowStoneEditor(false);
+                    toast.success("Pedras definidas!");
+                  }
                 }
               }}
                 style={{ flex: 2, padding: 14, borderRadius: 14, border: 0, background: "#7C5CFF", color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
