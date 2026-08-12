@@ -2,8 +2,9 @@
 
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useTranslation } from "@/lib/useTranslation";
+import { useRouter } from "next/navigation";
 import {
-  BookOpen, Plus, Flame, Target, Library, BarChart3, Clock, FileText,
+  BookOpen, Plus, Flame, Target, Library, BarChart3, Clock, FileText, Timer,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { ReadingBook, ReadingSession, ReadingSettings } from "@/types";
@@ -36,7 +37,9 @@ const CARD_BG = "oklch(.17 .015 270 / .6)";
 
 export default function LeituraPage() {
   const { t } = useTranslation();
+  const router = useRouter();
   const [tab, setTab] = useState<"estante" | "stats">("estante");
+  const [hasActiveTimer, setHasActiveTimer] = useState(false);
   const [books, setBooks] = useState<ReadingBook[]>([]);
   const [sessions, setSessions] = useState<ReadingSession[]>([]);
   const [settings, setSettings] = useState<ReadingSettings>({ daily_goal_type: "minutes", daily_goal_value: 15 });
@@ -66,6 +69,21 @@ export default function LeituraPage() {
   }, []);
 
   useEffect(() => { loadAll(); }, [loadAll]);
+
+  // Detecta cronômetro ativo (para oferecer retomada ao voltar ao app)
+  useEffect(() => {
+    const check = () => {
+      try { setHasActiveTimer(Boolean(localStorage.getItem("leitura_timer_active"))); }
+      catch { setHasActiveTimer(false); }
+    };
+    check();
+    window.addEventListener("focus", check);
+    document.addEventListener("visibilitychange", check);
+    return () => {
+      window.removeEventListener("focus", check);
+      document.removeEventListener("visibilitychange", check);
+    };
+  }, []);
 
   const activeBooks = useMemo(
     () => books.filter((b) => b.status === "lendo" || b.status === "quero_ler"),
@@ -274,17 +292,45 @@ export default function LeituraPage() {
               {t("leitura")}
             </h1>
           </div>
-          <button type="button" onClick={() => openLog(activeBooks[0] || null)}
-            style={{
-              display: "inline-flex", alignItems: "center", gap: 6,
-              padding: "9px 16px", borderRadius: 9999, border: 0, cursor: "pointer",
-              background: PURPLE_HEX, color: "#fff", fontSize: 13, fontWeight: 700,
-              fontFamily: "inherit",
-            }}>
-            <Plus style={{ width: 16, height: 16 }} /> Registrar leitura
-          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <button type="button" onClick={() => router.push("/leitura/leitor")}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                padding: "9px 14px", borderRadius: 9999, border: 0, cursor: "pointer",
+                background: PURPLE_HEX, color: "#fff", fontSize: 13, fontWeight: 700,
+                fontFamily: "inherit", whiteSpace: "nowrap",
+              }}>
+              <Timer style={{ width: 16, height: 16 }} /> Cronômetro
+            </button>
+            <button type="button" onClick={() => openLog(activeBooks[0] || null)}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 5,
+                padding: "9px 12px", borderRadius: 9999, border: `1px solid ${BORDER}`, cursor: "pointer",
+                background: CARD_BG, color: "#A78BFA", fontSize: 13, fontWeight: 700,
+                fontFamily: "inherit", whiteSpace: "nowrap",
+              }}>
+              <Plus style={{ width: 15, height: 15 }} /> Registrar
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* Cronômetro ativo */}
+      {hasActiveTimer && (
+        <div style={{ padding: "0 20px 12px" }}>
+          <button type="button" onClick={() => router.push("/leitura/leitor")}
+            style={{
+              width: "100%", display: "flex", alignItems: "center", gap: 10,
+              padding: "12px 14px", borderRadius: 14, cursor: "pointer",
+              background: `${PURPLE_HEX}18`, border: `1px solid ${PURPLE_HEX}40`,
+              color: FOREGROUND, fontFamily: "inherit",
+            }}>
+            <Timer style={{ width: 18, height: 18, color: "#A78BFA" }} />
+            <span style={{ fontSize: 13, fontWeight: 600 }}>Cronômetro de leitura ativo</span>
+            <span style={{ marginLeft: "auto", fontSize: 12, color: "#A78BFA", fontWeight: 700 }}>Retomar →</span>
+          </button>
+        </div>
+      )}
 
       {/* Resumo de hoje */}
       <div style={{ padding: "0 20px 12px" }}>

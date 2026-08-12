@@ -44,6 +44,8 @@ export function BottomNav() {
   if (pathname.startsWith("/insights")) return null;
   // Hide on reader page (fullscreen)
   if (/\/leitura\/.+\/ler/.test(pathname)) return null;
+  // Hide on reading timer (fullscreen focus mode)
+  if (pathname.startsWith("/leitura/leitor")) return null;
 
   const isActive = (slug: string) => {
     if (slug === "dashboard") return pathname === "/dashboard";
