@@ -89,8 +89,18 @@ export async function GET(req: NextRequest) {
     const timeout = setTimeout(() => controller.abort(), 10_000);
 
     try {
-      const res = await fetch(gutendexUrl, { signal: controller.signal });
-      if (!res.ok) throw new Error(`Gutendex HTTP ${res.status}`);
+      const res = await fetch(gutendexUrl, {
+        signal: controller.signal,
+        headers: {
+          "User-Agent": "Maya/1.0 (Reading Module)",
+          "Accept": "application/json",
+        },
+      });
+      if (!res.ok) {
+        const body = await res.text().catch(() => "");
+        console.error(`Gutendex error ${res.status}: ${body.slice(0, 300)}`);
+        throw new Error(`Gutendex HTTP ${res.status}`);
+      }
       const data = await res.json();
       setCacheGutendex(gutendexUrl, data);
       return NextResponse.json(data);
