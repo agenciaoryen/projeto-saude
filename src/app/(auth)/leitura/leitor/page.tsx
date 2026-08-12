@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Play, Square, X, Timer } from "lucide-react";
 import { toast } from "sonner";
@@ -90,6 +90,50 @@ export default function LeituraTimerPage() {
 
   const elapsedMs = active ? now - active.started_at : 0;
 
+  // Indicador "segundo plano": título da aba mostra o cronômetro rodando ao vivo.
+  const titleRef = useRef<string>("");
+  useEffect(() => {
+    titleRef.current = document.title;
+    return () => {
+      if (titleRef.current) document.title = titleRef.current;
+    };
+  }, []);
+  useEffect(() => {
+    if (active) {
+      document.title = `⏱ ${formatElapsed(elapsedMs)} · ${active.book_emoji} ${active.book_title}`;
+    }
+  }, [elapsedMs, active]);
+
+  // Notificação de sistema (estática — não "tique-taqueia"; ao tocar, volta ao app).
+  const notifRef = useRef<Notification | null>(null);
+
+  const closeTimerNotification = () => {
+    if (notifRef.current) {
+      try { notifRef.current.close(); } catch { /* ignore */ }
+      notifRef.current = null;
+    }
+  };
+
+  const notifyStart = async (timer: ActiveTimer) => {
+    try {
+      if (!("Notification" in window)) return;
+      let perm = Notification.permission;
+      if (perm === "default") perm = await Notification.requestPermission();
+      if (perm !== "granted") return;
+      closeTimerNotification();
+      const notif = new Notification("Cronômetro de leitura em andamento", {
+        body: `${timer.book_emoji} ${timer.book_title} · Toque para voltar ao cronômetro`,
+        tag: "leitura-timer",
+      });
+      notif.onclick = () => {
+        window.focus();
+        notif.close();
+        notifRef.current = null;
+      };
+      notifRef.current = notif;
+    } catch { /* ignore */ }
+  };
+
   const start = () => {
     if (books.length === 0) {
       toast.error("Adicione um livro primeiro");
@@ -106,6 +150,7 @@ export default function LeituraTimerPage() {
     setActive(timer);
     setNow(Date.now());
     setPages("");
+    void notifyStart(timer);
   };
 
   const finalize = async () => {
@@ -127,6 +172,7 @@ export default function LeituraTimerPage() {
       });
       if (res.ok) {
         localStorage.removeItem(STORAGE_KEY);
+        closeTimerNotification();
         toast.success(`Leitura registrada: ${minutes} min 🔥`);
         router.push("/leitura");
       } else {
@@ -141,6 +187,7 @@ export default function LeituraTimerPage() {
 
   const cancel = () => {
     localStorage.removeItem(STORAGE_KEY);
+    closeTimerNotification();
     router.push("/leitura");
   };
 
