@@ -33,19 +33,29 @@ const CATEGORIES = [
   { key: "success money", label: "💰 Sucesso & Finanças" },
   { key: "stoicism", label: "🗿 Estoicismo" },
   { key: "psychology", label: "🔍 Psicologia" },
-  { key: "portuguese", label: "🇧🇷 Em português", lang: "pt" },
+];
+
+const LANGUAGES = [
+  { code: "", label: "🌐 Todos" },
+  { code: "pt", label: "🇧🇷 PT" },
+  { code: "en", label: "🇺🇸 EN" },
+  { code: "es", label: "🇪🇸 ES" },
 ];
 
 // ── Page ────────────────────────────────────────────────────────
 
 export default function LeituraPage() {
-  const { t } = useTranslation();
+  const { t, lang: userLang } = useTranslation();
   const [tab, setTab] = useState<"explorar" | "biblioteca">("explorar");
   const [search, setSearch] = useState("");
   const [books, setBooks] = useState<GutendexBook[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+
+  // Filtro de idioma — null = usar idioma do perfil, "" = todos, "pt"/"en"/"es" = específico
+  const [langOverride, setLangOverride] = useState<string | null>(null);
+  const effectiveLang = langOverride !== null ? langOverride : userLang;
 
   // Biblioteca
   const [savedBooks, setSavedBooks] = useState<UserBook[]>([]);
@@ -81,23 +91,24 @@ export default function LeituraPage() {
 
   // ── Search / Browse ──────────────────────────────────────────
 
-  const doSearch = useCallback(async (query: string, category?: string | null) => {
+  const doSearch = useCallback(async (query: string, category?: string | null, langCode?: string) => {
     setLoading(true);
     setSearched(true);
     try {
-      // Chamada direta à Gutendex (API pública) — evita bloqueio da Cloudflare contra IPs da Vercel
-      let url: string;
+      const params = new URLSearchParams();
       if (category) {
-        if (category === "portuguese") {
-          url = "https://gutendex.com/books/?languages=pt&sort=popular";
-        } else {
-          url = `https://gutendex.com/books/?search=${encodeURIComponent(category)}&sort=popular`;
-        }
+        params.set("search", category);
       } else if (query.trim()) {
-        url = `https://gutendex.com/books/?search=${encodeURIComponent(query.trim())}`;
+        params.set("search", query.trim());
       } else {
-        url = "https://gutendex.com/books/?topic=philosophy&sort=popular";
+        // Default: popular philosophy
+        params.set("topic", "philosophy");
       }
+      if (langCode) {
+        params.set("languages", langCode);
+      }
+      params.set("sort", "popular");
+      const url = `https://gutendex.com/books/?${params.toString()}`;
       const data = await cachedFetch<GutendexResponse>(url);
       if (data && Array.isArray(data.results)) {
         setBooks(data.results);
@@ -109,23 +120,30 @@ export default function LeituraPage() {
     }
   }, []);
 
-  // Initial load
+  // Initial load — usa idioma do perfil como default
   useEffect(() => {
-    doSearch("", null);
+    doSearch("", null, effectiveLang);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Search on Enter
   const handleSearchKey = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
       setActiveCategory(null);
-      doSearch(search, null);
+      doSearch(search, null, effectiveLang);
     }
   };
 
   const handleCategory = (cat: typeof CATEGORIES[0]) => {
-    setActiveCategory(cat.key);
+    const newCat = activeCategory === cat.key ? null : cat.key;
+    setActiveCategory(newCat);
     setSearch("");
-    doSearch("", cat.key);
+    doSearch("", newCat, effectiveLang);
+  };
+
+  const handleLangChange = (code: string) => {
+    // null = "usar idioma do perfil", "" = "todos"
+    setLangOverride(code === userLang ? null : code);
+    doSearch(search, activeCategory, code === userLang ? userLang : code);
   };
 
   // ── Book actions ──────────────────────────────────────────────
@@ -286,6 +304,31 @@ export default function LeituraPage() {
             />
           </div>
 
+          {/* Language filter */}
+          <div style={{
+            display: "flex", gap: 6, marginBottom: 10, overflowX: "auto",
+            paddingBottom: 2, scrollbarWidth: "none",
+          }}>
+            {LANGUAGES.map((lang) => {
+              const isActive = lang.code === effectiveLang || (lang.code === "" && effectiveLang === "");
+              return (
+                <button key={lang.code || "all"} type="button"
+                  onClick={() => handleLangChange(lang.code)}
+                  style={{
+                    padding: "5px 12px", borderRadius: 9999, border: 0, cursor: "pointer",
+                    fontFamily: "inherit", fontSize: 11, fontWeight: 700,
+                    background: isActive ? `${PURPLE_HEX}30` : "oklch(.20 .015 270 / .4)",
+                    color: isActive ? "#A78BFA" : MUTED,
+                    whiteSpace: "nowrap", flexShrink: 0,
+                    border: isActive ? `1px solid ${PURPLE_HEX}50` : "1px solid transparent",
+                    transition: "all 0.15s ease",
+                  }}>
+                  {lang.label}
+                </button>
+              );
+            })}
+          </div>
+
           {/* Categories */}
           <div style={{
             display: "flex", gap: 8, marginBottom: 16, overflowX: "auto",
@@ -301,6 +344,7 @@ export default function LeituraPage() {
                   color: activeCategory === cat.key ? "#A78BFA" : MUTED,
                   whiteSpace: "nowrap", flexShrink: 0,
                   border: activeCategory === cat.key ? `1px solid ${PURPLE_HEX}40` : "1px solid transparent",
+                  transition: "all 0.15s ease",
                 }}>
                 {cat.label}
               </button>
