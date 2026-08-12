@@ -30,7 +30,7 @@ const CARD_BG = "oklch(.17 .015 270 / .6)";
 const CATEGORIES = [
   { key: "conduct of life", label: "🧠 Autodesenvolvimento" },
   { key: "philosophy", label: "🏛️ Filosofia" },
-  { key: "success money", label: "💰 Sucesso & Finanças" },
+  { key: "success", label: "💰 Sucesso" },
   { key: "stoicism", label: "🗿 Estoicismo" },
   { key: "psychology", label: "🔍 Psicologia" },
 ];
@@ -97,7 +97,13 @@ export default function LeituraPage() {
     try {
       const params = new URLSearchParams();
       if (category) {
-        params.set("search", category);
+        // Usar `topic` (bookshelf) — funciona com filtro de idioma, ao contrário de `search`
+        // "stoicism" não tem bookshelf no Gutenberg, usar search mesmo
+        if (category === "stoicism") {
+          params.set("search", category);
+        } else {
+          params.set("topic", category);
+        }
       } else if (query.trim()) {
         params.set("search", query.trim());
       } else {
