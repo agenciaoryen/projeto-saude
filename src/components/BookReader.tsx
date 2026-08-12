@@ -120,7 +120,7 @@ export function BookReader({ htmlUrl, title, bookId, savedId, initialProgress, o
         src={htmlUrl}
         onLoad={handleLoad}
         title={title}
-        sandbox="allow-same-origin"
+        sandbox="allow-same-origin allow-scripts"
         style={{
           flex: 1, width: "100%", border: 0,
           background: "#f5f0e8", // cor de página de livro
