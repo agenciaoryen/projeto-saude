@@ -98,7 +98,7 @@ export async function POST(request: Request) {
 
     const weekStart = getWeekMondayDate();
 
-    const [prefsRes, checkInsRes, diaryRes, memoriesRes, goalsRes, weekPlanRes, specialistRes] = await Promise.all([
+    const [prefsRes, checkInsRes, diaryRes, memoriesRes, goalsRes, weekPlanRes, specialistRes, visionsRes] = await Promise.all([
       admin.from("user_preferences").select("context").eq("user_id", user.id).single(),
       admin.from("check_ins").select("*").eq("user_id", user.id).order("date", { ascending: false }).limit(7),
       admin.from("diary_entries").select("*").eq("user_id", user.id).order("date", { ascending: false }).limit(10),
@@ -110,6 +110,7 @@ export async function POST(request: Request) {
       admin.from("weekly_plans").select(`*, weekly_reviews(*), weekly_focus_goals(goal_id)`)
         .eq("user_id", user.id).eq("week_start", weekStart).maybeSingle(),
       getLatestInsights(user.id).catch(() => null),
+      admin.from("area_visions").select("*").eq("user_id", user.id).order("area", { ascending: true }),
     ]);
 
     const context = (prefsRes.data?.context || {}) as Record<string, unknown>;
@@ -253,6 +254,9 @@ export async function POST(request: Request) {
             Object.entries(latestInsights).map(([k, v]) => [k, v?.summary || ""])
           ) as SpecialistSummaries
         : undefined,
+      areaVisions: ((visionsRes.data || []) as Record<string, unknown>[])
+        .map(v => ({ area: v.area as string, statement: (v.statement as string) || "" }))
+        .filter(v => v.statement.trim()),
     });
 
     const reply = await chatLLM(systemPrompt, anthropicMessages, 400);

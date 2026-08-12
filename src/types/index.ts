@@ -396,3 +396,50 @@ export interface QuarterlyCycle {
   key_results?: KeyResult[];
   review?: QuarterlyReview | null;
 }
+
+export interface AreaVision {
+  id: string;
+  user_id: string;
+  area: string;
+  statement: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// ── Leitura ──────────────────────────────────────────────────────
+
+export interface UserBook {
+  id: string;
+  user_id: string;
+  book_id: number;
+  title: string;
+  author: string | null;
+  cover_url: string | null;
+  status: "want_to_read" | "reading" | "completed";
+  progress: number;
+  total_pages: number | null;
+  started_at: string | null;
+  completed_at: string | null;
+  created_at: string;
+}
+
+export interface GutendexBook {
+  id: number;
+  title: string;
+  authors: { name: string; birth_year: number; death_year: number }[];
+  summaries: string[];
+  subjects: string[];
+  bookshelves: string[];
+  languages: string[];
+  copyright: boolean;
+  media_type: string;
+  formats: Record<string, string>;
+  download_count: number;
+}
+
+export interface GutendexResponse {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: GutendexBook[];
+}

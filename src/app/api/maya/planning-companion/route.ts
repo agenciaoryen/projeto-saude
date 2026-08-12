@@ -65,7 +65,7 @@ const AREA_EMOJIS: Record<string, string> = {
 
 // ── Planning-specific system prompt ────────────────────────────────
 
-function buildPlanningPrompt(planState: PlanState, quarterlyData?: ActiveQuarterlyCycle | null): string {
+function buildPlanningPrompt(planState: PlanState, quarterlyData?: ActiveQuarterlyCycle | null, areaVisions?: { area: string; statement: string }[]): string {
   const stonesList = planState.stones.filter(Boolean).map((s, i) => `  Pedra ${i + 1}: "${s}"`).join("\n") || "  (nenhuma pedra definida ainda)";
   const areasWithList = planState.areasWithTasks.length > 0
     ? planState.areasWithTasks.map(a => `  ${AREA_EMOJIS[a] || "•"} ${AREA_LABELS[a] || a}`).join("\n")
@@ -94,6 +94,19 @@ ${krLines}
 `;
   }
 
+  // Build vision section if available
+  let visionSection = "";
+  if (areaVisions && areaVisions.length > 0) {
+    const defined = areaVisions.filter(v => v.statement.trim());
+    if (defined.length > 0) {
+      visionSection = `
+### VISÃO DE 5 ANOS
+${defined.map(v => `  ${AREA_EMOJIS[v.area] || "•"} ${AREA_LABELS[v.area] || v.area}: "${v.statement.slice(0, 200)}${v.statement.length > 200 ? "..." : ""}"`).join("\n")}
+
+`;
+    }
+  }
+
   return `
 
 ## MODO PLANEJAMENTO — VOCÊ É UMA CONSELHEIRA ESTRATÉGICA
@@ -111,7 +124,7 @@ ${areasWithList}
 ${emptyList}
 
 **Total:** ${planState.totalTasks} tarefas planejadas, ${planState.doneTasks} concluídas.
-${quarterlySection}
+${quarterlySection}${visionSection}
 ### SUA MISSÃO NESTE MODO
 
 Você é uma estrategista. Os dados acima são o MAPA. Seu conhecimento do usuário (diário, check-ins, metas, memórias, especialistas) é a INTELIGÊNCIA. Combine os dois para ajudar a pessoa a tomar melhores decisões.
@@ -155,6 +168,10 @@ Você DEVE responder EXATAMENTE neste formato JSON (sem texto antes ou depois):
   * Se um KR está próximo da meta (≥80%), celebre e incentive o sprint final
   * Se um KR está travado (0%), pergunte se ainda faz sentido ou se precisa de ajuste
   * Se uma pedra atual se alinha com um KR, mencione essa conexão
+- Se houver visões de 5 anos, use-as como o NORTE estratégico:
+  * Se uma área tem visão mas está vazia no plano, pergunte com curiosidade: "Sua visão para [área] é linda — quer pensar em algo para essa semana que te aproxime dela?"
+  * Conecte pedras sugeridas com a visão: "Essa pedra te aproxima da sua visão de [área]"
+  * Se um KR está alinhado com uma visão, mencione essa cascata: visão → KR → pedra
 - Se houver áreas vazias, dê sugestões para CADA uma delas
 - Se o diário mencionou algo relevante, conecte ("Você escreveu 'me sinto sobrecarregada' e carreira tem 7 tarefas...")
 - Se metas ativas estão paradas, lembre com leveza
@@ -189,7 +206,7 @@ export async function POST(request: Request) {
     const admin = getSupabaseAdmin();
 
     // ── Fetch user context (same pattern as POST /api/maya) ──
-    const [prefsRes, checkInsRes, diaryRes, memoriesRes, goalsRes, weekPlanRes, specialistRes, quarterlyRes] = await Promise.all([
+    const [prefsRes, checkInsRes, diaryRes, memoriesRes, goalsRes, weekPlanRes, specialistRes, quarterlyRes, visionsRes] = await Promise.all([
       admin.from("user_preferences").select("context").eq("user_id", user.id).single(),
       admin.from("check_ins").select("*").eq("user_id", user.id).order("date", { ascending: false }).limit(7),
       admin.from("diary_entries").select("*").eq("user_id", user.id).order("date", { ascending: false }).limit(10),
@@ -206,6 +223,7 @@ export async function POST(request: Request) {
         .eq("user_id", user.id).eq("status", "active")
         .order("position", { foreignTable: "key_results", ascending: true })
         .maybeSingle(),
+      admin.from("area_visions").select("*").eq("user_id", user.id).order("area", { ascending: true }),
     ]);
 
     const context = (prefsRes.data?.context || {}) as Record<string, unknown>;
@@ -327,6 +345,12 @@ export async function POST(request: Request) {
       };
     }
 
+    // ── Build area visions ──
+    const areaVisions = ((visionsRes.data || []) as Record<string, unknown>[]).map((v) => ({
+      area: v.area as string,
+      statement: (v.statement as string) || "",
+    }));
+
     const streak = calculateStreak(checkIns.map((c: Record<string, unknown>) => c.date as string));
 
     // ── Build specialist summaries ──
@@ -395,10 +419,11 @@ export async function POST(request: Request) {
       activeGoals,
       weekPlan,
       specialistSummaries,
+      areaVisions: areaVisions.filter(v => v.statement.trim()),
     });
 
     // ── Append planning-specific prompt ──
-    const fullPrompt = systemPrompt + buildPlanningPrompt(planState, quarterlyData);
+    const fullPrompt = systemPrompt + buildPlanningPrompt(planState, quarterlyData, areaVisions);
 
     // ── Call LLM ──
     const userMessage = `Analise o plano da semana e me ajude como conselheira estratégica. Responda APENAS o JSON no formato especificado, sem texto antes ou depois.`;

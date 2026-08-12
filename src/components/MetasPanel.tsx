@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Target } from "lucide-react";
+import { Plus, Target, Eye } from "lucide-react";
 import { GoalCreateSheet } from "@/components/GoalCreateSheet";
 import { GoalDetailSheet } from "@/components/GoalDetailSheet";
 import { QuarterlyOKRPanel } from "@/components/QuarterlyOKRPanel";
+import { VisionPanel } from "@/components/VisionPanel";
 
 const AREA_CONFIG: Record<string, { emoji: string; hue: number }> = {
   saude: { emoji: "💚", hue: 160 }, carreira: { emoji: "💼", hue: 220 },
@@ -14,7 +15,7 @@ const AREA_CONFIG: Record<string, { emoji: string; hue: number }> = {
   lazer: { emoji: "🌊", hue: 185 }, espiritualidade: { emoji: "✨", hue: 300 },
 };
 
-type MetasTab = "metas" | "okrs";
+type MetasTab = "metas" | "okrs" | "visao";
 
 export function MetasPanel() {
   const router = useRouter();
@@ -52,12 +53,12 @@ export function MetasPanel() {
 
   return (
     <div style={{ marginBottom: 20 }}>
-      {/* ── Sub-tabs: Metas | OKRs ──────────────────────────── */}
+      {/* ── Sub-tabs: Metas | OKRs | Visão ────────────────── */}
       <div style={{
         display: "flex", background: "#0f0e1a", borderRadius: 14, padding: 3,
         border: "1px solid rgba(167,139,250,0.08)", marginBottom: 16,
       }}>
-        {(["metas", "okrs"] as MetasTab[]).map((tab) => (
+        {(["metas", "okrs", "visao"] as MetasTab[]).map((tab) => (
           <button
             key={tab}
             type="button"
@@ -84,15 +85,19 @@ export function MetasPanel() {
           >
             {tab === "metas" ? (
               <>🎯 Metas</>
-            ) : (
+            ) : tab === "okrs" ? (
               <><Target size={14} /> OKRs</>
+            ) : (
+              <><Eye size={14} /> Visão</>
             )}
           </button>
         ))}
       </div>
 
       {/* ── Content ─────────────────────────────────────────── */}
-      {activeTab === "okrs" ? (
+      {activeTab === "visao" ? (
+        <VisionPanel />
+      ) : activeTab === "okrs" ? (
         <QuarterlyOKRPanel />
       ) : (
         <>

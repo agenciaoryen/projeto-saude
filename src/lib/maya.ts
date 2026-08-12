@@ -56,6 +56,7 @@ interface MayaInput {
   weekPlan?: WeekPlanSummary | null;
   language?: string;
   specialistSummaries?: SpecialistSummaries;
+  areaVisions?: { area: string; statement: string }[];
 }
 
 function timeAwarenessBlock(hour: number, currentDate?: string): string {
@@ -158,6 +159,33 @@ ${weekPlan ? `Semana: foco em "${weekPlan.mainFocus}"${weekPlan.hasReview ? ` | 
 - NUNCA invente progresso ou ações que não estejam no contexto acima`
     : "";
 
+  const areaEmojis: Record<string, string> = {
+    saude: "💚", carreira: "💼", financas: "💰",
+    relacionamentos: "❤️", desenvolvimento: "🧠",
+    familia: "🏡", lazer: "🌊", espiritualidade: "✨",
+  };
+
+  const visionsBlock = input.areaVisions && input.areaVisions.filter(v => v.statement.trim()).length > 0
+    ? `## VISÃO DE 5 ANOS DO USUÁRIO (por área)
+${input.areaVisions.filter(v => v.statement.trim()).map(v => {
+  const emoji = areaEmojis[v.area] || "•";
+  const label = AREA_LABELS[v.area] || v.area;
+  return `- ${emoji} ${label}: "${v.statement.slice(0, 300)}${v.statement.length > 300 ? "..." : ""}"`;
+}).join("\n")}
+${input.areaVisions.filter(v => !v.statement.trim()).map(v => {
+  const emoji = areaEmojis[v.area] || "•";
+  const label = AREA_LABELS[v.area] || v.area;
+  return `- ${emoji} ${label}: (não definida)`;
+}).join("\n")}
+
+**Regras sobre visões:**
+- As visões de 5 anos são o NORTE do usuário — o destino final que ele quer chegar
+- Conecte sugestões com a visão quando relevante: "Isso te aproxima da sua visão de [área]?"
+- Se uma área tem visão definida mas está vazia no plano, pergunte com curiosidade genuína
+- Se o usuário parecer perdido ou desmotivado, lembre da visão como um farol, não como uma cobrança
+- Nunca cobre ou pressione — a visão é um convite, não uma dívida
+- Use o fato de conhecer a visão com naturalidade: "Vi que você tem uma visão clara para sua carreira..." `
+    : "";
 
   const specialistBlock = specialistSummaries && Object.values(specialistSummaries).some(Boolean)
     ? `## ANÁLISE DO CONSELHO DE ESPECIALISTAS (hoje)
@@ -332,6 +360,7 @@ ${specialistBlock}
 ${porquesBlock}
 ${memoriesBlock}
 ${goalsBlock}
+${visionsBlock}
 ${checkInBlock}
 ${diaryBlock}`;
 }
