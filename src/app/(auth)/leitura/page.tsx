@@ -85,24 +85,20 @@ export default function LeituraPage() {
     setLoading(true);
     setSearched(true);
     try {
-      const params = new URLSearchParams();
+      // Chamada direta à Gutendex (API pública) — evita bloqueio da Cloudflare contra IPs da Vercel
+      let url: string;
       if (category) {
-        // Category uses search with keywords
-        params.set("action", "popular");
         if (category === "portuguese") {
-          params.set("lang", "pt");
+          url = "https://gutendex.com/books/?languages=pt&sort=popular";
         } else {
-          params.set("search", category);
+          url = `https://gutendex.com/books/?search=${encodeURIComponent(category)}&sort=popular`;
         }
       } else if (query.trim()) {
-        params.set("action", "search");
-        params.set("q", query.trim());
+        url = `https://gutendex.com/books/?search=${encodeURIComponent(query.trim())}`;
       } else {
-        // Default: show popular
-        params.set("action", "popular");
-        params.set("topic", "philosophy");
+        url = "https://gutendex.com/books/?topic=philosophy&sort=popular";
       }
-      const data = await cachedFetch<GutendexResponse>(`/api/leitura/gutendex?${params.toString()}`);
+      const data = await cachedFetch<GutendexResponse>(url);
       if (data && Array.isArray(data.results)) {
         setBooks(data.results);
       }
@@ -371,7 +367,7 @@ export default function LeituraPage() {
                       <SavedBookCard key={saved.id} saved={saved}
                         onRead={() => {
                           // Precisa buscar o book da API
-                          cachedFetch<GutendexBook>(`/api/leitura/gutendex?action=book&id=${saved.book_id}`)
+                          cachedFetch<GutendexBook>(`https://gutendex.com/books/${saved.book_id}/`)
                             .then((book) => {
                               const htmlUrl = book.formats?.["text/html"];
                               if (!htmlUrl) { toast.error("Conteúdo indisponível"); return; }
@@ -396,7 +392,7 @@ export default function LeituraPage() {
                     {wantToRead.map((saved) => (
                       <SavedBookCard key={saved.id} saved={saved}
                         onRead={() => {
-                          cachedFetch<GutendexBook>(`/api/leitura/gutendex?action=book&id=${saved.book_id}`)
+                          cachedFetch<GutendexBook>(`https://gutendex.com/books/${saved.book_id}/`)
                             .then((book) => {
                               const htmlUrl = book.formats?.["text/html"];
                               if (!htmlUrl) { toast.error("Conteúdo indisponível"); return; }
