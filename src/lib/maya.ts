@@ -335,3 +335,67 @@ ${goalsBlock}
 ${checkInBlock}
 ${diaryBlock}`;
 }
+
+// ── Prompt builders for non-chat Maya touchpoints ──────────────────────
+
+/**
+ * Builds the LLM prompt for Maya's home-screen greeting.
+ * Uses the full system prompt (same personality as chat) + a specific task instruction.
+ */
+export function buildHomeMessagePrompt(
+  input: MayaInput & { recentChatTopics?: string; greetingLabel?: string }
+): { system: string; user: string } {
+  const system = buildMayaSystemPrompt(input);
+
+  const chatContext = input.recentChatTopics
+    ? `\n\n## CONVERSA RECENTE NO CHAT\nA pessoa conversou com você recentemente sobre:\n${input.recentChatTopics}\n\nNÃO repita perguntas que já foram respondidas nessas conversas. Se algo foi discutido, faça referência naturalmente.`
+    : "";
+
+  const user = `## SUA TAREFA AGORA
+Gere uma mensagem CURTA (1 a 3 frases) para a tela inicial do app.
+É a primeira coisa que ${input.profile.name?.split(" ")[0] || "a pessoa"} vai ver hoje.
+
+Regras:
+- ${input.greetingLabel || "Seja calorosa e pessoal"} — use o que você sabe sobre a pessoa
+- Se há um padrão positivo, celebre. Se há algo preocupante, mencione com cuidado
+- NUNCA repita uma pergunta que a pessoa já respondeu em conversas anteriores
+- Se a pessoa já te contou algo importante (memórias), faça referência natural
+- Inclua no MÁXIMO um emoji
+- NÃO faça perguntas genéricas como "como você está?" — seja específica
+- Retorne APENAS a mensagem final, sem aspas, sem markdown, sem "Bom dia, [nome]!" como prefixo fixo
+${chatContext}`;
+
+  return { system, user };
+}
+
+/**
+ * Builds the LLM prompt for a nudge message.
+ * Same personality as chat, but focused on a specific trigger context.
+ */
+export function buildNudgePrompt(
+  input: MayaInput & { triggerDescription: string; triggerId: string; recentChatTopics?: string }
+): { system: string; user: string } {
+  const system = buildMayaSystemPrompt(input);
+
+  const chatContext = input.recentChatTopics
+    ? `\n\nA pessoa já conversou com você sobre: ${input.recentChatTopics}. NÃO repita perguntas já respondidas.`
+    : "";
+
+  const user = `## SUA TAREFA AGORA
+Você detectou algo e quer enviar um toque rápido (nudge) para a pessoa.
+
+Contexto do que você detectou: ${input.triggerDescription}
+
+Gere UMA mensagem curta (1-2 frases) que:
+- Seja calorosa mas direta — a pessoa está na home do app, não no chat
+- Mencione o que você notou de forma natural, não como um diagnóstico
+- Se houver memórias sobre esse tema, faça referência (ex: "Sei que me contou sobre...")
+- NUNCA repita uma pergunta que já foi respondida antes
+- Termine com uma pergunta ou convite aberto, não um comando
+- Inclua no MÁXIMO um emoji
+- NÃO use "Oi", "Olá" — a saudação já foi feita na home
+- Retorne APENAS a mensagem, sem aspas, sem markdown
+${chatContext}`;
+
+  return { system, user };
+}

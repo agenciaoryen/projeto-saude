@@ -59,5 +59,28 @@ export async function POST(req: NextRequest) {
   const { error } = await admin.from("chat_messages").insert(rows);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
+  // Invalidate home-message cache so next dashboard load reflects chat conversation
+  invalidateHomeMessageCache(admin, user.id);
+
   return NextResponse.json({ saved: rows.length });
+}
+
+// ── Cache invalidation ───────────────────────────────────────────────────
+
+function invalidateHomeMessageCache(
+  admin: ReturnType<typeof getSupabaseAdmin>,
+  userId: string,
+) {
+  admin
+    .from("user_preferences")
+    .select("context")
+    .eq("user_id", userId)
+    .single()
+    .then(({ data }) => {
+      if (!data) return;
+      const ctx = { ...(data.context as Record<string, unknown>) };
+      delete ctx.maya_home_message;
+      return admin.from("user_preferences").update({ context: ctx }).eq("user_id", userId);
+    })
+    .catch(() => {});
 }

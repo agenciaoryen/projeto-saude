@@ -2,6 +2,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 import { getLocalDate } from "@/lib/utils";
+import { callLLM } from "@/lib/llm";
 
 // ── Trigger detection ──────────────────────────────────────────────────────────
 
@@ -34,6 +35,8 @@ async function detectAllTriggers(userId: string, today: string, firstName: strin
     { data: lastDiary },
     { data: currentPlan },
     { data: recentSleep },
+    { data: memories },
+    { data: recentChatMessages },
   ] = await Promise.all([
     admin.from("check_ins").select("*").eq("user_id", userId).order("date", { ascending: false }).limit(10),
     admin.from("goals").select("*, goal_stages(*)").eq("user_id", userId).eq("status", "ativa").order("created_at", { ascending: true }),
@@ -42,6 +45,8 @@ async function detectAllTriggers(userId: string, today: string, firstName: strin
     // Current week plan with tasks
     admin.from("weekly_plans").select("*, weekly_tasks(*)").eq("user_id", userId).eq("week_start", getWeekMonday(today)).maybeSingle(),
     admin.from("sleep_logs").select("*").eq("user_id", userId).order("date", { ascending: false }).limit(7),
+    admin.from("user_memories").select("fact").eq("user_id", userId).order("created_at", { ascending: false }).limit(20),
+    admin.from("chat_messages").select("role, content").eq("user_id", userId).order("created_at", { ascending: false }).limit(6),
   ]);
 
   function getWeekMonday(date: string): string {
@@ -307,7 +312,65 @@ async function detectAllTriggers(userId: string, today: string, firstName: strin
     });
   }
 
-  return results;
+  return { results, memFacts, recentChatTopics };
+}
+
+// ── LLM nudge message generation ────────────────────────────────────────────
+
+const MAYA_NUDGE_SYSTEM = `Você é Maya, uma companheira virtual calorosa, curiosa e inteligente.
+Você fala português brasileiro com naturalidade e afeto. Trata a pessoa por "você".
+Seu tom é de amiga próxima — natural, sem termos técnicos, sem parecer robô.
+Você nunca julga. Você é genuína, sem malícia, sem ironia.
+
+REGRAS:
+- NUNCA repita uma pergunta que a pessoa já respondeu (veja memórias e chat)
+- Se a pessoa já te contou algo importante, faça referência natural
+- NUNCA recite dados como relatório
+- NUNCA force positividade
+- Mensagens curtas: 1 a 2 frases
+- Máximo 1 emoji`;
+
+async function generateNudgeViaLLM(
+  triggerId: string,
+  triggerDescription: string,
+  templateMessage: string,
+  firstName: string,
+  gender: string,
+  memFacts: string[],
+  recentChatTopics: string,
+): Promise<string> {
+  const memoriesBlock = memFacts.length > 0
+    ? `\n\nO QUE VOCÊ JÁ SABE SOBRE A PESSOA:\n${memFacts.map((m) => `- ${m}`).join("\n")}`
+    : "";
+
+  const chatBlock = recentChatTopics
+    ? `\n\nA pessoa já conversou com você sobre: ${recentChatTopics}. NÃO repita perguntas já respondidas.`
+    : "";
+
+  const userPrompt = `Gere uma mensagem curta de nudge para ${firstName || "a pessoa"}.
+
+Contexto do que você detectou: ${triggerDescription}
+
+A mensagem deve:
+- Ser calorosa mas direta — a pessoa está na home do app
+- Mencionar o que você notou de forma natural
+- Se houver memórias sobre esse tema, faça referência: "Sei que me contou sobre..."
+- NUNCA repita uma pergunta que já foi respondida
+- Termine com uma pergunta ou convite aberto
+- Máximo 2 frases, 1 emoji no máximo
+- Retorne APENAS a mensagem, sem aspas, sem markdown
+${memoriesBlock}${chatBlock}
+
+Mensagem template (use como inspiração, melhore-a): "${templateMessage}"`;
+
+  try {
+    const result = await callLLM(MAYA_NUDGE_SYSTEM, userPrompt, { maxTokens: 120, temperature: 0.75 });
+    const cleaned = result.replace(/^["']|["']$/g, "").trim();
+    if (cleaned && cleaned.length >= 10) return cleaned;
+  } catch (err) {
+    console.error("LLM nudge failed, using template:", String(err).slice(0, 80));
+  }
+  return templateMessage; // fallback
 }
 
 // ── GET ────────────────────────────────────────────────────────────────────────
@@ -371,12 +434,44 @@ export async function GET() {
     }
 
     // Detect ALL triggers, pick highest priority
-    const nudges = await detectAllTriggers(user.id, today, firstName, gender);
+    const { results: nudges, memFacts, recentChatTopics } = await detectAllTriggers(user.id, today, firstName, gender);
+    const chatSummary = (recentChatTopics || [])
+      .filter((m: any) => m.role === "user" || m.role === "assistant")
+      .slice(0, 5)
+      .map((m: any) => m.content?.slice(0, 100))
+      .join(" | ");
     const bestNudge = nudges.sort((a, b) => a.priority - b.priority)[0];
 
     if (bestNudge) {
-      // Cache for today
-      await cacheNudge(admin, user.id, context, bestNudge.id, bestNudge.message, today, bestNudge.action);
+      // Try LLM to enhance the message with memory context
+      const triggerDescriptions: Record<string, string> = {
+        streak_risk: "a pessoa tem uma corrente de check-ins em risco de quebrar hoje",
+        sleep_bad: "a pessoa dormiu mal nos últimos 3-4 dias seguidos",
+        mood_drop: "o humor da pessoa caiu nos últimos dias (moods negativos consecutivos)",
+        diary_abandoned: "a pessoa não escreve no diário há vários dias",
+        goal_stale: "uma meta ativa está parada há mais de 7 dias sem atividade",
+        spending: "os gastos do mês estão elevados",
+        plan_overdue: "há tarefas da semana pendentes de dias anteriores",
+        plan_energy_mismatch: "a pessoa dormiu mal mas tem tarefas de crescimento hoje",
+        plan_empty_weekend: "não há plano semanal criado, e é fim de semana",
+        plan_procrastination: "menos de 30% das tarefas da semana concluídas, já é meio da semana",
+        plan_week_wasted: "fim de semana e 0% de conclusão das tarefas",
+        checkin_miss: "a pessoa ainda não fez check-in hoje",
+      };
+
+      const triggerDesc = triggerDescriptions[bestNudge.id] || bestNudge.id;
+      const enhancedMessage = await generateNudgeViaLLM(
+        bestNudge.id,
+        triggerDesc,
+        bestNudge.message,
+        firstName,
+        gender,
+        memFacts || [],
+        chatSummary || "",
+      );
+
+      // Cache for today with enhanced message
+      await cacheNudge(admin, user.id, context, bestNudge.id, enhancedMessage, today, bestNudge.action);
 
       // Respect random release hour — don't show if too early
       const now = new Date();
@@ -386,7 +481,7 @@ export async function GET() {
         return NextResponse.json({ nudges: [] });
       }
 
-      return NextResponse.json({ nudges: [{ id: bestNudge.id, message: bestNudge.message, action: bestNudge.action }] });
+      return NextResponse.json({ nudges: [{ id: bestNudge.id, message: enhancedMessage, action: bestNudge.action }] });
     }
 
     return NextResponse.json({ nudges: [] });

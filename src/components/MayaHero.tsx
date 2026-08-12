@@ -4,124 +4,63 @@ import { useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "@/lib/useTranslation";
 import { MayaAvatar } from "@/components/MayaAvatar";
-import { getMoodLabel, getMoodById } from "@/lib/checkin-moods";
-import type { CheckIn, SleepLog } from "@/types";
 
-const NEGATIVE_MOODS = new Set([
-  "ansiosa", "triste", "cansada", "sobrecarregada", "irritada", "frustrada",
-]);
-
-function formatMood(moodId: string, gender: string): string {
-  const chip = getMoodById(moodId);
-  return chip ? getMoodLabel(chip, gender) : moodId;
+interface HomeMessage {
+  message: string;
+  state?: string;
+  action?: { label: string; href: string };
 }
 
 interface MayaHeroProps {
   firstName: string;
   userGender: string;
-  todayCheckIn: CheckIn | null;
-  recentSleep: SleepLog | null;
-  todaySpending: number | null;
-  spendingLimit: number;
-  lastMood: string;
-  mayaNudge?: { message: string; action?: { label: string; href: string } } | null;
-  todayTasks?: { status: string; day_of_week?: number }[];
+  homeMessage: HomeMessage | null;
+  /** Whether the dashboard is still loading core data */
   loading?: boolean;
 }
 
+const AURA_GRADIENTS: Record<string, string> = {
+  celebration:
+    "radial-gradient(circle, rgba(245,158,11,0.18) 0%, rgba(245,158,11,0.05) 35%, transparent 65%)",
+  concern:
+    "radial-gradient(circle, rgba(94,234,212,0.12) 0%, rgba(94,234,212,0.03) 35%, transparent 65%)",
+  reflection:
+    "radial-gradient(circle, rgba(167,139,250,0.10) 0%, rgba(124,92,255,0.04) 35%, transparent 65%)",
+  greeting:
+    "radial-gradient(circle, rgba(124,92,255,0.15) 0%, rgba(94,234,212,0.05) 35%, transparent 65%)",
+};
+
 export function MayaHero({
   firstName,
-  userGender,
-  todayCheckIn,
-  recentSleep,
-  todaySpending,
-  spendingLimit,
-  lastMood,
-  mayaNudge,
-  todayTasks,
+  userGender: _userGender,
+  homeMessage,
   loading,
 }: MayaHeroProps) {
   const router = useRouter();
   const { t } = useTranslation();
 
-  const timeGreeting = useMemo(() => {
-    const h = new Date().getHours();
-    if (h < 5) return { saudacao: "Boa noite", icon: "🌙" };
-    if (h < 12) return { saudacao: "Bom dia", icon: "☀️" };
-    if (h < 18) return { saudacao: "Boa tarde", icon: "🌤️" };
-    return { saudacao: "Boa noite", icon: "🌙" };
-  }, []);
+  const auraStyle = useMemo(() => {
+    const state = homeMessage?.state || "greeting";
+    return AURA_GRADIENTS[state] || AURA_GRADIENTS.greeting;
+  }, [homeMessage?.state]);
 
-  const mayaMessage = useMemo(() => {
-    if (!firstName) return null;
-    const sleepQuality = recentSleep?.quality ?? null;
-    const sleepBad = sleepQuality != null && sleepQuality <= 2;
-    const sleepGood = sleepQuality != null && sleepQuality >= 4;
-    const spendingPct =
-      todaySpending !== null && spendingLimit > 0
-        ? Math.round((todaySpending / spendingLimit) * 100)
-        : null;
+  const message = homeMessage?.message ?? null;
 
-    const tasks = todayTasks || [];
-    const todayDone = tasks.filter(t => t.status === "concluida").length;
-    const todayTotal = tasks.length;
-    const { saudacao } = timeGreeting;
+  const ctaLabel = useMemo(() => {
+    if (homeMessage?.action) return homeMessage.action.label;
+    return t("conversar_com_maya");
+  }, [homeMessage?.action, t]);
 
-    // Priority: nudge from API (already contextual)
-    if (mayaNudge?.message) return mayaNudge.message;
-
-    if (!todayCheckIn) {
-      let msg = `${saudacao}, ${firstName}! `;
-      if (sleepBad && spendingPct && spendingPct > 60) {
-        msg += `Você dormiu mal e já gastou ${spendingPct}% do orçamento. Como pretende virar esse jogo hoje?`;
-      } else if (sleepBad && todayTotal > 0) {
-        msg += `Dormiu mal essa noite e tem ${todayTotal} tarefa${todayTotal > 1 ? "s" : ""} planejada${todayTotal > 1 ? "s" : ""}. Quer ajustar pra algo mais leve hoje?`;
-      } else if (sleepGood && todayTotal > 0) {
-        msg += `Que bom que descansou bem! Tem ${todayTotal} tarefa${todayTotal > 1 ? "s" : ""} pra hoje. Bora fazer valer?`;
-      } else if (todayTotal > 0) {
-        msg += `Tem ${todayTotal} tarefa${todayTotal > 1 ? "s" : ""} planejada${todayTotal > 1 ? "s" : ""} pra hoje. Registre como está pra eu personalizar melhor.`;
-      } else {
-        msg += `Registre como está hoje. Quanto mais você me conta, mais eu posso te ajudar.`;
-      }
-      return msg;
-    }
-
-    if (lastMood && NEGATIVE_MOODS.has(lastMood)) {
-      return `Sei que "${formatMood(lastMood, userGender)}" não é fácil, ${firstName}. Quer conversar sobre o que está pesando?`;
-    }
-
-    // Post-check-in: contextual based on plan progress
-    if (todayTotal > 0 && todayDone === 0) {
-      return `${saudacao}, ${firstName}! Nenhuma tarefa concluída ainda — quer começar pela mais rápida?`;
-    }
-    if (todayTotal > 0 && todayDone === todayTotal) {
-      return `Uau, ${firstName}! 🎉 Todas as ${todayTotal} tarefas de hoje concluídas. Isso merece uma comemoração!`;
-    }
-    if (todayTotal > 0 && todayDone > 0) {
-      return `${todayDone}/${todayTotal} tarefas feitas hoje, ${firstName}. Tá indo bem! Quer conversar sobre o que ainda falta?`;
-    }
-
-    const pergunta = timeGreeting.saudacao === "Boa noite" ? "Como foi seu dia?" : "Como está sendo seu dia?";
-    return `${saudacao}, ${firstName}. ${pergunta}`;
-  }, [firstName, todayCheckIn, recentSleep, todaySpending, spendingLimit, lastMood, mayaNudge, userGender, todayTasks, timeGreeting]);
-
-  // Default CTA when no nudge action
-  const defaultAction = useMemo(() => {
-    if (mayaNudge?.action) return mayaNudge.action;
-    const tasks = todayTasks || [];
-    const todayTotal = tasks.length;
-    const todayDone = tasks.filter(t => t.status === "concluida").length;
-    // If there are pending tasks, CTA = go to agenda
-    if (todayTotal > 0 && todayDone < todayTotal) {
-      return { label: "Ver tarefas do dia", href: "/agenda" };
-    }
-    // Default: chat with Maya
-    return { label: t("conversar_com_maya"), href: "/insights" };
-  }, [mayaNudge, todayTasks, t]);
+  const ctaHref = useMemo(() => {
+    if (homeMessage?.action) return homeMessage.action.href;
+    // Carry Maya's message as context for the chat
+    if (message) return `/insights?context=${encodeURIComponent(message)}`;
+    return "/insights";
+  }, [homeMessage?.action, message]);
 
   return (
     <div className="relative flex flex-col items-center" style={{ paddingTop: 0, paddingBottom: 24 }}>
-      {/* Background aura */}
+      {/* Background aura — adapts to Maya's state */}
       <div
         className="absolute pointer-events-none"
         style={{
@@ -129,8 +68,8 @@ export function MayaHero({
           width: 340,
           height: 340,
           borderRadius: "50%",
-          background:
-            "radial-gradient(circle, rgba(124,92,255,0.15) 0%, rgba(94,234,212,0.05) 35%, transparent 65%)",
+          background: auraStyle,
+          transition: "background 0.8s ease",
         }}
       />
 
@@ -148,7 +87,7 @@ export function MayaHero({
           marginBottom: 20,
         }}
       >
-        {loading || mayaMessage === null ? (
+        {loading || !message ? (
           <div className="space-y-2 flex flex-col items-center">
             <div
               className="h-4 rounded-full animate-pulse w-[260px]"
@@ -168,44 +107,31 @@ export function MayaHero({
             className="text-[16px] leading-[1.5] font-medium tracking-tight whitespace-pre-wrap"
             style={{ color: "#e0d6ff" }}
           >
-            {mayaMessage}
+            {message}
           </p>
         )}
       </div>
 
-      {/* CTA Button — adapts to context */}
-      {(() => {
-        const action = defaultAction;
-        const label = action.label;
-        const href = action.href;
-        const isChat = href.startsWith("/insights") && mayaMessage;
-        // If going to chat, carry Maya's message as context
-        const finalHref = isChat
-          ? `/insights?context=${encodeURIComponent(mayaMessage)}`
-          : href;
-
-        return (
-          <button
-            type="button"
-            onClick={() => router.push(finalHref)}
-            className="inline-flex items-center justify-center h-12 px-8 rounded-2xl border-0 cursor-pointer font-[inherit] text-[15px] font-bold text-white transition-transform duration-150 ease-out"
-            style={{
-              background: "linear-gradient(135deg, #7C5CFF, #A78BFA)",
-              boxShadow: "0 4px 20px rgba(124,92,255,0.4)",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = "scale(1.03)";
-              e.currentTarget.style.boxShadow = "0 6px 28px rgba(124,92,255,0.55)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = "scale(1)";
-              e.currentTarget.style.boxShadow = "0 4px 20px rgba(124,92,255,0.4)";
-            }}
-          >
-            {label}
-          </button>
-        );
-      })()}
+      {/* CTA Button */}
+      <button
+        type="button"
+        onClick={() => router.push(ctaHref)}
+        className="inline-flex items-center justify-center h-12 px-8 rounded-2xl border-0 cursor-pointer font-[inherit] text-[15px] font-bold text-white transition-transform duration-150 ease-out"
+        style={{
+          background: "linear-gradient(135deg, #7C5CFF, #A78BFA)",
+          boxShadow: "0 4px 20px rgba(124,92,255,0.4)",
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = "scale(1.03)";
+          e.currentTarget.style.boxShadow = "0 6px 28px rgba(124,92,255,0.55)";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = "scale(1)";
+          e.currentTarget.style.boxShadow = "0 4px 20px rgba(124,92,255,0.4)";
+        }}
+      >
+        {ctaLabel}
+      </button>
     </div>
   );
 }

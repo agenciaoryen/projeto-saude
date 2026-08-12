@@ -14,15 +14,6 @@ import { InsightsCarousel } from "@/components/InsightsCarousel";
 import { EvolucaoSpark } from "@/components/EvolucaoSpark";
 import type { CheckIn, SleepLog, WeeklyTask } from "@/types";
 
-// ── Helpers ─────────────────────────────────────────────────────
-
-function greetingTimeOfDay(t: (key: string) => string) {
-  const h = new Date().getHours();
-  if (h < 12) return t("bom_dia");
-  if (h < 18) return t("boa_tarde");
-  return t("boa_noite");
-}
-
 // ── Page ────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
@@ -41,8 +32,15 @@ export default function DashboardPage() {
   const [userName, setUserName] = useState("");
   const [userGender, setUserGender] = useState("");
 
-  // Maya nudge
-  const [mayaNudge, setMayaNudge] = useState<{ message: string; action?: { label: string; href: string } } | null>(null);
+  // Maya nudge (for CTA action)
+  const [mayaNudgeAction, setMayaNudgeAction] = useState<{ label: string; href: string } | null>(null);
+
+  // Maya home message (from LLM, via /api/maya/home-message)
+  const [homeMessage, setHomeMessage] = useState<{
+    message: string;
+    state?: string;
+    action?: { label: string; href: string };
+  } | null>(null);
 
   // Finance
   const [todaySpending, setTodaySpending] = useState<number | null>(null);
@@ -99,14 +97,30 @@ export default function DashboardPage() {
       })
       .catch(() => setLoading(false));
 
-    // Maya nudge — independent
+    // Maya home message — independent (LLM-generated, cached 1x/day)
+    fetch(`/api/maya/home-message?tz=${encodeURIComponent(userTz)}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.message) setHomeMessage({ message: data.message, state: data.state });
+      })
+      .catch(() => setHomeMessage(null));
+
+    // Maya nudge — independent (gives extra CTA if a trigger fired)
     fetch("/api/maya/nudge")
       .then((r) => r.json())
       .then((data) => {
         const n = data.nudges?.[0];
-        if (n) setMayaNudge({ message: n.message, action: n.action });
+        if (n?.action) setMayaNudgeAction(n.action);
+        // If nudge has a message different from home message, use it
+        if (n?.message) {
+          setHomeMessage((prev) => ({
+            message: n.message,
+            state: prev?.state,
+            action: n.action || prev?.action,
+          }));
+        }
       })
-      .catch(() => setMayaNudge(null));
+      .catch(() => {});
 
     // Finance — independent
     const now = new Date();
@@ -162,11 +176,6 @@ export default function DashboardPage() {
     : 0;
 
   const positivePct = totalHabits > 0 ? Math.round((positiveCount / totalHabits) * 100) : 0;
-
-  const lastMood = useMemo(() => {
-    const lastCi = checkIns.find((c: CheckIn) => c.mood_tags?.length > 0);
-    return lastCi?.mood_tags?.[0] ?? "";
-  }, [checkIns]);
 
   // Week days for "O Fio"
   const weekDays: ThreadDay[] = useMemo(() => {
@@ -237,13 +246,11 @@ export default function DashboardPage() {
       <MayaHero
         firstName={firstName}
         userGender={userGender}
-        todayCheckIn={todayCheckIn}
-        recentSleep={recentSleep}
-        todaySpending={todaySpending}
-        spendingLimit={spendingLimit}
-        lastMood={lastMood}
-        mayaNudge={mayaNudge}
-        todayTasks={todayTasks}
+        homeMessage={
+          homeMessage
+            ? { ...homeMessage, action: homeMessage.action || mayaNudgeAction || undefined }
+            : null
+        }
         loading={loading}
       />
 

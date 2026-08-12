@@ -214,8 +214,8 @@ export async function syncCheckInField(
   }
 }
 
-// Clears the Maya nudge cache so the next dashboard load generates a fresh
-// message reflecting the new check-in data.
+// Clears the Maya nudge & home-message caches so the next dashboard load
+// generates fresh messages reflecting the latest data.
 function invalidateMayaNudgeCache(
   admin: ReturnType<typeof import("@/lib/supabase/admin").getSupabaseAdmin>,
   userId: string
@@ -229,6 +229,7 @@ function invalidateMayaNudgeCache(
       if (!data) return;
       const ctx = { ...(data.context as Record<string, unknown>) };
       delete ctx.maya_nudge;
+      delete ctx.maya_home_message;
       return admin.from("user_preferences").update({ context: ctx }).eq("user_id", userId);
     })
     .catch(() => {});
