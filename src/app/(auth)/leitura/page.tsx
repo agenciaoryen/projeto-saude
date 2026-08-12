@@ -161,13 +161,9 @@ export default function LeituraPage() {
   };
 
   const handleRead = (book: GutendexBook) => {
-    let htmlUrl = book.formats?.["text/html"];
-    if (!htmlUrl) {
-      toast.error("Conteúdo não disponível para este livro");
-      return;
-    }
-    // Gutendex retorna URLs HTTP — forçar HTTPS para evitar Mixed Content block
-    htmlUrl = htmlUrl.replace(/^http:\/\//, "https://");
+    // Usar URL direto do cache HTTPS — o /ebooks/{id}.html.images redireciona pra HTTP (bloqueado)
+    // Padrão: https://www.gutenberg.org/cache/epub/{bookId}/pg{bookId}-images.html
+    const htmlUrl = `https://www.gutenberg.org/cache/epub/${book.id}/pg${book.id}-images.html`;
     const saved = savedMap.get(book.id);
     setReader({
       htmlUrl,
@@ -368,13 +364,10 @@ export default function LeituraPage() {
                     {reading.map((saved) => (
                       <SavedBookCard key={saved.id} saved={saved}
                         onRead={() => {
-                          // Precisa buscar o book da API
-                          cachedFetch<GutendexBook>(`https://gutendex.com/books/${saved.book_id}/`)
-                            .then((book) => {
-                              const htmlUrl = book.formats?.["text/html"]?.replace(/^http:\/\//, "https://");
-                              if (!htmlUrl) { toast.error("Conteúdo indisponível"); return; }
-                              setReader({ htmlUrl, title: book.title, bookId: book.id, savedId: saved.id, progress: saved.progress });
-                            }).catch(() => toast.error("Erro ao carregar livro"));
+                          // Cache HTTPS direto — evita redirect HTTP do /ebooks/
+                          const htmlUrl = `https://www.gutenberg.org/cache/epub/${saved.book_id}/pg${saved.book_id}-images.html`;
+                          setReader({ htmlUrl, title: saved.title, bookId: saved.book_id, savedId: saved.id, progress: saved.progress });
+                            }
                         }}
                         onRemove={handleRemove}
                         onComplete={handleMarkComplete}
@@ -394,12 +387,8 @@ export default function LeituraPage() {
                     {wantToRead.map((saved) => (
                       <SavedBookCard key={saved.id} saved={saved}
                         onRead={() => {
-                          cachedFetch<GutendexBook>(`https://gutendex.com/books/${saved.book_id}/`)
-                            .then((book) => {
-                              const htmlUrl = book.formats?.["text/html"]?.replace(/^http:\/\//, "https://");
-                              if (!htmlUrl) { toast.error("Conteúdo indisponível"); return; }
-                              setReader({ htmlUrl, title: book.title, bookId: book.id, savedId: saved.id, progress: 0 });
-                            }).catch(() => toast.error("Erro ao carregar livro"));
+                          const htmlUrl = `https://www.gutenberg.org/cache/epub/${saved.book_id}/pg${saved.book_id}-images.html`;
+                          setReader({ htmlUrl, title: saved.title, bookId: saved.book_id, savedId: saved.id, progress: 0 });
                         }}
                         onRemove={handleRemove}
                         onComplete={() => handleMarkComplete(saved)}
