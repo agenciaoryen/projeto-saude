@@ -135,7 +135,8 @@ export default function LeituraPage() {
   const handleSearchKey = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
       setActiveCategory(null);
-      doSearch(search, null, effectiveLang);
+      setLangOverride(null); // busca livre usa idioma do perfil
+      doSearch(search, null, userLang);
     }
   };
 
@@ -143,7 +144,15 @@ export default function LeituraPage() {
     const newCat = activeCategory === cat.key ? null : cat.key;
     setActiveCategory(newCat);
     setSearch("");
-    doSearch("", newCat, effectiveLang);
+    if (newCat) {
+      // Categoria ativa → mostrar todos os idiomas (mais resultados)
+      setLangOverride("");
+      doSearch("", newCat, "");
+    } else {
+      // Desmarcou → voltar ao idioma do perfil
+      setLangOverride(null);
+      doSearch("", null, userLang);
+    }
   };
 
   const handleLangChange = (code: string) => {
